@@ -143,14 +143,15 @@ const Projects: React.FC = () => {
               <TableCell>Status</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Priority</TableCell>
-              <TableCell>Target Date</TableCell>
+              <TableCell>EL Status</TableCell>
+              <TableCell>Timetable</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {projects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={7} align="center">
                   No projects found
                 </TableCell>
               </TableRow>
@@ -176,11 +177,8 @@ const Projects: React.FC = () => {
                   </TableCell>
                   <TableCell>{project.category}</TableCell>
                   <TableCell>{project.priority || '-'}</TableCell>
-                  <TableCell>
-                    {project.targetFilingDate
-                      ? new Date(project.targetFilingDate).toLocaleDateString()
-                      : '-'}
-                  </TableCell>
+                  <TableCell>{project.elStatus || '-'}</TableCell>
+                  <TableCell>{project.timetable || '-'}</TableCell>
                   <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                     <IconButton
                       size="small"

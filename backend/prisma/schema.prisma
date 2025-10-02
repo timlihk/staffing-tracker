@@ -58,11 +58,11 @@ model Project {
   category          String    // HK Transaction, US Transaction, HK Compliance, US Compliance, Others
   status            String    // Active, Slow-down, Suspended
   priority          String?   // High, Medium, Low
+  elStatus          String?   @map("el_status") // EL Status field
   startDate         DateTime? @map("start_date")
-  targetFilingDate  DateTime? @map("target_filing_date")
+  timetable         String?   @db.Text // Timetable text field (replaces targetFilingDate)
   actualFilingDate  DateTime? @map("actual_filing_date")
   notes             String?   @db.Text
-  timelineStatus    String?   @map("timeline_status") @db.Text
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 

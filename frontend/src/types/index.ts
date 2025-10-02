@@ -26,11 +26,11 @@ export interface Project {
   category: string;
   status: string;
   priority?: string;
+  elStatus?: string;
   startDate?: string;
-  targetFilingDate?: string;
+  timetable?: string;
   actualFilingDate?: string;
   notes?: string;
-  timelineStatus?: string;
   assignments?: ProjectAssignment[];
   createdAt: string;
   updatedAt: string;
@@ -97,7 +97,7 @@ export interface DashboardSummary {
     id: number;
     name: string;
     category: string;
-    targetFilingDate: string;
+    timetable: string;
   }>;
   recentActivity: ActivityLog[];
 }

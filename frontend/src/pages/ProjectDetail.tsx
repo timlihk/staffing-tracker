@@ -130,6 +130,12 @@ const ProjectDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="subtitle2" color="text.secondary">
+                  EL Status
+                </Typography>
+                <Typography>{project.elStatus || '-'}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="subtitle2" color="text.secondary">
                   Start Date
                 </Typography>
                 <Typography>
@@ -140,13 +146,9 @@ const ProjectDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Target Filing Date
+                  Timetable
                 </Typography>
-                <Typography>
-                  {project.targetFilingDate
-                    ? new Date(project.targetFilingDate).toLocaleDateString()
-                    : '-'}
-                </Typography>
+                <Typography>{project.timetable || '-'}</Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">

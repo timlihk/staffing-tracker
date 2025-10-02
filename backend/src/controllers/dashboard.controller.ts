@@ -77,25 +77,21 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       };
     });
 
-    // Get upcoming deadlines (projects with target filing dates in next 30 days)
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
+    // Get upcoming projects by timetable (showing active projects with timetable)
     const upcomingDeadlines = await prisma.project.findMany({
       where: {
         status: 'Active',
-        targetFilingDate: {
-          gte: new Date(),
-          lte: thirtyDaysFromNow,
+        timetable: {
+          not: null,
         },
       },
       select: {
         id: true,
         name: true,
         category: true,
-        targetFilingDate: true,
+        timetable: true,
       },
-      orderBy: { targetFilingDate: 'asc' },
+      orderBy: { updatedAt: 'desc' },
       take: 5,
     });
 

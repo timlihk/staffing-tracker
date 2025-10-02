@@ -25,9 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           maxWidth: '100%',
         }}
       >
-        <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
-          {children}
-        </Box>
+        {children}
       </Box>
     </Box>
   );

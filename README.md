@@ -218,8 +218,8 @@ GET    /api/dashboard/activity-log    - Activity log
 
 **projects** - Client projects
 - id, name, project_code, category, status, priority
-- start_date, target_filing_date, actual_filing_date
-- notes, timeline_status
+- el_status, start_date, timetable, actual_filing_date
+- notes
 
 **project_assignments** - Staff-to-project assignments
 - id, project_id, staff_id, role_in_project, jurisdiction

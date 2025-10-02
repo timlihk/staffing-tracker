@@ -37,8 +37,9 @@ const ProjectForm: React.FC = () => {
     category: '',
     status: 'Active',
     priority: 'Medium',
+    elStatus: '',
     startDate: '',
-    targetFilingDate: '',
+    timetable: '',
     notes: '',
   });
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -71,12 +72,11 @@ const ProjectForm: React.FC = () => {
         category: project.category || '',
         status: project.status,
         priority: project.priority || 'Medium',
+        elStatus: project.elStatus || '',
         startDate: project.startDate
           ? new Date(project.startDate).toISOString().split('T')[0]
           : '',
-        targetFilingDate: project.targetFilingDate
-          ? new Date(project.targetFilingDate).toISOString().split('T')[0]
-          : '',
+        timetable: project.timetable || '',
         notes: project.notes || '',
       });
     } catch (error) {
@@ -226,6 +226,15 @@ const ProjectForm: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                label="EL Status"
+                name="elStatus"
+                value={formData.elStatus}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
                 type="date"
                 label="Start Date"
                 name="startDate"
@@ -237,12 +246,11 @@ const ProjectForm: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                type="date"
-                label="Target Filing Date"
-                name="targetFilingDate"
-                value={formData.targetFilingDate}
+                label="Timetable"
+                name="timetable"
+                value={formData.timetable}
                 onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
+                placeholder="e.g., Q1 2025, March 15, etc."
               />
             </Grid>
             <Grid item xs={12}>
