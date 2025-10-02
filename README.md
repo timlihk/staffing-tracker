@@ -67,9 +67,14 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - ✅ Merged duplicate staff records (William/WIlliam, Tingting/TIngting)
 - ✅ Added clickable rows to Project Report for navigation
 - ✅ Fixed project navigation using real database IDs instead of synthetic ones
-- ✅ Enhanced Project Report with proper project linking
-- ✅ Restructured StaffDetail page with horizontal layout
-- ✅ Removed "Lead" field from entire application (frontend, backend, database)
+- ✅ Enhanced Project Report with proper project linking (fixed both report services)
+- ✅ Restructured StaffDetail page with horizontal layout for better UX
+- ✅ Completely removed "Lead" field from entire application:
+  - Frontend: Removed chips from StaffDetail and ProjectDetail, removed column from Reports
+  - Backend: Removed from all controllers, services, and migration scripts
+  - Database: Dropped is_lead column with migration 20251003034500_remove_is_lead
+  - Scripts: Updated Excel migration and sync scripts
+  - Excel Export: Removed Lead column from reports
 
 **Earlier Updates:**
 - ✅ Fixed table alignment issues in Project Report

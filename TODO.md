@@ -179,15 +179,24 @@
   - [x] Show Notes in full width below
   - [x] Move Projects table below staff info section
   - [x] Improved mobile responsiveness
-- [x] Removed "Lead" field completely
-  - [x] Removed "Lead" chip from StaffDetail project assignments
-  - [x] Removed "Lead" chip from ProjectDetail staff assignments
-  - [x] Removed "Lead" column from Reports page
-  - [x] Removed isLead from frontend TypeScript types
-  - [x] Removed isLead from backend Prisma schema
-  - [x] Created database migration to drop is_lead column
-  - [x] Updated assignment controller (create/update/bulk)
-  - [x] Updated reports service and types
+- [x] Removed "Lead" field completely from entire application
+  - [x] Frontend removals:
+    - [x] Removed "Lead" chip from StaffDetail project assignments
+    - [x] Removed "Lead" chip from ProjectDetail staff assignments
+    - [x] Removed "Lead" column from Reports page
+    - [x] Removed isLead from TypeScript types (index.ts)
+  - [x] Backend schema and migrations:
+    - [x] Removed isLead from Prisma schema
+    - [x] Created database migration 20251003034500_remove_is_lead
+    - [x] Applied migration to production database
+    - [x] Regenerated Prisma client
+  - [x] Backend controllers and services:
+    - [x] Updated assignment controller (create/update/bulk)
+    - [x] Updated reports service and types
+    - [x] Updated dashboard controller (workload report)
+    - [x] Updated migrate-excel.ts script
+    - [x] Updated sync-from-excel.ts script (2 locations)
+    - [x] Updated reports.excel.ts (Excel export)
 
 ---
 
