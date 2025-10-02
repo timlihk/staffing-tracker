@@ -15,6 +15,7 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  TableSortLabel,
   CircularProgress,
 } from '@mui/material';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
@@ -72,6 +73,8 @@ const ProjectReport: React.FC = () => {
   const [totalProjects, setTotalProjects] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [orderBy, setOrderBy] = useState<'projectName' | 'category'>('projectName');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -108,6 +111,27 @@ const ProjectReport: React.FC = () => {
   };
 
   const onPrint = () => window.print();
+
+  const handleRequestSort = (property: 'projectName' | 'category') => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const sortedRows = React.useMemo(() => {
+    const comparator = (a: ProjectReportRow, b: ProjectReportRow) => {
+      if (orderBy === 'projectName') {
+        return order === 'asc'
+          ? a.projectName.localeCompare(b.projectName)
+          : b.projectName.localeCompare(a.projectName);
+      } else {
+        return order === 'asc'
+          ? a.category.localeCompare(b.category)
+          : b.category.localeCompare(a.category);
+      }
+    };
+    return [...rows].sort(comparator);
+  }, [rows, order, orderBy]);
 
   return (
     <>
@@ -210,8 +234,24 @@ const ProjectReport: React.FC = () => {
             <Table sx={{ minWidth: 650 }} size="small">
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.100' }}>
-                  <TableCell sx={{ fontWeight: 700 }}>Project</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    <TableSortLabel
+                      active={orderBy === 'projectName'}
+                      direction={orderBy === 'projectName' ? order : 'asc'}
+                      onClick={() => handleRequestSort('projectName')}
+                    >
+                      Project
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    <TableSortLabel
+                      active={orderBy === 'category'}
+                      direction={orderBy === 'category' ? order : 'asc'}
+                      onClick={() => handleRequestSort('category')}
+                    >
+                      Category
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>US - Partner</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>US - Associate</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>US - Sr FLIC</TableCell>
@@ -228,7 +268,7 @@ const ProjectReport: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                {sortedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
                   <TableRow key={row.id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
                     <TableCell>{row.projectName}</TableCell>
                     <TableCell>{row.category}</TableCell>
