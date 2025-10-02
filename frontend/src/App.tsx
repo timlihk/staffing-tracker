@@ -14,7 +14,6 @@ import ProjectForm from './pages/ProjectForm';
 import Staff from './pages/Staff';
 import StaffDetail from './pages/StaffDetail';
 import StaffForm from './pages/StaffForm';
-import Reports from './pages/Reports';
 import ProjectReport from './pages/ProjectReport';
 
 function App() {
@@ -123,16 +122,6 @@ function App() {
             />
 
             {/* Reports */}
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Reports />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
             <Route
               path="/project-report"
               element={
