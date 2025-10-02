@@ -248,13 +248,19 @@ const ProjectForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
+                select
                 fullWidth
                 label="Timetable"
                 name="timetable"
                 value={formData.timetable}
                 onChange={handleChange}
-                placeholder="e.g., Q1 2025, March 15, etc."
-              />
+              >
+                <MenuItem value="">None</MenuItem>
+                <MenuItem value="Pre-A1">Pre-A1</MenuItem>
+                <MenuItem value="A1">A1</MenuItem>
+                <MenuItem value="Hearing">Hearing</MenuItem>
+                <MenuItem value="Listing">Listing</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12}>
               <TextField

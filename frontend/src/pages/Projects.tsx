@@ -99,7 +99,7 @@ const Projects: React.FC = () => {
     { field: 'category', headerName: 'Category', width: 200 },
     { field: 'priority', headerName: 'Priority', width: 100 },
     { field: 'elStatus', headerName: 'EL Status', width: 150 },
-    { field: 'timetable', headerName: 'Timetable', width: 180 },
+    { field: 'timetable', headerName: 'Timetable', width: 120 },
     {
       field: 'actions',
       headerName: 'Actions',
