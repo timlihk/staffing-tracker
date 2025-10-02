@@ -23,7 +23,6 @@ interface TeamMember {
   staffId: number;
   roleInProject: string;
   jurisdiction: string;
-  allocationPercentage: number;
   isLead: boolean;
 }
 
@@ -127,7 +126,6 @@ const ProjectForm: React.FC = () => {
         staffId: 0,
         roleInProject: 'Associate',
         jurisdiction: 'US Law',
-        allocationPercentage: 100,
         isLead: false,
       },
     ]);
@@ -319,17 +317,6 @@ const ProjectForm: React.FC = () => {
                         <MenuItem value="HK Law">HK Law</MenuItem>
                         <MenuItem value="B&C">B&C</MenuItem>
                       </TextField>
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        label="Allocation %"
-                        value={member.allocationPercentage}
-                        onChange={(e) => updateTeamMember(index, 'allocationPercentage', parseInt(e.target.value))}
-                        inputProps={{ min: 0, max: 100 }}
-                      />
                     </Grid>
                     <Grid item xs={12} md={2}>
                       <TextField

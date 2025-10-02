@@ -37,7 +37,6 @@ type ReportRow = {
   staffDepartment: string | null;
   roleInProject: string;
   jurisdiction: string | null;
-  allocationPct: number;
   isLead: boolean;
   startDate: string | null;
   endDate: string | null;
@@ -77,7 +76,6 @@ const columns: GridColDef<ReportRow>[] = [
   { field: 'staffDepartment', headerName: 'Dept', width: 100 },
   { field: 'roleInProject', headerName: 'Project Role', width: 140 },
   { field: 'jurisdiction', headerName: 'Jurisdiction', width: 120 },
-  { field: 'allocationPct', headerName: 'Alloc %', type: 'number', width: 90 },
   {
     field: 'isLead',
     headerName: 'Lead',
@@ -117,7 +115,6 @@ const Reports: React.FC = () => {
     rows: 0,
     projects: 0,
     staff: 0,
-    avgAllocationPct: 0,
   });
 
   const fetchData = useCallback(async () => {
@@ -140,7 +137,6 @@ const Reports: React.FC = () => {
         id: `${r.name}-${r.staffName}-${i}`,
       }));
       setRows(withIds);
-      setTotals(res.data?.meta?.totals || { rows: 0, projects: 0, staff: 0, avgAllocationPct: 0 });
     } catch (error) {
       console.error('Failed to fetch report:', error);
     } finally {
@@ -312,9 +308,6 @@ const Reports: React.FC = () => {
                 <Chip label={`${totals.rows} Assignments`} color="primary" />
                 <Chip label={`${totals.projects} Projects`} color="secondary" />
                 <Chip label={`${totals.staff} Staff`} />
-                <Chip
-                  label={`Avg ${totals.avgAllocationPct ? Math.round(totals.avgAllocationPct) : 0}%`}
-                />
               </Stack>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {categories.length > 0 && (

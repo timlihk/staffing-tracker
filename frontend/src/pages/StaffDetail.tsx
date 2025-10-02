@@ -92,13 +92,6 @@ const StaffDetail: React.FC = () => {
     (a) => a.project?.status === 'Active' || a.project?.status === 'Slow-down'
   ) || [];
 
-  const totalAllocation = activeProjects.reduce(
-    (sum, assignment) => sum + assignment.allocationPercentage,
-    0
-  );
-
-  const isOverAllocated = totalAllocation > 100;
-
   return (
     <Page
       title={
@@ -168,32 +161,6 @@ const StaffDetail: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Total Allocation
-                  </Typography>
-                  <Typography variant="h4" color={isOverAllocated ? 'error' : 'inherit'}>
-                    {totalAllocation}%
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Capacity Status
-                  </Typography>
-                  <Chip
-                    label={isOverAllocated ? 'Over Allocated' : 'Available'}
-                    color={isOverAllocated ? 'error' : 'success'}
-                    sx={{ mt: 1 }}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
           </Grid>
         </Grid>
 
@@ -210,7 +177,6 @@ const StaffDetail: React.FC = () => {
                       <TableCell>Category</TableCell>
                       <TableCell>Role</TableCell>
                       <TableCell>Jurisdiction</TableCell>
-                      <TableCell align="right">Allocation</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -243,18 +209,6 @@ const StaffDetail: React.FC = () => {
                         <TableCell>{assignment.project?.category}</TableCell>
                         <TableCell>{assignment.roleInProject}</TableCell>
                         <TableCell>{assignment.jurisdiction || '-'}</TableCell>
-                        <TableCell align="right">
-                          <Typography
-                            color={
-                              assignment.project?.status === 'Active' ||
-                              assignment.project?.status === 'Slow-down'
-                                ? 'inherit'
-                                : 'text.secondary'
-                            }
-                          >
-                            {assignment.allocationPercentage}%
-                          </Typography>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

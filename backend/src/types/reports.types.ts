@@ -25,7 +25,6 @@ export type ReportRow = {
   staffDepartment: string | null;
   roleInProject: string;
   jurisdiction: string | null;
-  allocationPct: number;
   isLead: boolean;
   startDate: string | null;
   endDate: string | null;
@@ -39,7 +38,6 @@ export type ReportResponse = {
       rows: number;
       projects: number;
       staff: number;
-      avgAllocationPct: number | null;
     };
   };
 };

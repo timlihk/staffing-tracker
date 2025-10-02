@@ -10,9 +10,6 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
   const count = rows.length;
   const uniqueProjects = new Set(rows.map(r => r.name)).size;
   const uniqueStaff = new Set(rows.map(r => r.staffName)).size;
-  const avg = count > 0
-    ? rows.reduce((acc, r) => acc + r.allocationPct, 0) / count
-    : 0;
 
   summary.addRows([
     ['Kirkland & Ellis - Staffing Report'],
@@ -31,7 +28,6 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
     ['Total Assignments', count],
     ['Unique Projects', uniqueProjects],
     ['Unique Staff', uniqueStaff],
-    ['Avg Allocation %', Number.isFinite(avg) ? Math.round(avg * 10) / 10 : 0],
   ]);
 
   // Styling for summary
@@ -59,7 +55,6 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
     { header: 'Department', key: 'staffDepartment', width: 14 },
     { header: 'Role in Project', key: 'roleInProject', width: 18 },
     { header: 'Jurisdiction', key: 'jurisdiction', width: 14 },
-    { header: 'Allocation %', key: 'allocationPct', width: 12, style: { numFmt: '0' } },
     { header: 'Lead', key: 'isLead', width: 8 },
     { header: 'Start Date', key: 'startDate', width: 14 },
     { header: 'End Date', key: 'endDate', width: 14 },
@@ -90,7 +85,6 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
       staffDepartment: r.staffDepartment || '',
       roleInProject: r.roleInProject,
       jurisdiction: r.jurisdiction || '',
-      allocationPct: r.allocationPct,
       isLead: r.isLead ? 'Yes' : 'No',
       startDate: r.startDate ? new Date(r.startDate).toISOString().split('T')[0] : '',
       endDate: r.endDate ? new Date(r.endDate).toISOString().split('T')[0] : '',

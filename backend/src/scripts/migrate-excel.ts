@@ -207,7 +207,6 @@ async function migrateFromExcel(excelFilePath: string) {
                   staffId,
                   roleInProject: role,
                   jurisdiction,
-                  allocationPercentage: 100,
                   isLead: role === 'IP' || role === 'B&C Working Attorney',
                 },
               });
