@@ -47,7 +47,7 @@ const Projects: React.FC = () => {
       if (searchTerm) params.search = searchTerm;
 
       const response = await api.get('/projects', { params });
-      setProjects(response.data.projects);
+      setProjects(response.data.data);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     } finally {
