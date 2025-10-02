@@ -9,15 +9,28 @@ import {
   Grid,
   MenuItem,
   CircularProgress,
+  Autocomplete,
+  Chip,
+  Divider,
+  IconButton,
 } from '@mui/material';
-import { ArrowBack, Save } from '@mui/icons-material';
+import { ArrowBack, Save, Delete, Add } from '@mui/icons-material';
 import api from '../api/client';
-import { Project } from '../types';
+import { Project, Staff } from '../types';
+
+interface TeamMember {
+  staffId: number;
+  roleInProject: string;
+  jurisdiction: string;
+  allocationPercentage: number;
+  isLead: boolean;
+}
 
 const ProjectForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     projectCode: '',
@@ -28,14 +41,25 @@ const ProjectForm: React.FC = () => {
     targetFilingDate: '',
     notes: '',
   });
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   const isEdit = id !== 'new';
 
   useEffect(() => {
+    fetchStaff();
     if (isEdit) {
       fetchProject();
     }
   }, [id]);
+
+  const fetchStaff = async () => {
+    try {
+      const response = await api.get('/staff');
+      setStaffList(response.data);
+    } catch (error) {
+      console.error('Failed to fetch staff:', error);
+    }
+  };
 
   const fetchProject = async () => {
     try {
@@ -72,11 +96,24 @@ const ProjectForm: React.FC = () => {
     setLoading(true);
 
     try {
+      let projectId = id;
+
       if (isEdit) {
         await api.put(`/projects/${id}`, formData);
       } else {
-        await api.post('/projects', formData);
+        const response = await api.post('/projects', formData);
+        projectId = response.data.id;
       }
+
+      // Create team assignments
+      if (teamMembers.length > 0 && projectId) {
+        const assignments = teamMembers.map(member => ({
+          projectId: parseInt(projectId as string),
+          ...member
+        }));
+        await api.post('/assignments/bulk', { assignments });
+      }
+
       navigate('/projects');
     } catch (error) {
       console.error('Failed to save project:', error);
@@ -84,6 +121,29 @@ const ProjectForm: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const addTeamMember = () => {
+    setTeamMembers([
+      ...teamMembers,
+      {
+        staffId: 0,
+        roleInProject: 'Associate',
+        jurisdiction: 'US Law',
+        allocationPercentage: 100,
+        isLead: false,
+      },
+    ]);
+  };
+
+  const removeTeamMember = (index: number) => {
+    setTeamMembers(teamMembers.filter((_, i) => i !== index));
+  };
+
+  const updateTeamMember = (index: number, field: keyof TeamMember, value: any) => {
+    const updated = [...teamMembers];
+    updated[index] = { ...updated[index], [field]: value };
+    setTeamMembers(updated);
   };
 
   return (
@@ -196,6 +256,106 @@ const ProjectForm: React.FC = () => {
                 onChange={handleChange}
               />
             </Grid>
+
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6">Team Members</Typography>
+                <Button
+                  startIcon={<Add />}
+                  onClick={addTeamMember}
+                  variant="outlined"
+                  size="small"
+                >
+                  Add Team Member
+                </Button>
+              </Box>
+
+              {teamMembers.map((member, index) => (
+                <Paper key={index} sx={{ p: 2, mb: 2, bgcolor: 'background.default' }}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={12} md={3}>
+                      <Autocomplete
+                        options={staffList}
+                        getOptionLabel={(option) => option.name}
+                        value={staffList.find(s => s.id === member.staffId) || null}
+                        onChange={(_, newValue) => {
+                          updateTeamMember(index, 'staffId', newValue?.id || 0);
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Staff Member" size="small" required />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Role"
+                        value={member.roleInProject}
+                        onChange={(e) => updateTeamMember(index, 'roleInProject', e.target.value)}
+                      >
+                        <MenuItem value="IP">Income Partner</MenuItem>
+                        <MenuItem value="Associate">Associate</MenuItem>
+                        <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
+                        <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
+                        <MenuItem value="Intern">Intern</MenuItem>
+                        <MenuItem value="B&C Working Attorney">B&C Working Attorney</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Jurisdiction"
+                        value={member.jurisdiction}
+                        onChange={(e) => updateTeamMember(index, 'jurisdiction', e.target.value)}
+                      >
+                        <MenuItem value="US Law">US Law</MenuItem>
+                        <MenuItem value="HK Law">HK Law</MenuItem>
+                        <MenuItem value="B&C">B&C</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        label="Allocation %"
+                        value={member.allocationPercentage}
+                        onChange={(e) => updateTeamMember(index, 'allocationPercentage', parseInt(e.target.value))}
+                        inputProps={{ min: 0, max: 100 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Lead"
+                        value={member.isLead ? 'Yes' : 'No'}
+                        onChange={(e) => updateTeamMember(index, 'isLead', e.target.value === 'Yes')}
+                      >
+                        <MenuItem value="Yes">Yes</MenuItem>
+                        <MenuItem value="No">No</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={1}>
+                      <IconButton
+                        onClick={() => removeTeamMember(index)}
+                        color="error"
+                        size="small"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              ))}
+            </Grid>
+
             <Grid item xs={12}>
               <Box display="flex" gap={2}>
                 <Button

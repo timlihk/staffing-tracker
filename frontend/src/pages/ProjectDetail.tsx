@@ -167,11 +167,30 @@ const ProjectDetail: React.FC = () => {
             {project.assignments && project.assignments.length > 0 ? (
               <List dense>
                 {project.assignments.map((assignment) => (
-                  <ListItem key={assignment.id}>
+                  <ListItem
+                    key={assignment.id}
+                    sx={{
+                      cursor: 'pointer',
+                      borderRadius: 1,
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                      },
+                    }}
+                    onClick={() => navigate(`/staff/${assignment.staffId}`)}
+                  >
                     <ListItemText
                       primary={
                         <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="body2" fontWeight="medium">
+                          <Typography
+                            variant="body2"
+                            fontWeight="medium"
+                            sx={{
+                              color: 'primary.main',
+                              '&:hover': {
+                                textDecoration: 'underline',
+                              },
+                            }}
+                          >
                             {assignment.staff?.name}
                           </Typography>
                           {assignment.isLead && (
