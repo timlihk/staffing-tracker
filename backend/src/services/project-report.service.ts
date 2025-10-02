@@ -94,14 +94,14 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
       priority: project.priority,
 
       // US Law team
-      usLawPartner: getStaffByJurisdictionAndRole('US Law', 'Income Partner'),
+      usLawPartner: getStaffByJurisdictionAndRole('US Law', 'Partner'),
       usLawAssociate: getStaffByJurisdictionAndRole('US Law', 'Associate'),
       usLawSeniorFlic: getStaffByJurisdictionAndRole('US Law', 'Senior FLIC'),
       usLawJuniorFlic: getStaffByJurisdictionAndRole('US Law', 'Junior FLIC'),
       usLawIntern: getStaffByJurisdictionAndRole('US Law', 'Intern'),
 
       // HK Law team
-      hkLawPartner: getStaffByJurisdictionAndRole('HK Law', 'Income Partner'),
+      hkLawPartner: getStaffByJurisdictionAndRole('HK Law', 'Partner'),
       hkLawAssociate: getStaffByJurisdictionAndRole('HK Law', 'Associate'),
       hkLawSeniorFlic: getStaffByJurisdictionAndRole('HK Law', 'Senior FLIC'),
       hkLawJuniorFlic: getStaffByJurisdictionAndRole('HK Law', 'Junior FLIC'),

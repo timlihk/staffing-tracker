@@ -121,12 +121,12 @@ async function syncFromExcel(excelFilePath: string) {
 
       // Collect staff members
       const staffRoles = [
-        { names: splitNames(project.usLawIp), role: 'Income Partner', dept: 'US Law' },
+        { names: splitNames(project.usLawIp), role: 'Partner', dept: 'US Law' },
         { names: splitNames(project.usAssociate), role: 'Associate', dept: 'US Law' },
         { names: splitNames(project.usSeniorFlic), role: 'Senior FLIC', dept: 'US Law' },
         { names: splitNames(project.usJuniorFlic), role: 'Junior FLIC', dept: 'US Law' },
         { names: splitNames(project.usIntern), role: 'Intern', dept: 'US Law' },
-        { names: splitNames(project.hkLawIp), role: 'Income Partner', dept: 'HK Law' },
+        { names: splitNames(project.hkLawIp), role: 'Partner', dept: 'HK Law' },
         { names: splitNames(project.hkAssociate), role: 'Associate', dept: 'HK Law' },
         { names: splitNames(project.hkSeniorFlic), role: 'Senior FLIC', dept: 'HK Law' },
         { names: splitNames(project.hkJuniorFlic), role: 'Junior FLIC', dept: 'HK Law' },
