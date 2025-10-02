@@ -21,8 +21,8 @@ interface ExcelProject {
   bcWorkingAttorney?: string;
 }
 
-const cleanName = (name: string | undefined | null): string | null => {
-  if (!name || typeof name !== 'string') return null;
+const cleanName = (name: string | undefined | null): string | undefined => {
+  if (!name || typeof name !== 'string') return undefined;
   return name.trim().replace(/\s+/g, ' ');
 };
 
@@ -31,7 +31,7 @@ const splitNames = (nameString: string | undefined | null): string[] => {
   return nameString
     .split('/')
     .map((n) => cleanName(n))
-    .filter((n) => n !== null && n !== '' && n.toLowerCase() !== 'nan') as string[];
+    .filter((n) => n !== undefined && n !== '' && n.toLowerCase() !== 'nan') as string[];
 };
 
 const determineCategory = (rowIndex: number, projectName: string): string => {
