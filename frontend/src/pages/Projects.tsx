@@ -3,23 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
-  Typography,
   Button,
   TextField,
   MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   IconButton,
   CircularProgress,
+  Stack,
 } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
+import { GridColDef } from '@mui/x-data-grid';
 import api from '../api/client';
 import { Project } from '../types';
+import { Page } from '../components/ui';
+import StyledDataGrid from '../components/ui/StyledDataGrid';
+import EmptyState from '../components/ui/EmptyState';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -40,6 +38,7 @@ const Projects: React.FC = () => {
   }, [statusFilter, categoryFilter]);
 
   const fetchProjects = async () => {
+    setLoading(true);
     try {
       const params: any = {};
       if (statusFilter !== 'all') params.status = statusFilter;
@@ -70,6 +69,58 @@ const Projects: React.FC = () => {
     fetchProjects();
   };
 
+  const columns: GridColDef<Project>[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 250,
+      renderCell: (params) => (
+        <Box
+          sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
+          onClick={() => navigate(`/projects/${params.row.id}`)}
+        >
+          {params.value}
+        </Box>
+      ),
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 130,
+      renderCell: (params) => (
+        <Chip
+          label={params.value}
+          color={statusColors[params.value] || 'default'}
+          size="small"
+        />
+      ),
+    },
+    { field: 'category', headerName: 'Category', width: 200 },
+    { field: 'priority', headerName: 'Priority', width: 100 },
+    { field: 'elStatus', headerName: 'EL Status', width: 150 },
+    { field: 'timetable', headerName: 'Timetable', width: 180 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}`)}>
+            <Visibility fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}/edit`)}>
+            <Edit fontSize="small" />
+          </IconButton>
+          <IconButton size="small" color="error" onClick={() => handleDelete(params.row.id)}>
+            <Delete fontSize="small" />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -79,20 +130,17 @@ const Projects: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Projects</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/projects/new')}
-        >
+    <Page
+      title="Projects"
+      actions={
+        <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/projects/new')}>
           New Project
         </Button>
-      </Box>
-
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
+      }
+    >
+      {/* Filters */}
+      <Paper sx={{ p: 2 }}>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
           <TextField
             label="Search"
             variant="outlined"
@@ -132,81 +180,36 @@ const Projects: React.FC = () => {
           <Button variant="contained" onClick={handleSearch}>
             Search
           </Button>
-        </Box>
+        </Stack>
       </Paper>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Priority</TableCell>
-              <TableCell>EL Status</TableCell>
-              <TableCell>Timetable</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {projects.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  No projects found
-                </TableCell>
-              </TableRow>
-            ) : (
-              projects.map((project) => (
-                <TableRow
-                  key={project.id}
-                  hover
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                >
-                  <TableCell>
-                    <Typography variant="body2" color="primary" fontWeight="medium">
-                      {project.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={project.status}
-                      color={statusColors[project.status] || 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{project.category}</TableCell>
-                  <TableCell>{project.priority || '-'}</TableCell>
-                  <TableCell>{project.elStatus || '-'}</TableCell>
-                  <TableCell>{project.timetable || '-'}</TableCell>
-                  <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                    <IconButton
-                      size="small"
-                      onClick={() => navigate(`/projects/${project.id}`)}
-                    >
-                      <Visibility />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => navigate(`/projects/${project.id}/edit`)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(project.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+      {/* Data Grid */}
+      {projects.length === 0 ? (
+        <Paper>
+          <EmptyState
+            title="No projects found"
+            subtitle="Create your first project to get started"
+            actionLabel="New Project"
+            onAction={() => navigate('/projects/new')}
+          />
+        </Paper>
+      ) : (
+        <Paper sx={{ p: 1 }}>
+          <StyledDataGrid
+            rows={projects}
+            columns={columns}
+            loading={loading}
+            autoHeight
+            initialState={{
+              pagination: { paginationModel: { pageSize: 50 } },
+            }}
+            pageSizeOptions={[25, 50, 100]}
+            onRowClick={(params) => navigate(`/projects/${params.row.id}`)}
+            sx={{ cursor: 'pointer' }}
+          />
+        </Paper>
+      )}
+    </Page>
   );
 };
 

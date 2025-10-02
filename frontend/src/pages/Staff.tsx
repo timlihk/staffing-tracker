@@ -3,26 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
-  Typography,
   Button,
   TextField,
   MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   IconButton,
   CircularProgress,
+  Stack,
 } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
+import { GridColDef } from '@mui/x-data-grid';
 import api from '../api/client';
-import { Staff } from '../types';
+import { Staff as StaffType } from '../types';
+import { Page } from '../components/ui';
+import StyledDataGrid from '../components/ui/StyledDataGrid';
+import EmptyState from '../components/ui/EmptyState';
 
 const Staff: React.FC = () => {
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [staff, setStaff] = useState<StaffType[]>([]);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -33,6 +31,7 @@ const Staff: React.FC = () => {
   }, [roleFilter, departmentFilter]);
 
   const fetchStaff = async () => {
+    setLoading(true);
     try {
       const params: any = {};
       if (roleFilter !== 'all') params.role = roleFilter;
@@ -58,6 +57,57 @@ const Staff: React.FC = () => {
     }
   };
 
+  const columns: GridColDef<StaffType>[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box
+          sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
+          onClick={() => navigate(`/staff/${params.row.id}`)}
+        >
+          {params.value}
+        </Box>
+      ),
+    },
+    { field: 'role', headerName: 'Role', width: 180 },
+    { field: 'department', headerName: 'Department', width: 130 },
+    { field: 'email', headerName: 'Email', width: 220 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.value}
+          color={params.value === 'active' ? 'success' : 'default'}
+          size="small"
+        />
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 140,
+      sortable: false,
+      renderCell: (params) => (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <IconButton size="small" onClick={() => navigate(`/staff/${params.row.id}`)}>
+            <Visibility fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={() => navigate(`/staff/${params.row.id}/edit`)}>
+            <Edit fontSize="small" />
+          </IconButton>
+          <IconButton size="small" color="error" onClick={() => handleDelete(params.row.id)}>
+            <Delete fontSize="small" />
+          </IconButton>
+        </Box>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -67,20 +117,17 @@ const Staff: React.FC = () => {
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Staff</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/staff/new')}
-        >
+    <Page
+      title="Staff"
+      actions={
+        <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/staff/new')}>
           New Staff
         </Button>
-      </Box>
-
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
+      }
+    >
+      {/* Filters */}
+      <Paper sx={{ p: 2 }}>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
           <TextField
             select
             label="Role"
@@ -109,80 +156,36 @@ const Staff: React.FC = () => {
             <MenuItem value="HK Law">HK Law</MenuItem>
             <MenuItem value="B&C">B&C</MenuItem>
           </TextField>
-        </Box>
+        </Stack>
       </Paper>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Department</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {staff.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  No staff found
-                </TableCell>
-              </TableRow>
-            ) : (
-              staff.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell
-                    sx={{
-                      cursor: 'pointer',
-                      '&:hover': { textDecoration: 'underline' },
-                    }}
-                    onClick={() => navigate(`/staff/${member.id}`)}
-                  >
-                    <Typography variant="body2" color="primary" fontWeight="medium">
-                      {member.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{member.role}</TableCell>
-                  <TableCell>{member.department || '-'}</TableCell>
-                  <TableCell>{member.email || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={member.status}
-                      color={member.status === 'active' ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={() => navigate(`/staff/${member.id}`)}
-                    >
-                      <Visibility />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => navigate(`/staff/${member.id}/edit`)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(member.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+      {/* Data Grid */}
+      {staff.length === 0 ? (
+        <Paper>
+          <EmptyState
+            title="No staff found"
+            subtitle="Add your first staff member to get started"
+            actionLabel="New Staff"
+            onAction={() => navigate('/staff/new')}
+          />
+        </Paper>
+      ) : (
+        <Paper sx={{ p: 1 }}>
+          <StyledDataGrid
+            rows={staff}
+            columns={columns}
+            loading={loading}
+            autoHeight
+            initialState={{
+              pagination: { paginationModel: { pageSize: 50 } },
+            }}
+            pageSizeOptions={[25, 50, 100]}
+            onRowClick={(params) => navigate(`/staff/${params.row.id}`)}
+            sx={{ cursor: 'pointer' }}
+          />
+        </Paper>
+      )}
+    </Page>
   );
 };
 
