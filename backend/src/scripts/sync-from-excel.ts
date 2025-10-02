@@ -2,11 +2,14 @@ import * as XLSX from 'xlsx';
 import prisma from '../utils/prisma';
 import bcrypt from 'bcryptjs';
 import path from 'path';
+import { Timetable } from '@prisma/client';
 
 interface ExcelProject {
   name: string;
   status: string;
   category: string;
+  timetable?: Timetable | null;
+  elStatus?: string;
   notes?: string;
   usLawIp?: string;
   usAssociate?: string;
@@ -34,14 +37,23 @@ const splitNames = (nameString: string | undefined | null): string[] => {
     .filter((n) => n !== undefined && n !== '' && n.toLowerCase() !== 'nan') as string[];
 };
 
-const determineCategory = (rowIndex: number, projectName: string | undefined | null): string => {
-  const lowerName = (projectName && typeof projectName === 'string') ? projectName.toLowerCase() : '';
+const normalizeTimetable = (timetable: string | undefined): Timetable | null => {
+  if (!timetable || typeof timetable !== 'string') return null;
+  const cleaned = timetable.trim();
+  if (cleaned.toLowerCase() === 'pre-a1') return Timetable.PRE_A1;
+  if (cleaned.toLowerCase() === 'a1') return Timetable.A1;
+  if (cleaned.toLowerCase() === 'hearing') return Timetable.HEARING;
+  if (cleaned.toLowerCase() === 'listing') return Timetable.LISTING;
+  return null;
+};
 
-  // Check row-based sections
-  if (rowIndex <= 35) return 'HK Transaction Projects';
-  if (rowIndex <= 60) return 'US Transaction Projects';
-  if (rowIndex <= 85) return 'HK Compliance Projects';
-  if (rowIndex <= 95) return 'US Compliance Projects';
+const normalizeCategory = (projectType: string | undefined): string => {
+  if (!projectType || typeof projectType !== 'string') return 'Others';
+  const cleaned = projectType.trim();
+  if (cleaned === 'HK Trx') return 'HK Transaction Projects';
+  if (cleaned === 'US Trx') return 'US Transaction Projects';
+  if (cleaned === 'HK Compliance') return 'HK Compliance Projects';
+  if (cleaned === 'US Compliance') return 'US Compliance Projects';
   return 'Others';
 };
 
@@ -79,27 +91,29 @@ async function syncFromExcel(excelFilePath: string) {
   for (let i = 2; i < data.length; i++) {
     const row = data[i];
 
-    if (!row[0] || row[0] === 'HK Transaction Projects' || row[0] === 'US Transaction Projects' ||
-        row[0] === 'HK Compliance Projects' || row[0] === 'US Compliance Projects' || row[0] === 'Others') {
-      continue; // Skip section headers
+    // Skip empty rows or section headers
+    if (!row[0] || typeof row[0] !== 'string' && typeof row[0] !== 'number') {
+      continue;
     }
 
     const project: ExcelProject = {
-      name: cleanName(row[0]) || '',
-      status: normalizeStatus(row[1]),
-      category: determineCategory(i, row[0]),
-      notes: cleanName(row[15]) || '',
-      usLawIp: cleanName(row[2]),
-      usAssociate: cleanName(row[3]),
-      usSeniorFlic: cleanName(row[4]),
-      usJuniorFlic: cleanName(row[5]),
-      usIntern: cleanName(row[6]),
-      hkLawIp: cleanName(row[7]),
-      hkAssociate: cleanName(row[8]),
-      hkSeniorFlic: cleanName(row[9]),
-      hkJuniorFlic: cleanName(row[10]),
-      hkIntern: cleanName(row[11]),
-      bcWorkingAttorney: cleanName(row[12]),
+      name: String(row[0]).trim(),
+      category: normalizeCategory(row[1]),
+      status: normalizeStatus(row[2]),
+      timetable: normalizeTimetable(row[14]),
+      elStatus: cleanName(row[15]) || undefined,
+      notes: cleanName(row[16]) || undefined,
+      usLawIp: cleanName(row[3]),
+      usAssociate: cleanName(row[4]),
+      usSeniorFlic: cleanName(row[5]),
+      usJuniorFlic: cleanName(row[6]),
+      usIntern: cleanName(row[7]),
+      hkLawIp: cleanName(row[8]),
+      hkAssociate: cleanName(row[9]),
+      hkSeniorFlic: cleanName(row[10]),
+      hkJuniorFlic: cleanName(row[11]),
+      hkIntern: cleanName(row[12]),
+      bcWorkingAttorney: cleanName(row[13]),
     };
 
     if (project.name) {
@@ -198,6 +212,8 @@ async function syncFromExcel(excelFilePath: string) {
       category: project.category,
       status: project.status,
       priority: project.status === 'Active' ? 'High' : 'Medium',
+      timetable: project.timetable || null,
+      elStatus: project.elStatus || null,
       bcAttorney: project.bcWorkingAttorney || null,
       notes: project.notes || null,
     };
@@ -218,6 +234,8 @@ async function syncFromExcel(excelFilePath: string) {
         existing.status !== projectData.status ||
         existing.category !== projectData.category ||
         existing.priority !== projectData.priority ||
+        existing.timetable !== projectData.timetable ||
+        existing.elStatus !== projectData.elStatus ||
         existing.bcAttorney !== projectData.bcAttorney ||
         existing.notes !== projectData.notes;
 
