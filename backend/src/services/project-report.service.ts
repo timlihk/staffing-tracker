@@ -7,6 +7,7 @@ export interface ProjectReportQuery {
 }
 
 export interface ProjectReportRow {
+  projectId: number;
   name: string;
   projectName: string;
   category: string;
@@ -87,6 +88,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
     };
 
     return {
+      projectId: project.id,
       name: project.name,
       projectName: project.name, // Using name as name now
       category: project.category,
