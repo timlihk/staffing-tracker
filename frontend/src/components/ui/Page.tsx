@@ -9,7 +9,7 @@ interface PageProps {
 
 export function Page({ title, actions, children }: PageProps) {
   return (
-    <Box sx={{ display: 'grid', gap: 2 }}>
+    <Box sx={{ display: 'grid', gap: 2, width: '100%', maxWidth: '100%' }}>
       <Paper sx={{ p: 2 }} className="no-print">
         <Stack direction="row" alignItems="center" spacing={2}>
           <Typography variant="h5" sx={{ fontWeight: 700, mr: 'auto' }}>
@@ -18,7 +18,7 @@ export function Page({ title, actions, children }: PageProps) {
           {actions}
         </Stack>
       </Paper>
-      <Box sx={{ display: 'grid', gap: 2 }}>{children}</Box>
+      <Box sx={{ display: 'grid', gap: 2, width: '100%', maxWidth: '100%' }}>{children}</Box>
     </Box>
   );
 }
