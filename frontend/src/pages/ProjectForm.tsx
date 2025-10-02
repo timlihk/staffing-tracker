@@ -33,14 +33,13 @@ const ProjectForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [formData, setFormData] = useState({
-    name: '',
     projectCode: '',
     category: '',
     status: 'Active',
     priority: 'Medium',
     elStatus: '',
-    startDate: '',
     timetable: '',
+    bcAttorney: '',
     notes: '',
   });
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -68,16 +67,13 @@ const ProjectForm: React.FC = () => {
       const response = await api.get(`/projects/${id}`);
       const project: Project = response.data;
       setFormData({
-        name: project.name,
-        projectCode: project.projectCode || '',
+        projectCode: project.projectCode,
         category: project.category || '',
         status: project.status,
         priority: project.priority || 'Medium',
         elStatus: project.elStatus || '',
-        startDate: project.startDate
-          ? new Date(project.startDate).toISOString().split('T')[0]
-          : '',
         timetable: project.timetable || '',
+        bcAttorney: project.bcAttorney || '',
         notes: project.notes || '',
       });
     } catch (error) {
@@ -167,15 +163,6 @@ const ProjectForm: React.FC = () => {
               <TextField
                 required
                 fullWidth
-                label="Project Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
                 label="Project Code"
                 name="projectCode"
                 value={formData.projectCode}
@@ -237,17 +224,6 @@ const ProjectForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
-                fullWidth
-                type="date"
-                label="Start Date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
                 select
                 fullWidth
                 label="Timetable"
@@ -256,11 +232,20 @@ const ProjectForm: React.FC = () => {
                 onChange={handleChange}
               >
                 <MenuItem value="">None</MenuItem>
-                <MenuItem value="Pre-A1">Pre-A1</MenuItem>
+                <MenuItem value="PRE_A1">Pre-A1</MenuItem>
                 <MenuItem value="A1">A1</MenuItem>
-                <MenuItem value="Hearing">Hearing</MenuItem>
-                <MenuItem value="Listing">Listing</MenuItem>
+                <MenuItem value="HEARING">Hearing</MenuItem>
+                <MenuItem value="LISTING">Listing</MenuItem>
               </TextField>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="B&C Attorney"
+                name="bcAttorney"
+                value={formData.bcAttorney}
+                onChange={handleChange}
+              />
             </Grid>
             <Grid item xs={12}>
               <TextField
