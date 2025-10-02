@@ -12,22 +12,50 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemIcon,
 } from '@mui/material';
-import { ArrowBack, Edit } from '@mui/icons-material';
+import {
+  ArrowBack,
+  Edit,
+  Add,
+  Update,
+  Delete as DeleteIcon,
+  ChangeCircle,
+} from '@mui/icons-material';
 import api from '../api/client';
-import { Project } from '../types';
+import { Project, ActivityLog } from '../types';
+
+const getActionIcon = (actionType: string) => {
+  switch (actionType) {
+    case 'create':
+      return <Add color="success" />;
+    case 'update':
+      return <Update color="primary" />;
+    case 'delete':
+      return <DeleteIcon color="error" />;
+    case 'status_change':
+      return <ChangeCircle color="warning" />;
+    default:
+      return <ChangeCircle />;
+  }
+};
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProject = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get(`/projects/${id}`);
-        setProject(response.data);
+        const [projectResponse, activityResponse] = await Promise.all([
+          api.get(`/projects/${id}`),
+          api.get(`/projects/${id}/activity-log`),
+        ]);
+        setProject(projectResponse.data);
+        setActivityLog(activityResponse.data);
       } catch (error) {
         console.error('Failed to fetch project:', error);
       } finally {
@@ -35,7 +63,7 @@ const ProjectDetail: React.FC = () => {
       }
     };
 
-    fetchProject();
+    fetchData();
   }, [id]);
 
   if (loading) {
@@ -171,7 +199,7 @@ const ProjectDetail: React.FC = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Status History
@@ -207,6 +235,39 @@ const ProjectDetail: React.FC = () => {
                   />
                 </ListItem>
               </List>
+            )}
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Change Log
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {activityLog.length > 0 ? (
+              <List>
+                {activityLog.map((activity) => (
+                  <ListItem key={activity.id}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      {getActionIcon(activity.actionType)}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={activity.description}
+                      secondary={
+                        <>
+                          {new Date(activity.createdAt).toLocaleString()}
+                          {activity.username && ` • by ${activity.username}`}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No activity recorded
+              </Typography>
             )}
           </Paper>
         </Grid>

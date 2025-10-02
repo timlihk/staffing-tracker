@@ -7,6 +7,7 @@ const router = Router();
 router.get('/', authenticate, projectController.getAllProjects);
 router.get('/categories', authenticate, projectController.getProjectCategories);
 router.get('/:id', authenticate, projectController.getProjectById);
+router.get('/:id/activity-log', authenticate, projectController.getProjectActivityLog);
 router.post('/', authenticate, authorize('admin', 'editor'), projectController.createProject);
 router.put('/:id', authenticate, authorize('admin', 'editor'), projectController.updateProject);
 router.delete('/:id', authenticate, authorize('admin'), projectController.deleteProject);
