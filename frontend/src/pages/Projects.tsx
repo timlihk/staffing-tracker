@@ -200,7 +200,6 @@ const Projects: React.FC = () => {
           <StyledDataGrid
             rows={projects}
             columns={columns}
-            loading={isLoading}
             autoHeight
             initialState={{
               pagination: { paginationModel: { pageSize: 100 } },

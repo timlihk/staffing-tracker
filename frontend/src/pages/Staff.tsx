@@ -171,7 +171,6 @@ const Staff: React.FC = () => {
           <StyledDataGrid
             rows={staff}
             columns={columns}
-            loading={loading}
             autoHeight
             initialState={{
               pagination: { paginationModel: { pageSize: 50 } },
