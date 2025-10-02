@@ -26,8 +26,10 @@ model User {
   lastLogin    DateTime? @map("last_login")
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  activityLogs        ActivityLog[]
+  activityLogs         ActivityLog[]
   projectStatusChanges ProjectStatusHistory[]
+  projectChanges       ProjectChangeHistory[] @relation("ProjectChanges")
+  staffChanges         StaffChangeHistory[]   @relation("StaffChanges")
 
   @@map("users")
 }
@@ -43,8 +45,9 @@ model Staff {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  assignments ProjectAssignment[]
-  users       User[]
+  assignments   ProjectAssignment[]
+  users         User[]
+  changeHistory StaffChangeHistory[] @relation("StaffChangeHistory")
 
   @@map("staff")
 }
@@ -64,8 +67,9 @@ model Project {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  assignments    ProjectAssignment[]
-  statusHistory  ProjectStatusHistory[]
+  assignments   ProjectAssignment[]
+  statusHistory ProjectStatusHistory[]
+  changeHistory ProjectChangeHistory[] @relation("ProjectChangeHistory")
 
   @@index([status])
   @@index([category])
@@ -108,6 +112,42 @@ model ProjectStatusHistory {
   user    User?   @relation(fields: [changedBy], references: [id])
 
   @@map("project_status_history")
+}
+
+model ProjectChangeHistory {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  fieldName   String   @map("field_name") // name, priority, status, startDate, targetFilingDate, category, notes, etc.
+  oldValue    String?  @map("old_value") @db.Text
+  newValue    String?  @map("new_value") @db.Text
+  changeType  String   @map("change_type") // update, assignment_added, assignment_removed
+  changedBy   Int?     @map("changed_by")
+  changedAt   DateTime @default(now()) @map("changed_at")
+
+  project Project @relation("ProjectChangeHistory", fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation("ProjectChanges", fields: [changedBy], references: [id])
+
+  @@index([projectId])
+  @@index([changedAt(sort: Desc)])
+  @@map("project_change_history")
+}
+
+model StaffChangeHistory {
+  id          Int      @id @default(autoincrement())
+  staffId     Int      @map("staff_id")
+  fieldName   String   @map("field_name") // name, role, department, status, email, notes
+  oldValue    String?  @map("old_value") @db.Text
+  newValue    String?  @map("new_value") @db.Text
+  changeType  String   @map("change_type") // update, assignment_added, assignment_removed
+  changedBy   Int?     @map("changed_by")
+  changedAt   DateTime @default(now()) @map("changed_at")
+
+  staff Staff @relation("StaffChangeHistory", fields: [staffId], references: [id], onDelete: Cascade)
+  user  User? @relation("StaffChanges", fields: [changedBy], references: [id])
+
+  @@index([staffId])
+  @@index([changedAt(sort: Desc)])
+  @@map("staff_change_history")
 }
 
 model ActivityLog {

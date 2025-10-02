@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { trackFieldChanges } from '../utils/changeTracking';
 
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
@@ -124,16 +125,27 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
+    // Build update data
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (role) updateData.role = role;
+    if (department !== undefined) updateData.department = department;
+    if (status) updateData.status = status;
+    if (notes !== undefined) updateData.notes = notes;
+
+    // Track all field changes
+    await trackFieldChanges({
+      entityId: parseInt(id),
+      entityType: 'staff',
+      oldData: existingStaff,
+      newData: updateData,
+      userId: req.user?.userId,
+    });
+
     const staff = await prisma.staff.update({
       where: { id: parseInt(id) },
-      data: {
-        ...(name && { name }),
-        ...(email !== undefined && { email }),
-        ...(role && { role }),
-        ...(department !== undefined && { department }),
-        ...(status && { status }),
-        ...(notes !== undefined && { notes }),
-      },
+      data: updateData,
     });
 
     // Log activity
@@ -244,6 +256,43 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Get staff workload error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getStaffChangeHistory = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { limit = '100' } = req.query;
+
+    const limitNum = parseInt(limit as string);
+
+    const changes = await prisma.staffChangeHistory.findMany({
+      where: {
+        staffId: parseInt(id),
+      },
+      include: {
+        user: {
+          select: { username: true },
+        },
+      },
+      orderBy: { changedAt: 'desc' },
+      take: limitNum,
+    });
+
+    res.json(
+      changes.map((change) => ({
+        id: change.id,
+        fieldName: change.fieldName,
+        oldValue: change.oldValue,
+        newValue: change.newValue,
+        changeType: change.changeType,
+        username: change.user?.username || 'System',
+        changedAt: change.changedAt,
+      }))
+    );
+  } catch (error) {
+    console.error('Get staff change history error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

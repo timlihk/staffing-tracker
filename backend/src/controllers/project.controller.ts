@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { trackFieldChanges } from '../utils/changeTracking';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
@@ -171,20 +172,31 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    // Build update data
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (projectCode !== undefined) updateData.projectCode = projectCode;
+    if (category) updateData.category = category;
+    if (status) updateData.status = status;
+    if (priority !== undefined) updateData.priority = priority;
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (targetFilingDate !== undefined) updateData.targetFilingDate = targetFilingDate ? new Date(targetFilingDate) : null;
+    if (actualFilingDate !== undefined) updateData.actualFilingDate = actualFilingDate ? new Date(actualFilingDate) : null;
+    if (notes !== undefined) updateData.notes = notes;
+    if (timelineStatus !== undefined) updateData.timelineStatus = timelineStatus;
+
+    // Track all field changes
+    await trackFieldChanges({
+      entityId: parseInt(id),
+      entityType: 'project',
+      oldData: existingProject,
+      newData: updateData,
+      userId: req.user?.userId,
+    });
+
     const project = await prisma.project.update({
       where: { id: parseInt(id) },
-      data: {
-        ...(name && { name }),
-        ...(projectCode !== undefined && { projectCode }),
-        ...(category && { category }),
-        ...(status && { status }),
-        ...(priority !== undefined && { priority }),
-        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
-        ...(targetFilingDate !== undefined && { targetFilingDate: targetFilingDate ? new Date(targetFilingDate) : null }),
-        ...(actualFilingDate !== undefined && { actualFilingDate: actualFilingDate ? new Date(actualFilingDate) : null }),
-        ...(notes !== undefined && { notes }),
-        ...(timelineStatus !== undefined && { timelineStatus }),
-      },
+      data: updateData,
       include: {
         assignments: {
           include: { staff: true },
@@ -203,7 +215,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // Track status change
+    // Track status change in status history (legacy support)
     if (status && status !== existingProject.status) {
       await prisma.projectStatusHistory.create({
         data: {
@@ -270,39 +282,39 @@ export const getProjectCategories = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getProjectActivityLog = async (req: AuthRequest, res: Response) => {
+export const getProjectChangeHistory = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { limit = '50' } = req.query;
+    const { limit = '100' } = req.query;
 
     const limitNum = parseInt(limit as string);
 
-    const activities = await prisma.activityLog.findMany({
+    const changes = await prisma.projectChangeHistory.findMany({
       where: {
-        entityType: 'project',
-        entityId: parseInt(id),
+        projectId: parseInt(id),
       },
       include: {
         user: {
           select: { username: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { changedAt: 'desc' },
       take: limitNum,
     });
 
     res.json(
-      activities.map((activity) => ({
-        id: activity.id,
-        actionType: activity.actionType,
-        entityType: activity.entityType,
-        description: activity.description,
-        username: activity.user?.username || 'System',
-        createdAt: activity.createdAt,
+      changes.map((change) => ({
+        id: change.id,
+        fieldName: change.fieldName,
+        oldValue: change.oldValue,
+        newValue: change.newValue,
+        changeType: change.changeType,
+        username: change.user?.username || 'System',
+        changedAt: change.changedAt,
       }))
     );
   } catch (error) {
-    console.error('Get project activity log error:', error);
+    console.error('Get project change history error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
