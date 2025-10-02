@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -10,47 +10,34 @@ import {
   IconButton,
   CircularProgress,
   Stack,
+  Typography,
 } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
-import api from '../api/client';
 import { Staff as StaffType } from '../types';
 import { Page } from '../components/ui';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 import EmptyState from '../components/ui/EmptyState';
+import { useStaff, useDeleteStaff } from '../hooks/useStaff';
 
 const Staff: React.FC = () => {
-  const [staff, setStaff] = useState<StaffType[]>([]);
-  const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchStaff();
-  }, [roleFilter, departmentFilter]);
-
-  const fetchStaff = async () => {
-    setLoading(true);
-    try {
-      const params: any = {};
-      if (roleFilter !== 'all') params.role = roleFilter;
-      if (departmentFilter !== 'all') params.department = departmentFilter;
-
-      const response = await api.get('/staff', { params });
-      setStaff(response.data);
-    } catch (error) {
-      console.error('Failed to fetch staff:', error);
-    } finally {
-      setLoading(false);
-    }
+  // Build params for the query
+  const params = {
+    ...(roleFilter !== 'all' && { role: roleFilter }),
+    ...(departmentFilter !== 'all' && { department: departmentFilter }),
   };
+
+  const { data: staff = [], isLoading, error } = useStaff(params);
+  const deleteStaff = useDeleteStaff();
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this staff member?')) {
       try {
-        await api.delete(`/staff/${id}`);
-        fetchStaff();
+        await deleteStaff.mutateAsync(id);
       } catch (error) {
         console.error('Failed to delete staff:', error);
       }
@@ -99,7 +86,12 @@ const Staff: React.FC = () => {
           <IconButton size="small" onClick={() => navigate(`/staff/${params.row.id}/edit`)}>
             <Edit fontSize="small" />
           </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(params.row.id)}>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+            disabled={deleteStaff.isPending}
+          >
             <Delete fontSize="small" />
           </IconButton>
         </Box>
@@ -107,10 +99,25 @@ const Staff: React.FC = () => {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography color="error" variant="h6" gutterBottom>
+            Failed to load staff
+          </Typography>
+          <Typography color="text.secondary">
+            Please try again later or contact support if the problem persists.
+          </Typography>
+        </Box>
       </Box>
     );
   }

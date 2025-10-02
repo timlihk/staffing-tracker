@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Container,
   Paper,
@@ -7,31 +9,34 @@ import {
   Button,
   Typography,
   Box,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
+import { loginSchema, type LoginFormData } from '../lib/validations';
+import { toast } from '../lib/toast';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await login({ username, password });
+      await login(data);
+      toast.success('Login successful', 'Welcome back!');
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
+      toast.error(
+        'Login failed',
+        err.response?.data?.error || 'Please check your credentials and try again.'
+      );
     }
   };
 
@@ -53,47 +58,39 @@ const Login: React.FC = () => {
             Staffing Tracker
           </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 3 }}>
             <TextField
               margin="normal"
-              required
               fullWidth
               id="username"
               label="Username"
-              name="username"
               autoComplete="username"
               autoFocus
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
+              {...register('username')}
+              error={!!errors.username}
+              helperText={errors.username?.message}
+              disabled={isSubmitting}
             />
             <TextField
               margin="normal"
-              required
               fullWidth
-              name="password"
               label="Password"
               type="password"
               id="password"
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
+              {...register('password')}
+              error={!!errors.password}
+              helperText={errors.password?.message}
+              disabled={isSubmitting}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              {isSubmitting ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
           </Box>
         </Paper>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -10,14 +10,15 @@ import {
   IconButton,
   CircularProgress,
   Stack,
+  Typography,
 } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
-import api from '../api/client';
 import { Project } from '../types';
 import { Page } from '../components/ui';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 import EmptyState from '../components/ui/EmptyState';
+import { useProjects, useDeleteProject } from '../hooks/useProjects';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -26,49 +27,32 @@ const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> 
 };
 
 const Projects: React.FC = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchProjects();
-  }, [statusFilter, categoryFilter]);
-
-  const fetchProjects = async () => {
-    setLoading(true);
-    try {
-      const params: any = { limit: 1000 };
-      if (statusFilter !== 'all') params.status = statusFilter;
-      if (categoryFilter !== 'all') params.category = categoryFilter;
-      if (searchTerm) params.search = searchTerm;
-
-      const response = await api.get('/projects', { params });
-      console.log('Projects API response:', response.data);
-      console.log('Total projects received:', response.data.data?.length);
-      setProjects(response.data.data);
-    } catch (error) {
-      console.error('Failed to fetch projects:', error);
-    } finally {
-      setLoading(false);
-    }
+  // Build params for the query
+  const params = {
+    limit: 1000,
+    ...(statusFilter !== 'all' && { status: statusFilter }),
+    ...(categoryFilter !== 'all' && { category: categoryFilter }),
+    ...(searchTerm && { search: searchTerm }),
   };
+
+  const { data, isLoading, error } = useProjects(params);
+  const deleteProject = useDeleteProject();
+
+  const projects = data?.data || [];
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
-        await api.delete(`/projects/${id}`);
-        fetchProjects();
+        await deleteProject.mutateAsync(id);
       } catch (error) {
         console.error('Failed to delete project:', error);
       }
     }
-  };
-
-  const handleSearch = () => {
-    fetchProjects();
   };
 
   const columns: GridColDef<Project>[] = [
@@ -114,7 +98,12 @@ const Projects: React.FC = () => {
           <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}/edit`)}>
             <Edit fontSize="small" />
           </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDelete(params.row.id)}>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+            disabled={deleteProject.isPending}
+          >
             <Delete fontSize="small" />
           </IconButton>
         </Box>
@@ -122,10 +111,25 @@ const Projects: React.FC = () => {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography color="error" variant="h6" gutterBottom>
+            Failed to load projects
+          </Typography>
+          <Typography color="text.secondary">
+            Please try again later or contact support if the problem persists.
+          </Typography>
+        </Box>
       </Box>
     );
   }
@@ -148,7 +152,6 @@ const Projects: React.FC = () => {
             size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             sx={{ width: 300 }}
           />
           <TextField
@@ -178,9 +181,6 @@ const Projects: React.FC = () => {
             <MenuItem value="HK Compliance Projects">HK Compliance</MenuItem>
             <MenuItem value="US Compliance Projects">US Compliance</MenuItem>
           </TextField>
-          <Button variant="contained" onClick={handleSearch}>
-            Search
-          </Button>
         </Stack>
       </Paper>
 
