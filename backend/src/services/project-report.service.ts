@@ -80,7 +80,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
     // Helper to get staff names by jurisdiction and role
     const getStaffByJurisdictionAndRole = (jurisdiction: string, role: string): string | null => {
       const matches = assignments.filter(
-        a => a.jurisdiction === jurisdiction && a.staff?.role === role
+        a => a.jurisdiction === jurisdiction && a.roleInProject === role
       );
       if (matches.length === 0) return null;
       return matches.map(m => m.staff.name).join(', ');
