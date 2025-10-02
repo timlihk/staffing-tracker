@@ -221,12 +221,14 @@ async function migrateFromExcel(excelFilePath: string) {
         }
       }
 
-      // Create initial status history
-      await prisma.projectStatusHistory.create({
+      // Create initial change history entry for status
+      await prisma.projectChangeHistory.create({
         data: {
           projectId: dbProject.id,
-          newStatus: project.status,
-          changeReason: 'Initial import from Excel',
+          fieldName: 'status',
+          oldValue: null,
+          newValue: project.status,
+          changeType: 'create',
         },
       });
     } catch (error: any) {
