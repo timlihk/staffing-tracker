@@ -323,7 +323,6 @@ async function createAssignments(
               staffId,
               roleInProject: role,
               jurisdiction,
-              isLead: role === 'IP' || role === 'B&C Working Attorney',
             },
           });
         } catch (error: any) {
@@ -397,7 +396,6 @@ async function syncAssignments(
             staffId: assignment.staffId,
             roleInProject: assignment.role,
             jurisdiction: assignment.jurisdiction,
-            isLead: assignment.role === 'IP' || assignment.role === 'B&C Working Attorney',
           },
         });
         const staffName = [...staffDbMap.entries()].find(([_, id]) => id === assignment.staffId)?.[0];

@@ -207,7 +207,6 @@ async function migrateFromExcel(excelFilePath: string) {
                   staffId,
                   roleInProject: role,
                   jurisdiction,
-                  isLead: role === 'IP' || role === 'B&C Working Attorney',
                 },
               });
               console.log(`    ✓ Assigned ${name} to ${project.name} as ${role} (${jurisdiction})`);

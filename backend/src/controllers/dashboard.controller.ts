@@ -161,7 +161,6 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
           project: a.project.name,
           role: a.roleInProject,
           jurisdiction: a.jurisdiction,
-          isLead: a.isLead,
         })),
       };
     });

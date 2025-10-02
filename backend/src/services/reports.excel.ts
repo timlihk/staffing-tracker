@@ -55,7 +55,6 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
     { header: 'Department', key: 'staffDepartment', width: 14 },
     { header: 'Role in Project', key: 'roleInProject', width: 18 },
     { header: 'Jurisdiction', key: 'jurisdiction', width: 14 },
-    { header: 'Lead', key: 'isLead', width: 8 },
     { header: 'Start Date', key: 'startDate', width: 14 },
     { header: 'End Date', key: 'endDate', width: 14 },
   ];
@@ -85,7 +84,6 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
       staffDepartment: r.staffDepartment || '',
       roleInProject: r.roleInProject,
       jurisdiction: r.jurisdiction || '',
-      isLead: r.isLead ? 'Yes' : 'No',
       startDate: r.startDate ? new Date(r.startDate).toISOString().split('T')[0] : '',
       endDate: r.endDate ? new Date(r.endDate).toISOString().split('T')[0] : '',
     });
