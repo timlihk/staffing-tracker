@@ -37,6 +37,32 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - **Status**: ✅ Deployed and running in production
 
 ### 🎉 Recent Updates (Oct 2025)
+
+**Phase 4: Modern Frontend (Oct 3, 2025)**
+- ✅ **TanStack Query v5** - Replaced manual data fetching with React Query
+  - Custom hooks for all data operations (useDashboard, useProjects, useStaff)
+  - Automatic caching with 5min stale time, 10min garbage collection
+  - Strategic cache invalidation on mutations
+  - Background refetching for always-fresh data
+- ✅ **React Hook Form + Zod** - Type-safe form validation
+  - Migrated all forms (Login, ProjectForm, StaffForm)
+  - Client-side validation with helpful error messages
+  - Better performance with reduced re-renders
+- ✅ **Toast Notifications** - User feedback with Sonner
+  - Success/error toasts on all CRUD operations
+  - Replaced alert() calls with professional notifications
+- ✅ **Loading Skeletons** - Content-aware loading states
+  - Replaced spinners with skeleton screens
+  - Improved perceived performance
+  - Created reusable skeleton components
+- ✅ **Global Error Boundary** - Graceful error handling
+  - Catches and displays React errors elegantly
+  - User-friendly error UI with reload/home options
+- ✅ **Component Decomposition** - Better code organization
+  - Extracted chart components from Dashboard
+  - Improved maintainability and reusability
+
+**Earlier Updates:**
 - ✅ Fixed table alignment issues in Project Report
 - ✅ Added sorting functionality to Project Report (project name, category)
 - ✅ Optimized column widths across all tables
@@ -126,14 +152,16 @@ Frontend will run on `http://localhost:5173`
 - **Validation**: Express middleware
 
 ### Frontend
-- **Framework**: React 18
+- **Framework**: React 19
 - **Language**: TypeScript
-- **UI Library**: Material-UI (MUI)
+- **UI Library**: Material-UI v7 (MUI)
 - **Routing**: React Router v6
-- **State**: React Context API
+- **State Management**: TanStack Query v5 (React Query)
+- **Form Management**: React Hook Form v7 + Zod v4
 - **HTTP Client**: Axios
 - **Charts**: Recharts
-- **Build Tool**: Vite
+- **Notifications**: Sonner v2
+- **Build Tool**: Vite v7
 
 ## 🗂️ Project Structure
 
@@ -448,12 +476,22 @@ The application uses Prisma for database migrations. Current migrations:
 - `StyledDataGrid.tsx` - Reusable table component ✅
 - `EmptyState.tsx` - Empty state component ✅
 - `Page.tsx` - Page wrapper component ✅
+- `ErrorBoundary.tsx` - Global error handler ✅
+- `ui/Skeleton.tsx` - Loading skeleton components ✅
+- `dashboard/ProjectStatusChart.tsx` - Pie chart component ✅
+- `dashboard/ProjectCategoryChart.tsx` - Bar chart component ✅
 
 **Context:**
 - `AuthContext.tsx` - Authentication state management ✅
 
-**API:**
-- `client.ts` - Axios client with JWT interceptors ✅
+**API & Data:**
+- `api/client.ts` - Axios client with JWT interceptors ✅
+- `hooks/useDashboard.ts` - Dashboard data hook ✅
+- `hooks/useProjects.ts` - Projects CRUD hooks ✅
+- `hooks/useStaff.ts` - Staff CRUD hooks ✅
+- `lib/query-client.ts` - TanStack Query configuration ✅
+- `lib/validations.ts` - Zod validation schemas ✅
+- `lib/toast.tsx` - Toast notification wrapper ✅
 
 ---
 
