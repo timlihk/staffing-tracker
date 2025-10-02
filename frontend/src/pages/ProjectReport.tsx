@@ -139,101 +139,97 @@ const ProjectReport: React.FC = () => {
         </Stack>
       }
     >
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 2 }}>
-        {/* Filter panel */}
-        <Paper
-          className="no-print"
-          sx={{
-            p: 2.5,
-            alignSelf: 'start',
-            position: 'sticky',
-            top: 88,
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <FilterAltRoundedIcon color="primary" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Filters
-            </Typography>
-          </Stack>
-
+      <Stack spacing={2}>
+        {/* Horizontal Filter Bar */}
+        <Paper className="no-print" sx={{ p: 2 }}>
           <Stack spacing={2}>
-            <Autocomplete
-              multiple
-              options={CATEGORY_OPTIONS}
-              value={categories}
-              onChange={(_, v) => setCategories(v)}
-              renderInput={(params) => (
-                <TextField {...params} label="Project Type" placeholder="All" />
-              )}
-            />
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <FilterAltRoundedIcon color="primary" />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Filters
+              </Typography>
+            </Stack>
 
-            <Autocomplete
-              multiple
-              options={STATUSES}
-              value={statuses}
-              onChange={(_, v) => setStatuses(v)}
-              renderInput={(params) => <TextField {...params} label="Status" placeholder="All" />}
-            />
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-end">
+              <Box sx={{ flex: 1, minWidth: 200 }}>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={CATEGORY_OPTIONS}
+                  value={categories}
+                  onChange={(_, v) => setCategories(v)}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Project Type" placeholder="All" />
+                  )}
+                />
+              </Box>
 
-            <Autocomplete
-              multiple
-              options={PRIORITIES}
-              value={priorities}
-              onChange={(_, v) => setPriorities(v)}
-              renderInput={(params) => <TextField {...params} label="Priority" placeholder="All" />}
-            />
+              <Box sx={{ flex: 1, minWidth: 200 }}>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={STATUSES}
+                  value={statuses}
+                  onChange={(_, v) => setStatuses(v)}
+                  renderInput={(params) => <TextField {...params} label="Status" placeholder="All" />}
+                />
+              </Box>
 
-            <Divider />
+              <Box sx={{ flex: 1, minWidth: 200 }}>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={PRIORITIES}
+                  value={priorities}
+                  onChange={(_, v) => setPriorities(v)}
+                  renderInput={(params) => <TextField {...params} label="Priority" placeholder="All" />}
+                />
+              </Box>
 
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" onClick={handleReset} size="small">
-                Reset
-              </Button>
-              <Button variant="contained" onClick={fetchData} size="small">
-                Apply
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button variant="outlined" onClick={handleReset} size="small">
+                  Reset
+                </Button>
+                <Button variant="contained" onClick={fetchData} size="small">
+                  Apply
+                </Button>
+              </Stack>
             </Stack>
           </Stack>
         </Paper>
 
-        {/* Results */}
-        <Box sx={{ display: 'grid', gap: 2 }}>
-          {/* Print header */}
-          <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-              Kirkland & Ellis - Project Report
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Generated: {new Date().toLocaleString()}
-            </Typography>
-            <Divider sx={{ mt: 1 }} />
-          </Box>
-
-          {/* Summary */}
-          <Paper className="no-print" sx={{ p: 2 }}>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-              Total Projects: {totalProjects}
-            </Typography>
-          </Paper>
-
-          {/* Data table */}
-          <Paper sx={{ p: 1 }}>
-            <StyledDataGrid
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              autoHeight
-              initialState={{
-                pagination: { paginationModel: { pageSize: 100 } },
-              }}
-              pageSizeOptions={[25, 50, 100, 200]}
-            />
-          </Paper>
+        {/* Print header */}
+        <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
+            Kirkland & Ellis - Project Report
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Generated: {new Date().toLocaleString()}
+          </Typography>
+          <Divider sx={{ mt: 1 }} />
         </Box>
-      </Box>
+
+        {/* Summary */}
+        <Paper className="no-print" sx={{ p: 2 }}>
+          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+            Total Projects: {totalProjects}
+          </Typography>
+        </Paper>
+
+        {/* Data table - Full width */}
+        <Paper sx={{ p: 1 }}>
+          <StyledDataGrid
+            rows={rows}
+            columns={columns}
+            loading={loading}
+            autoHeight
+            initialState={{
+              pagination: { paginationModel: { pageSize: 100 } },
+            }}
+            pageSizeOptions={[25, 50, 100, 200]}
+          />
+        </Paper>
+      </Stack>
     </Page>
   );
 };
