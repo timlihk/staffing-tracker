@@ -119,16 +119,14 @@ CREATE TABLE staff (
 -- 2. Projects
 CREATE TABLE projects (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL UNIQUE,
-    project_code VARCHAR(50), -- e.g., 'Athena', 'Kylin', '1216'
-    category VARCHAR(100), -- 'HK Transaction', 'US Transaction', 'HK Compliance', etc.
+    name VARCHAR(200) NOT NULL UNIQUE, -- Project code (e.g., 'Athena', 'Kylin', '1216')
+    category VARCHAR(100), -- 'HK Transaction Projects', 'US Transaction Projects', etc.
     status VARCHAR(50) NOT NULL, -- 'Active', 'Slow-down', 'Suspended'
     priority VARCHAR(20), -- 'High', 'Medium', 'Low'
-    start_date DATE,
-    target_filing_date DATE,
-    actual_filing_date DATE,
+    el_status VARCHAR(100), -- EL Status tracking
+    timetable VARCHAR(50), -- 'PRE_A1', 'A1', 'HEARING', 'LISTING'
+    bc_attorney VARCHAR(100), -- B&C Attorney name
     notes TEXT,
-    timeline_status TEXT, -- Detailed timeline notes
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -140,7 +138,6 @@ CREATE TABLE project_assignments (
     staff_id INTEGER REFERENCES staff(id) ON DELETE CASCADE,
     role_in_project VARCHAR(50) NOT NULL, -- 'IP', 'Associate', 'Senior FLIC', etc.
     jurisdiction VARCHAR(20), -- 'US Law', 'HK Law', 'B&C'
-    allocation_percentage INTEGER DEFAULT 100, -- % of time allocated
     start_date DATE,
     end_date DATE,
     is_lead BOOLEAN DEFAULT FALSE,
@@ -213,9 +210,7 @@ CREATE INDEX idx_activity_log_created ON activity_log(created_at DESC);
 2. **Charts & Visualizations**
    - Project status breakdown (pie chart)
    - Projects by category (bar chart)
-   - Staff workload distribution (horizontal bar chart)
-   - Timeline view of upcoming filings (Gantt chart)
-   - Workload heatmap (showing over/under utilized staff)
+   - Staff project distribution (horizontal bar chart)
 
 3. **Recent Activity Feed**
    - Recent project updates
@@ -272,15 +267,8 @@ CREATE INDEX idx_activity_log_created ON activity_log(created_at DESC);
 2. **Staff Detail View**
    - Personal information
    - Current project assignments
-   - Workload visualization
+   - Active project count
    - Assignment history
-   - Availability status
-
-3. **Workload View**
-   - Calendar view of assignments
-   - Capacity planning
-   - Over/under allocation warnings
-   - Timeline of assignments
 
 **Implementation Priority**: HIGH (Week 3-4)
 
@@ -289,16 +277,14 @@ CREATE INDEX idx_activity_log_created ON activity_log(created_at DESC);
 
 **Components**:
 1. **Assignment Interface**
-   - Drag-and-drop assignment
    - Role selection (IP, Associate, FLIC levels, Intern)
    - Jurisdiction specification (US Law, HK Law, B&C)
-   - Allocation percentage
+   - Lead designation
    - Date range
 
 2. **Quick Assignment Modal**
    - From project view: add staff members
    - From staff view: add projects
-   - Conflict detection (over-allocation warnings)
 
 3. **Bulk Assignment**
    - Assign multiple staff to project
@@ -558,30 +544,27 @@ GET    /api/activity-log                # Get activity log
 {
   "id": 1,
   "name": "Athena",
-  "project_code": "Athena",
   "category": "HK Transaction Projects",
   "status": "Active",
   "priority": "High",
-  "target_filing_date": "2025-06-30",
-  "actual_filing_date": "2025-06-15",
+  "elStatus": "Under Review",
+  "timetable": "A1",
+  "bcAttorney": "George Zheng",
   "notes": "A1 filed in June 2025, responses to the HKEx 1st round comments submitted on September 7, 2025",
-  "team": {
-    "us_law": {
-      "ip": ["Justin Zhou", "Yuchen Han"],
-      "associate": ["Luna"],
-      "senior_flic": ["Dingding"],
-      "junior_flic": ["Kyrie"],
-      "intern": ["Zitong"]
-    },
-    "hk_law": {
-      "ip": ["George Zheng"],
-      "associate": ["Jiawei"],
-      "senior_flic": ["Jiaxuan"],
-      "junior_flic": ["Jade"],
-      "intern": ["Zitong"]
-    },
-    "bc_working_attorney": ["George Zheng"]
-  },
+  "assignments": [
+    {
+      "id": 1,
+      "staffId": 5,
+      "roleInProject": "Associate",
+      "jurisdiction": "HK Law",
+      "isLead": false,
+      "staff": {
+        "id": 5,
+        "name": "Jiawei",
+        "role": "Associate"
+      }
+    }
+  ],
   "created_at": "2025-01-15T10:00:00Z",
   "updated_at": "2025-09-07T14:30:00Z"
 }
@@ -594,7 +577,6 @@ GET    /api/activity-log                # Get activity log
   "staff_id": 5,
   "role_in_project": "Associate",
   "jurisdiction": "HK Law",
-  "allocation_percentage": 75,
   "start_date": "2025-06-01",
   "is_lead": false,
   "notes": "Supporting role for HKEx filing"
