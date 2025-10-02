@@ -15,6 +15,7 @@ import Staff from './pages/Staff';
 import StaffDetail from './pages/StaffDetail';
 import StaffForm from './pages/StaffForm';
 import Reports from './pages/Reports';
+import ProjectReport from './pages/ProjectReport';
 
 function App() {
   const [mode, setMode] = useState<'light' | 'dark'>('light');
@@ -128,6 +129,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Reports />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/project-report"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ProjectReport />
                   </Layout>
                 </ProtectedRoute>
               }
