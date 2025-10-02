@@ -60,7 +60,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     include: {
       project: {
         select: {
-          projectCode: true,
+          name: true,
           category: true,
           priority: true,
           status: true,
@@ -77,7 +77,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
       },
     },
     orderBy: [
-      { project: { projectCode: 'asc' } },
+      { project: { name: 'asc' } },
       { staff: { name: 'asc' } },
       { startDate: 'asc' },
     ],
@@ -88,8 +88,8 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
 
   // Map DB → report row
   const rows: ReportRow[] = assignments.map(a => ({
-    projectCode: a.project.projectCode,
-    projectName: a.project.projectCode,
+    name: a.project.name,
+    projectName: a.project.name,
     category: a.project.category,
     priority: a.project.priority,
     status: a.project.status,

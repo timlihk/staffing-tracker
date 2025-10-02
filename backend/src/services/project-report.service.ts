@@ -7,7 +7,7 @@ export interface ProjectReportQuery {
 }
 
 export interface ProjectReportRow {
-  projectCode: string;
+  name: string;
   projectName: string;
   category: string;
   status: string;
@@ -67,7 +67,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
       },
     },
     orderBy: [
-      { projectCode: 'asc' },
+      { name: 'asc' },
     ],
   });
 
@@ -87,8 +87,8 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
     };
 
     return {
-      projectCode: project.projectCode,
-      projectName: project.projectCode, // Using projectCode as name now
+      name: project.name,
+      projectName: project.name, // Using name as name now
       category: project.category,
       status: project.status,
       priority: project.priority,

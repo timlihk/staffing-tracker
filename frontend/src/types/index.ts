@@ -23,7 +23,7 @@ export type Timetable = 'PRE_A1' | 'A1' | 'HEARING' | 'LISTING';
 
 export interface Project {
   id: number;
-  projectCode: string;
+  name: string;
   category: string;
   status: string;
   priority?: string;

@@ -18,7 +18,7 @@ import StyledDataGrid from '../components/ui/StyledDataGrid';
 
 type ProjectReportRow = {
   id: string;
-  projectCode: string;
+  name: string;
   projectName: string;
   category: string;
   status: string;
@@ -54,7 +54,7 @@ const STATUSES = ['Active', 'Slow-down', 'Suspended'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
 const columns: GridColDef<ProjectReportRow>[] = [
-  { field: 'projectCode', headerName: 'Code', width: 100 },
+  { field: 'name', headerName: 'Code', width: 100 },
   { field: 'projectName', headerName: 'Project', minWidth: 200, flex: 1 },
   { field: 'category', headerName: 'Category', width: 180 },
 
@@ -106,7 +106,7 @@ const ProjectReport: React.FC = () => {
       const data = (res.data?.data ?? []) as Omit<ProjectReportRow, 'id'>[];
       const withIds = data.map((r, i) => ({
         ...r,
-        id: `${r.projectCode}-${i}`,
+        id: `${r.name}-${i}`,
       }));
       setRows(withIds);
       setTotalProjects(res.data?.meta?.totalProjects || 0);

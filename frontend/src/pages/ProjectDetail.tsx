@@ -95,7 +95,7 @@ const ProjectDetail: React.FC = () => {
             Back
           </Button>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            {project.projectCode}
+            {project.name}
           </Typography>
           <Chip label={project.status} color={statusColor} />
         </Stack>

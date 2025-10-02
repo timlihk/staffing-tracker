@@ -13,7 +13,7 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
     if (category) where.category = category;
     if (search) {
       where.OR = [
-        { projectCode: { contains: search as string, mode: 'insensitive' } },
+        { name: { contains: search as string, mode: 'insensitive' } },
         { notes: { contains: search as string, mode: 'insensitive' } },
       ];
     }
@@ -79,7 +79,7 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
     const {
-      projectCode,
+      name,
       category,
       status,
       priority,
@@ -90,13 +90,13 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       notes,
     } = req.body;
 
-    if (!projectCode || !category || !status) {
+    if (!name || !category || !status) {
       return res.status(400).json({ error: 'Project code, category, and status are required' });
     }
 
     const project = await prisma.project.create({
       data: {
-        projectCode,
+        name,
         category,
         status,
         priority,
@@ -120,7 +120,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         actionType: 'create',
         entityType: 'project',
         entityId: project.id,
-        description: `Created project: ${project.projectCode}`,
+        description: `Created project: ${project.name}`,
       },
     });
 
@@ -135,7 +135,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      projectCode,
+      name,
       category,
       status,
       priority,
@@ -156,7 +156,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     // Build update data
     const updateData: any = {};
-    if (projectCode !== undefined) updateData.projectCode = projectCode;
+    if (name !== undefined) updateData.name = name;
     if (category) updateData.category = category;
     if (status) updateData.status = status;
     if (priority !== undefined) updateData.priority = priority;
@@ -192,7 +192,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         actionType: 'update',
         entityType: 'project',
         entityId: project.id,
-        description: `Updated project: ${project.projectCode}`,
+        description: `Updated project: ${project.name}`,
       },
     });
 
@@ -226,7 +226,7 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
         actionType: 'delete',
         entityType: 'project',
         entityId: parseInt(id),
-        description: `Deleted project: ${project.projectCode}`,
+        description: `Deleted project: ${project.name}`,
       },
     });
 
