@@ -87,174 +87,304 @@ const ProjectDetail: React.FC = () => {
       ? 'warning'
       : 'error';
 
+  const getPriorityColor = (priority: string | null) => {
+    if (!priority) return 'default';
+    switch (priority) {
+      case 'High':
+        return 'error';
+      case 'Medium':
+        return 'warning';
+      case 'Low':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
   return (
     <Page
       title={
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/projects')}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/projects')}
+            sx={{ mr: 1 }}
+          >
             Back
           </Button>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            {project.name}
-          </Typography>
-          <Chip label={project.status} color={statusColor} />
         </Stack>
       }
       actions={
-        <Button
-          variant="contained"
-          startIcon={<Edit />}
-          onClick={() => navigate(`/projects/${id}/edit`)}
-        >
-          Edit
+        <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
+          Edit Project
         </Button>
       }
     >
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={8}>
-          <Section title="Project Information">
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Category
-                </Typography>
-                <Typography>{project.category || '-'}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Priority
-                </Typography>
-                <Typography>{project.priority || '-'}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  EL Status
-                </Typography>
-                <Typography>{project.elStatus || '-'}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Timetable
-                </Typography>
-                <Typography>
-                  {project.timetable
-                    ? project.timetable.replace('_', '-').replace('PRE-A1', 'Pre-A1')
-                    : '-'}
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  B&C Attorney
-                </Typography>
-                <Typography>{project.bcAttorney || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Notes
-                </Typography>
-                <Typography>{project.notes || 'No notes available'}</Typography>
-              </Grid>
-            </Grid>
-          </Section>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Section title="Team Members">
-            {project.assignments && project.assignments.length > 0 ? (
-              <List dense>
-                {project.assignments.map((assignment) => (
-                  <ListItem
-                    key={assignment.id}
-                    sx={{
-                      cursor: 'pointer',
-                      borderRadius: 1,
-                      '&:hover': {
-                        bgcolor: 'action.hover',
-                      },
-                    }}
-                    onClick={() => navigate(`/staff/${assignment.staffId}`)}
-                  >
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography
-                            variant="body2"
-                            fontWeight="medium"
-                            sx={{
-                              color: 'primary.main',
-                              '&:hover': {
-                                textDecoration: 'underline',
-                              },
-                            }}
-                          >
-                            {assignment.staff?.name}
-                          </Typography>
-                          {assignment.isLead && <Chip label="Lead" size="small" color="primary" />}
-                        </Box>
-                      }
-                      secondary={
-                        <>
-                          {assignment.roleInProject}
-                          {assignment.jurisdiction && ` • ${assignment.jurisdiction}`}
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No team members assigned
-              </Typography>
+      <Stack spacing={3}>
+        {/* Project Header */}
+        <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 1 }}>
+            {project.name}
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Chip label={project.status} color={statusColor} sx={{ fontWeight: 600 }} />
+            {project.priority && (
+              <Chip
+                label={`Priority: ${project.priority}`}
+                color={getPriorityColor(project.priority)}
+                sx={{ fontWeight: 600 }}
+              />
             )}
-          </Section>
+            {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
+          </Stack>
+        </Paper>
+
+        {/* Project Details Grid */}
+        <Grid container spacing={2}>
+          {/* Left Column - Project Info */}
+          <Grid item xs={12} md={7}>
+            <Paper sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                Project Information
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      CATEGORY
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.category || '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      PRIORITY
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.priority || '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      EL STATUS
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.elStatus || '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      TIMETABLE
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.timetable ? project.timetable.replace('_', '-').replace('PRE-A1', 'Pre-A1') : '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      B&C ATTORNEY
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.bcAttorney || '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                {project.notes && (
+                  <Grid item xs={12}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: 'grey.50',
+                        border: '1px solid',
+                        borderColor: 'grey.200',
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        NOTES
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                        {project.notes}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                )}
+              </Grid>
+            </Paper>
+          </Grid>
+
+          {/* Right Column - Team Members */}
+          <Grid item xs={12} md={5}>
+            <Paper sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                Team Members
+              </Typography>
+              {project.assignments && project.assignments.length > 0 ? (
+                <Stack spacing={1.5}>
+                  {project.assignments.map((assignment) => (
+                    <Box
+                      key={assignment.id}
+                      onClick={() => navigate(`/staff/${assignment.staffId}`)}
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: 'grey.50',
+                        border: '1px solid',
+                        borderColor: 'grey.200',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          bgcolor: 'primary.50',
+                          borderColor: 'primary.main',
+                          transform: 'translateY(-2px)',
+                          boxShadow: 1,
+                        },
+                      }}
+                    >
+                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                          {assignment.staff?.name}
+                        </Typography>
+                        {assignment.isLead && <Chip label="Lead" size="small" color="primary" />}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        {assignment.roleInProject}
+                        {assignment.jurisdiction && ` • ${assignment.jurisdiction}`}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              ) : (
+                <Box
+                  sx={{
+                    p: 3,
+                    textAlign: 'center',
+                    bgcolor: 'grey.50',
+                    borderRadius: 2,
+                    border: '1px dashed',
+                    borderColor: 'grey.300',
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No team members assigned
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
         </Grid>
 
-        <Grid item xs={12}>
-          <Section title="Change History">
-            {changeHistory.length > 0 ? (
-              <List>
-                {changeHistory.map((change) => (
-                  <ListItem key={change.id}>
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      {getActionIcon(change.changeType)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box>
-                          <Typography variant="body2" component="span" fontWeight="medium">
-                            {change.fieldName}:{' '}
-                          </Typography>
-                          <Typography variant="body2" component="span" color="text.secondary">
-                            {change.oldValue || '(empty)'}
-                          </Typography>
-                          <Typography variant="body2" component="span">
-                            {' '}
-                            →{' '}
-                          </Typography>
-                          <Typography variant="body2" component="span" color="primary">
-                            {change.newValue || '(empty)'}
-                          </Typography>
-                        </Box>
-                      }
-                      secondary={
-                        <>
-                          {new Date(change.changedAt).toLocaleString()}
-                          {change.username && ` • by ${change.username}`}
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
+        {/* Change History */}
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+            Change History
+          </Typography>
+          {changeHistory.length > 0 ? (
+            <Stack spacing={1}>
+              {changeHistory.map((change) => (
+                <Box
+                  key={change.id}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: 'grey.50',
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <Box sx={{ mt: 0.5 }}>{getActionIcon(change.changeType)}</Box>
+                    <Box flex={1}>
+                      <Box display="flex" gap={1} flexWrap="wrap" alignItems="baseline">
+                        <Typography variant="body2" fontWeight={600}>
+                          {change.fieldName}:
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {change.oldValue || '(empty)'}
+                        </Typography>
+                        <Typography variant="body2">→</Typography>
+                        <Typography variant="body2" color="primary.main" fontWeight={600}>
+                          {change.newValue || '(empty)'}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(change.changedAt).toLocaleString()}
+                        {change.username && ` • by ${change.username}`}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            <Box
+              sx={{
+                p: 3,
+                textAlign: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 2,
+                border: '1px dashed',
+                borderColor: 'grey.300',
+              }}
+            >
               <Typography variant="body2" color="text.secondary">
                 No changes recorded
               </Typography>
-            )}
-          </Section>
-        </Grid>
-      </Grid>
+            </Box>
+          )}
+        </Paper>
+      </Stack>
     </Page>
   );
 };
