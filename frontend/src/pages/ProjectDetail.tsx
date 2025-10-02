@@ -23,7 +23,7 @@ import {
   ChangeCircle,
 } from '@mui/icons-material';
 import api from '../api/client';
-import { Project, ActivityLog } from '../types';
+import { Project, ChangeHistory } from '../types';
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -44,18 +44,18 @@ const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
-  const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
+  const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [projectResponse, activityResponse] = await Promise.all([
+        const [projectResponse, changeHistoryResponse] = await Promise.all([
           api.get(`/projects/${id}`),
-          api.get(`/projects/${id}/activity-log`),
+          api.get(`/projects/${id}/change-history`),
         ]);
         setProject(projectResponse.data);
-        setActivityLog(activityResponse.data);
+        setChangeHistory(changeHistoryResponse.data);
       } catch (error) {
         console.error('Failed to fetch project:', error);
       } finally {
@@ -242,22 +242,35 @@ const ProjectDetail: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Change Log
+              Change History
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            {activityLog.length > 0 ? (
+            {changeHistory.length > 0 ? (
               <List>
-                {activityLog.map((activity) => (
-                  <ListItem key={activity.id}>
+                {changeHistory.map((change) => (
+                  <ListItem key={change.id}>
                     <ListItemIcon sx={{ minWidth: 40 }}>
-                      {getActionIcon(activity.actionType)}
+                      {getActionIcon(change.changeType)}
                     </ListItemIcon>
                     <ListItemText
-                      primary={activity.description}
+                      primary={
+                        <Box>
+                          <Typography variant="body2" component="span" fontWeight="medium">
+                            {change.fieldName}:{' '}
+                          </Typography>
+                          <Typography variant="body2" component="span" color="text.secondary">
+                            {change.oldValue || '(empty)'}
+                          </Typography>
+                          <Typography variant="body2" component="span"> → </Typography>
+                          <Typography variant="body2" component="span" color="primary">
+                            {change.newValue || '(empty)'}
+                          </Typography>
+                        </Box>
+                      }
                       secondary={
                         <>
-                          {new Date(activity.createdAt).toLocaleString()}
-                          {activity.username && ` • by ${activity.username}`}
+                          {new Date(change.changedAt).toLocaleString()}
+                          {change.username && ` • by ${change.username}`}
                         </>
                       }
                     />
@@ -266,7 +279,7 @@ const ProjectDetail: React.FC = () => {
               </List>
             ) : (
               <Typography variant="body2" color="text.secondary">
-                No activity recorded
+                No changes recorded
               </Typography>
             )}
           </Paper>

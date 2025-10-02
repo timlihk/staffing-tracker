@@ -76,6 +76,16 @@ export interface ActivityLog {
   createdAt: string;
 }
 
+export interface ChangeHistory {
+  id: number;
+  fieldName: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changeType: string;
+  username: string;
+  changedAt: string;
+}
+
 export interface DashboardSummary {
   summary: {
     totalProjects: number;
