@@ -296,7 +296,6 @@ const ProjectDetail: React.FC = () => {
                         <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
                           {assignment.staff?.name}
                         </Typography>
-                        {assignment.isLead && <Chip label="Lead" size="small" color="primary" />}
                       </Box>
                       <Typography variant="body2" color="text.secondary">
                         {assignment.roleInProject}

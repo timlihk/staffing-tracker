@@ -15,8 +15,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Card,
-  CardContent,
   List,
   ListItem,
   ListItemText,
@@ -116,27 +114,33 @@ const StaffDetail: React.FC = () => {
       }
     >
       <Grid container spacing={2}>
-        {/* Staff Information */}
-        <Grid item xs={12} md={4}>
-          <Section title="Staff Information">
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
+        {/* First Row: Staff Information + Active Projects Count */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="text.secondary">
                   Role
                 </Typography>
                 <Typography>{staff.role}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="text.secondary">
                   Department
                 </Typography>
                 <Typography>{staff.department || '-'}</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="subtitle2" color="text.secondary">
                   Email
                 </Typography>
                 <Typography>{staff.email || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Active Projects
+                </Typography>
+                <Typography variant="h6">{activeProjects.length}</Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -145,27 +149,11 @@ const StaffDetail: React.FC = () => {
                 <Typography>{staff.notes || 'No notes available'}</Typography>
               </Grid>
             </Grid>
-          </Section>
+          </Paper>
         </Grid>
 
-        {/* Workload Summary */}
-        <Grid item xs={12} md={8}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Active Projects
-                  </Typography>
-                  <Typography variant="h4">{activeProjects.length}</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Grid>
-
-        {/* Projects List */}
-        <Grid item xs={12} md={6}>
+        {/* Projects Table */}
+        <Grid item xs={12}>
           <Section title="Project Assignments">
             {staff.assignments && staff.assignments.length > 0 ? (
               <TableContainer>
@@ -188,10 +176,7 @@ const StaffDetail: React.FC = () => {
                         onClick={() => navigate(`/projects/${assignment.projectId}`)}
                       >
                         <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="body2">{assignment.project?.name}</Typography>
-                            {assignment.isLead && <Chip label="Lead" size="small" color="primary" />}
-                          </Box>
+                          <Typography variant="body2">{assignment.project?.name}</Typography>
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -223,7 +208,7 @@ const StaffDetail: React.FC = () => {
         </Grid>
 
         {/* Change History */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Section title="Change History">
             {changeHistory.length > 0 ? (
               <List>

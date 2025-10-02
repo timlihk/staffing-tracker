@@ -37,7 +37,6 @@ type ReportRow = {
   staffDepartment: string | null;
   roleInProject: string;
   jurisdiction: string | null;
-  isLead: boolean;
   startDate: string | null;
   endDate: string | null;
 };
@@ -76,12 +75,6 @@ const columns: GridColDef<ReportRow>[] = [
   { field: 'staffDepartment', headerName: 'Dept', width: 100 },
   { field: 'roleInProject', headerName: 'Project Role', width: 140 },
   { field: 'jurisdiction', headerName: 'Jurisdiction', width: 120 },
-  {
-    field: 'isLead',
-    headerName: 'Lead',
-    width: 80,
-    valueGetter: (value, row) => (row.isLead ? 'Yes' : 'No'),
-  },
   {
     field: 'startDate',
     headerName: 'Start',

@@ -91,7 +91,6 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       jurisdiction,
       startDate,
       endDate,
-      isLead,
       notes,
     } = req.body;
 
@@ -121,7 +120,6 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
         jurisdiction,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        isLead: isLead || false,
         notes,
       },
       include: {
@@ -169,7 +167,6 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
       jurisdiction,
       startDate,
       endDate,
-      isLead,
       notes,
     } = req.body;
 
@@ -189,7 +186,6 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
         ...(jurisdiction !== undefined && { jurisdiction }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
-        ...(isLead !== undefined && { isLead }),
         ...(notes !== undefined && { notes }),
       },
       include: {
@@ -277,7 +273,6 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         staffId,
         roleInProject,
         jurisdiction,
-        isLead,
       } = assignmentData;
 
       if (!projectId || !staffId || !roleInProject) {
@@ -291,7 +286,6 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
             staffId,
             roleInProject,
             jurisdiction,
-            isLead: isLead || false,
           },
           include: {
             project: true,
