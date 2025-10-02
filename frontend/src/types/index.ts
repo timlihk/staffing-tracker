@@ -19,16 +19,17 @@ export interface Staff {
   updatedAt: string;
 }
 
+export type Timetable = 'PRE_A1' | 'A1' | 'HEARING' | 'LISTING';
+
 export interface Project {
   id: number;
-  name: string;
-  projectCode?: string;
+  projectCode: string;
   category: string;
   status: string;
   priority?: string;
   elStatus?: string;
-  startDate?: string;
-  timetable?: string;
+  timetable?: Timetable;
+  bcAttorney?: string;
   actualFilingDate?: string;
   notes?: string;
   assignments?: ProjectAssignment[];

@@ -51,20 +51,26 @@ model Staff {
   @@map("staff")
 }
 
+enum Timetable {
+  PRE_A1
+  A1
+  HEARING
+  LISTING
+}
+
 model Project {
-  id                Int       @id @default(autoincrement())
-  name              String    @unique
-  projectCode       String?   @map("project_code")
-  category          String    // HK Transaction, US Transaction, HK Compliance, US Compliance, Others
-  status            String    // Active, Slow-down, Suspended
-  priority          String?   // High, Medium, Low
-  elStatus          String?   @map("el_status") // EL Status field
-  startDate         DateTime? @map("start_date")
-  timetable         String?   // Pre-A1, A1, Hearing, Listing
-  actualFilingDate  DateTime? @map("actual_filing_date")
-  notes             String?   @db.Text
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  id                Int         @id @default(autoincrement())
+  projectCode       String      @unique @map("project_code")
+  category          String      // HK Transaction, US Transaction, HK Compliance, US Compliance, Others
+  status            String      // Active, Slow-down, Suspended
+  priority          String?     // High, Medium, Low
+  elStatus          String?     @map("el_status") // EL Status field
+  timetable         Timetable?  // Pre-A1, A1, Hearing, Listing
+  bcAttorney        String?     @map("bc_attorney") // B&C Attorney assigned to project
+  actualFilingDate  DateTime?   @map("actual_filing_date")
+  notes             String?     @db.Text
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
   assignments   ProjectAssignment[]
   changeHistory ProjectChangeHistory[] @relation("ProjectChangeHistory")

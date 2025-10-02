@@ -95,7 +95,7 @@ const ProjectDetail: React.FC = () => {
             Back
           </Button>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            {project.name}
+            {project.projectCode}
           </Typography>
           <Chip label={project.status} color={statusColor} />
         </Stack>
@@ -134,17 +134,19 @@ const ProjectDetail: React.FC = () => {
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Start Date
+                  Timetable
                 </Typography>
                 <Typography>
-                  {project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}
+                  {project.timetable
+                    ? project.timetable.replace('_', '-').replace('PRE-A1', 'Pre-A1')
+                    : '-'}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Timetable
+                  B&C Attorney
                 </Typography>
-                <Typography>{project.timetable || '-'}</Typography>
+                <Typography>{project.bcAttorney || '-'}</Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">

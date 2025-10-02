@@ -71,8 +71,8 @@ const Projects: React.FC = () => {
 
   const columns: GridColDef<Project>[] = [
     {
-      field: 'name',
-      headerName: 'Name',
+      field: 'projectCode',
+      headerName: 'Project Code',
       flex: 1,
       minWidth: 250,
       renderCell: (params) => (

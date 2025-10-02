@@ -68,7 +68,6 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
     },
     orderBy: [
       { projectCode: 'asc' },
-      { name: 'asc' },
     ],
   });
 
@@ -88,8 +87,8 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
     };
 
     return {
-      projectCode: project.projectCode || '',
-      projectName: project.name,
+      projectCode: project.projectCode,
+      projectName: project.projectCode, // Using projectCode as name now
       category: project.category,
       status: project.status,
       priority: project.priority,
@@ -108,8 +107,10 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
       hkLawJuniorFlic: getStaffByJurisdictionAndRole('HK Law', 'Junior FLIC'),
       hkLawIntern: getStaffByJurisdictionAndRole('HK Law', 'Intern'),
 
-      // B&C attorney
-      bcAttorney: getStaffByJurisdictionAndRole('B&C', 'B&C Working Attorney'),
+      // B&C attorney - use direct field or fallback to assignments
+      bcAttorney:
+        project.bcAttorney ||
+        getStaffByJurisdictionAndRole('B&C', 'B&C Working Attorney'),
 
       // Milestone and notes
       milestone: project.timetable,
