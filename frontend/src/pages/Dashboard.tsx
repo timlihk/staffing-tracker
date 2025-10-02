@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Grid, Typography, Box, CircularProgress } from '@mui/material';
 import {
   PieChart,
@@ -13,34 +12,17 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-import api from '../api/client';
-import type { DashboardSummary } from '../types';
 import SummaryCards from '../components/SummaryCards';
 import ActivityFeed from '../components/ActivityFeed';
 import { Page, Section } from '../components/ui';
+import { useDashboard } from '../hooks/useDashboard';
 
 const COLORS = ['#4CAF50', '#FF9800', '#F44336', '#2196F3'];
 
 const Dashboard = () => {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: summary, isLoading, error } = useDashboard();
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const response = await api.get('/dashboard/summary');
-        setSummary(response.data);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -48,8 +30,16 @@ const Dashboard = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <Typography color="error">Failed to load dashboard data. Please try again.</Typography>
+      </Box>
+    );
+  }
+
   if (!summary) {
-    return <Typography>Failed to load dashboard data</Typography>;
+    return <Typography>No dashboard data available</Typography>;
   }
 
   const statusData = summary.projectsByStatus.map(s => ({ name: s.status, value: s.count }));
