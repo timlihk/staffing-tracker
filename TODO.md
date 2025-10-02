@@ -168,9 +168,26 @@
   - [x] Verified no suspended staff records exist
 - [x] Project Report navigation
   - [x] Added clickable rows to Project Report table
-  - [x] Fixed navigation by including projectId in backend response
+  - [x] Fixed navigation by including projectId in backend response (both reports.service.ts and project-report.service.ts)
   - [x] Updated frontend to use real database IDs instead of synthetic ones
   - [x] Resolved "project not found" errors
+
+### UI/UX Improvements (2025-10-03)
+- [x] Restructured StaffDetail page layout
+  - [x] Changed from sidebar layout to horizontal single-row layout
+  - [x] Display Role, Department, Email, Active Projects in first row
+  - [x] Show Notes in full width below
+  - [x] Move Projects table below staff info section
+  - [x] Improved mobile responsiveness
+- [x] Removed "Lead" field completely
+  - [x] Removed "Lead" chip from StaffDetail project assignments
+  - [x] Removed "Lead" chip from ProjectDetail staff assignments
+  - [x] Removed "Lead" column from Reports page
+  - [x] Removed isLead from frontend TypeScript types
+  - [x] Removed isLead from backend Prisma schema
+  - [x] Created database migration to drop is_lead column
+  - [x] Updated assignment controller (create/update/bulk)
+  - [x] Updated reports service and types
 
 ---
 
