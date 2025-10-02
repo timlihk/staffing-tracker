@@ -8,13 +8,18 @@ import {
   TextField,
   Autocomplete,
   Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  CircularProgress,
 } from '@mui/material';
-import { GridColDef } from '@mui/x-data-grid';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
-import { Page } from '../components/ui';
-import StyledDataGrid from '../components/ui/StyledDataGrid';
 
 type ProjectReportRow = {
   id: string;
@@ -53,32 +58,6 @@ const CATEGORY_OPTIONS = [
 const STATUSES = ['Active', 'Slow-down', 'Suspended'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
-const columns: GridColDef<ProjectReportRow>[] = [
-  { field: 'projectName', headerName: 'Project', minWidth: 200, flex: 1 },
-  { field: 'category', headerName: 'Category', width: 180 },
-
-  // US Law columns
-  { field: 'usLawPartner', headerName: 'US - Partner', width: 150 },
-  { field: 'usLawAssociate', headerName: 'US - Associate', width: 150 },
-  { field: 'usLawSeniorFlic', headerName: 'US - Sr FLIC', width: 150 },
-  { field: 'usLawJuniorFlic', headerName: 'US - Jr FLIC', width: 150 },
-  { field: 'usLawIntern', headerName: 'US - Intern', width: 150 },
-
-  // HK Law columns
-  { field: 'hkLawPartner', headerName: 'HK - Partner', width: 150 },
-  { field: 'hkLawAssociate', headerName: 'HK - Associate', width: 150 },
-  { field: 'hkLawSeniorFlic', headerName: 'HK - Sr FLIC', width: 150 },
-  { field: 'hkLawJuniorFlic', headerName: 'HK - Jr FLIC', width: 150 },
-  { field: 'hkLawIntern', headerName: 'HK - Intern', width: 150 },
-
-  // B&C
-  { field: 'bcAttorney', headerName: 'B&C Attorney', width: 150 },
-
-  // Milestone & Notes
-  { field: 'milestone', headerName: 'Milestone', width: 120 },
-  { field: 'notes', headerName: 'Notes', minWidth: 200, flex: 1 },
-];
-
 function toCsvParam(values: string[]) {
   return values.length ? values.join(',') : undefined;
 }
@@ -91,6 +70,8 @@ const ProjectReport: React.FC = () => {
   const [rows, setRows] = useState<ProjectReportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -129,19 +110,21 @@ const ProjectReport: React.FC = () => {
   const onPrint = () => window.print();
 
   return (
-    <Page
-      title="Project Report"
-      actions={
-        <Stack direction="row" spacing={2} className="no-print">
+    <>
+      {/* Header */}
+      <Paper sx={{ p: 2, mb: 2 }} className="no-print">
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mr: 'auto' }}>
+            📊 Project Report
+          </Typography>
           <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
             Print
           </Button>
         </Stack>
-      }
-    >
-      <Stack spacing={2}>
-        {/* Horizontal Filter Bar */}
-        <Paper className="no-print" sx={{ p: 2 }}>
+      </Paper>
+
+      {/* Horizontal Filter Bar */}
+      <Paper className="no-print" sx={{ p: 2, mb: 2 }}>
           <Stack spacing={2}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <FilterAltRoundedIcon color="primary" />
@@ -196,10 +179,10 @@ const ProjectReport: React.FC = () => {
               </Stack>
             </Stack>
           </Stack>
-        </Paper>
+      </Paper>
 
-        {/* Print header */}
-        <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
+      {/* Print header */}
+      <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
             Kirkland & Ellis - Project Report
           </Typography>
@@ -207,32 +190,81 @@ const ProjectReport: React.FC = () => {
             Generated: {new Date().toLocaleString()}
           </Typography>
           <Divider sx={{ mt: 1 }} />
-        </Box>
+      </Box>
 
-        {/* Summary */}
-        <Paper className="no-print" sx={{ p: 2 }}>
+      {/* Summary */}
+      <Paper className="no-print" sx={{ p: 2, mb: 2 }}>
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             Total Projects: {totalProjects}
           </Typography>
-        </Paper>
+      </Paper>
 
-        {/* Data table - Full width */}
-        <Paper sx={{ p: 1, width: '100%', maxWidth: '100%', overflow: 'auto' }}>
-          <Box sx={{ width: '100%', minWidth: 0 }}>
-            <StyledDataGrid
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              autoHeight
-              initialState={{
-                pagination: { paginationModel: { pageSize: 100 } },
-              }}
-              pageSizeOptions={[25, 50, 100, 200]}
-            />
+      {/* Data table */}
+      <TableContainer component={Paper} sx={{ width: '100%' }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
           </Box>
-        </Paper>
-      </Stack>
-    </Page>
+        ) : (
+          <>
+            <Table sx={{ minWidth: 650 }} size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'grey.100' }}>
+                  <TableCell sx={{ fontWeight: 700 }}>Project</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>US - Partner</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>US - Associate</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>US - Sr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>US - Jr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>US - Intern</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>HK - Partner</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>HK - Associate</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>HK - Sr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>HK - Jr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>HK - Intern</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>B&C Attorney</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Milestone</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                  <TableRow key={row.id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                    <TableCell>{row.projectName}</TableCell>
+                    <TableCell>{row.category}</TableCell>
+                    <TableCell>{row.usLawPartner || '-'}</TableCell>
+                    <TableCell>{row.usLawAssociate || '-'}</TableCell>
+                    <TableCell>{row.usLawSeniorFlic || '-'}</TableCell>
+                    <TableCell>{row.usLawJuniorFlic || '-'}</TableCell>
+                    <TableCell>{row.usLawIntern || '-'}</TableCell>
+                    <TableCell>{row.hkLawPartner || '-'}</TableCell>
+                    <TableCell>{row.hkLawAssociate || '-'}</TableCell>
+                    <TableCell>{row.hkLawSeniorFlic || '-'}</TableCell>
+                    <TableCell>{row.hkLawJuniorFlic || '-'}</TableCell>
+                    <TableCell>{row.hkLawIntern || '-'}</TableCell>
+                    <TableCell>{row.bcAttorney || '-'}</TableCell>
+                    <TableCell>{row.milestone || '-'}</TableCell>
+                    <TableCell>{row.notes || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <TablePagination
+              component="div"
+              count={rows.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[25, 50, 100, 200]}
+            />
+          </>
+        )}
+      </TableContainer>
+    </>
   );
 };
 
