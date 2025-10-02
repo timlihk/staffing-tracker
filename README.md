@@ -68,6 +68,8 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - ✅ Added clickable rows to Project Report for navigation
 - ✅ Fixed project navigation using real database IDs instead of synthetic ones
 - ✅ Enhanced Project Report with proper project linking
+- ✅ Restructured StaffDetail page with horizontal layout
+- ✅ Removed "Lead" field from entire application (frontend, backend, database)
 
 **Earlier Updates:**
 - ✅ Fixed table alignment issues in Project Report
@@ -451,6 +453,8 @@ The application uses Prisma for database migrations. Current migrations:
 5. `20251002210638_remove_allocation_percentage` - Removed allocation field
 6. `20251002214500_rename_ip_to_partner` - Renamed Income Partner → Partner
 7. `add_change_history` - Added audit trail tables
+
+8. `20251003034500_remove_is_lead` - Removed isLead field from ProjectAssignment
 
 **All migrations deployed to production.**
 
