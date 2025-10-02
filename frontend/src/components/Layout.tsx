@@ -11,24 +11,32 @@ const drawerWidth = 280;
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{
+      display: 'flex',
+      minHeight: '100vh',
+      bgcolor: 'background.default',
+      width: '100vw',
+      maxWidth: '100vw',
+      margin: 0,
+      padding: 0,
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+    }}>
       <Header drawerWidth={drawerWidth} />
       <Sidebar drawerWidth={drawerWidth} />
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          flexShrink: 0,
+          flexBasis: 0,
+          minWidth: 0,
           mt: { xs: 7, sm: 8 },
-          p: { xs: 2, sm: 2.5, md: 3 },
-          maxWidth: '100%',
-          overflow: 'hidden',
+          p: 2,
+          overflow: 'auto',
         }}
       >
-        <Box sx={{ width: '100%', maxWidth: '100%' }}>
-          {children}
-        </Box>
+        {children}
       </Box>
     </Box>
   );
