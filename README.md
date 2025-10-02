@@ -172,6 +172,7 @@ GET    /api/auth/me         - Get current user
 ```
 GET    /api/projects        - List projects (with filters)
 GET    /api/projects/:id    - Get project details
+GET    /api/projects/:id/activity-log - Get project change log
 POST   /api/projects        - Create project (admin/editor)
 PUT    /api/projects/:id    - Update project (admin/editor)
 DELETE /api/projects/:id    - Delete project (admin)
@@ -308,29 +309,39 @@ npm run preview
 
 ## 📊 Features
 
-### Completed
+### Completed - Backend (100%)
 - ✅ User authentication (JWT-based)
 - ✅ Role-based access control (admin, editor, viewer)
 - ✅ Project CRUD operations
 - ✅ Staff CRUD operations
 - ✅ Assignment management (including bulk operations)
 - ✅ Project status tracking with history
-- ✅ Activity logging
+- ✅ Activity logging and audit trail
 - ✅ Dashboard API with summaries
 - ✅ Workload reporting
+- ✅ Project-specific change log API
 - ✅ Excel data migration script
 - ✅ Railway deployment configuration
 
-### To Be Implemented (Frontend)
-- [ ] Login/Register UI
-- [ ] Dashboard with charts
-- [ ] Project list and detail views
-- [ ] Staff list and detail views
-- [ ] Assignment management UI
-- [ ] Workload visualization
-- [ ] Activity feed
-- [ ] Responsive design
-- [ ] Data export functionality
+### Completed - Frontend (95%)
+- ✅ Login/Register UI with authentication
+- ✅ Dashboard with charts and analytics
+- ✅ Project list with clickable rows
+- ✅ Project detail views with team assignments
+- ✅ Project change log display
+- ✅ Staff list with clickable names
+- ✅ Staff detail views with project assignments
+- ✅ Staff workload visualization
+- ✅ Activity feed
+- ✅ Responsive Material-UI design
+- ✅ Protected routes and authorization
+
+### To Be Implemented
+- [ ] Assignment management UI (dedicated page)
+- [ ] Bulk assignment interface
+- [ ] Data export functionality (Excel/PDF)
+- [ ] Advanced filtering and search
+- [ ] Email notifications
 
 ## 🛡️ Security Features
 
