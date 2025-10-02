@@ -33,9 +33,6 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
               },
             },
           },
-          where: {
-            project: { status: 'Active' },
-          },
         },
       },
       orderBy: { name: 'asc' },
