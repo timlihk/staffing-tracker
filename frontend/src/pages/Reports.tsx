@@ -108,8 +108,8 @@ const Reports: React.FC = () => {
   const [priorities, setPriorities] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [jurisdictions, setJurisdictions] = useState<string[]>([]);
-  const [dateFrom, setDateFrom] = useState<Dayjs | null>(dayjs().startOf('month'));
-  const [dateTo, setDateTo] = useState<Dayjs | null>(dayjs().endOf('month'));
+  const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
+  const [dateTo, setDateTo] = useState<Dayjs | null>(null);
 
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -186,8 +186,8 @@ const Reports: React.FC = () => {
     setPriorities([]);
     setStatuses([]);
     setJurisdictions([]);
-    setDateFrom(dayjs().startOf('month'));
-    setDateTo(dayjs().endOf('month'));
+    setDateFrom(null);
+    setDateTo(null);
   };
 
   return (

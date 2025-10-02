@@ -53,6 +53,8 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     where.jurisdiction = { in: jurisdictions };
   }
 
+  console.log('[Reports Service] Filter WHERE:', JSON.stringify(where, null, 2));
+
   const assignments = await prisma.projectAssignment.findMany({
     where,
     include: {
@@ -82,6 +84,8 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     ],
     take: 10000, // Safety limit
   });
+
+  console.log(`[Reports Service] Found ${assignments.length} assignments`);
 
   // Map DB → report row
   const rows: ReportRow[] = assignments.map(a => ({
