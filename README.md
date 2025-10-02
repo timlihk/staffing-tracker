@@ -62,12 +62,18 @@ This application replaces the Excel-based staffing tracker with a full-stack web
   - Extracted chart components from Dashboard
   - Improved maintainability and reusability
 
+**Bug Fixes & Improvements (Oct 3, 2025):**
+- ✅ Fixed CircularProgress errors in production (removed orphaned imports)
+- ✅ Merged duplicate staff records (William/WIlliam, Tingting/TIngting)
+- ✅ Added clickable rows to Project Report for navigation
+- ✅ Fixed project navigation using real database IDs instead of synthetic ones
+- ✅ Enhanced Project Report with proper project linking
+
 **Earlier Updates:**
 - ✅ Fixed table alignment issues in Project Report
 - ✅ Added sorting functionality to Project Report (project name, category)
 - ✅ Optimized column widths across all tables
 - ✅ Updated role naming: "Income Partner" → "Partner"
-- ✅ Merged duplicate staff members (Jing/Jing Du)
 - ✅ Increased project list pagination to show all projects
 - ✅ Fixed CSS layout issues (removed artificial centering)
 

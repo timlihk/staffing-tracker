@@ -156,6 +156,22 @@
   - [x] Extracted ProjectCategoryChart from Dashboard
   - [x] Improved code organization and reusability
 
+### Bug Fixes & Data Cleanup (2025-10-03)
+- [x] Fixed CircularProgress production errors
+  - [x] Removed orphaned CircularProgress usage from Projects.tsx
+  - [x] Removed loading prop from StyledDataGrid components
+  - [x] Updated error handling to use inline conditional rendering
+- [x] Staff data cleanup
+  - [x] Created merge-staff.ts script
+  - [x] Merged William/WIlliam duplicates (2 assignments consolidated)
+  - [x] Merged Tingting/TIngting duplicates (11 assignments consolidated)
+  - [x] Verified no suspended staff records exist
+- [x] Project Report navigation
+  - [x] Added clickable rows to Project Report table
+  - [x] Fixed navigation by including projectId in backend response
+  - [x] Updated frontend to use real database IDs instead of synthetic ones
+  - [x] Resolved "project not found" errors
+
 ---
 
 **Last Updated:** 2025-10-03
