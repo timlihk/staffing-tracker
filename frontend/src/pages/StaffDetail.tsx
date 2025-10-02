@@ -21,6 +21,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  Stack,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -32,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Staff, ChangeHistory } from '../types';
+import { Page, Section } from '../components/ui';
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -98,21 +100,19 @@ const StaffDetail: React.FC = () => {
   const isOverAllocated = totalAllocation > 100;
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/staff')}
-          >
+    <Page
+      title={
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
             Back
           </Button>
-          <Typography variant="h4">{staff.name}</Typography>
-          <Chip
-            label={staff.status}
-            color={staff.status === 'active' ? 'success' : 'default'}
-          />
-        </Box>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            {staff.name}
+          </Typography>
+          <Chip label={staff.status} color={staff.status === 'active' ? 'success' : 'default'} />
+        </Stack>
+      }
+      actions={
         <Button
           variant="contained"
           startIcon={<Edit />}
@@ -120,16 +120,12 @@ const StaffDetail: React.FC = () => {
         >
           Edit
         </Button>
-      </Box>
-
-      <Grid container spacing={3}>
+      }
+    >
+      <Grid container spacing={2}>
         {/* Staff Information */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Staff Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+          <Section title="Staff Information">
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -156,7 +152,7 @@ const StaffDetail: React.FC = () => {
                 <Typography>{staff.notes || 'No notes available'}</Typography>
               </Grid>
             </Grid>
-          </Paper>
+          </Section>
         </Grid>
 
         {/* Workload Summary */}
@@ -178,10 +174,7 @@ const StaffDetail: React.FC = () => {
                   <Typography variant="subtitle2" color="text.secondary">
                     Total Allocation
                   </Typography>
-                  <Typography
-                    variant="h4"
-                    color={isOverAllocated ? 'error' : 'inherit'}
-                  >
+                  <Typography variant="h4" color={isOverAllocated ? 'error' : 'inherit'}>
                     {totalAllocation}%
                   </Typography>
                 </CardContent>
@@ -206,11 +199,7 @@ const StaffDetail: React.FC = () => {
 
         {/* Projects List */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Project Assignments
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+          <Section title="Project Assignments">
             {staff.assignments && staff.assignments.length > 0 ? (
               <TableContainer>
                 <Table>
@@ -234,12 +223,8 @@ const StaffDetail: React.FC = () => {
                       >
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="body2">
-                              {assignment.project?.name}
-                            </Typography>
-                            {assignment.isLead && (
-                              <Chip label="Lead" size="small" color="primary" />
-                            )}
+                            <Typography variant="body2">{assignment.project?.name}</Typography>
+                            {assignment.isLead && <Chip label="Lead" size="small" color="primary" />}
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -249,8 +234,8 @@ const StaffDetail: React.FC = () => {
                               assignment.project?.status === 'Active'
                                 ? 'success'
                                 : assignment.project?.status === 'Slow-down'
-                                ? 'warning'
-                                : 'error'
+                                  ? 'warning'
+                                  : 'error'
                             }
                             size="small"
                           />
@@ -280,16 +265,12 @@ const StaffDetail: React.FC = () => {
                 No project assignments
               </Typography>
             )}
-          </Paper>
+          </Section>
         </Grid>
 
         {/* Change History */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Change History
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+          <Section title="Change History">
             {changeHistory.length > 0 ? (
               <List>
                 {changeHistory.map((change) => (
@@ -306,7 +287,10 @@ const StaffDetail: React.FC = () => {
                           <Typography variant="body2" component="span" color="text.secondary">
                             {change.oldValue || '(empty)'}
                           </Typography>
-                          <Typography variant="body2" component="span"> → </Typography>
+                          <Typography variant="body2" component="span">
+                            {' '}
+                            →{' '}
+                          </Typography>
                           <Typography variant="body2" component="span" color="primary">
                             {change.newValue || '(empty)'}
                           </Typography>
@@ -327,10 +311,10 @@ const StaffDetail: React.FC = () => {
                 No changes recorded
               </Typography>
             )}
-          </Paper>
+          </Section>
         </Grid>
       </Grid>
-    </Box>
+    </Page>
   );
 };
 

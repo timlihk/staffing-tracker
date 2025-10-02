@@ -9,10 +9,12 @@ import {
   Grid,
   MenuItem,
   CircularProgress,
+  Stack,
 } from '@mui/material';
 import { ArrowBack, Save } from '@mui/icons-material';
 import api from '../api/client';
 import { Staff } from '../types';
+import { Page } from '../components/ui';
 
 const StaffForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,19 +81,21 @@ const StaffForm: React.FC = () => {
   };
 
   return (
-    <Box>
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
-          Back
-        </Button>
-        <Typography variant="h4">
-          {isEdit ? 'Edit Staff' : 'New Staff'}
-        </Typography>
-      </Box>
-
+    <Page
+      title={
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
+            Back
+          </Button>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            {isEdit ? 'Edit Staff' : 'New Staff'}
+          </Typography>
+        </Stack>
+      }
+    >
       <Paper sx={{ p: 3 }}>
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
                 required
@@ -192,7 +196,7 @@ const StaffForm: React.FC = () => {
           </Grid>
         </form>
       </Paper>
-    </Box>
+    </Page>
   );
 };
 
