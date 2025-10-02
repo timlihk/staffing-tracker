@@ -34,8 +34,8 @@ const splitNames = (nameString: string | undefined | null): string[] => {
     .filter((n) => n !== undefined && n !== '' && n.toLowerCase() !== 'nan') as string[];
 };
 
-const determineCategory = (rowIndex: number, projectName: string): string => {
-  const lowerName = projectName?.toLowerCase() || '';
+const determineCategory = (rowIndex: number, projectName: string | undefined | null): string => {
+  const lowerName = (projectName && typeof projectName === 'string') ? projectName.toLowerCase() : '';
 
   // Check row-based sections
   if (rowIndex <= 35) return 'HK Transaction Projects';
