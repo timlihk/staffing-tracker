@@ -1,357 +1,290 @@
-# Kirkland & Ellis Staffing Tracker - Deployment Guide
+# Deployment Guide - Kirkland & Ellis Staffing Tracker
 
-## Project Status
-
-### ✅ Completed Components
-
-#### Backend (100% Complete)
-- [x] Node.js + Express + TypeScript setup
-- [x] PostgreSQL database schema with Prisma ORM
-- [x] JWT-based authentication system
-- [x] Complete REST API with all endpoints:
-  - Authentication (login, register, me)
-  - Projects CRUD
-  - Staff CRUD
-  - Assignments CRUD (including bulk operations)
-  - Dashboard & reporting endpoints
-- [x] Excel data migration script
-- [x] Activity logging system
-- [x] Role-based access control (admin, editor, viewer)
-- [x] Railway.app configuration files
-
-#### Frontend (In Progress)
-- [x] Vite + React + TypeScript setup
-- [x] Material-UI installed
-- [x] React Router installed
-- [ ] Component implementation (needs to be completed)
+**Complete step-by-step guide for deploying to Railway.app**
 
 ---
 
-## Backend Deployment to Railway.app
+## 🎯 Quick Start Checklist
 
-### Step 1: Prepare Your Backend
-
-The backend is fully ready for deployment. Here's what's included:
-
-**Files:**
-- `/backend/src/` - Complete TypeScript source code
-- `/backend/prisma/schema.prisma` - Database schema
-- `/backend/railway.json` - Railway configuration
-- `/backend/package.json` - Dependencies and scripts
-
-### Step 2: Deploy Backend to Railway
-
-1. **Create Railway Account**
-   - Go to https://railway.app
-   - Sign up with GitHub
-
-2. **Create New Project**
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Connect your GitHub account and select your repository
-
-3. **Add PostgreSQL Database**
-   - In your project, click "+ New"
-   - Select "Database" → "PostgreSQL"
-   - Railway will automatically create `DATABASE_URL` environment variable
-
-4. **Configure Backend Service**
-   - Click "+ New" → "GitHub Repo"
-   - Select your repository
-   - **Important**: Set root directory to `backend`
-
-5. **Set Environment Variables**
-   In the backend service settings, add:
-   ```
-   NODE_ENV=production
-   JWT_SECRET=your-super-secret-jwt-key-min-32-characters
-   JWT_EXPIRES_IN=7d
-   PORT=3000
-   FRONTEND_URL=https://your-frontend-url.railway.app
-   ```
-
-   **Note**: `DATABASE_URL` and `PORT` are auto-configured by Railway
-
-6. **Deploy**
-   - Railway will automatically build and deploy
-   - Build command: `npm install && npx prisma generate && npm run build`
-   - Start command: `npx prisma migrate deploy && npm start`
-
-7. **Run Data Migration**
-   - After first deployment, go to Railway dashboard
-   - Click on your backend service
-   - Open "Settings" → "Deployments"
-   - Click "Terminal" or "Deploy Logs"
-   - Note: You'll need to manually upload the Excel file and run migration
-
-   **Alternative**: Use the default user created by the migration script
-
-### Step 3: Verify Backend
-
-1. Visit your Railway backend URL + `/api/health`
-   - Example: `https://your-backend.up.railway.app/api/health`
-   - Should return: `{"status":"ok","message":"Staffing Tracker API is running"}`
-
-2. Test login endpoint:
-   ```bash
-   curl -X POST https://your-backend.up.railway.app/api/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"username":"admin","password":"admin123"}'
-   ```
+- [ ] Railway.app account created
+- [ ] PostgreSQL database deployed
+- [ ] Backend service deployed
+- [ ] Database migrations run
+- [ ] Excel data imported
+- [ ] Frontend deployed
+- [ ] Default admin password changed
 
 ---
 
-## Frontend Deployment
+## 1. Deploy PostgreSQL Database
 
-### Option 1: Deploy Frontend to Railway (Recommended)
+### Create Railway Project
 
-1. **Complete Frontend Development** (see Frontend Checklist below)
+1. Go to https://railway.app/new
+2. Click **"Empty Project"**
+3. Name it: `staffing-tracker`
 
-2. **Add Frontend Service to Railway**
-   - In your Railway project, click "+ New"
-   - Select "GitHub Repo" (same repository)
-   - Set root directory to `frontend`
+### Add PostgreSQL
 
-3. **Environment Variables for Frontend**
-   ```
-   VITE_API_URL=https://your-backend.up.railway.app/api
-   ```
+1. Click **"+ New"** → **"Database"** → **"Add PostgreSQL"**
+2. Railway automatically:
+   - Provisions PostgreSQL 17
+   - Generates `DATABASE_URL`
+   - Enables daily backups
 
-4. **Build Settings**
-   - Build command: `npm install && npm run build`
-   - Start command: `npm run preview` (or use static file serving)
+### Verify Database Running
 
-### Option 2: Deploy Frontend to Vercel
-
-1. Push frontend code to GitHub
-2. Go to Vercel.com
-3. Import your repository
-4. Set root directory to `frontend`
-5. Add environment variable:
-   ```
-   VITE_API_URL=https://your-backend.up.railway.app/api
-   ```
-6. Deploy!
+Check logs - should see:
+```
+✅ Database system is ready to accept connections
+```
 
 ---
 
-## Frontend Development Checklist
+## 2. Deploy Backend Service
 
-The frontend is scaffolded but needs component implementation. Here's what needs to be built:
+### Add Backend from GitHub
 
-### Core Structure
-- [ ] `/src/context/AuthContext.tsx` - Authentication context
-- [ ] `/src/api/client.ts` - Axios API client
-- [ ] `/src/types/` - TypeScript type definitions
+1. Click **"+ New"** → **"GitHub Repo"**
+2. Select `timlihk/staffing-tracker`
+3. **Configure before deploying:**
 
-### Pages
-- [ ] `/src/pages/Login.tsx` - Login page
-- [ ] `/src/pages/Dashboard.tsx` - Main dashboard
-- [ ] `/src/pages/Projects.tsx` - Project list view
-- [ ] `/src/pages/ProjectDetail.tsx` - Individual project view
-- [ ] `/src/pages/Staff.tsx` - Staff list view
-- [ ] `/src/pages/StaffDetail.tsx` - Individual staff view
+### Critical Settings
 
-### Components
-- [ ] `/src/components/Layout.tsx` - Main layout with sidebar
-- [ ] `/src/components/Sidebar.tsx` - Navigation sidebar
-- [ ] `/src/components/ProjectTable.tsx` - Project data table
-- [ ] `/src/components/StaffTable.tsx` - Staff data table
-- [ ] `/src/components/ProjectForm.tsx` - Create/edit project form
-- [ ] `/src/components/StaffForm.tsx` - Create/edit staff form
-- [ ] `/src/components/AssignmentDialog.tsx` - Assignment management
-- [ ] `/src/components/DashboardCharts.tsx` - Charts and visualizations
+**Go to Settings → Service:**
+- **Root Directory**: `backend` ⚠️ **REQUIRED**
+- Start Command: `npm start` (auto-detected)
 
-### Quick Start Frontend Template
+**Go to Variables → Add:**
+```bash
+NODE_ENV=production
+JWT_SECRET=YOUR-SECRET-KEY-CHANGE-THIS-32-CHARS-MIN
+JWT_EXPIRES_IN=7d
+```
 
-I'll create a minimal working frontend for you now...
+Note: `DATABASE_URL` auto-shared from PostgreSQL!
+
+### Deploy Process
+
+Railway will:
+1. Pull code from GitHub
+2. Run `npm install`
+3. Run `prisma generate && tsc`
+4. Start with `node dist/server.js`
+
+### Get Backend URL
+
+1. Settings → Networking
+2. Copy public domain (e.g., `staffing-tracker-production.up.railway.app`)
+3. Test: `https://YOUR-URL/api/health` → Returns `{"status":"ok"}`
 
 ---
 
-## Database Migration
+## 3. Initialize Database
 
-### Initial Setup (After Backend Deployment)
+### Install Railway CLI
 
-1. **Access Railway PostgreSQL**
-   - Get connection string from Railway dashboard
-   - Use any PostgreSQL client (or Railway CLI)
+```bash
+npm install -g @railway/cli
+railway login
+railway link  # Select: staffing-tracker project, backend service
+```
 
-2. **Run Migrations**
-   ```bash
-   # From your local machine with DATABASE_URL from Railway
-   cd backend
-   npx prisma migrate deploy
+### Run Migrations
+
+```bash
+# Create tables
+railway run npx prisma migrate deploy
+```
+
+Expected output:
+```
+✅ Applying migration `20250101000000_init`
+✅ Database schema is up to date
+```
+
+### Import Excel Data
+
+```bash
+# Import projects, staff, assignments
+railway run npx ts-node src/scripts/migrate-excel.ts
+```
+
+Expected output:
+```
+✅ Created 25-30 staff members
+✅ Created ~100 projects  
+✅ Created 200+ assignments
+✅ Created admin user
+```
+
+---
+
+## 4. Deploy Frontend
+
+### Option A: Vercel (Recommended)
+
+1. Go to https://vercel.com
+2. Import `timlihk/staffing-tracker`
+3. Configure:
+   - **Framework**: Vite
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+   - **Environment Variable**:
+     ```
+     VITE_API_URL=https://YOUR-BACKEND-URL/api
+     ```
+4. Deploy
+
+### Option B: Railway
+
+1. Click **"+ New"** → **"GitHub Repo"**
+2. Select repository
+3. Settings → Service:
+   - **Root Directory**: `frontend`
+4. Variables:
    ```
-
-3. **Seed Data (Optional)**
-   - Upload Excel file to backend
-   - Run migration script via Railway terminal
-
-### Alternative: Manual Data Entry
-
-Use the API endpoints to manually create:
-1. Admin user
-2. Staff members
-3. Projects
-4. Assignments
-
----
-
-## Security Checklist
-
-Before going to production:
-
-- [ ] Change default admin password
-- [ ] Update `JWT_SECRET` to strong random value (min 32 characters)
-- [ ] Set `NODE_ENV=production`
-- [ ] Enable CORS only for your frontend domain
-- [ ] Set up Railway custom domain with SSL
-- [ ] Review and test role-based permissions
-- [ ] Set up database backups in Railway
-- [ ] Add rate limiting (optional enhancement)
-
----
-
-## Testing Your Deployment
-
-### Backend Tests
-
-1. **Health Check**
-   ```bash
-   curl https://your-backend.up.railway.app/api/health
+   VITE_API_URL=https://YOUR-BACKEND-URL/api
    ```
+5. Deploy
 
-2. **Login**
-   ```bash
-   curl -X POST https://your-backend.up.railway.app/api/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"username":"admin","password":"admin123"}'
-   ```
+### Update Backend CORS
 
-3. **Get Projects** (with token from login)
-   ```bash
-   curl https://your-backend.up.railway.app/api/projects \
-     -H "Authorization: Bearer YOUR_TOKEN_HERE"
-   ```
-
-### Frontend Tests
-
-1. Visit frontend URL
-2. Login with admin credentials
-3. Verify dashboard loads
-4. Test creating a project
-5. Test creating a staff member
-6. Test assignment functionality
+Add to backend variables:
+```
+FRONTEND_URL=https://your-frontend-url.vercel.app
+```
 
 ---
 
-## Monitoring & Maintenance
+## 5. Access Application
 
-### Railway Dashboard
+### Login Credentials
 
-- **Metrics**: Monitor CPU, memory, and bandwidth usage
-- **Logs**: View application logs in real-time
-- **Deployments**: Track deployment history
-- **Database**: Monitor PostgreSQL metrics
+```
+Username: admin
+Password: admin123
+```
 
-### Recommended Monitoring
+⚠️ **CHANGE IMMEDIATELY AFTER FIRST LOGIN!**
 
-1. **Uptime Monitoring**: Set up UptimeRobot or similar
-2. **Error Tracking**: Consider adding Sentry for error tracking
-3. **Database Backups**: Configure automated backups in Railway
+### Test Everything
+
+- [ ] Backend health: `https://backend-url/api/health`
+- [ ] Frontend loads
+- [ ] Can login
+- [ ] Dashboard shows data
+- [ ] Projects list populated
+- [ ] Staff list populated
 
 ---
 
-## Cost Estimates (Railway)
+## Environment Variables Reference
 
-- **Hobby Plan** (Good for testing):
-  - $5/month base
-  - Includes $5 usage credit
-  - Likely sufficient for small team
+### Backend
 
-- **Pro Plan** (Production):
-  - $20/month base
-  - Includes $20 usage credit
-  - Recommended for production use
+| Variable | Value | Required |
+|----------|-------|----------|
+| `DATABASE_URL` | Auto-set by Railway | ✅ |
+| `NODE_ENV` | `production` | ✅ |
+| `JWT_SECRET` | 32+ char random string | ✅ |
+| `JWT_EXPIRES_IN` | `7d` | ✅ |
+| `FRONTEND_URL` | Frontend URL for CORS | ✅ |
 
-**Estimated monthly cost**: $5-$30 depending on usage
+### Frontend
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_URL` | `https://backend-url/api` |
 
 ---
 
 ## Troubleshooting
 
-### Backend won't start
-- Check environment variables are set
-- Verify DATABASE_URL is correct
-- Check deployment logs in Railway
+### Backend: "Cannot find module '/app/index.js'"
 
-### Database connection fails
-- Ensure PostgreSQL service is running
-- Verify DATABASE_URL format
-- Check Railway network settings
+**Cause:** Root Directory not set
+**Fix:** Settings → Service → Root Directory: `backend`
 
-### Frontend can't connect to backend
-- Verify VITE_API_URL is correct
-- Check CORS settings in backend
-- Verify both services are deployed
+### Backend: TypeScript Errors
 
-### Migration fails
-- Check Prisma schema syntax
-- Ensure database is empty or migrations are in sync
-- Try `npx prisma migrate reset` (CAUTION: deletes all data)
+**Cause:** Old code
+**Fix:** Latest code is pushed (fixed Oct 2, 2025)
+
+### Database: Can't Connect
+
+**Cause:** DATABASE_URL not set
+**Fix:** Verify PostgreSQL service is linked
+
+### Frontend: CORS Errors
+
+**Cause:** Missing FRONTEND_URL
+**Fix:** Add FRONTEND_URL to backend variables
 
 ---
 
-## Next Steps
+## Railway CLI Commands
 
-1. ✅ Backend is complete and ready to deploy
-2. 🔄 Complete frontend components (I can help with this)
-3. 🚀 Deploy both to Railway
-4. 🧪 Test thoroughly
-5. 📊 Migrate Excel data
-6. 👥 Train users
-7. 🎉 Go live!
+```bash
+# View logs
+railway logs
+
+# Run migrations
+railway run npx prisma migrate deploy
+
+# Import data
+railway run npx ts-node src/scripts/migrate-excel.ts
+
+# Open dashboard
+railway open
+
+# Connect to database
+railway connect postgres
+```
+
+---
+
+## Security
+
+### Generate Strong JWT Secret
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Post-Deployment Security
+
+1. Change admin password
+2. Update JWT_SECRET to generated value
+3. Enable 2FA on Railway
+4. Review user access logs
+
+---
+
+## Cost Estimate
+
+**Railway Hobby Plan:** $5/month
+- PostgreSQL: ~$2/month
+- Backend: ~$3/month
+- Total covered by $5 plan credit
+
+**Vercel:** Free tier sufficient
+
+**Total:** ~$5/month
 
 ---
 
 ## Support
 
-For issues or questions:
-1. Check Railway documentation: https://docs.railway.app
-2. Check Prisma documentation: https://www.prisma.io/docs
-3. Check Material-UI documentation: https://mui.com
+- **Backend Issues:** Check Deploy Logs and Build Logs
+- **Database Issues:** Check PostgreSQL service logs
+- **Frontend Issues:** Check browser console
+- **Railway Docs:** https://docs.railway.app
+- **Railway Discord:** https://discord.gg/railway
 
 ---
 
-## Current Project Structure
-
-```
-staffing-tracker/
-├── backend/                          ✅ COMPLETE
-│   ├── src/
-│   │   ├── controllers/             ✅ All 5 controllers implemented
-│   │   ├── routes/                  ✅ All routes configured
-│   │   ├── middleware/              ✅ Auth middleware ready
-│   │   ├── utils/                   ✅ Prisma client & JWT utils
-│   │   ├── scripts/                 ✅ Excel migration script
-│   │   └── server.ts                ✅ Main server file
-│   ├── prisma/
-│   │   └── schema.prisma            ✅ Complete database schema
-│   ├── package.json                 ✅ All dependencies listed
-│   ├── tsconfig.json                ✅ TypeScript configured
-│   ├── railway.json                 ✅ Railway config ready
-│   └── README.md                    ✅ Documentation complete
-│
-├── frontend/                         🔄 IN PROGRESS
-│   ├── src/
-│   ├── package.json                 ✅ Dependencies installed
-│   ├── tsconfig.json                ✅ TypeScript configured
-│   └── vite.config.ts               ✅ Vite configured
-│
-├── IMPLEMENTATION_PLAN.md           ✅ Detailed planning doc
-└── DEPLOYMENT_GUIDE.md              ✅ This file
-```
-
----
-
-**Ready to deploy the backend to Railway? Let me know when you're ready and I'll help you complete the frontend!**
+**Last Updated:** October 2, 2025  
+**Version:** 1.0  
+**Status:** ✅ Backend Production-Ready | 🔄 Frontend Complete & Deployed
