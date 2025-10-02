@@ -47,7 +47,7 @@ const ActivityFeed = () => {
         const response = await api.get('/dashboard/activity-log', {
           params: { limit: 10 },
         });
-        setActivities(response.data.activities);
+        setActivities(response.data.data);
       } catch (error) {
         console.error('Failed to fetch activity log:', error);
       } finally {

@@ -39,7 +39,7 @@ const Staff: React.FC = () => {
       if (departmentFilter !== 'all') params.department = departmentFilter;
 
       const response = await api.get('/staff', { params });
-      setStaff(response.data.staff);
+      setStaff(response.data);
     } catch (error) {
       console.error('Failed to fetch staff:', error);
     } finally {
