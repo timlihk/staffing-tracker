@@ -10,6 +10,7 @@ import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import ProjectForm from './pages/ProjectForm';
 import Staff from './pages/Staff';
+import StaffDetail from './pages/StaffDetail';
 import StaffForm from './pages/StaffForm';
 
 // Create Kirkland & Ellis theme
@@ -113,6 +114,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <StaffForm />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <StaffDetail />
                   </Layout>
                 </ProtectedRoute>
               }
