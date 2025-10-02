@@ -13,6 +13,7 @@ export const ReportQuerySchema = z.object({
 export type ReportQuery = z.infer<typeof ReportQuerySchema>;
 
 export type ReportRow = {
+  projectId: number;
   name: string;
   projectName: string;
   category: string;

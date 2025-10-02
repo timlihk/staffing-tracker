@@ -60,6 +60,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     include: {
       project: {
         select: {
+          id: true,
           name: true,
           category: true,
           priority: true,
@@ -88,6 +89,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
 
   // Map DB → report row
   const rows: ReportRow[] = assignments.map(a => ({
+    projectId: a.projectId,
     name: a.project.name,
     projectName: a.project.name,
     category: a.project.category,

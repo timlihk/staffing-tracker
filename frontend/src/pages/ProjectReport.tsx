@@ -24,7 +24,8 @@ import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
 
 type ProjectReportRow = {
-  id: string;
+  id: number;
+  projectId: number;
   name: string;
   projectName: string;
   category: string;
@@ -88,10 +89,10 @@ const ProjectReport: React.FC = () => {
 
       const res = await api.get('/reports/project-report', { params });
 
-      const data = (res.data?.data ?? []) as Omit<ProjectReportRow, 'id'>[];
-      const withIds = data.map((r, i) => ({
+      const data = (res.data?.data ?? []) as ProjectReportRow[];
+      const withIds = data.map((r) => ({
         ...r,
-        id: `${r.name}-${i}`,
+        id: r.projectId,
       }));
       setRows(withIds);
       setTotalProjects(res.data?.meta?.totalProjects || 0);
