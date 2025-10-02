@@ -85,11 +85,11 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       category,
       status,
       priority,
+      elStatus,
       startDate,
-      targetFilingDate,
+      timetable,
       actualFilingDate,
       notes,
-      timelineStatus,
     } = req.body;
 
     if (!name || !category || !status) {
@@ -103,11 +103,11 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         category,
         status,
         priority,
+        elStatus,
         startDate: startDate ? new Date(startDate) : null,
-        targetFilingDate: targetFilingDate ? new Date(targetFilingDate) : null,
+        timetable,
         actualFilingDate: actualFilingDate ? new Date(actualFilingDate) : null,
         notes,
-        timelineStatus,
       },
       include: {
         assignments: {
@@ -143,11 +143,11 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       category,
       status,
       priority,
+      elStatus,
       startDate,
-      targetFilingDate,
+      timetable,
       actualFilingDate,
       notes,
-      timelineStatus,
     } = req.body;
 
     const existingProject = await prisma.project.findUnique({
@@ -165,11 +165,11 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (category) updateData.category = category;
     if (status) updateData.status = status;
     if (priority !== undefined) updateData.priority = priority;
+    if (elStatus !== undefined) updateData.elStatus = elStatus;
     if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
-    if (targetFilingDate !== undefined) updateData.targetFilingDate = targetFilingDate ? new Date(targetFilingDate) : null;
+    if (timetable !== undefined) updateData.timetable = timetable;
     if (actualFilingDate !== undefined) updateData.actualFilingDate = actualFilingDate ? new Date(actualFilingDate) : null;
     if (notes !== undefined) updateData.notes = notes;
-    if (timelineStatus !== undefined) updateData.timelineStatus = timelineStatus;
 
     // Track all field changes
     await trackFieldChanges({
