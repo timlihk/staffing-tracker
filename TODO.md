@@ -1,123 +1,132 @@
-# Staffing Tracker - TODO List
+# TODO List - Staffing Tracker
 
-**Last Updated**: October 2, 2025
-**Current Status**: 95% Complete
+## 🚨 High Priority (Security & Stability)
 
----
+### Testing
+- [ ] Add backend unit tests (Jest)
+  - [ ] Test auth controller (login, register, JWT validation)
+  - [ ] Test project controller CRUD operations
+  - [ ] Test staff controller CRUD operations
+  - [ ] Test assignment controller
+  - [ ] Test project report service
+- [ ] Add backend integration tests (Supertest)
+  - [ ] Test API endpoints with authentication
+  - [ ] Test role-based authorization
+  - [ ] Test error handling
+- [ ] Add frontend tests (Vitest + React Testing Library)
+  - [ ] Test authentication flow
+  - [ ] Test protected routes
+  - [ ] Test form submissions
+  - [ ] Test data table interactions
 
-## ✅ Completed Features
+### Security Improvements
+- [ ] Implement Zod schemas for request validation
+  - [ ] Project create/update validation
+  - [ ] Staff create/update validation
+  - [ ] Assignment validation
+  - [ ] Auth validation (email format, password strength)
+- [ ] Add password strength requirements
+  - [ ] Minimum 8 characters
+  - [ ] Require uppercase, lowercase, number, special character
+  - [ ] Password confirmation field
+  - [ ] Password change functionality
+- [ ] Add rate limiting
+  - [ ] Login endpoint (5 attempts per 15 minutes)
+  - [ ] Registration endpoint (3 per hour per IP)
+  - [ ] API endpoints (100 per minute per user)
+- [ ] Add JWT token expiration and refresh tokens
+  - [ ] Set token expiration (e.g., 24 hours)
+  - [ ] Implement refresh token endpoint
+  - [ ] Auto-refresh before expiration
 
-### Backend (100%)
-- [x] Full REST API with 24 endpoints
-- [x] PostgreSQL database with Prisma ORM
-- [x] JWT authentication and authorization
-- [x] Project CRUD with change history
-- [x] Staff CRUD with change history
-- [x] Assignment management with bulk operations
-- [x] Dashboard analytics
-- [x] Excel data migration script
-- [x] Railway deployment configuration
-- [x] EL Status field for projects
-- [x] Timetable field (text) replacing Target Date
-
-### Frontend (100%)
-- [x] Modern UI with glassmorphic design
-- [x] Login and authentication flow
-- [x] Dashboard with charts and metrics
-- [x] Project list, detail, and form pages
-- [x] Staff list, detail, and form pages
-- [x] Team member assignment on project creation
-- [x] Clickable navigation throughout
-- [x] Change history display
-- [x] Top-left aligned layout
-- [x] Railway deployment
-- [x] EL Status display on all project views
-- [x] Timetable display replacing Target Date
-
-### Recent Enhancements (October 2, 2025)
-- [x] Add EL Status field to projects
-- [x] Change Target Date to Timetable (text field)
-- [x] Fix content alignment to top-left
-- [x] Update all project displays with new fields
-- [x] Modern UI theme with gradients
-- [x] Team member assignment with dropdowns
-- [x] Clickable team member names
-
----
-
-## ⏳ Remaining Work (5%)
-
-### Assignment Management UI (2 hours)
-- [ ] Assignment list page with filters
-- [ ] Assignment create/edit modal
-- [ ] Bulk assignment interface
-- [ ] Assignment conflict detection UI
-
-### Reporting Pages (1-2 hours)
-- [ ] Enhanced workload report
-- [ ] Project status report
-- [ ] Resource allocation matrix
-- [ ] Excel/PDF export functionality
-
-### Testing & Launch (1 hour)
-- [ ] End-to-end testing
-- [ ] User acceptance testing
-- [ ] Change default admin password
-- [ ] User training documentation
+### Error Handling
+- [ ] Improve error messages throughout the application
+  - [ ] Backend: Specific error messages (not just "Internal server error")
+  - [ ] Frontend: User-friendly error displays
+  - [ ] Toast notifications for errors
+- [ ] Add error logging service
+  - [ ] Backend: Winston or Pino logger
+  - [ ] Frontend: Error boundary with logging
+  - [ ] Log errors to monitoring service
 
 ---
 
-## 🎯 Priority Order
+## ⚙️ Medium Priority (Code Quality & Performance)
 
-1. **Assignment Management** (HIGH)
-   - Users need dedicated assignment page
-   - Bulk operations important for efficiency
+### Code Refactoring
+- [ ] Extract magic strings to shared constants
+  - [ ] backend/src/types/constants.ts (roles, departments, statuses)
+  - [ ] frontend/src/types/constants.ts (mirror backend constants)
+- [ ] Remove console.log statements from production code
+  - [ ] frontend/src/pages/Projects.tsx:49-50
+- [ ] Remove TestPage before final production release
+  - [ ] Delete frontend/src/pages/TestPage.tsx
+  - [ ] Remove route from frontend/src/App.tsx
 
-2. **Reporting** (MEDIUM)
-   - Enhanced analytics would be valuable
-   - Export functionality for sharing
+### Performance Optimization
+- [ ] Implement proper pagination (replace limit=1000)
+- [ ] Add database query optimization
+- [ ] Implement caching strategy
 
-3. **Testing & Launch** (HIGH)
-   - Final verification before production
-   - User training essential
-
----
-
-## 📊 Progress Summary
-
-```
-Overall: ███████████████████░ 95%
-
-✅ Backend:           100%
-✅ Frontend Core:     100%
-✅ UI Modernization:  100%
-✅ Field Updates:     100%
-⏳ Assignments UI:      0%
-⏳ Reporting:           0%
-⏳ Testing:             0%
-```
+### JWT Improvements
+- [ ] Add token expiration validation
+- [ ] Implement refresh token mechanism
+- [ ] Add token blacklist for logout
 
 ---
 
-## 🚀 Next Steps
+## 📦 Low Priority (Features & Enhancements)
 
-**Immediate (Optional Enhancements)**:
-1. Build assignment management pages (2 hours)
-2. Create reporting dashboards (1-2 hours)
-3. Add export functionality (1 hour)
-4. Final testing and launch (1 hour)
+### New Features
+- [ ] Assignment management dedicated page
+- [ ] Data export functionality (Excel/PDF)
+- [ ] Advanced search capabilities
+- [ ] Email notifications
+- [ ] User profile management
 
-**Current State**: Application is fully functional and deployed. Remaining items are enhancements that can be added based on user feedback.
+### Documentation
+- [ ] Add API documentation with Swagger/OpenAPI
+- [ ] Add inline code documentation (JSDoc)
+- [ ] Create user guide with screenshots
+
+### DevOps & Monitoring
+- [ ] Add logging framework (Winston/Pino)
+- [ ] Add APM (Sentry, DataDog, New Relic)
+- [ ] Set up CI/CD pipeline with GitHub Actions
+- [ ] Add health check endpoints
+
+### UI/UX Enhancements
+- [ ] Add loading skeletons
+- [ ] Add toast notifications
+- [ ] Improve mobile responsiveness
+- [ ] Add keyboard shortcuts
+- [ ] Add dark mode
+- [ ] Add accessibility improvements (WCAG 2.1 AA)
 
 ---
 
-## 📝 Notes
+## ✅ Completed
 
-- Application is currently deployed and working on Railway
-- All core CRUD operations are complete
-- Modern UI is implemented
-- EL Status and Timetable fields are live
-- Team assignment workflow is operational
-- Change history tracking is comprehensive
+- [x] Backend REST API implementation
+- [x] Frontend React application
+- [x] Authentication with JWT
+- [x] Role-based access control
+- [x] Project CRUD operations
+- [x] Staff CRUD operations
+- [x] Project Report with filtering and sorting
+- [x] Table alignment fixes
+- [x] Column width optimization
+- [x] Role naming update (Income Partner → Partner)
+- [x] Staff member merge (Jing/Jing Du)
+- [x] Railway deployment (backend + frontend)
+- [x] Database migrations
+- [x] Change history tracking
+- [x] Activity logging
+- [x] Dashboard with charts
+- [x] Hot module replacement setup
+- [x] Responsive design
+- [x] Protected routes
 
-**The application is production-ready. Remaining items are nice-to-have enhancements.**
+---
+
+**Last Updated:** 2025-10-02

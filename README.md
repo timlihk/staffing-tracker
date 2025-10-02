@@ -13,25 +13,37 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ## 📋 Current Status
 
-### ✅ Backend (100% Complete - Production Ready)
+### ✅ Backend (100% Complete - Production Deployed)
 - Full REST API with Express.js + TypeScript
 - PostgreSQL database with Prisma ORM
 - JWT authentication with role-based access
 - Complete CRUD operations for Projects, Staff, and Assignments
 - Dashboard and reporting endpoints
+- Project Report service with staffing aggregation
 - Excel data migration script
 - Railway.app deployment configuration
-- **Status**: ✅ Ready for production deployment
+- **Status**: ✅ Deployed and running in production
 
-### ✅ Frontend (100% Complete - Production Ready)
-- Full React + TypeScript application
-- Material-UI v7 with K&E branding
+### ✅ Frontend (100% Complete - Production Deployed)
+- Full React 19 + TypeScript application
+- Material-UI v7 with responsive design
 - Complete authentication flow (Login, Protected Routes)
 - Dashboard with charts and analytics
-- Projects management (List, Detail, Create/Edit)
-- Staff management (List, Create/Edit)
-- Responsive layout with navigation
-- **Status**: ✅ Ready for production deployment
+- Projects management (List, Detail, Create/Edit, Delete)
+- Staff management (List, Detail, Create/Edit, Delete)
+- Project Report with filtering and sorting
+- Responsive layout with sidebar navigation
+- Hot module replacement for development
+- **Status**: ✅ Deployed and running in production
+
+### 🎉 Recent Updates (Oct 2025)
+- ✅ Fixed table alignment issues in Project Report
+- ✅ Added sorting functionality to Project Report (project name, category)
+- ✅ Optimized column widths across all tables
+- ✅ Updated role naming: "Income Partner" → "Partner"
+- ✅ Merged duplicate staff members (Jing/Jing Du)
+- ✅ Increased project list pagination to show all projects
+- ✅ Fixed CSS layout issues (removed artificial centering)
 
 ## 🏗️ Architecture
 
@@ -323,25 +335,32 @@ npm run preview
 - ✅ Excel data migration script
 - ✅ Railway deployment configuration
 
-### Completed - Frontend (95%)
+### Completed - Frontend (100%)
 - ✅ Login/Register UI with authentication
 - ✅ Dashboard with charts and analytics
-- ✅ Project list with clickable rows
+- ✅ Project list with filters, search, and pagination
 - ✅ Project detail views with team assignments
+- ✅ Project create/edit/delete operations
 - ✅ Project change log display
-- ✅ Staff list with clickable names
+- ✅ Project Report with multi-filter and sorting
+- ✅ Staff list with role and department filters
 - ✅ Staff detail views with project assignments
+- ✅ Staff create/edit/delete operations
 - ✅ Staff workload visualization
-- ✅ Activity feed
+- ✅ Activity feed on dashboard
 - ✅ Responsive Material-UI design
 - ✅ Protected routes and authorization
+- ✅ Optimized table layouts and column widths
 
-### To Be Implemented
-- [ ] Assignment management UI (dedicated page)
-- [ ] Bulk assignment interface
-- [ ] Data export functionality (Excel/PDF)
-- [ ] Advanced filtering and search
-- [ ] Email notifications
+### To Be Implemented (Future Enhancements)
+- [ ] Assignment management UI (dedicated page for bulk operations)
+- [ ] Data export functionality (Excel/PDF download)
+- [ ] Advanced search with full-text capabilities
+- [ ] Email notifications for project updates
+- [ ] Automated testing suite (Jest, Vitest)
+- [ ] Input validation with Zod schemas
+- [ ] Password strength requirements
+- [ ] Rate limiting for auth endpoints
 
 ## 🛡️ Security Features
 
@@ -353,14 +372,26 @@ npm run preview
 - Environment variable management
 - Activity audit logging
 
-## 📈 Next Steps
+## 📈 Recommended Improvements
 
-1. **Complete Frontend** - Build remaining React components
-2. **Testing** - Add unit and integration tests
-3. **Deploy** - Push to Railway.app
-4. **Data Migration** - Import Excel data
-5. **User Training** - Train staff on new system
-6. **Go Live** - Switch from Excel to web app
+### High Priority
+1. **Testing** - Add unit and integration tests
+   - Backend: Jest + Supertest for API endpoints
+   - Frontend: Vitest + React Testing Library
+2. **Input Validation** - Implement Zod schemas for request validation
+3. **Error Handling** - Improve error messages (user-friendly + detailed logging)
+4. **Security** - Add password strength requirements and rate limiting
+
+### Medium Priority
+5. **Code Quality** - Extract magic strings to shared constants
+6. **Performance** - Implement proper pagination (avoid limit=1000)
+7. **JWT Enhancement** - Add token expiration and refresh tokens
+8. **Monitoring** - Add logging framework (Winston/Pino) and APM
+
+### Low Priority
+9. **Features** - Data export (Excel/PDF), email notifications
+10. **Documentation** - API documentation with Swagger/OpenAPI
+11. **CI/CD** - Automated testing and deployment pipeline
 
 ## 📝 License
 
@@ -375,45 +406,67 @@ For questions or issues:
 
 ---
 
-## 🎨 Frontend Components TO BUILD
+## 🗄️ Database Migrations
 
-High-priority components needed:
+The application uses Prisma for database migrations. Current migrations:
 
-### Authentication
-- `Login.tsx` - Login page
-- `ProtectedRoute.tsx` - Route guard component
+1. `20251002083013_init` - Initial schema setup
+2. `20251002194800_change_timetable_to_dropdown` - Timetable enum
+3. `20251002200500_refactor_project_fields` - Project field updates
+4. `20251002205110_rename_project_code_to_name` - Renamed projectCode → name
+5. `20251002210638_remove_allocation_percentage` - Removed allocation field
+6. `20251002214500_rename_ip_to_partner` - Renamed Income Partner → Partner
+7. `add_change_history` - Added audit trail tables
 
-### Layout
-- `Layout.tsx` - Main layout wrapper
-- `Sidebar.tsx` - Navigation sidebar
-- `Header.tsx` - Top header with user menu
-
-### Dashboard
-- `Dashboard.tsx` - Main dashboard page
-- `SummaryCards.tsx` - Metric cards
-- `ProjectStatusChart.tsx` - Pie chart component
-- `WorkloadChart.tsx` - Bar chart component
-- `ActivityFeed.tsx` - Recent activity list
-- `DeadlinesList.tsx` - Upcoming deadlines
-
-### Projects
-- `ProjectList.tsx` - Project list with table
-- `ProjectDetail.tsx` - Project detail view
-- `ProjectForm.tsx` - Create/edit form
-- `ProjectAssignments.tsx` - Assignment management
-
-### Staff
-- `StaffList.tsx` - Staff list with table
-- `StaffDetail.tsx` - Staff detail view
-- `StaffForm.tsx` - Create/edit form
-- `StaffWorkload.tsx` - Workload visualization
-
-### Common
-- `DataTable.tsx` - Reusable table component
-- `FilterBar.tsx` - Filtering component
-- `LoadingSpinner.tsx` - Loading indicator
-- `ErrorBoundary.tsx` - Error handling
+**All migrations deployed to production.**
 
 ---
 
-**Backend is production-ready. Frontend framework is set up. Ready to complete the UI and deploy!**
+## 🎨 Component Architecture
+
+### Frontend Structure (All Complete ✅)
+
+**Pages:**
+- `Login.tsx` - Authentication page ✅
+- `Dashboard.tsx` - Main dashboard with charts ✅
+- `Projects.tsx` - Project list with filters ✅
+- `ProjectDetail.tsx` - Project detail view ✅
+- `ProjectForm.tsx` - Create/edit project form ✅
+- `ProjectReport.tsx` - Comprehensive report with filtering and sorting ✅
+- `Staff.tsx` - Staff list with filters ✅
+- `StaffDetail.tsx` - Staff detail view ✅
+- `StaffForm.tsx` - Create/edit staff form ✅
+- `TestPage.tsx` - Testing page (remove before final deployment) ⚠️
+
+**Components:**
+- `Layout.tsx` - Main layout wrapper ✅
+- `Sidebar.tsx` - Navigation sidebar ✅
+- `Header.tsx` - Top header with user menu ✅
+- `ProtectedRoute.tsx` - Route guard ✅
+- `SummaryCards.tsx` - Dashboard metric cards ✅
+- `ActivityFeed.tsx` - Recent activity list ✅
+- `StyledDataGrid.tsx` - Reusable table component ✅
+- `EmptyState.tsx` - Empty state component ✅
+- `Page.tsx` - Page wrapper component ✅
+
+**Context:**
+- `AuthContext.tsx` - Authentication state management ✅
+
+**API:**
+- `client.ts` - Axios client with JWT interceptors ✅
+
+---
+
+## 📊 Production Deployment
+
+**Backend:** https://staffing-tracker-production.up.railway.app
+**Frontend:** https://staffing-tracker-frontend-production.up.railway.app
+**Database:** PostgreSQL on Railway
+
+**Deployment Status:** ✅ Both services deployed and running
+
+**Auto-deploy:** Enabled via GitHub integration (pushes to `main` trigger deployments)
+
+---
+
+**Application is production-ready and fully deployed! 🚀**
