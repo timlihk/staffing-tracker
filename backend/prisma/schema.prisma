@@ -60,7 +60,7 @@ model Project {
   priority          String?   // High, Medium, Low
   elStatus          String?   @map("el_status") // EL Status field
   startDate         DateTime? @map("start_date")
-  timetable         String?   @db.Text // Timetable text field (replaces targetFilingDate)
+  timetable         String?   // Pre-A1, A1, Hearing, Listing
   actualFilingDate  DateTime? @map("actual_filing_date")
   notes             String?   @db.Text
   createdAt         DateTime  @default(now()) @map("created_at")
