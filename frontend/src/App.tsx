@@ -14,6 +14,7 @@ import ProjectForm from './pages/ProjectForm';
 import Staff from './pages/Staff';
 import StaffDetail from './pages/StaffDetail';
 import StaffForm from './pages/StaffForm';
+import Reports from './pages/Reports';
 
 function App() {
   const [mode, setMode] = useState<'light' | 'dark'>('light');
@@ -120,29 +121,13 @@ function App() {
               }
             />
 
-            {/* Placeholder routes */}
-            <Route
-              path="/assignments"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <div style={{ padding: '20px' }}>
-                      <h2>Assignments</h2>
-                      <p>Assignment management coming soon...</p>
-                    </div>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            {/* Reports */}
             <Route
               path="/reports"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <div style={{ padding: '20px' }}>
-                      <h2>Reports</h2>
-                      <p>Reports coming soon...</p>
-                    </div>
+                    <Reports />
                   </Layout>
                 </ProtectedRoute>
               }

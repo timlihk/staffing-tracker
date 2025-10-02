@@ -33,7 +33,6 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
     { text: 'Projects', icon: <FolderOpen />, path: '/projects' },
     { text: 'Staff', icon: <People />, path: '/staff' },
-    { text: 'Assignments', icon: <Assignment />, path: '/assignments' },
     { text: 'Reports', icon: <Assessment />, path: '/reports' },
   ];
 

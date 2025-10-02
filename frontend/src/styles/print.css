@@ -1,0 +1,67 @@
+@media print {
+  /* Hide navigation and UI chrome */
+  .MuiAppBar-root,
+  .MuiDrawer-root,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset page styles */
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 12mm 10mm;
+    size: landscape;
+  }
+
+  /* Reset Material-UI container */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Table styling for print */
+  .MuiDataGrid-root {
+    border: 1px solid #ddd !important;
+  }
+
+  .MuiDataGrid-columnHeaders {
+    background: #2563EB !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .MuiDataGrid-cell {
+    border: 1px solid #e5e7eb !important;
+    font-size: 9pt;
+    padding: 4px 8px !important;
+  }
+
+  /* Prevent page breaks inside rows */
+  .MuiDataGrid-row {
+    page-break-inside: avoid;
+  }
+
+  /* Typography adjustments */
+  h4 {
+    font-size: 18pt;
+    margin-bottom: 8pt;
+  }
+
+  /* Ensure colors print */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
