@@ -40,12 +40,14 @@ const Projects: React.FC = () => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: any = { limit: 1000 };
       if (statusFilter !== 'all') params.status = statusFilter;
       if (categoryFilter !== 'all') params.category = categoryFilter;
       if (searchTerm) params.search = searchTerm;
 
       const response = await api.get('/projects', { params });
+      console.log('Projects API response:', response.data);
+      console.log('Total projects received:', response.data.data?.length);
       setProjects(response.data.data);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
@@ -201,9 +203,9 @@ const Projects: React.FC = () => {
             loading={loading}
             autoHeight
             initialState={{
-              pagination: { paginationModel: { pageSize: 50 } },
+              pagination: { paginationModel: { pageSize: 100 } },
             }}
-            pageSizeOptions={[25, 50, 100]}
+            pageSizeOptions={[25, 50, 100, 200]}
             onRowClick={(params) => navigate(`/projects/${params.row.id}`)}
             sx={{ cursor: 'pointer' }}
           />

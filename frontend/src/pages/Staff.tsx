@@ -61,8 +61,7 @@ const Staff: React.FC = () => {
     {
       field: 'name',
       headerName: 'Name',
-      flex: 1,
-      minWidth: 200,
+      width: 200,
       renderCell: (params) => (
         <Box
           sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
@@ -72,9 +71,9 @@ const Staff: React.FC = () => {
         </Box>
       ),
     },
-    { field: 'role', headerName: 'Role', width: 180 },
-    { field: 'department', headerName: 'Department', width: 130 },
-    { field: 'email', headerName: 'Email', width: 220 },
+    { field: 'role', headerName: 'Role', width: 200 },
+    { field: 'department', headerName: 'Department', width: 150 },
+    { field: 'email', headerName: 'Email', width: 250 },
     {
       field: 'status',
       headerName: 'Status',
@@ -137,7 +136,7 @@ const Staff: React.FC = () => {
             sx={{ minWidth: 200 }}
           >
             <MenuItem value="all">All Roles</MenuItem>
-            <MenuItem value="Income Partner">Income Partner</MenuItem>
+            <MenuItem value="Partner">Partner</MenuItem>
             <MenuItem value="Associate">Associate</MenuItem>
             <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
             <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
