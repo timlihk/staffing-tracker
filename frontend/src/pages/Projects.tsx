@@ -75,8 +75,7 @@ const Projects: React.FC = () => {
     {
       field: 'name',
       headerName: 'Project Code',
-      flex: 1,
-      minWidth: 250,
+      width: 280,
       renderCell: (params) => (
         <Box
           sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
@@ -150,7 +149,7 @@ const Projects: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            sx={{ flexGrow: 1, minWidth: 200 }}
+            sx={{ width: 300 }}
           />
           <TextField
             select
