@@ -18,6 +18,7 @@ import {
   People,
   Assignment,
   Assessment,
+  BarChart,
 } from '@mui/icons-material';
 
 interface SidebarProps {
@@ -33,7 +34,8 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
     { text: 'Projects', icon: <FolderOpen />, path: '/projects' },
     { text: 'Staff', icon: <People />, path: '/staff' },
-    { text: 'Reports', icon: <Assessment />, path: '/reports' },
+    { text: 'Staffing Report', icon: <Assessment />, path: '/reports' },
+    { text: 'Project Report', icon: <BarChart />, path: '/project-report' },
   ];
 
   const isActive = (path: string) => {

@@ -9,6 +9,7 @@ import staffRoutes from './routes/staff.routes';
 import assignmentRoutes from './routes/assignment.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import reportsRoutes from './routes/reports.routes';
+import projectReportRoutes from './routes/project-report.routes';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use('/api/staff', staffRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/reports', projectReportRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
