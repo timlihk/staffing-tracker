@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, CssBaseline } from '@mui/material';
+import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -7,24 +7,27 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       <Header drawerWidth={drawerWidth} />
       <Sidebar drawerWidth={drawerWidth} />
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8,
+          ml: { sm: `${drawerWidth}px` },
+          mt: { xs: 7, sm: 8 },
+          p: { xs: 2, sm: 3, md: 4 },
+          maxWidth: '100%',
         }}
       >
-        {children}
+        <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );

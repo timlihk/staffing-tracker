@@ -1,6 +1,8 @@
+import { useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { getTheme } from './theme';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -13,31 +15,10 @@ import Staff from './pages/Staff';
 import StaffDetail from './pages/StaffDetail';
 import StaffForm from './pages/StaffForm';
 
-// Create Kirkland & Ellis theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#003D7A', // K&E Blue
-    },
-    secondary: {
-      main: '#E31837', // K&E Red
-    },
-    success: {
-      main: '#4CAF50', // Active projects
-    },
-    warning: {
-      main: '#FF9800', // Slow-down projects
-    },
-    error: {
-      main: '#F44336', // Suspended projects
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-  },
-});
-
 function App() {
+  const [mode, setMode] = useState<'light' | 'dark'>('light');
+  const theme = useMemo(() => getTheme(mode), [mode]);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
