@@ -8,14 +8,13 @@ import {
   MenuItem,
   Chip,
   IconButton,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Project } from '../types';
-import { Page } from '../components/ui';
+import { Page, ProjectListSkeleton } from '../components/ui';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 import EmptyState from '../components/ui/EmptyState';
 import { useProjects, useDeleteProject } from '../hooks/useProjects';
@@ -185,7 +184,9 @@ const Projects: React.FC = () => {
       </Paper>
 
       {/* Data Grid */}
-      {projects.length === 0 ? (
+      {isLoading ? (
+        <ProjectListSkeleton />
+      ) : projects.length === 0 ? (
         <Paper>
           <EmptyState
             title="No projects found"
@@ -199,7 +200,7 @@ const Projects: React.FC = () => {
           <StyledDataGrid
             rows={projects}
             columns={columns}
-            loading={loading}
+            loading={isLoading}
             autoHeight
             initialState={{
               pagination: { paginationModel: { pageSize: 100 } },
