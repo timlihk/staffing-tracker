@@ -217,17 +217,19 @@ const ProjectReport: React.FC = () => {
         </Paper>
 
         {/* Data table - Full width */}
-        <Paper sx={{ p: 1 }}>
-          <StyledDataGrid
-            rows={rows}
-            columns={columns}
-            loading={loading}
-            autoHeight
-            initialState={{
-              pagination: { paginationModel: { pageSize: 100 } },
-            }}
-            pageSizeOptions={[25, 50, 100, 200]}
-          />
+        <Paper sx={{ p: 1, width: '100%', maxWidth: '100%', overflow: 'auto' }}>
+          <Box sx={{ width: '100%', minWidth: 0 }}>
+            <StyledDataGrid
+              rows={rows}
+              columns={columns}
+              loading={loading}
+              autoHeight
+              initialState={{
+                pagination: { paginationModel: { pageSize: 100 } },
+              }}
+              pageSizeOptions={[25, 50, 100, 200]}
+            />
+          </Box>
         </Paper>
       </Stack>
     </Page>

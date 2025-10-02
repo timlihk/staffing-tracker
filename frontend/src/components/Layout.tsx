@@ -21,11 +21,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
           mt: { xs: 7, sm: 8 },
-          p: { xs: 2, sm: 3, md: 4 },
+          p: { xs: 2, sm: 2.5, md: 3 },
           maxWidth: '100%',
+          overflow: 'hidden',
         }}
       >
-        {children}
+        <Box sx={{ width: '100%', maxWidth: '100%' }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );
