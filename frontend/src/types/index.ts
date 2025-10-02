@@ -32,7 +32,6 @@ export interface Project {
   notes?: string;
   timelineStatus?: string;
   assignments?: ProjectAssignment[];
-  statusHistory?: ProjectStatusHistory[];
   createdAt: string;
   updatedAt: string;
 }
@@ -52,17 +51,6 @@ export interface ProjectAssignment {
   staff?: Staff;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface ProjectStatusHistory {
-  id: number;
-  projectId: number;
-  oldStatus?: string;
-  newStatus: string;
-  changedBy?: number;
-  changeReason?: string;
-  changedAt: string;
-  user?: { username: string };
 }
 
 export interface ActivityLog {
