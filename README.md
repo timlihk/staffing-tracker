@@ -1,4 +1,4 @@
-# Kirkland & Ellis - Staffing Tracker Application
+# Staffing Tracker Application
 
 A modern web-based application for tracking law firm staffing assignments, project status, and workload management.
 
