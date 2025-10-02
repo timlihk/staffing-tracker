@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
 import dayjs, { Dayjs } from 'dayjs';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
@@ -20,6 +20,8 @@ import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
+import { Page } from '../components/ui';
+import StyledDataGrid from '../components/ui/StyledDataGrid';
 
 type ReportRow = {
   id: string;
@@ -190,132 +192,10 @@ const Reports: React.FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 3 }}>
-        {/* Filter panel */}
-        <Paper
-          className="no-print"
-          sx={{
-            p: 2.5,
-            alignSelf: 'start',
-            position: 'sticky',
-            top: 88,
-            maxHeight: 'calc(100vh - 100px)',
-            overflowY: 'auto',
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <FilterAltRoundedIcon color="primary" />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Filters
-            </Typography>
-          </Stack>
-
-          <Stack spacing={2}>
-            <Autocomplete
-              multiple
-              options={CATEGORY_OPTIONS}
-              value={categories}
-              onChange={(_, v) => setCategories(v)}
-              renderInput={params => <TextField {...params} label="Categories" placeholder="All" />}
-            />
-
-            <Autocomplete
-              multiple
-              options={STAFF_ROLES}
-              value={staffRoles}
-              onChange={(_, v) => setStaffRoles(v)}
-              renderInput={params => <TextField {...params} label="Staff Roles" placeholder="All" />}
-            />
-
-            <Autocomplete
-              multiple
-              options={PRIORITIES}
-              value={priorities}
-              onChange={(_, v) => setPriorities(v)}
-              renderInput={params => <TextField {...params} label="Priority" placeholder="All" />}
-            />
-
-            <Autocomplete
-              multiple
-              options={STATUSES}
-              value={statuses}
-              onChange={(_, v) => setStatuses(v)}
-              renderInput={params => <TextField {...params} label="Status" placeholder="All" />}
-            />
-
-            <Autocomplete
-              multiple
-              options={JURISDICTIONS}
-              value={jurisdictions}
-              onChange={(_, v) => setJurisdictions(v)}
-              renderInput={params => (
-                <TextField {...params} label="Jurisdiction" placeholder="All" />
-              )}
-            />
-
-            <DatePicker label="From" value={dateFrom} onChange={setDateFrom} />
-
-            <DatePicker label="To" value={dateTo} onChange={setDateTo} />
-
-            <Divider />
-
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" onClick={handleReset} size="small">
-                Reset
-              </Button>
-              <Button variant="contained" onClick={fetchData} size="small">
-                Apply
-              </Button>
-            </Stack>
-          </Stack>
-        </Paper>
-
-        {/* Results */}
-        <Box sx={{ display: 'grid', gap: 2 }}>
-          {/* Header */}
-          <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
-            <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-              Kirkland & Ellis - Staffing Report
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Generated: {new Date().toLocaleString()}
-            </Typography>
-            <Divider sx={{ mt: 1 }} />
-          </Box>
-
-          {/* Summary chips */}
-          <Paper className="no-print" sx={{ p: 2 }}>
-            <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
-              <Chip label={`${totals.rows} Assignments`} color="primary" />
-              <Chip label={`${totals.projects} Projects`} color="secondary" />
-              <Chip label={`${totals.staff} Staff`} />
-              <Chip
-                label={`Avg ${totals.avgAllocationPct ? Math.round(totals.avgAllocationPct) : 0}%`}
-              />
-            </Stack>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {categories.length > 0 && (
-                <Chip size="small" label={`Categories: ${categories.join(', ')}`} />
-              )}
-              {staffRoles.length > 0 && (
-                <Chip size="small" label={`Roles: ${staffRoles.join(', ')}`} />
-              )}
-              {priorities.length > 0 && (
-                <Chip size="small" label={`Priority: ${priorities.join(', ')}`} />
-              )}
-              {statuses.length > 0 && (
-                <Chip size="small" label={`Status: ${statuses.join(', ')}`} />
-              )}
-              {jurisdictions.length > 0 && (
-                <Chip size="small" label={`Jurisdiction: ${jurisdictions.join(', ')}`} />
-              )}
-              {dateFrom && <Chip size="small" label={`From: ${dateFrom.format('YYYY-MM-DD')}`} />}
-              {dateTo && <Chip size="small" label={`To: ${dateTo.format('YYYY-MM-DD')}`} />}
-            </Box>
-          </Paper>
-
-          {/* Actions */}
-          <Stack className="no-print" direction="row" spacing={2}>
+      <Page
+        title="Staffing Report"
+        actions={
+          <Stack direction="row" spacing={2} className="no-print">
             <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
               Print
             </Button>
@@ -324,41 +204,155 @@ const Reports: React.FC = () => {
               startIcon={<DownloadRoundedIcon />}
               onClick={onExportExcel}
             >
-              Export to Excel
+              Export Excel
             </Button>
           </Stack>
+        }
+      >
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2 }}>
+          {/* Filter panel */}
+          <Paper
+            className="no-print"
+            sx={{
+              p: 2.5,
+              alignSelf: 'start',
+              position: 'sticky',
+              top: 88,
+              maxHeight: 'calc(100vh - 100px)',
+              overflowY: 'auto',
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <FilterAltRoundedIcon color="primary" />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Filters
+              </Typography>
+            </Stack>
 
-          {/* Data table */}
-          <Paper sx={{ p: 1 }}>
-            <DataGrid
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              density="compact"
-              disableRowSelectionOnClick
-              autoHeight
-              initialState={{
-                pagination: { paginationModel: { pageSize: 100 } },
-              }}
-              pageSizeOptions={[25, 50, 100, 200]}
-              sx={theme => ({
-                border: 'none',
-                '& .MuiDataGrid-columnHeaders': {
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                  background: theme.palette.mode === 'dark' ? '#0F172A' : '#F8FAFC',
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                  fontWeight: 700,
-                },
-                '& .MuiDataGrid-cell': {
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                },
-              })}
-            />
+            <Stack spacing={2}>
+              <Autocomplete
+                multiple
+                options={CATEGORY_OPTIONS}
+                value={categories}
+                onChange={(_, v) => setCategories(v)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Categories" placeholder="All" />
+                )}
+              />
+
+              <Autocomplete
+                multiple
+                options={STAFF_ROLES}
+                value={staffRoles}
+                onChange={(_, v) => setStaffRoles(v)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Staff Roles" placeholder="All" />
+                )}
+              />
+
+              <Autocomplete
+                multiple
+                options={PRIORITIES}
+                value={priorities}
+                onChange={(_, v) => setPriorities(v)}
+                renderInput={(params) => <TextField {...params} label="Priority" placeholder="All" />}
+              />
+
+              <Autocomplete
+                multiple
+                options={STATUSES}
+                value={statuses}
+                onChange={(_, v) => setStatuses(v)}
+                renderInput={(params) => <TextField {...params} label="Status" placeholder="All" />}
+              />
+
+              <Autocomplete
+                multiple
+                options={JURISDICTIONS}
+                value={jurisdictions}
+                onChange={(_, v) => setJurisdictions(v)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Jurisdiction" placeholder="All" />
+                )}
+              />
+
+              <DatePicker label="From" value={dateFrom} onChange={setDateFrom} />
+
+              <DatePicker label="To" value={dateTo} onChange={setDateTo} />
+
+              <Divider />
+
+              <Stack direction="row" spacing={1}>
+                <Button variant="outlined" onClick={handleReset} size="small">
+                  Reset
+                </Button>
+                <Button variant="contained" onClick={fetchData} size="small">
+                  Apply
+                </Button>
+              </Stack>
+            </Stack>
           </Paper>
+
+          {/* Results */}
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            {/* Print header */}
+            <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
+                Kirkland & Ellis - Staffing Report
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Generated: {new Date().toLocaleString()}
+              </Typography>
+              <Divider sx={{ mt: 1 }} />
+            </Box>
+
+            {/* Summary chips */}
+            <Paper className="no-print" sx={{ p: 2 }}>
+              <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
+                <Chip label={`${totals.rows} Assignments`} color="primary" />
+                <Chip label={`${totals.projects} Projects`} color="secondary" />
+                <Chip label={`${totals.staff} Staff`} />
+                <Chip
+                  label={`Avg ${totals.avgAllocationPct ? Math.round(totals.avgAllocationPct) : 0}%`}
+                />
+              </Stack>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {categories.length > 0 && (
+                  <Chip size="small" label={`Categories: ${categories.join(', ')}`} />
+                )}
+                {staffRoles.length > 0 && (
+                  <Chip size="small" label={`Roles: ${staffRoles.join(', ')}`} />
+                )}
+                {priorities.length > 0 && (
+                  <Chip size="small" label={`Priority: ${priorities.join(', ')}`} />
+                )}
+                {statuses.length > 0 && (
+                  <Chip size="small" label={`Status: ${statuses.join(', ')}`} />
+                )}
+                {jurisdictions.length > 0 && (
+                  <Chip size="small" label={`Jurisdiction: ${jurisdictions.join(', ')}`} />
+                )}
+                {dateFrom && <Chip size="small" label={`From: ${dateFrom.format('YYYY-MM-DD')}`} />}
+                {dateTo && <Chip size="small" label={`To: ${dateTo.format('YYYY-MM-DD')}`} />}
+              </Box>
+            </Paper>
+
+            {/* Data table */}
+            <Paper sx={{ p: 1 }}>
+              <StyledDataGrid
+                rows={rows}
+                columns={columns}
+                loading={loading}
+                autoHeight
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 100 } },
+                }}
+                pageSizeOptions={[25, 50, 100, 200]}
+              />
+            </Paper>
+          </Box>
         </Box>
-      </Box>
+      </Page>
     </LocalizationProvider>
   );
 };
