@@ -110,29 +110,6 @@ const Projects: React.FC = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography color="error" variant="h6" gutterBottom>
-            Failed to load projects
-          </Typography>
-          <Typography color="text.secondary">
-            Please try again later or contact support if the problem persists.
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
     <Page
       title="Projects"
@@ -186,6 +163,17 @@ const Projects: React.FC = () => {
       {/* Data Grid */}
       {isLoading ? (
         <ProjectListSkeleton />
+      ) : error ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography color="error" variant="h6" gutterBottom>
+              Failed to load projects
+            </Typography>
+            <Typography color="text.secondary">
+              Please try again later or contact support if the problem persists.
+            </Typography>
+          </Box>
+        </Box>
       ) : projects.length === 0 ? (
         <Paper>
           <EmptyState
