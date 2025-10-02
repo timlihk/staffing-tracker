@@ -45,7 +45,6 @@ export interface ProjectAssignment {
   jurisdiction?: string;
   startDate?: string;
   endDate?: string;
-  isLead: boolean;
   notes?: string;
   project?: Project;
   staff?: Staff;

@@ -26,7 +26,6 @@ export type ReportRow = {
   staffDepartment: string | null;
   roleInProject: string;
   jurisdiction: string | null;
-  isLead: boolean;
   startDate: string | null;
   endDate: string | null;
 };

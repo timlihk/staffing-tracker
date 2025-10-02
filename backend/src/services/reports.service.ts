@@ -102,7 +102,6 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     staffDepartment: a.staff.department,
     roleInProject: a.roleInProject,
     jurisdiction: a.jurisdiction,
-    isLead: a.isLead,
     startDate: a.startDate?.toISOString() || null,
     endDate: a.endDate?.toISOString() || null,
   }));

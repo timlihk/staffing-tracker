@@ -88,7 +88,6 @@ model ProjectAssignment {
   jurisdiction  String?   // US Law, HK Law, B&C
   startDate     DateTime? @map("start_date")
   endDate       DateTime? @map("end_date")
-  isLead        Boolean   @default(false) @map("is_lead")
   notes         String?   @db.Text
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
