@@ -140,7 +140,6 @@ CREATE TABLE project_assignments (
     jurisdiction VARCHAR(20), -- 'US Law', 'HK Law', 'B&C'
     start_date DATE,
     end_date DATE,
-    is_lead BOOLEAN DEFAULT FALSE,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -279,7 +278,6 @@ CREATE INDEX idx_activity_log_created ON activity_log(created_at DESC);
 1. **Assignment Interface**
    - Role selection (IP, Associate, FLIC levels, Intern)
    - Jurisdiction specification (US Law, HK Law, B&C)
-   - Lead designation
    - Date range
 
 2. **Quick Assignment Modal**
@@ -557,7 +555,6 @@ GET    /api/activity-log                # Get activity log
       "staffId": 5,
       "roleInProject": "Associate",
       "jurisdiction": "HK Law",
-      "isLead": false,
       "staff": {
         "id": 5,
         "name": "Jiawei",
@@ -578,7 +575,6 @@ GET    /api/activity-log                # Get activity log
   "role_in_project": "Associate",
   "jurisdiction": "HK Law",
   "start_date": "2025-06-01",
-  "is_lead": false,
   "notes": "Supporting role for HKEx filing"
 }
 ```

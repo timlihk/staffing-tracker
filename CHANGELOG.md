@@ -2,6 +2,56 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.3.0] - 2025-10-03
+
+### Added
+- ✨ TanStack Query (React Query) v5 for intelligent data caching and synchronization
+- ✨ React Hook Form + Zod for type-safe form validation
+- ✨ Sonner toast notifications for user feedback
+- ✨ Loading skeleton screens for improved perceived performance
+- ✨ Global error boundary for graceful error handling
+- ✨ Clickable rows in Project Report for navigation to project details
+- 📊 Restructured StaffDetail page with horizontal layout
+
+### Fixed
+- 🐛 Fixed CircularProgress errors in production (removed orphaned imports from Projects.tsx and Staff.tsx)
+- 🐛 Fixed project navigation from Project Report using real database IDs
+- 🐛 Fixed project-report.service.ts to include projectId in response
+- 🐛 Fixed TypeScript compilation errors preventing deployment (removed all isLead references)
+
+### Changed
+- 🔄 **BREAKING**: Completely removed "Lead" field from application
+  - Removed `isLead` from ProjectAssignment model in database
+  - Removed "Lead" chips from StaffDetail and ProjectDetail displays
+  - Removed "Lead" column from Reports page and Excel exports
+  - Updated all controllers, services, and migration scripts
+- 🎨 Improved StaffDetail layout with Role, Department, Email, and Active Projects in single row
+- 🎨 Component decomposition: Extracted chart components from Dashboard
+- 🔧 Merged duplicate staff records (William/WIlliam, Tingting/TIngting)
+
+### Technical Details
+**Frontend:**
+- Migrated to TanStack Query with custom hooks (useDashboard, useProjects, useStaff)
+- Implemented React Hook Form in Login, ProjectForm, and StaffForm
+- Created reusable skeleton components for loading states
+- Removed isLead from TypeScript types (frontend/src/types/index.ts)
+- Updated StaffDetail.tsx with horizontal layout
+- Updated ProjectDetail.tsx, Reports.tsx to remove Lead displays
+
+**Backend:**
+- Created migration `20251003034500_remove_is_lead` to drop is_lead column
+- Removed isLead from Prisma schema
+- Updated assignment.controller.ts (create/update/bulk operations)
+- Updated dashboard.controller.ts (workload report)
+- Updated reports.service.ts and reports.types.ts
+- Updated project-report.service.ts (added projectId)
+- Updated migrate-excel.ts and sync-from-excel.ts scripts
+- Updated reports.excel.ts (Excel export)
+
+### Database
+- Migration: `20251003034500_remove_is_lead` - Dropped is_lead column from project_assignments table
+- Merged duplicate staff records in production
+
 ## [1.2.0] - 2025-10-02
 
 ### Added
