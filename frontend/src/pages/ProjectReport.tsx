@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -64,6 +65,7 @@ function toCsvParam(values: string[]) {
 }
 
 const ProjectReport: React.FC = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [priorities, setPriorities] = useState<string[]>([]);
@@ -269,7 +271,14 @@ const ProjectReport: React.FC = () => {
               </TableHead>
               <TableBody>
                 {sortedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
-                  <TableRow key={row.id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                  <TableRow
+                    key={row.id}
+                    onClick={() => navigate(`/projects/${row.id}`)}
+                    sx={{
+                      '&:hover': { bgcolor: 'grey.100', cursor: 'pointer' },
+                      cursor: 'pointer'
+                    }}
+                  >
                     <TableCell>{row.projectName}</TableCell>
                     <TableCell>{row.category}</TableCell>
                     <TableCell>{row.usLawPartner || '-'}</TableCell>
