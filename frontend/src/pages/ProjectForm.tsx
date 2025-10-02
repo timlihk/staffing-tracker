@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Box,
   Paper,
@@ -9,137 +11,80 @@ import {
   Grid,
   MenuItem,
   CircularProgress,
-  Autocomplete,
-  Divider,
-  IconButton,
   Stack,
 } from '@mui/material';
-import { ArrowBack, Save, Delete, Add } from '@mui/icons-material';
-import api from '../api/client';
-import { Project, Staff } from '../types';
+import { ArrowBack, Save } from '@mui/icons-material';
 import { Page } from '../components/ui';
-
-interface TeamMember {
-  staffId: number;
-  roleInProject: string;
-  jurisdiction: string;
-  isLead: boolean;
-}
+import { projectSchema, type ProjectFormData } from '../lib/validations';
+import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProjects';
 
 const ProjectForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [staffList, setStaffList] = useState<Staff[]>([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    status: 'Active',
-    priority: 'Medium',
-    elStatus: '',
-    timetable: '',
-    bcAttorney: '',
-    notes: '',
-  });
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-
   const isEdit = id !== 'new';
 
+  const { data: project, isLoading: projectLoading } = useProject(isEdit ? id! : '');
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      name: '',
+      category: '',
+      status: 'Active',
+      priority: 'Medium',
+      elStatus: '',
+      timetable: undefined,
+      bcAttorney: '',
+      notes: '',
+    },
+  });
+
   useEffect(() => {
-    fetchStaff();
-    if (isEdit) {
-      fetchProject();
-    }
-  }, [id]);
-
-  const fetchStaff = async () => {
-    try {
-      const response = await api.get('/staff');
-      setStaffList(response.data);
-    } catch (error) {
-      console.error('Failed to fetch staff:', error);
-    }
-  };
-
-  const fetchProject = async () => {
-    try {
-      const response = await api.get(`/projects/${id}`);
-      const project: Project = response.data;
-      setFormData({
+    if (isEdit && project) {
+      reset({
         name: project.name,
-        category: project.category || '',
+        category: project.category,
         status: project.status,
         priority: project.priority || 'Medium',
         elStatus: project.elStatus || '',
-        timetable: project.timetable || '',
+        timetable: project.timetable,
         bcAttorney: project.bcAttorney || '',
         notes: project.notes || '',
       });
-    } catch (error) {
-      console.error('Failed to fetch project:', error);
     }
-  };
+  }, [project, isEdit, reset]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const onSubmit = async (data: ProjectFormData) => {
     try {
-      let projectId = id;
-
       if (isEdit) {
-        await api.put(`/projects/${id}`, formData);
+        await updateProject.mutateAsync({ id: Number(id), data });
       } else {
-        const response = await api.post('/projects', formData);
-        projectId = response.data.id;
+        await createProject.mutateAsync(data);
       }
-
-      // Create team assignments
-      if (teamMembers.length > 0 && projectId) {
-        const assignments = teamMembers.map(member => ({
-          projectId: parseInt(projectId as string),
-          ...member
-        }));
-        await api.post('/assignments/bulk', { assignments });
-      }
-
       navigate('/projects');
     } catch (error) {
+      // Error handling is done in the mutation hooks with toast notifications
       console.error('Failed to save project:', error);
-      alert('Failed to save project');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const addTeamMember = () => {
-    setTeamMembers([
-      ...teamMembers,
-      {
-        staffId: 0,
-        roleInProject: 'Associate',
-        jurisdiction: 'US Law',
-        isLead: false,
-      },
-    ]);
-  };
-
-  const removeTeamMember = (index: number) => {
-    setTeamMembers(teamMembers.filter((_, i) => i !== index));
-  };
-
-  const updateTeamMember = (index: number, field: keyof TeamMember, value: any) => {
-    const updated = [...teamMembers];
-    updated[index] = { ...updated[index], [field]: value };
-    setTeamMembers(updated);
-  };
+  if (projectLoading) {
+    return (
+      <Page title="Loading...">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      </Page>
+    );
+  }
 
   return (
     <Page
@@ -155,94 +100,125 @@ const ProjectForm: React.FC = () => {
       }
     >
       <Paper sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
-                required
                 fullWidth
                 label="Project Code"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
+                {...register('name')}
+                error={!!errors.name}
+                helperText={errors.name?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Category"
+              <Controller
                 name="category"
-                value={formData.category}
-                onChange={handleChange}
-              >
-                <MenuItem value="HK Transaction Projects">HK Transaction</MenuItem>
-                <MenuItem value="US Transaction Projects">US Transaction</MenuItem>
-                <MenuItem value="HK Compliance Projects">HK Compliance</MenuItem>
-                <MenuItem value="US Compliance Projects">US Compliance</MenuItem>
-                <MenuItem value="Others">Others</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Category"
+                    error={!!errors.category}
+                    helperText={errors.category?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="HK Transaction Projects">HK Transaction</MenuItem>
+                    <MenuItem value="US Transaction Projects">US Transaction</MenuItem>
+                    <MenuItem value="HK Compliance Projects">HK Compliance</MenuItem>
+                    <MenuItem value="US Compliance Projects">US Compliance</MenuItem>
+                    <MenuItem value="Others">Others</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Status"
+              <Controller
                 name="status"
-                value={formData.status}
-                onChange={handleChange}
-              >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Slow-down">Slow-down</MenuItem>
-                <MenuItem value="Suspended">Suspended</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Status"
+                    error={!!errors.status}
+                    helperText={errors.status?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="Active">Active</MenuItem>
+                    <MenuItem value="Slow-down">Slow-down</MenuItem>
+                    <MenuItem value="Suspended">Suspended</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Priority"
+              <Controller
                 name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-              >
-                <MenuItem value="High">High</MenuItem>
-                <MenuItem value="Medium">Medium</MenuItem>
-                <MenuItem value="Low">Low</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Priority"
+                    error={!!errors.priority}
+                    helperText={errors.priority?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="High">High</MenuItem>
+                    <MenuItem value="Medium">Medium</MenuItem>
+                    <MenuItem value="Low">Low</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="EL Status"
-                name="elStatus"
-                value={formData.elStatus}
-                onChange={handleChange}
+                {...register('elStatus')}
+                error={!!errors.elStatus}
+                helperText={errors.elStatus?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Timetable"
+              <Controller
                 name="timetable"
-                value={formData.timetable}
-                onChange={handleChange}
-              >
-                <MenuItem value="">None</MenuItem>
-                <MenuItem value="PRE_A1">Pre-A1</MenuItem>
-                <MenuItem value="A1">A1</MenuItem>
-                <MenuItem value="HEARING">Hearing</MenuItem>
-                <MenuItem value="LISTING">Listing</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    select
+                    fullWidth
+                    label="Timetable"
+                    error={!!errors.timetable}
+                    helperText={errors.timetable?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="">None</MenuItem>
+                    <MenuItem value="PRE_A1">Pre-A1</MenuItem>
+                    <MenuItem value="A1">A1</MenuItem>
+                    <MenuItem value="HEARING">Hearing</MenuItem>
+                    <MenuItem value="LISTING">Listing</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="B&C Attorney"
-                name="bcAttorney"
-                value={formData.bcAttorney}
-                onChange={handleChange}
+                {...register('bcAttorney')}
+                error={!!errors.bcAttorney}
+                helperText={errors.bcAttorney?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12}>
@@ -251,98 +227,11 @@ const ProjectForm: React.FC = () => {
                 multiline
                 rows={4}
                 label="Notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
+                {...register('notes')}
+                error={!!errors.notes}
+                helperText={errors.notes?.message}
+                disabled={isSubmitting}
               />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">Team Members</Typography>
-                <Button
-                  startIcon={<Add />}
-                  onClick={addTeamMember}
-                  variant="outlined"
-                  size="small"
-                >
-                  Add Team Member
-                </Button>
-              </Box>
-
-              {teamMembers.map((member, index) => (
-                <Paper key={index} sx={{ p: 2, mb: 2, bgcolor: 'background.default' }}>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={3}>
-                      <Autocomplete
-                        options={staffList}
-                        getOptionLabel={(option) => option.name}
-                        value={staffList.find(s => s.id === member.staffId) || null}
-                        onChange={(_, newValue) => {
-                          updateTeamMember(index, 'staffId', newValue?.id || 0);
-                        }}
-                        renderInput={(params) => (
-                          <TextField {...params} label="Staff Member" size="small" required />
-                        )}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        label="Role"
-                        value={member.roleInProject}
-                        onChange={(e) => updateTeamMember(index, 'roleInProject', e.target.value)}
-                      >
-                        <MenuItem value="IP">Income Partner</MenuItem>
-                        <MenuItem value="Associate">Associate</MenuItem>
-                        <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
-                        <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
-                        <MenuItem value="Intern">Intern</MenuItem>
-                        <MenuItem value="B&C Working Attorney">B&C Working Attorney</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        label="Jurisdiction"
-                        value={member.jurisdiction}
-                        onChange={(e) => updateTeamMember(index, 'jurisdiction', e.target.value)}
-                      >
-                        <MenuItem value="US Law">US Law</MenuItem>
-                        <MenuItem value="HK Law">HK Law</MenuItem>
-                        <MenuItem value="B&C">B&C</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12} md={2}>
-                      <TextField
-                        select
-                        fullWidth
-                        size="small"
-                        label="Lead"
-                        value={member.isLead ? 'Yes' : 'No'}
-                        onChange={(e) => updateTeamMember(index, 'isLead', e.target.value === 'Yes')}
-                      >
-                        <MenuItem value="Yes">Yes</MenuItem>
-                        <MenuItem value="No">No</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12} md={1}>
-                      <IconButton
-                        onClick={() => removeTeamMember(index)}
-                        color="error"
-                        size="small"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Grid>
-                  </Grid>
-                </Paper>
-              ))}
             </Grid>
 
             <Grid item xs={12}>
@@ -350,15 +239,15 @@ const ProjectForm: React.FC = () => {
                 <Button
                   type="submit"
                   variant="contained"
-                  startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-                  disabled={loading}
+                  startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
+                  disabled={isSubmitting}
                 >
                   {isEdit ? 'Update' : 'Create'} Project
                 </Button>
                 <Button
                   variant="outlined"
                   onClick={() => navigate('/projects')}
-                  disabled={loading}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>

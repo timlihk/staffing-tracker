@@ -8,14 +8,13 @@ import {
   MenuItem,
   Chip,
   IconButton,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Staff as StaffType } from '../types';
-import { Page } from '../components/ui';
+import { Page, StaffListSkeleton } from '../components/ui';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 import EmptyState from '../components/ui/EmptyState';
 import { useStaff, useDeleteStaff } from '../hooks/useStaff';
@@ -99,29 +98,6 @@ const Staff: React.FC = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography color="error" variant="h6" gutterBottom>
-            Failed to load staff
-          </Typography>
-          <Typography color="text.secondary">
-            Please try again later or contact support if the problem persists.
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
     <Page
       title="Staff"
@@ -131,6 +107,21 @@ const Staff: React.FC = () => {
         </Button>
       }
     >
+      {isLoading ? (
+        <StaffListSkeleton />
+      ) : error ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography color="error" variant="h6" gutterBottom>
+              Failed to load staff
+            </Typography>
+            <Typography color="text.secondary">
+              Please try again later or contact support if the problem persists.
+            </Typography>
+          </Box>
+        </Box>
+      ) : (
+        <>
       {/* Filters */}
       <Paper sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} flexWrap="wrap">
@@ -190,6 +181,8 @@ const Staff: React.FC = () => {
             sx={{ cursor: 'pointer' }}
           />
         </Paper>
+      )}
+      </>
       )}
     </Page>
   );

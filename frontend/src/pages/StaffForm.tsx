@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Box,
   Paper,
@@ -12,36 +14,40 @@ import {
   Stack,
 } from '@mui/material';
 import { ArrowBack, Save } from '@mui/icons-material';
-import api from '../api/client';
-import { Staff } from '../types';
 import { Page } from '../components/ui';
+import { staffSchema, type StaffFormData } from '../lib/validations';
+import { useStaffMember, useCreateStaff, useUpdateStaff } from '../hooks/useStaff';
 
 const StaffForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: '',
-    department: '',
-    status: 'active',
-    notes: '',
-  });
-
   const isEdit = id !== 'new';
 
-  useEffect(() => {
-    if (isEdit) {
-      fetchStaff();
-    }
-  }, [id]);
+  const { data: staff, isLoading: staffLoading } = useStaffMember(isEdit ? id! : '');
+  const createStaff = useCreateStaff();
+  const updateStaff = useUpdateStaff();
 
-  const fetchStaff = async () => {
-    try {
-      const response = await api.get(`/staff/${id}`);
-      const staff: Staff = response.data;
-      setFormData({
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<StaffFormData>({
+    resolver: zodResolver(staffSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      role: '',
+      department: '',
+      status: 'active',
+      notes: '',
+    },
+  });
+
+  useEffect(() => {
+    if (isEdit && staff) {
+      reset({
         name: staff.name,
         email: staff.email || '',
         role: staff.role,
@@ -49,36 +55,32 @@ const StaffForm: React.FC = () => {
         status: staff.status,
         notes: staff.notes || '',
       });
-    } catch (error) {
-      console.error('Failed to fetch staff:', error);
     }
-  };
+  }, [staff, isEdit, reset]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const onSubmit = async (data: StaffFormData) => {
     try {
       if (isEdit) {
-        await api.put(`/staff/${id}`, formData);
+        await updateStaff.mutateAsync({ id: Number(id), data });
       } else {
-        await api.post('/staff', formData);
+        await createStaff.mutateAsync(data);
       }
       navigate('/staff');
     } catch (error) {
+      // Error handling is done in the mutation hooks with toast notifications
       console.error('Failed to save staff:', error);
-      alert('Failed to save staff member');
-    } finally {
-      setLoading(false);
     }
   };
+
+  if (staffLoading) {
+    return (
+      <Page title="Loading...">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      </Page>
+    );
+  }
 
   return (
     <Page
@@ -94,16 +96,16 @@ const StaffForm: React.FC = () => {
       }
     >
       <Paper sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
-                required
                 fullWidth
                 label="Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
+                {...register('name')}
+                error={!!errors.name}
+                helperText={errors.name?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -111,57 +113,79 @@ const StaffForm: React.FC = () => {
                 fullWidth
                 type="email"
                 label="Email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
+                {...register('email')}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                required
-                fullWidth
-                label="Role"
+              <Controller
                 name="role"
-                value={formData.role}
-                onChange={handleChange}
-              >
-                <MenuItem value="Income Partner">Income Partner</MenuItem>
-                <MenuItem value="Associate">Associate</MenuItem>
-                <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
-                <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
-                <MenuItem value="Intern">Intern</MenuItem>
-                <MenuItem value="B&C Working Attorney">B&C Working Attorney</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Role"
+                    error={!!errors.role}
+                    helperText={errors.role?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="Income Partner">Income Partner</MenuItem>
+                    <MenuItem value="Associate">Associate</MenuItem>
+                    <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
+                    <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
+                    <MenuItem value="Intern">Intern</MenuItem>
+                    <MenuItem value="B&C Working Attorney">B&C Working Attorney</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Department"
+              <Controller
                 name="department"
-                value={formData.department}
-                onChange={handleChange}
-              >
-                <MenuItem value="">None</MenuItem>
-                <MenuItem value="US Law">US Law</MenuItem>
-                <MenuItem value="HK Law">HK Law</MenuItem>
-                <MenuItem value="B&C">B&C</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    select
+                    fullWidth
+                    label="Department"
+                    error={!!errors.department}
+                    helperText={errors.department?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="">None</MenuItem>
+                    <MenuItem value="US Law">US Law</MenuItem>
+                    <MenuItem value="HK Law">HK Law</MenuItem>
+                    <MenuItem value="B&C">B&C</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Status"
+              <Controller
                 name="status"
-                value={formData.status}
-                onChange={handleChange}
-              >
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-                <MenuItem value="leaving">Leaving</MenuItem>
-              </TextField>
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="Status"
+                    error={!!errors.status}
+                    helperText={errors.status?.message}
+                    disabled={isSubmitting}
+                  >
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                    <MenuItem value="leaving">Leaving</MenuItem>
+                  </TextField>
+                )}
+              />
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -169,9 +193,10 @@ const StaffForm: React.FC = () => {
                 multiline
                 rows={4}
                 label="Notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
+                {...register('notes')}
+                error={!!errors.notes}
+                helperText={errors.notes?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12}>
@@ -179,15 +204,15 @@ const StaffForm: React.FC = () => {
                 <Button
                   type="submit"
                   variant="contained"
-                  startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-                  disabled={loading}
+                  startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
+                  disabled={isSubmitting}
                 >
                   {isEdit ? 'Update' : 'Create'} Staff
                 </Button>
                 <Button
                   variant="outlined"
                   onClick={() => navigate('/staff')}
-                  disabled={loading}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
