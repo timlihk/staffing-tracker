@@ -13,6 +13,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  Stack,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -24,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Project, ChangeHistory } from '../types';
+import { Page, Section } from '../components/ui';
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -86,18 +88,19 @@ const ProjectDetail: React.FC = () => {
       : 'error';
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/projects')}
-          >
+    <Page
+      title={
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Button startIcon={<ArrowBack />} onClick={() => navigate('/projects')}>
             Back
           </Button>
-          <Typography variant="h4">{project.name}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            {project.name}
+          </Typography>
           <Chip label={project.status} color={statusColor} />
-        </Box>
+        </Stack>
+      }
+      actions={
         <Button
           variant="contained"
           startIcon={<Edit />}
@@ -105,16 +108,11 @@ const ProjectDetail: React.FC = () => {
         >
           Edit
         </Button>
-      </Box>
-
-      <Grid container spacing={3}>
+      }
+    >
+      <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Project Information
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-
+          <Section title="Project Information">
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -139,9 +137,7 @@ const ProjectDetail: React.FC = () => {
                   Start Date
                 </Typography>
                 <Typography>
-                  {project.startDate
-                    ? new Date(project.startDate).toLocaleDateString()
-                    : '-'}
+                  {project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
@@ -157,15 +153,11 @@ const ProjectDetail: React.FC = () => {
                 <Typography>{project.notes || 'No notes available'}</Typography>
               </Grid>
             </Grid>
-          </Paper>
+          </Section>
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Team Members
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+          <Section title="Team Members">
             {project.assignments && project.assignments.length > 0 ? (
               <List dense>
                 {project.assignments.map((assignment) => (
@@ -195,9 +187,7 @@ const ProjectDetail: React.FC = () => {
                           >
                             {assignment.staff?.name}
                           </Typography>
-                          {assignment.isLead && (
-                            <Chip label="Lead" size="small" color="primary" />
-                          )}
+                          {assignment.isLead && <Chip label="Lead" size="small" color="primary" />}
                         </Box>
                       }
                       secondary={
@@ -217,15 +207,11 @@ const ProjectDetail: React.FC = () => {
                 No team members assigned
               </Typography>
             )}
-          </Paper>
+          </Section>
         </Grid>
 
         <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Change History
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+          <Section title="Change History">
             {changeHistory.length > 0 ? (
               <List>
                 {changeHistory.map((change) => (
@@ -242,7 +228,10 @@ const ProjectDetail: React.FC = () => {
                           <Typography variant="body2" component="span" color="text.secondary">
                             {change.oldValue || '(empty)'}
                           </Typography>
-                          <Typography variant="body2" component="span"> → </Typography>
+                          <Typography variant="body2" component="span">
+                            {' '}
+                            →{' '}
+                          </Typography>
                           <Typography variant="body2" component="span" color="primary">
                             {change.newValue || '(empty)'}
                           </Typography>
@@ -263,10 +252,10 @@ const ProjectDetail: React.FC = () => {
                 No changes recorded
               </Typography>
             )}
-          </Paper>
+          </Section>
         </Grid>
       </Grid>
-    </Box>
+    </Page>
   );
 };
 

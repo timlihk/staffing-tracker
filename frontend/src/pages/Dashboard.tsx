@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Grid, Paper, Typography, Box, CircularProgress } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Grid, Typography, Box, CircularProgress } from '@mui/material';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
 import api from '../api/client';
 import type { DashboardSummary } from '../types';
 import SummaryCards from '../components/SummaryCards';
 import ActivityFeed from '../components/ActivityFeed';
+import { Page, Section } from '../components/ui';
 
 const COLORS = ['#4CAF50', '#FF9800', '#F44336', '#2196F3'];
 
@@ -47,59 +60,53 @@ const Dashboard = () => {
   }));
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
-
+    <Page title="Dashboard">
       <SummaryCards summary={summary} />
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
+      <Grid container spacing={2}>
         {/* Project Status Chart */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Projects by Status
-            </Typography>
-            <ResponsiveContainer width="100%" height="90%">
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
+          <Section title="Projects by Status">
+            <Box sx={{ height: 350 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusData.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Section>
         </Grid>
 
         {/* Project Category Chart */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Projects by Category
-            </Typography>
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={categoryData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#003D7A" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
+          <Section title="Projects by Category">
+            <Box sx={{ height: 350 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#003D7A" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </Section>
         </Grid>
 
         {/* Recent Activity */}
@@ -107,7 +114,7 @@ const Dashboard = () => {
           <ActivityFeed />
         </Grid>
       </Grid>
-    </Box>
+    </Page>
   );
 };
 
