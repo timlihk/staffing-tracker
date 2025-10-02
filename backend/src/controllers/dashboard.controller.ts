@@ -87,7 +87,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       },
       select: {
         id: true,
-        projectCode: true,
+        name: true,
         category: true,
         timetable: true,
       },
@@ -139,7 +139,7 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
             project: {
               select: {
                 id: true,
-                projectCode: true,
+                name: true,
                 status: true,
                 category: true,
                 priority: true,
@@ -160,7 +160,7 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
       const projectsByCategory = member.assignments.reduce((acc: any, assignment) => {
         const category = assignment.project.category;
         if (!acc[category]) acc[category] = [];
-        acc[category].push(assignment.project.projectCode);
+        acc[category].push(assignment.project.name);
         return acc;
       }, {});
 
@@ -174,7 +174,7 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
         isOverAllocated: totalAllocation > 100,
         projectsByCategory,
         assignments: member.assignments.map((a) => ({
-          project: a.project.projectCode,
+          project: a.project.name,
           role: a.roleInProject,
           jurisdiction: a.jurisdiction,
           allocation: a.allocationPercentage,

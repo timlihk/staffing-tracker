@@ -27,7 +27,7 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
             project: {
               select: {
                 id: true,
-                projectCode: true,
+                name: true,
                 status: true,
                 category: true,
               },
@@ -212,7 +212,7 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
             project: {
               select: {
                 id: true,
-                projectCode: true,
+                name: true,
                 status: true,
                 category: true,
                 priority: true,

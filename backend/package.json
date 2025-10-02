@@ -9,7 +9,11 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:truncate": "ts-node src/scripts/truncate-all.ts",
+    "db:import": "ts-node src/scripts/migrate-excel.ts",
+    "db:reset-import": "ts-node src/scripts/truncate-all.ts && ts-node src/scripts/migrate-excel.ts",
+    "db:sync": "ts-node src/scripts/sync-from-excel.ts"
   },
   "keywords": [],
   "author": "",

@@ -33,7 +33,7 @@ const ProjectForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [formData, setFormData] = useState({
-    projectCode: '',
+    name: '',
     category: '',
     status: 'Active',
     priority: 'Medium',
@@ -67,7 +67,7 @@ const ProjectForm: React.FC = () => {
       const response = await api.get(`/projects/${id}`);
       const project: Project = response.data;
       setFormData({
-        projectCode: project.projectCode,
+        name: project.name,
         category: project.category || '',
         status: project.status,
         priority: project.priority || 'Medium',
@@ -164,8 +164,8 @@ const ProjectForm: React.FC = () => {
                 required
                 fullWidth
                 label="Project Code"
-                name="projectCode"
-                value={formData.projectCode}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
               />
             </Grid>

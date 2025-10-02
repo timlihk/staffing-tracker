@@ -18,7 +18,7 @@ export async function getStaffingReportJson(req: AuthRequest, res: Response) {
     const rows = await getStaffingReport(parse.data);
 
     // Calculate totals
-    const uniqueProjects = new Set(rows.map(r => r.projectCode)).size;
+    const uniqueProjects = new Set(rows.map(r => r.name)).size;
     const uniqueStaff = new Set(rows.map(r => r.staffName)).size;
     const avgAllocation = rows.length > 0
       ? rows.reduce((acc, r) => acc + r.allocationPct, 0) / rows.length

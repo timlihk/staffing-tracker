@@ -60,7 +60,7 @@ enum Timetable {
 
 model Project {
   id                Int         @id @default(autoincrement())
-  projectCode       String      @unique @map("project_code")
+  name              String      @unique // Project name (formerly projectCode)
   category          String      // HK Transaction, US Transaction, HK Compliance, US Compliance, Others
   status            String      // Active, Slow-down, Suspended
   priority          String?     // High, Medium, Low

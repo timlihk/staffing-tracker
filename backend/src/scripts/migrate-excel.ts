@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 
 interface ExcelProject {
-  projectCode: string;
+  name: string;
   status: string;
   category: string;
   notes?: string;
@@ -85,7 +85,7 @@ async function migrateFromExcel(excelFilePath: string) {
     }
 
     const project: ExcelProject = {
-      projectCode: cleanName(row[0]) || '',
+      name: cleanName(row[0]) || '',
       status: normalizeStatus(row[1]),
       category: determineCategory(i, row[0]),
       notes: cleanName(row[15]) || '',
@@ -102,7 +102,7 @@ async function migrateFromExcel(excelFilePath: string) {
       bcWorkingAttorney: cleanName(row[12]),
     };
 
-    if (project.projectCode) {
+    if (project.name) {
       projects.push(project);
 
       // Collect staff members
@@ -170,7 +170,7 @@ async function migrateFromExcel(excelFilePath: string) {
       // Create project
       const dbProject = await prisma.project.create({
         data: {
-          projectCode: project.projectCode,
+          name: project.name,
           category: project.category,
           status: project.status,
           priority: project.status === 'Active' ? 'High' : 'Medium',
@@ -179,7 +179,7 @@ async function migrateFromExcel(excelFilePath: string) {
         },
       });
 
-      console.log(`  ✓ Created project: ${project.projectCode}`);
+      console.log(`  ✓ Created project: ${project.name}`);
 
       // Create assignments
       const assignments = [
@@ -211,7 +211,7 @@ async function migrateFromExcel(excelFilePath: string) {
                   isLead: role === 'IP' || role === 'B&C Working Attorney',
                 },
               });
-              console.log(`    ✓ Assigned ${name} to ${project.projectCode} as ${role} (${jurisdiction})`);
+              console.log(`    ✓ Assigned ${name} to ${project.name} as ${role} (${jurisdiction})`);
             } catch (error: any) {
               if (error.code !== 'P2002') {
                 console.error(`    ✗ Error assigning ${name}:`, error.message);
@@ -233,9 +233,9 @@ async function migrateFromExcel(excelFilePath: string) {
       });
     } catch (error: any) {
       if (error.code === 'P2002') {
-        console.log(`  ⚠ Project ${project.projectCode} already exists, skipping...`);
+        console.log(`  ⚠ Project ${project.name} already exists, skipping...`);
       } else {
-        console.error(`  ✗ Error creating project ${project.projectCode}:`, error.message);
+        console.error(`  ✗ Error creating project ${project.name}:`, error.message);
       }
     }
   }
@@ -272,7 +272,7 @@ async function migrateFromExcel(excelFilePath: string) {
 }
 
 // Run migration
-const excelPath = path.join(__dirname, '../../../CM Asia_Staffing List - 2025.09.09.xlsx');
+const excelPath = process.env.EXCEL_FILE || path.join(__dirname, '../../../CM Asia_Staffing List - 2025.09.09_2.xlsx');
 
 migrateFromExcel(excelPath)
   .catch((error) => {

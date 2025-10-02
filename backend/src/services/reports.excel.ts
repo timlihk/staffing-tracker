@@ -8,7 +8,7 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
   // --- Summary Sheet ---
   const summary = wb.addWorksheet('Summary');
   const count = rows.length;
-  const uniqueProjects = new Set(rows.map(r => r.projectCode)).size;
+  const uniqueProjects = new Set(rows.map(r => r.name)).size;
   const uniqueStaff = new Set(rows.map(r => r.staffName)).size;
   const avg = count > 0
     ? rows.reduce((acc, r) => acc + r.allocationPct, 0) / count
@@ -47,7 +47,7 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
   });
 
   ws.columns = [
-    { header: 'Project Code', key: 'projectCode', width: 14 },
+    { header: 'Project Code', key: 'name', width: 14 },
     { header: 'Project Name', key: 'projectName', width: 32 },
     { header: 'Category', key: 'category', width: 24 },
     { header: 'Priority', key: 'priority', width: 10 },
@@ -78,7 +78,7 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
   // Add data rows
   rows.forEach(r => {
     ws.addRow({
-      projectCode: r.projectCode,
+      name: r.name,
       projectName: r.projectName,
       category: r.category,
       priority: r.priority || '',
