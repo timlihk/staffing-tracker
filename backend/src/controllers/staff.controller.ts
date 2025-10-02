@@ -27,7 +27,7 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
             project: {
               select: {
                 id: true,
-                name: true,
+                projectCode: true,
                 status: true,
                 category: true,
               },
@@ -212,7 +212,7 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
             project: {
               select: {
                 id: true,
-                name: true,
+                projectCode: true,
                 status: true,
                 category: true,
                 priority: true,
@@ -227,17 +227,17 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    const totalAllocation = staff.assignments.reduce(
+    const totalAllocation = staff.assignments?.reduce(
       (sum, assignment) => sum + assignment.allocationPercentage,
       0
-    );
+    ) || 0;
 
-    const projectsByCategory = staff.assignments.reduce((acc: any, assignment) => {
+    const projectsByCategory = staff.assignments?.reduce((acc: any, assignment) => {
       const category = assignment.project.category;
       if (!acc[category]) acc[category] = 0;
       acc[category]++;
       return acc;
-    }, {});
+    }, {}) || {};
 
     res.json({
       staff: {
@@ -245,11 +245,11 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
         name: staff.name,
         role: staff.role,
       },
-      activeProjects: staff.assignments.length,
+      activeProjects: staff.assignments?.length || 0,
       totalAllocation,
       isOverAllocated: totalAllocation > 100,
       projectsByCategory,
-      assignments: staff.assignments,
+      assignments: staff.assignments || [],
     });
   } catch (error) {
     console.error('Get staff workload error:', error);

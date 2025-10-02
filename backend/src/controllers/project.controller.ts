@@ -13,7 +13,6 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
     if (category) where.category = category;
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: 'insensitive' } },
         { projectCode: { contains: search as string, mode: 'insensitive' } },
         { notes: { contains: search as string, mode: 'insensitive' } },
       ];
@@ -80,33 +79,31 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
     const {
-      name,
       projectCode,
       category,
       status,
       priority,
       elStatus,
-      startDate,
       timetable,
       actualFilingDate,
+      bcAttorney,
       notes,
     } = req.body;
 
-    if (!name || !category || !status) {
-      return res.status(400).json({ error: 'Name, category, and status are required' });
+    if (!projectCode || !category || !status) {
+      return res.status(400).json({ error: 'Project code, category, and status are required' });
     }
 
     const project = await prisma.project.create({
       data: {
-        name,
         projectCode,
         category,
         status,
         priority,
         elStatus,
-        startDate: startDate ? new Date(startDate) : null,
         timetable,
         actualFilingDate: actualFilingDate ? new Date(actualFilingDate) : null,
+        bcAttorney,
         notes,
       },
       include: {
@@ -123,7 +120,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         actionType: 'create',
         entityType: 'project',
         entityId: project.id,
-        description: `Created project: ${project.name}`,
+        description: `Created project: ${project.projectCode}`,
       },
     });
 
@@ -138,15 +135,14 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      name,
       projectCode,
       category,
       status,
       priority,
       elStatus,
-      startDate,
       timetable,
       actualFilingDate,
+      bcAttorney,
       notes,
     } = req.body;
 
@@ -160,15 +156,14 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     // Build update data
     const updateData: any = {};
-    if (name) updateData.name = name;
     if (projectCode !== undefined) updateData.projectCode = projectCode;
     if (category) updateData.category = category;
     if (status) updateData.status = status;
     if (priority !== undefined) updateData.priority = priority;
     if (elStatus !== undefined) updateData.elStatus = elStatus;
-    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
     if (timetable !== undefined) updateData.timetable = timetable;
     if (actualFilingDate !== undefined) updateData.actualFilingDate = actualFilingDate ? new Date(actualFilingDate) : null;
+    if (bcAttorney !== undefined) updateData.bcAttorney = bcAttorney;
     if (notes !== undefined) updateData.notes = notes;
 
     // Track all field changes
@@ -197,7 +192,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         actionType: 'update',
         entityType: 'project',
         entityId: project.id,
-        description: `Updated project: ${project.name}`,
+        description: `Updated project: ${project.projectCode}`,
       },
     });
 
@@ -231,7 +226,7 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
         actionType: 'delete',
         entityType: 'project',
         entityId: parseInt(id),
-        description: `Deleted project: ${project.name}`,
+        description: `Deleted project: ${project.projectCode}`,
       },
     });
 

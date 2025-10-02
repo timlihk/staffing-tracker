@@ -139,7 +139,7 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
         actionType: 'assign',
         entityType: 'assignment',
         entityId: assignment.id,
-        description: `Assigned ${staff.name} to ${project.name} as ${roleInProject}`,
+        description: `Assigned ${staff.name} to ${project.projectCode} as ${roleInProject}`,
       },
     });
 
@@ -209,7 +209,7 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
         actionType: 'update',
         entityType: 'assignment',
         entityId: assignment.id,
-        description: `Updated assignment: ${assignment.staff.name} on ${assignment.project.name}`,
+        description: `Updated assignment: ${assignment.staff.name} on ${assignment.project.projectCode}`,
       },
     });
 
@@ -254,7 +254,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
         actionType: 'delete',
         entityType: 'assignment',
         entityId: parseInt(id),
-        description: `Removed ${assignment.staff.name} from ${assignment.project.name}`,
+        description: `Removed ${assignment.staff.name} from ${assignment.project.projectCode}`,
       },
     });
 
