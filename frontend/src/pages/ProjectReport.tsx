@@ -139,7 +139,7 @@ const ProjectReport: React.FC = () => {
         </Stack>
       }
     >
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 2 }}>
         {/* Filter panel */}
         <Paper
           className="no-print"
