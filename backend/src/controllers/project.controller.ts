@@ -269,3 +269,40 @@ export const getProjectCategories = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getProjectActivityLog = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { limit = '50' } = req.query;
+
+    const limitNum = parseInt(limit as string);
+
+    const activities = await prisma.activityLog.findMany({
+      where: {
+        entityType: 'project',
+        entityId: parseInt(id),
+      },
+      include: {
+        user: {
+          select: { username: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limitNum,
+    });
+
+    res.json(
+      activities.map((activity) => ({
+        id: activity.id,
+        actionType: activity.actionType,
+        entityType: activity.entityType,
+        description: activity.description,
+        username: activity.user?.username || 'System',
+        createdAt: activity.createdAt,
+      }))
+    );
+  } catch (error) {
+    console.error('Get project activity log error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

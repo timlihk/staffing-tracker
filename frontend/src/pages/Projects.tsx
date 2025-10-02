@@ -156,8 +156,17 @@ const Projects: React.FC = () => {
               </TableRow>
             ) : (
               projects.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell>{project.name}</TableCell>
+                <TableRow
+                  key={project.id}
+                  hover
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                >
+                  <TableCell>
+                    <Typography variant="body2" color="primary" fontWeight="medium">
+                      {project.name}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={project.status}
@@ -172,7 +181,7 @@ const Projects: React.FC = () => {
                       ? new Date(project.targetFilingDate).toLocaleDateString()
                       : '-'}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                     <IconButton
                       size="small"
                       onClick={() => navigate(`/projects/${project.id}`)}
