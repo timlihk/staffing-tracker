@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Models
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         String    @default("viewer") // admin, editor, viewer
+  staffId      Int?      @map("staff_id")
+  staff        Staff?    @relation(fields: [staffId], references: [id])
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  activityLogs        ActivityLog[]
+  projectStatusChanges ProjectStatusHistory[]
+
+  @@map("users")
+}
+
+model Staff {
+  id         Int       @id @default(autoincrement())
+  name       String
+  email      String?   @unique
+  role       String    // Income Partner, Associate, Senior FLIC, Junior FLIC, Intern
+  department String?   // US Law, HK Law
+  status     String    @default("active") // active, inactive, leaving
+  notes      String?   @db.Text
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  assignments ProjectAssignment[]
+  users       User[]
+
+  @@map("staff")
+}
+
+model Project {
+  id                Int       @id @default(autoincrement())
+  name              String    @unique
+  projectCode       String?   @map("project_code")
+  category          String    // HK Transaction, US Transaction, HK Compliance, US Compliance, Others
+  status            String    // Active, Slow-down, Suspended
+  priority          String?   // High, Medium, Low
+  startDate         DateTime? @map("start_date")
+  targetFilingDate  DateTime? @map("target_filing_date")
+  actualFilingDate  DateTime? @map("actual_filing_date")
+  notes             String?   @db.Text
+  timelineStatus    String?   @map("timeline_status") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  assignments    ProjectAssignment[]
+  statusHistory  ProjectStatusHistory[]
+
+  @@index([status])
+  @@index([category])
+  @@map("projects")
+}
+
+model ProjectAssignment {
+  id                   Int       @id @default(autoincrement())
+  projectId            Int       @map("project_id")
+  staffId              Int       @map("staff_id")
+  roleInProject        String    @map("role_in_project") // IP, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
+  jurisdiction         String?   // US Law, HK Law, B&C
+  allocationPercentage Int       @default(100) @map("allocation_percentage")
+  startDate            DateTime? @map("start_date")
+  endDate              DateTime? @map("end_date")
+  isLead               Boolean   @default(false) @map("is_lead")
+  notes                String?   @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, staffId, roleInProject, jurisdiction])
+  @@index([projectId])
+  @@index([staffId])
+  @@map("project_assignments")
+}
+
+model ProjectStatusHistory {
+  id           Int      @id @default(autoincrement())
+  projectId    Int      @map("project_id")
+  oldStatus    String?  @map("old_status")
+  newStatus    String   @map("new_status")
+  changedBy    Int?     @map("changed_by")
+  changeReason String?  @map("change_reason") @db.Text
+  changedAt    DateTime @default(now()) @map("changed_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [changedBy], references: [id])
+
+  @@map("project_status_history")
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id")
+  actionType  String   @map("action_type") // create, update, delete, assign, status_change
+  entityType  String   @map("entity_type") // project, staff, assignment
+  entityId    Int?     @map("entity_id")
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("activity_log")
+}
