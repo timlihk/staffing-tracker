@@ -2,6 +2,38 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 
+const trackAssignmentChange = async (
+  projectId: number,
+  staffId: number,
+  changeType: 'assignment_added' | 'assignment_removed',
+  assignmentDetails: string,
+  userId?: number
+) => {
+  // Track on project side
+  await prisma.projectChangeHistory.create({
+    data: {
+      projectId,
+      fieldName: 'assignment',
+      oldValue: changeType === 'assignment_added' ? null : assignmentDetails,
+      newValue: changeType === 'assignment_added' ? assignmentDetails : null,
+      changeType,
+      changedBy: userId,
+    },
+  });
+
+  // Track on staff side
+  await prisma.staffChangeHistory.create({
+    data: {
+      staffId,
+      fieldName: 'assignment',
+      oldValue: changeType === 'assignment_added' ? null : assignmentDetails,
+      newValue: changeType === 'assignment_added' ? assignmentDetails : null,
+      changeType,
+      changedBy: userId,
+    },
+  });
+};
+
 export const getAllAssignments = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId, staffId } = req.query;
@@ -111,6 +143,16 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Track assignment change
+    const assignmentDetails = `${staff.name} as ${roleInProject}${jurisdiction ? ` (${jurisdiction})` : ''}`;
+    await trackAssignmentChange(
+      projectId,
+      staffId,
+      'assignment_added',
+      assignmentDetails,
+      req.user?.userId
+    );
+
     res.status(201).json(assignment);
   } catch (error: any) {
     console.error('Create assignment error:', error);
@@ -194,6 +236,16 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
     await prisma.projectAssignment.delete({
       where: { id: parseInt(id) },
     });
+
+    // Track assignment removal
+    const assignmentDetails = `${assignment.staff.name} as ${assignment.roleInProject}${assignment.jurisdiction ? ` (${assignment.jurisdiction})` : ''}`;
+    await trackAssignmentChange(
+      assignment.projectId,
+      assignment.staffId,
+      'assignment_removed',
+      assignmentDetails,
+      req.user?.userId
+    );
 
     // Log activity
     await prisma.activityLog.create({

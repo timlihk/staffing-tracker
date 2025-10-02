@@ -17,22 +17,53 @@ import {
   TableRow,
   Card,
   CardContent,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
-import { ArrowBack, Edit } from '@mui/icons-material';
+import {
+  ArrowBack,
+  Edit,
+  Add,
+  Update,
+  Delete as DeleteIcon,
+  ChangeCircle,
+} from '@mui/icons-material';
 import api from '../api/client';
-import { Staff } from '../types';
+import { Staff, ChangeHistory } from '../types';
+
+const getActionIcon = (actionType: string) => {
+  switch (actionType) {
+    case 'create':
+      return <Add color="success" />;
+    case 'update':
+      return <Update color="primary" />;
+    case 'delete':
+      return <DeleteIcon color="error" />;
+    case 'status_change':
+      return <ChangeCircle color="warning" />;
+    default:
+      return <ChangeCircle />;
+  }
+};
 
 const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [staff, setStaff] = useState<Staff | null>(null);
+  const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStaff = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get(`/staff/${id}`);
-        setStaff(response.data);
+        const [staffResponse, changeHistoryResponse] = await Promise.all([
+          api.get(`/staff/${id}`),
+          api.get(`/staff/${id}/change-history`),
+        ]);
+        setStaff(staffResponse.data);
+        setChangeHistory(changeHistoryResponse.data);
       } catch (error) {
         console.error('Failed to fetch staff:', error);
       } finally {
@@ -40,7 +71,7 @@ const StaffDetail: React.FC = () => {
       }
     };
 
-    fetchStaff();
+    fetchData();
   }, [id]);
 
   if (loading) {
@@ -174,7 +205,7 @@ const StaffDetail: React.FC = () => {
         </Grid>
 
         {/* Projects List */}
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Project Assignments
@@ -247,6 +278,53 @@ const StaffDetail: React.FC = () => {
             ) : (
               <Typography variant="body2" color="text.secondary">
                 No project assignments
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Change History */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Change History
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {changeHistory.length > 0 ? (
+              <List>
+                {changeHistory.map((change) => (
+                  <ListItem key={change.id}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      {getActionIcon(change.changeType)}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Box>
+                          <Typography variant="body2" component="span" fontWeight="medium">
+                            {change.fieldName}:{' '}
+                          </Typography>
+                          <Typography variant="body2" component="span" color="text.secondary">
+                            {change.oldValue || '(empty)'}
+                          </Typography>
+                          <Typography variant="body2" component="span"> → </Typography>
+                          <Typography variant="body2" component="span" color="primary">
+                            {change.newValue || '(empty)'}
+                          </Typography>
+                        </Box>
+                      }
+                      secondary={
+                        <>
+                          {new Date(change.changedAt).toLocaleString()}
+                          {change.username && ` • by ${change.username}`}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No changes recorded
               </Typography>
             )}
           </Paper>

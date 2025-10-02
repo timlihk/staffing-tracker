@@ -63,10 +63,6 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
         assignments: {
           include: { staff: true },
         },
-        statusHistory: {
-          include: { user: { select: { username: true } } },
-          orderBy: { changedAt: 'desc' },
-        },
       },
     });
 
@@ -128,16 +124,6 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         entityType: 'project',
         entityId: project.id,
         description: `Created project: ${project.name}`,
-      },
-    });
-
-    // Create initial status history
-    await prisma.projectStatusHistory.create({
-      data: {
-        projectId: project.id,
-        newStatus: status,
-        changedBy: req.user?.userId,
-        changeReason: 'Project created',
       },
     });
 
@@ -214,18 +200,6 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         description: `Updated project: ${project.name}`,
       },
     });
-
-    // Track status change in status history (legacy support)
-    if (status && status !== existingProject.status) {
-      await prisma.projectStatusHistory.create({
-        data: {
-          projectId: project.id,
-          oldStatus: existingProject.status,
-          newStatus: status,
-          changedBy: req.user?.userId,
-        },
-      });
-    }
 
     res.json(project);
   } catch (error) {

@@ -199,47 +199,7 @@ const ProjectDetail: React.FC = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Status History
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {project.statusHistory && project.statusHistory.length > 0 ? (
-              <List>
-                {project.statusHistory.map((history) => (
-                  <ListItem key={history.id}>
-                    <ListItemText
-                      primary={
-                        history.oldStatus
-                          ? `${history.oldStatus} → ${history.newStatus}`
-                          : history.newStatus
-                      }
-                      secondary={
-                        <>
-                          {new Date(history.changedAt).toLocaleString()}
-                          {history.user?.username && ` • by ${history.user.username}`}
-                          {history.changeReason && ` • ${history.changeReason}`}
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary={`Status: ${project.status}`}
-                    secondary={`Updated: ${new Date(project.updatedAt).toLocaleString()}`}
-                  />
-                </ListItem>
-              </List>
-            )}
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Change History
