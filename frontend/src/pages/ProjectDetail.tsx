@@ -136,9 +136,38 @@ const ProjectDetail: React.FC = () => {
               Team Members
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-              Team assignment information will be displayed here
-            </Typography>
+            {project.assignments && project.assignments.length > 0 ? (
+              <List dense>
+                {project.assignments.map((assignment) => (
+                  <ListItem key={assignment.id}>
+                    <ListItemText
+                      primary={
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography variant="body2" fontWeight="medium">
+                            {assignment.staff?.name}
+                          </Typography>
+                          {assignment.isLead && (
+                            <Chip label="Lead" size="small" color="primary" />
+                          )}
+                        </Box>
+                      }
+                      secondary={
+                        <>
+                          {assignment.roleInProject}
+                          {assignment.jurisdiction && ` • ${assignment.jurisdiction}`}
+                          {assignment.allocationPercentage &&
+                            ` • ${assignment.allocationPercentage}%`}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No team members assigned
+              </Typography>
+            )}
           </Paper>
         </Grid>
 
@@ -148,14 +177,37 @@ const ProjectDetail: React.FC = () => {
               Status History
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <List>
-              <ListItem>
-                <ListItemText
-                  primary={`Status: ${project.status}`}
-                  secondary={`Updated: ${new Date(project.updatedAt).toLocaleString()}`}
-                />
-              </ListItem>
-            </List>
+            {project.statusHistory && project.statusHistory.length > 0 ? (
+              <List>
+                {project.statusHistory.map((history) => (
+                  <ListItem key={history.id}>
+                    <ListItemText
+                      primary={
+                        history.oldStatus
+                          ? `${history.oldStatus} → ${history.newStatus}`
+                          : history.newStatus
+                      }
+                      secondary={
+                        <>
+                          {new Date(history.changedAt).toLocaleString()}
+                          {history.user?.username && ` • by ${history.user.username}`}
+                          {history.changeReason && ` • ${history.changeReason}`}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <List>
+                <ListItem>
+                  <ListItemText
+                    primary={`Status: ${project.status}`}
+                    secondary={`Updated: ${new Date(project.updatedAt).toLocaleString()}`}
+                  />
+                </ListItem>
+              </List>
+            )}
           </Paper>
         </Grid>
       </Grid>

@@ -134,7 +134,17 @@ const Staff: React.FC = () => {
             ) : (
               staff.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell>{member.name}</TableCell>
+                  <TableCell
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { textDecoration: 'underline' },
+                    }}
+                    onClick={() => navigate(`/staff/${member.id}`)}
+                  >
+                    <Typography variant="body2" color="primary" fontWeight="medium">
+                      {member.name}
+                    </Typography>
+                  </TableCell>
                   <TableCell>{member.role}</TableCell>
                   <TableCell>{member.department || '-'}</TableCell>
                   <TableCell>{member.email || '-'}</TableCell>
