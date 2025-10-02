@@ -227,11 +227,6 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    const totalAllocation = staff.assignments?.reduce(
-      (sum, assignment) => sum + assignment.allocationPercentage,
-      0
-    ) || 0;
-
     const projectsByCategory = staff.assignments?.reduce((acc: any, assignment) => {
       const category = assignment.project.category;
       if (!acc[category]) acc[category] = 0;
@@ -246,8 +241,6 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
         role: staff.role,
       },
       activeProjects: staff.assignments?.length || 0,
-      totalAllocation,
-      isOverAllocated: totalAllocation > 100,
       projectsByCategory,
       assignments: staff.assignments || [],
     });

@@ -54,7 +54,6 @@ const STATUSES = ['Active', 'Slow-down', 'Suspended'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
 const columns: GridColDef<ProjectReportRow>[] = [
-  { field: 'name', headerName: 'Code', width: 100 },
   { field: 'projectName', headerName: 'Project', minWidth: 200, flex: 1 },
   { field: 'category', headerName: 'Category', width: 180 },
 

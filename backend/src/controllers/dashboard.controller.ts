@@ -55,25 +55,16 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           where: {
             project: { status: { in: ['Active', 'Slow-down'] } },
           },
-          select: {
-            allocationPercentage: true,
-          },
         },
       },
     });
 
     const workloadDistribution = staffWorkload.map((staff) => {
-      const totalAllocation = staff.assignments.reduce(
-        (sum, assignment) => sum + assignment.allocationPercentage,
-        0
-      );
       return {
         staffId: staff.id,
         name: staff.name,
         role: staff.role,
         projectCount: staff.assignments.length,
-        totalAllocation,
-        isOverAllocated: totalAllocation > 100,
       };
     });
 
@@ -152,11 +143,6 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
     });
 
     const report = staff.map((member) => {
-      const totalAllocation = member.assignments.reduce(
-        (sum, assignment) => sum + assignment.allocationPercentage,
-        0
-      );
-
       const projectsByCategory = member.assignments.reduce((acc: any, assignment) => {
         const category = assignment.project.category;
         if (!acc[category]) acc[category] = [];
@@ -170,14 +156,11 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
         role: member.role,
         department: member.department,
         totalProjects: member.assignments.length,
-        totalAllocation,
-        isOverAllocated: totalAllocation > 100,
         projectsByCategory,
         assignments: member.assignments.map((a) => ({
           project: a.project.name,
           role: a.roleInProject,
           jurisdiction: a.jurisdiction,
-          allocation: a.allocationPercentage,
           isLead: a.isLead,
         })),
       };

@@ -81,18 +81,17 @@ model Project {
 }
 
 model ProjectAssignment {
-  id                   Int       @id @default(autoincrement())
-  projectId            Int       @map("project_id")
-  staffId              Int       @map("staff_id")
-  roleInProject        String    @map("role_in_project") // IP, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
-  jurisdiction         String?   // US Law, HK Law, B&C
-  allocationPercentage Int       @default(100) @map("allocation_percentage")
-  startDate            DateTime? @map("start_date")
-  endDate              DateTime? @map("end_date")
-  isLead               Boolean   @default(false) @map("is_lead")
-  notes                String?   @db.Text
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  id            Int       @id @default(autoincrement())
+  projectId     Int       @map("project_id")
+  staffId       Int       @map("staff_id")
+  roleInProject String    @map("role_in_project") // IP, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
+  jurisdiction  String?   // US Law, HK Law, B&C
+  startDate     DateTime? @map("start_date")
+  endDate       DateTime? @map("end_date")
+  isLead        Boolean   @default(false) @map("is_lead")
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)

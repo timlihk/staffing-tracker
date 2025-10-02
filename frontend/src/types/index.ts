@@ -43,7 +43,6 @@ export interface ProjectAssignment {
   staffId: number;
   roleInProject: string;
   jurisdiction?: string;
-  allocationPercentage: number;
   startDate?: string;
   endDate?: string;
   isLead: boolean;
@@ -91,8 +90,6 @@ export interface DashboardSummary {
     name: string;
     role: string;
     projectCount: number;
-    totalAllocation: number;
-    isOverAllocated: boolean;
   }>;
   upcomingDeadlines: Array<{
     id: number;

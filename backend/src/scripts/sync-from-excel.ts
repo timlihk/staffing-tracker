@@ -305,7 +305,6 @@ async function createAssignments(
               staffId,
               roleInProject: role,
               jurisdiction,
-              allocationPercentage: 100,
               isLead: role === 'IP' || role === 'B&C Working Attorney',
             },
           });
@@ -380,7 +379,6 @@ async function syncAssignments(
             staffId: assignment.staffId,
             roleInProject: assignment.role,
             jurisdiction: assignment.jurisdiction,
-            allocationPercentage: 100,
             isLead: assignment.role === 'IP' || assignment.role === 'B&C Working Attorney',
           },
         });

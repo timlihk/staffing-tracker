@@ -196,8 +196,6 @@ const ProjectDetail: React.FC = () => {
                         <>
                           {assignment.roleInProject}
                           {assignment.jurisdiction && ` • ${assignment.jurisdiction}`}
-                          {assignment.allocationPercentage &&
-                            ` • ${assignment.allocationPercentage}%`}
                         </>
                       }
                     />

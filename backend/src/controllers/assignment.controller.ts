@@ -89,7 +89,6 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       staffId,
       roleInProject,
       jurisdiction,
-      allocationPercentage,
       startDate,
       endDate,
       isLead,
@@ -120,7 +119,6 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
         staffId,
         roleInProject,
         jurisdiction,
-        allocationPercentage: allocationPercentage || 100,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         isLead: isLead || false,
@@ -169,7 +167,6 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
     const {
       roleInProject,
       jurisdiction,
-      allocationPercentage,
       startDate,
       endDate,
       isLead,
@@ -190,7 +187,6 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
       data: {
         ...(roleInProject && { roleInProject }),
         ...(jurisdiction !== undefined && { jurisdiction }),
-        ...(allocationPercentage !== undefined && { allocationPercentage }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(isLead !== undefined && { isLead }),
@@ -281,7 +277,6 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         staffId,
         roleInProject,
         jurisdiction,
-        allocationPercentage,
         isLead,
       } = assignmentData;
 
@@ -296,7 +291,6 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
             staffId,
             roleInProject,
             jurisdiction,
-            allocationPercentage: allocationPercentage || 100,
             isLead: isLead || false,
           },
           include: {
