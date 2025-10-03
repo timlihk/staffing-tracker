@@ -170,11 +170,6 @@ const DealRadarCard = ({
                     <Typography variant="body2" color="text.secondary">
                       {event.category} • {event.status}
                     </Typography>
-                    {event.partner && (
-                      <Typography variant="caption" color="text.secondary">
-                        Lead Partner: {event.partner}
-                      </Typography>
-                    )}
                   </Paper>
                 </Grid>
               ))}
