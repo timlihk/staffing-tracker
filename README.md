@@ -41,16 +41,32 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 ### 🎉 Recent Updates (Oct 2025)
 
 **Latest Features (Oct 4, 2025):**
+- ✅ **Welcome Email for New Users** - Automated onboarding
+  - New users automatically receive welcome email with credentials
+  - Professional HTML template with username and temporary password
+  - Direct login link to the application
+  - Instructions for mandatory password reset on first login
+  - Branded as "Asia CM Team" with consistent styling
+- ✅ **Admin Panel Enhancements** - User management improvements
+  - Renamed "Users" menu to "Admin" for better clarity
+  - Added "Change Log" tab showing all user management activities
+  - Real-time activity tracking (create, update, delete, password reset)
+  - Color-coded action indicators (green for create, red for delete, blue for update)
+  - Dedicated view for user audit trail
 - ✅ **Email Notifications** - Automatic email alerts for project updates
   - Staff members receive emails when projects they're assigned to are updated
   - Professional HTML email templates with change summaries
   - Direct links to view updated projects
   - Automatic BCC to mengyu.lu@kirkland.hk for oversight
   - Resend email service integration (free tier: 3,000 emails/month)
-- ✅ **Excel Export for Project Report** - Professional Excel export functionality
+  - Email sender displays as "Asia CM Team" instead of generic "notifications"
+- ✅ **Excel Export & Print Improvements** - Professional output formatting
+  - Excel exports now branded as "Asia CM" (updated from previous branding)
+  - Print layouts optimized to show all columns including Notes
+  - Reduced font sizes (8pt) for better column fitting
+  - Enhanced word-wrap and text handling for long content
   - Export button available to Admin and Editor users only
   - Summary sheet with filter details and totals
-  - Detailed data sheet with all project information and team assignments
   - Professional formatting with auto-filter, zebra striping, and borders
   - Respects all current filter selections (category, status, priority, team member)
 - ✅ **Table Styling Improvements** - Professional UI enhancements
@@ -436,23 +452,26 @@ npm run preview
 
 ### To Be Implemented (Future Enhancements)
 - [ ] Assignment management UI (dedicated page for bulk operations)
-- [ ] Data export functionality (Excel/PDF download)
 - [ ] Advanced search with full-text capabilities
-- [ ] Email notifications for project updates
 - [ ] Automated testing suite (Jest, Vitest)
-- [ ] Input validation with Zod schemas
+- [ ] Input validation with Zod schemas on backend
 - [ ] Password strength requirements
 - [ ] Rate limiting for auth endpoints
+- [ ] JWT refresh tokens for enhanced security
+- [ ] Enhanced logging with Winston/Pino
 
 ## 🛡️ Security Features
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Role-based authorization
-- SQL injection protection (Prisma)
+- JWT-based authentication with 7-day expiration
+- Password hashing with bcrypt (10 rounds)
+- Role-based authorization (admin, editor, viewer)
+- **30-minute inactivity timeout** - Automatic logout after no user activity
+- SQL injection protection (Prisma ORM with parameterized queries)
 - CORS configuration
-- Environment variable management
-- Activity audit logging
+- Environment variable management (.env files)
+- Comprehensive activity audit logging
+- Secure password reset flow with temporary tokens
+- Protected API endpoints with middleware
 
 ## 📈 Recommended Improvements
 
@@ -477,7 +496,7 @@ npm run preview
 
 ## 📝 License
 
-Proprietary - Kirkland & Ellis
+Proprietary - Asia CM Team
 
 ## 👥 Support
 
