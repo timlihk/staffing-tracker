@@ -63,23 +63,19 @@ const Dashboard = () => {
   return (
     <Page title="Dashboard">
       <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} md={6}>
-          <Box sx={{ height: '100%', display: 'flex' }}>
-            <DealRadarCard
-              groups={dealRadarGroups}
-              onSelectProject={(id) => navigate(`/projects/${id}`)}
-            />
-          </Box>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <DealRadarCard
+            groups={dealRadarGroups}
+            onSelectProject={(id) => navigate(`/projects/${id}`)}
+          />
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Box sx={{ height: '100%', display: 'flex' }}>
-            <StaffingHeatmapCard
-              weeks={heatmapWeeks}
-              groups={groupHeatmapByRole(data.staffingHeatmap)}
-              onSelectStaff={(id) => navigate(`/staff/${id}`)}
-            />
-          </Box>
+        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+          <StaffingHeatmapCard
+            weeks={heatmapWeeks}
+            groups={groupHeatmapByRole(data.staffingHeatmap)}
+            onSelectStaff={(id) => navigate(`/staff/${id}`)}
+          />
         </Grid>
       </Grid>
     </Page>
@@ -128,7 +124,7 @@ const DealRadarCard = ({
   groups: Array<{ label: string; items: DashboardSummary['dealRadar'] }>;
   onSelectProject: (id: number) => void;
 }) => (
-  <Paper sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
+  <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
     <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
       <Typography variant="h6" fontWeight={700}>
         Deal Radar (Next 30 Days)
@@ -270,7 +266,7 @@ const StaffingHeatmapCard = ({
   const allCollapsed = groups.length > 0 && groups.every((group) => expandedGroups[group.label] === false);
 
   return (
-    <Paper sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} spacing={2}>
         <Typography variant="h6" fontWeight={700}>
           Staffing Heatmap (Next 30 Days)
