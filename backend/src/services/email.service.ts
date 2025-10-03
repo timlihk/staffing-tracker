@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromEmail = process.env.EMAIL_FROM || 'notifications@asia-cm.team';
 const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -135,6 +135,9 @@ Asia CM Team
   `;
 
   try {
+    if (!resend) {
+      throw new Error('Resend client not initialized');
+    }
     const result = await resend.emails.send({
       from: fromEmail,
       to: staffEmail,
@@ -347,6 +350,9 @@ ${appUrl}
   `;
 
   try {
+    if (!resend) {
+      throw new Error('Resend client not initialized');
+    }
     const result = await resend.emails.send({
       from: fromEmail,
       to: email,
