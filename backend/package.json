@@ -13,11 +13,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:truncate": "ts-node src/scripts/truncate-all.ts",
-    "db:import": "ts-node src/scripts/migrate-excel.ts",
-    "db:reset-import": "ts-node src/scripts/truncate-all.ts && ts-node src/scripts/migrate-excel.ts",
-    "db:sync": "ts-node src/scripts/sync-from-excel.ts",
-    "db:fix-ip-role": "ts-node src/scripts/update-role-ip-to-partner.ts"
+    "db:truncate": "ts-node src/scripts/truncate-all.ts"
   },
   "keywords": [],
   "author": "",
@@ -32,7 +28,6 @@
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   },
   "devDependencies": {
