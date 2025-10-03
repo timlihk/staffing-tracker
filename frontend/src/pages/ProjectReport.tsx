@@ -21,8 +21,10 @@ import {
 } from '@mui/material';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import api from '../api/client';
 import { useStaff } from '../hooks/useStaff';
+import { usePermissions } from '../hooks/usePermissions';
 import { Staff } from '../types';
 
 type ProjectReportRow = {
@@ -71,6 +73,7 @@ function toCsvParam(values: string[]) {
 
 const ProjectReport: React.FC = () => {
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const [categories, setCategories] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [priorities, setPriorities] = useState<string[]>([]);
@@ -124,6 +127,33 @@ const ProjectReport: React.FC = () => {
 
   const onPrint = () => window.print();
 
+  const onExportExcel = async () => {
+    try {
+      const params: Record<string, string> = {};
+      if (categories.length) params.categories = toCsvParam(categories)!;
+      if (statuses.length) params.statuses = toCsvParam(statuses)!;
+      if (priorities.length) params.priorities = toCsvParam(priorities)!;
+      if (selectedStaff) params.staffId = selectedStaff.id.toString();
+
+      const response = await api.get('/reports/project-report/excel', {
+        params,
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `project-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export Excel:', error);
+      alert('Failed to export Excel file. Please try again.');
+    }
+  };
+
   const handleRequestSort = (property: 'projectName' | 'filingDate' | 'listingDate') => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
@@ -166,9 +196,16 @@ const ProjectReport: React.FC = () => {
           <Typography variant="h5" sx={{ fontWeight: 700, mr: 'auto' }}>
             📊 Project Report
           </Typography>
-          <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
-            Print
-          </Button>
+          {(permissions.isAdmin || permissions.isEditor) && (
+            <>
+              <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={onExportExcel}>
+                Export Excel
+              </Button>
+              <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
+                Print
+              </Button>
+            </>
+          )}
         </Stack>
       </Paper>
 
