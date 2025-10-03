@@ -1,14 +1,13 @@
 import { Grid, Paper, Typography, Box } from '@mui/material';
-import { FolderOpen, Event, EventAvailable, LockReset } from '@mui/icons-material';
+import { FolderOpen, Event, EventAvailable } from '@mui/icons-material';
 
 interface SummaryCardsProps {
   activeProjects: number;
   filingsUpcoming: number;
   listingsUpcoming: number;
-  pendingResets: number;
 }
 
-const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming, pendingResets }: SummaryCardsProps) => {
+const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming }: SummaryCardsProps) => {
   const cards = [
     {
       title: 'Active Projects',
@@ -27,12 +26,6 @@ const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming, pendi
       value: listingsUpcoming,
       icon: <EventAvailable sx={{ fontSize: 40 }} />,
       color: '#673AB7',
-    },
-    {
-      title: 'Pending Resets',
-      value: pendingResets,
-      icon: <LockReset sx={{ fontSize: 40 }} />,
-      color: '#FF9800',
     },
   ];
 

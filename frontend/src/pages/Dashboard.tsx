@@ -1,5 +1,22 @@
-import { Fragment, useMemo } from 'react';
-import { Grid, Typography, Box, Paper, List, ListItem, ListItemText, Stack, Chip, Divider, Button } from '@mui/material';
+import { useMemo } from 'react';
+import {
+  Grid,
+  Typography,
+  Box,
+  Paper,
+  Stack,
+  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SummaryCards from '../components/SummaryCards';
 import { Page, DashboardSkeleton } from '../components/ui';
 import { useDashboard } from '../hooks/useDashboard';
@@ -45,7 +62,6 @@ const Dashboard = () => {
 
   const filingsUpcoming = data.dealRadar.filter((event) => event.type === 'Filing').length;
   const listingsUpcoming = data.dealRadar.filter((event) => event.type === 'Listing').length;
-  const pendingResets = data.actionItems.pendingResets.length;
 
   return (
     <Page title="Dashboard">
@@ -53,24 +69,17 @@ const Dashboard = () => {
         activeProjects={data.summary.activeProjects}
         filingsUpcoming={filingsUpcoming}
         listingsUpcoming={listingsUpcoming}
-        pendingResets={pendingResets}
       />
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={8}>
+      <Grid container spacing={2} alignItems="stretch">
+        <Grid item xs={12} md={7}>
           <DealRadarCard groups={dealRadarGroups} onSelectProject={(id) => navigate(`/projects/${id}`)} />
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <ActionItemsCard actionItems={data.actionItems} onManageUsers={() => navigate('/users')} />
-        </Grid>
-
-        <Grid item xs={12}>
+        <Grid item xs={12} md={5}>
           <StaffingHeatmapCard
             weeks={heatmapWeeks}
-            heatmap={data.staffingHeatmap}
-            projectsByStatus={data.projectsByStatus}
-            projectsByCategory={data.projectsByCategory}
+            groups={groupHeatmapByRole(data.staffingHeatmap)}
             onSelectStaff={(id) => navigate(`/staff/${id}`)}
           />
         </Grid>
@@ -224,83 +233,91 @@ const StaffingHeatmapLegend = ({ weeks }: { weeks: string[] }) => (
 
 const StaffingHeatmapCard = ({
   weeks,
-  heatmap,
+  groups,
   onSelectStaff,
 }: {
   weeks: string[];
-  heatmap: DashboardSummary['staffingHeatmap'];
+  groups: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }>;
   onSelectStaff: (id: number) => void;
 }) => (
-  <Paper sx={{ p: 3, overflowX: 'auto' }}>
+  <Paper sx={{ p: 3, height: '100%' }}>
     <Typography variant="h6" fontWeight={700} gutterBottom>
       Staffing Heatmap (Next 30 Days)
     </Typography>
-    {heatmap.length === 0 ? (
+    {groups.length === 0 ? (
       <Typography color="text.secondary">No staffing data for upcoming milestones.</Typography>
     ) : (
-      <Box sx={{ minWidth: 480 }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `220px repeat(${weeks.length}, minmax(90px, 1fr))`,
-            rowGap: 1,
-            columnGap: 1,
-            alignItems: 'stretch',
-          }}
-        >
-          <Box />
-          {weeks.map((week) => (
-            <Box key={week} sx={{ textAlign: 'center' }}>
-              <Typography variant="caption" fontWeight={600} color="text.secondary">
-                {formatWeekLabel(week)}
-              </Typography>
-            </Box>
-          ))}
-
-          {heatmap.map((row) => (
-            <Fragment key={row.staffId}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-                onClick={() => onSelectStaff(row.staffId)}
-              >
-                <Typography variant="body2" fontWeight={600}>
-                  {row.name}
+      <Stack spacing={1.5}>
+        {groups.map((group) => (
+          <Accordion key={group.label} defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {group.label}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {row.role}
-                </Typography>
-              </Box>
-              {weeks.map((week) => {
-                const match = row.weeks.find((w) => w.week === week);
-                const count = match?.count ?? 0;
-                return (
-                  <Box
-                    key={`${row.staffId}-${week}`}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 1,
-                      bgcolor: getHeatColor(count),
-                      height: 48,
-                      color: count > 0 ? 'white' : 'text.secondary',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {count > 0 ? count : ''}
-                  </Box>
-                );
-              })}
-            </Fragment>
-          ))}
-        </Box>
-      </Box>
+                <Chip label={`${group.count} staff`} size="small" />
+              </Stack>
+            </AccordionSummary>
+            <AccordionDetails>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      {weeks.map((week) => (
+                        <TableCell key={week} align="center">
+                          <Typography variant="caption" fontWeight={600}>
+                            {formatWeekLabel(week)}
+                          </Typography>
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {group.rows.map((row) => (
+                      <TableRow
+                        key={row.staffId}
+                        hover
+                        sx={{ cursor: 'pointer' }}
+                        onClick={() => onSelectStaff(row.staffId)}
+                      >
+                        <TableCell sx={{ minWidth: 160 }}>
+                          <Typography variant="body2" fontWeight={600} color="primary.main">
+                            {row.name}
+                          </Typography>
+                        </TableCell>
+                        {weeks.map((week) => {
+                          const match = row.weeks.find((w) => w.week === week);
+                          const count = match?.count ?? 0;
+                          return (
+                            <TableCell key={`${row.staffId}-${week}`} align="center">
+                              <Box
+                                sx={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 1,
+                                  bgcolor: getHeatColor(count),
+                                  color: count > 0 ? 'white' : 'text.secondary',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {count > 0 ? count : ''}
+                              </Box>
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Stack>
     )}
   </Paper>
 );
@@ -312,87 +329,33 @@ const getHeatColor = (count: number) => {
   return 'rgba(198, 40, 40, 0.85)';
 };
 
-const LegendSwatch = ({ color, label }: { color: string; label: string }) => (
-  <Stack direction="row" spacing={1} alignItems="center">
-    <Box sx={{ width: 18, height: 18, borderRadius: 1, bgcolor: color, border: '1px solid rgba(0,0,0,0.1)' }} />
-    <Typography variant="caption" color="text.secondary">
-      {label}
-    </Typography>
-  </Stack>
-);
+const groupHeatmapByRole = (heatmap: DashboardSummary['staffingHeatmap']) => {
+  const order = ['Partner', 'Associate', 'Senior FLIC', 'Junior FLIC', 'Intern'];
+  const map = new Map<string, DashboardSummary['staffingHeatmap']>();
 
-const SegmentList = ({ title, items }: { title: string; items: string[] }) => (
-  <Paper variant="outlined" sx={{ p: 2, flex: 1, minWidth: 0 }}>
-    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-      {title}
-    </Typography>
-    {items.length === 0 ? (
-      <Typography variant="caption" color="text.secondary">
-        No data available
-      </Typography>
-    ) : (
-      <Stack spacing={0.5}>
-        {items.map((item) => (
-          <Typography key={item} variant="body2">
-            {item}
-          </Typography>
-        ))}
-      </Stack>
-    )}
-  </Paper>
-);
+  heatmap.forEach((row) => {
+    const key = order.includes(row.role) ? row.role : 'Other Roles';
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push(row);
+  });
 
-const ActionItemsCard = ({
-  actionItems,
-}: {
-  actionItems: DashboardSummary['actionItems'];
-}) => (
-  <Paper sx={{ p: 3, height: '100%' }}>
-    <Stack spacing={2}>
-      <Typography variant="h6" fontWeight={700}>
-        Unstaffed Milestones
-      </Typography>
-      {actionItems.unstaffedMilestones.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          All upcoming filings/listings have partner coverage.
-        </Typography>
-      ) : (
-        <List dense>
-          {actionItems.unstaffedMilestones.slice(0, 5).map((item) => (
-            <ListItem key={item.projectId} alignItems="flex-start">
-              <ListItemText
-                primary={
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body1" fontWeight={600}>
-                      {item.projectName}
-                    </Typography>
-                    <Chip label={item.category} size="small" />
-                  </Stack>
-                }
-                secondary={
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDate(item.milestoneDate)} • {item.status}
-                    </Typography>
-                    {item.needsUSPartner && <Chip size="small" color="warning" label="Missing US Partner" />}
-                    {item.needsHKPartner && <Chip size="small" color="warning" label="Missing HK Partner" />}
-                  </Stack>
-                }
-              />
-            </ListItem>
-          ))}
-          {actionItems.unstaffedMilestones.length > 5 && (
-            <ListItem>
-              <ListItemText
-                primary={`${actionItems.unstaffedMilestones.length - 5} more milestones need attention`}
-                primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-              />
-            </ListItem>
-          )}
-        </List>
-      )}
-    </Stack>
-  </Paper>
-);
+  const result: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }> = [];
+
+  order.forEach((key) => {
+    if (map.has(key)) {
+      const rows = map.get(key)!;
+      result.push({ label: key, rows, count: rows.length });
+      map.delete(key);
+    }
+  });
+
+  map.forEach((rows, key) => {
+    result.push({ label: key, rows, count: rows.length });
+  });
+
+  return result;
+};
 
 export default Dashboard;
