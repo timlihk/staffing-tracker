@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
+import { detectProjectChanges, sendProjectUpdateEmail } from '../services/email.service';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
@@ -206,6 +207,40 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         description: `Updated project: ${project.name}`,
       },
     });
+
+    // Send email notifications to assigned staff
+    const changes = detectProjectChanges(existingProject, updateData);
+    if (changes.length > 0) {
+      // Get all staff assigned to this project with email addresses
+      const assignedStaff = await prisma.projectAssignment.findMany({
+        where: { projectId: parseInt(id) },
+        include: {
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      // Send emails asynchronously (don't wait for completion)
+      for (const assignment of assignedStaff) {
+        if (assignment.staff.email) {
+          sendProjectUpdateEmail({
+            staffEmail: assignment.staff.email,
+            staffName: assignment.staff.name,
+            projectId: project.id,
+            projectName: project.name,
+            projectCategory: project.category,
+            changes,
+          }).catch((err) => {
+            console.error(`Failed to send email to ${assignment.staff.email}:`, err);
+          });
+        }
+      }
+    }
 
     res.json(project);
   } catch (error) {
