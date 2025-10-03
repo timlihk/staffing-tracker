@@ -133,7 +133,7 @@ const StaffForm: React.FC = () => {
                     helperText={errors.role?.message}
                     disabled={isSubmitting}
                   >
-                    <MenuItem value="Income Partner">Income Partner</MenuItem>
+                    <MenuItem value="Partner">Partner</MenuItem>
                     <MenuItem value="Associate">Associate</MenuItem>
                     <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
                     <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>

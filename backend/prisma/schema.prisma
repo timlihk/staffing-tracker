@@ -85,7 +85,7 @@ model ProjectAssignment {
   id            Int       @id @default(autoincrement())
   projectId     Int       @map("project_id")
   staffId       Int       @map("staff_id")
-  roleInProject String    @map("role_in_project") // IP, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
+  roleInProject String    @map("role_in_project") // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
   jurisdiction  String?   // US Law, HK Law, B&C
   startDate     DateTime? @map("start_date")
   endDate       DateTime? @map("end_date")
