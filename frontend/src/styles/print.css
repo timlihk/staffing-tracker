@@ -53,6 +53,44 @@
     page-break-inside: avoid;
   }
 
+  /* Project Report table - ensure all columns are visible */
+  .MuiTable-root {
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  .MuiTableCell-root {
+    border: 1px solid #E5E7EB !important;
+    font-size: 8pt !important;
+    padding: 3px 6px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .MuiTableHead-root .MuiTableCell-root {
+    background: #1e40af !important;
+    color: white !important;
+    font-weight: 700 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .MuiTableRow-root {
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure alternate row colors print */
+  .MuiTableRow-root:nth-of-type(even) {
+    background: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .MuiTableRow-root:nth-of-type(odd) {
+    background: white !important;
+  }
+
   /* Typography adjustments */
   h4, h5 {
     font-size: 18pt;
