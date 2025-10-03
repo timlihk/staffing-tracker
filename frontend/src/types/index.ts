@@ -86,7 +86,7 @@ export interface DashboardSummary {
   };
   projectsByStatus: Array<{ status: string; count: number }>;
   projectsByCategory: Array<{ category: string; count: number }>;
-  timeline: Array<{
+  dealRadar: Array<{
     projectId: number;
     projectName: string;
     category: string;
@@ -94,18 +94,32 @@ export interface DashboardSummary {
     priority: string | null;
     type: 'Filing' | 'Listing';
     date: string;
+    partner: string | null;
   }>;
-  busyStaff: Array<{
+  staffingHeatmap: Array<{
     staffId: number;
     name: string;
     role: string;
-    upcomingProjects: Array<{
+    weeks: Array<{ week: string; count: number }>;
+  }>;
+  actionItems: {
+    unstaffedMilestones: Array<{
       projectId: number;
       projectName: string;
-      date: string;
-      type: 'Filing' | 'Listing';
+      category: string;
+      status: string;
+      milestoneDate: string | null;
+      needsUSPartner: boolean;
+      needsHKPartner: boolean;
     }>;
-  }>;
+    pendingResets: Array<{
+      id: number;
+      username: string;
+      email: string;
+      role: string;
+      lastLogin: string | null;
+    }>;
+  };
   recentActivity: ActivityLog[];
 }
 

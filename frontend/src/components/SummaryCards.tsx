@@ -1,36 +1,38 @@
 import { Grid, Paper, Typography, Box } from '@mui/material';
-import { FolderOpen, People, TrendingDown, PauseCircle } from '@mui/icons-material';
-import type { DashboardSummary } from '../types';
+import { FolderOpen, Event, EventAvailable, LockReset } from '@mui/icons-material';
 
 interface SummaryCardsProps {
-  summary: DashboardSummary;
+  activeProjects: number;
+  filingsUpcoming: number;
+  listingsUpcoming: number;
+  pendingResets: number;
 }
 
-const SummaryCards = ({ summary }: SummaryCardsProps) => {
+const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming, pendingResets }: SummaryCardsProps) => {
   const cards = [
     {
       title: 'Active Projects',
-      value: summary.summary.activeProjects,
+      value: activeProjects,
       icon: <FolderOpen sx={{ fontSize: 40 }} />,
       color: '#4CAF50',
     },
     {
-      title: 'Total Staff',
-      value: summary.summary.totalStaff,
-      icon: <People sx={{ fontSize: 40 }} />,
+      title: 'Filings (30 days)',
+      value: filingsUpcoming,
+      icon: <Event sx={{ fontSize: 40 }} />,
       color: '#2196F3',
     },
     {
-      title: 'Slow-down',
-      value: summary.summary.slowdownProjects,
-      icon: <TrendingDown sx={{ fontSize: 40 }} />,
-      color: '#FF9800',
+      title: 'Listings (30 days)',
+      value: listingsUpcoming,
+      icon: <EventAvailable sx={{ fontSize: 40 }} />,
+      color: '#673AB7',
     },
     {
-      title: 'Suspended',
-      value: summary.summary.suspendedProjects,
-      icon: <PauseCircle sx={{ fontSize: 40 }} />,
-      color: '#F44336',
+      title: 'Pending Resets',
+      value: pendingResets,
+      icon: <LockReset sx={{ fontSize: 40 }} />,
+      color: '#FF9800',
     },
   ];
 
