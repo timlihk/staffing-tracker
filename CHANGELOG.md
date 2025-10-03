@@ -43,6 +43,7 @@ All notable changes to the Staffing Tracker application will be documented in th
 ### Changed
 - 📊 Dashboard summary cards now emphasize upcoming filings/listings and outstanding resets.
 - 🎨 Updated layout combines status/category charts with actionable lists and revamped activity view.
+- 👥 Project detail pages now show the team roster in a sortable table for faster scanning.
 
 
 ## [1.3.0] - 2025-10-03
