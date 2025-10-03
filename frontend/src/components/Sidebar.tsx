@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
       }}
     >
       <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-        <Box>
+        <Box textAlign="center">
           <Typography
             variant="h5"
             sx={{
@@ -72,22 +72,9 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              textAlign: 'center',
             }}
           >
             Capital Markets
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              textAlign: 'center',
-              color: 'text.secondary',
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-            }}
-          >
-            TRACKER
           </Typography>
         </Box>
       </Toolbar>

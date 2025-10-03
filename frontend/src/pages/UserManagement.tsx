@@ -20,7 +20,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Refresh, Edit } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Page } from '../components/ui';
+import { Page, PageHeader } from '../components/ui';
 import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
 import type { ManagedUser, Staff } from '../types';
@@ -114,15 +114,19 @@ const UserManagement: React.FC = () => {
     },
   ];
 
+  const userCountLabel = `${users.length} user${users.length === 1 ? '' : 's'}`;
+
   return (
-    <Page
-      title="User Management"
-      actions={
-        <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
-          New User
-        </Button>
-      }
-    >
+    <Page>
+      <PageHeader
+        title="User Management"
+        subtitle={userCountLabel}
+        actions={
+          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
+            New User
+          </Button>
+        }
+      />
       <Paper sx={{ p: 2 }}>
         {isLoading ? (
           <Box display="flex" justifyContent="center" py={6}>

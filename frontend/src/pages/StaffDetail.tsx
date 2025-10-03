@@ -32,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Staff, ChangeHistory } from '../types';
-import { Page, Section } from '../components/ui';
+import { Page, Section, PageHeader } from '../components/ui';
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -126,30 +126,31 @@ const StaffDetail: React.FC = () => {
   };
 
   return (
-    <Page
-      title={
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
-            Back
+    <Page>
+      <PageHeader
+        title={
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
+              Back
+            </Button>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              {staff.name}
+            </Typography>
+            <Chip label={staff.status} color={staff.status === 'active' ? 'success' : 'default'} size="small" />
+          </Stack>
+        }
+        actions={
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Edit />}
+            onClick={() => navigate(`/staff/${id}/edit`)}
+            sx={{ height: 36 }}
+          >
+            Edit
           </Button>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            {staff.name}
-          </Typography>
-          <Chip label={staff.status} color={staff.status === 'active' ? 'success' : 'default'} size="small" />
-        </Stack>
-      }
-      actions={
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<Edit />}
-          onClick={() => navigate(`/staff/${id}/edit`)}
-          sx={{ height: 32 }}
-        >
-          Edit
-        </Button>
-      }
-    >
+        }
+      />
       <Grid container spacing={2}>
         {/* First Row: Staff Information + Active Projects Count */}
         <Grid item xs={12}>

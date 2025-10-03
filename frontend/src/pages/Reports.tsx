@@ -20,7 +20,7 @@ import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
-import { Page } from '../components/ui';
+import { Page, PageHeader } from '../components/ui';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 
 type ReportRow = {
@@ -195,23 +195,24 @@ const Reports: React.FC = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Page
-        title="Staffing Report"
-        actions={
-          <Stack direction="row" spacing={2} className="no-print">
-            <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
-              Print
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<DownloadRoundedIcon />}
-              onClick={onExportExcel}
-            >
-              Export Excel
-            </Button>
-          </Stack>
-        }
-      >
+      <Page>
+        <PageHeader
+          title="Staffing Report"
+          actions={
+            <Stack direction="row" spacing={2} className="no-print">
+              <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
+                Print
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<DownloadRoundedIcon />}
+                onClick={onExportExcel}
+              >
+                Export Excel
+              </Button>
+            </Stack>
+          }
+        />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '320px 1fr' }, gap: 2 }}>
           {/* Filter panel */}
           <Paper

@@ -199,36 +199,36 @@ const DealRadarCard = ({
 );
 
 const StaffingHeatmapLegend = ({ weeks }: { weeks: string[] }) => (
-  <Paper sx={{ p: 3 }}>
-    <Typography variant="h6" fontWeight={700} gutterBottom>
+  <Paper sx={{ p: 2.25, display: 'grid', gap: 1.25 }}>
+    <Typography variant="subtitle1" fontWeight={700}>
       Staffing Load – Legend
     </Typography>
-    <Stack spacing={1}>
+    <Stack spacing={0.75}>
       <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 20, height: 20, bgcolor: getHeatColor(0), borderRadius: 1 }} />
+        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(0), borderRadius: 1 }} />
         <Typography variant="body2">No milestones</Typography>
       </Stack>
       <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 20, height: 20, bgcolor: getHeatColor(1), borderRadius: 1 }} />
+        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(1), borderRadius: 1 }} />
         <Typography variant="body2">1 milestone</Typography>
       </Stack>
       <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 20, height: 20, bgcolor: getHeatColor(3), borderRadius: 1 }} />
+        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(3), borderRadius: 1 }} />
         <Typography variant="body2">2–3 milestones</Typography>
       </Stack>
       <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 20, height: 20, bgcolor: getHeatColor(5), borderRadius: 1 }} />
+        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(5), borderRadius: 1 }} />
         <Typography variant="body2">4+ milestones (consider relief)</Typography>
       </Stack>
-      <Typography variant="caption" color="text.secondary">
-        Weeks shown:{' '}
-        {weeks.length === 0
-          ? '—'
-          : weeks
-              .map((week) => formatWeekLabel(week))
-              .join(' • ')}
-      </Typography>
     </Stack>
+    <Typography variant="caption" color="text.secondary">
+      Weeks shown:{' '}
+      {weeks.length === 0
+        ? '—'
+        : weeks
+            .map((week) => formatWeekLabel(week))
+            .join(' • ')}
+    </Typography>
   </Paper>
 );
 

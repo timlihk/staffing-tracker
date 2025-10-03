@@ -1,22 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Button,
-  TextField,
-  MenuItem,
-  Chip,
-  IconButton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Project } from '../types';
-import { Page, ProjectListSkeleton } from '../components/ui';
-import StyledDataGrid from '../components/ui/StyledDataGrid';
-import EmptyState from '../components/ui/EmptyState';
+import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
 import { useProjects, useDeleteProject } from '../hooks/useProjects';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -43,6 +31,7 @@ const Projects: React.FC = () => {
   const deleteProject = useDeleteProject();
 
   const projects = data?.data || [];
+  const projectCountLabel = data ? `${projects.length} project${projects.length === 1 ? '' : 's'}` : undefined;
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
@@ -111,10 +100,11 @@ const Projects: React.FC = () => {
   ];
 
   return (
-    <Page title="Projects">
+    <Page>
+      <PageHeader title="Projects" subtitle={projectCountLabel} />
       {/* Filters */}
       <Paper sx={{ p: 2 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+        <PageToolbar>
           <TextField
             label="Search"
             variant="outlined"
@@ -158,7 +148,7 @@ const Projects: React.FC = () => {
             <MenuItem value="HK Comp">HK Comp</MenuItem>
             <MenuItem value="US Comp">US Comp</MenuItem>
           </TextField>
-        </Stack>
+        </PageToolbar>
       </Paper>
 
       {/* Data Grid */}

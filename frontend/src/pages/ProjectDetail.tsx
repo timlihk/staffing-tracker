@@ -31,7 +31,7 @@ import {
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Project, ChangeHistory } from '../types';
-import { Page, Section } from '../components/ui';
+import { Page, Section, PageHeader } from '../components/ui';
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -112,26 +112,30 @@ const ProjectDetail: React.FC = () => {
   );
 
   return (
-    <Page
-      title={
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/projects')}
-            sx={{ mr: 1 }}
-          >
-            Back
+    <Page>
+      <PageHeader
+        title={
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ArrowBack />}
+              onClick={() => navigate('/projects')}
+              sx={{ mr: 1 }}
+            >
+              Back
+            </Button>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              Project Details
+            </Typography>
+          </Stack>
+        }
+        actions={
+          <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
+            Edit Project
           </Button>
-        </Stack>
-      }
-      actions={
-        <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
-          Edit Project
-        </Button>
-      }
-    >
+        }
+      />
       <Stack spacing={3}>
         {/* Project Header */}
         <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
