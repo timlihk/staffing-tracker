@@ -2,6 +2,16 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.6.1] - 2025-10-03
+
+### Added
+- 🔒 Dedicated logout control in the sidebar so users can immediately end their session.
+
+### Changed
+- ⏱️ Sessions now expire automatically after 30 minutes of inactivity and notify the user before redirecting to the login screen.
+- 🧹 Frontend cache is cleared on logout to ensure sensitive data is removed from memory.
+
+
 ## [1.3.1] - 2025-10-03
 
 ### Changed

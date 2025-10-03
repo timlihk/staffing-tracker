@@ -45,6 +45,7 @@
 - ✅ Complete TypeScript type definitions
 - ✅ Login page with authentication
 - ✅ Protected routes with authorization
+- ✅ Manual logout control and 30-minute inactivity timeout for sensitive data protection
 - ✅ Layout components (Header, Sidebar, Layout)
 - ✅ Dashboard with charts and analytics
 - ✅ **Projects List** - Clickable rows to navigate

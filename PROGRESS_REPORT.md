@@ -31,6 +31,7 @@ A full-stack web application to replace Excel-based staffing tracking has been s
   - Role-based access control (admin, editor, viewer)
   - Password hashing with bcrypt
   - Protected route middleware
+  - Manual logout control plus automatic timeout after 30 minutes of inactivity
 
 - ✅ **Project Management** (6 endpoints)
   - Create, read, update, delete projects

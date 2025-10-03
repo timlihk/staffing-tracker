@@ -28,6 +28,7 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - Full React 19 + TypeScript application
 - Material-UI v7 with responsive design
 - Complete authentication flow (Login, Protected Routes)
+- Session security with manual logout control and 30-minute inactivity timeout
 - Dashboard with charts and analytics
 - Projects management (List, Detail, Create/Edit, Delete)
 - Staff management (List, Detail, Create/Edit, Delete)
@@ -62,6 +63,10 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - ✅ **Component Decomposition** - Better code organization
   - Extracted chart components from Dashboard
   - Improved maintainability and reusability
+
+**Security Enhancements (Oct 3, 2025):**
+- ✅ Added prominent logout control to let users securely end sessions from anywhere in the app
+- ✅ Implemented automatic logout after 30 minutes of inactivity with user-facing notification and cache clearing
 
 **Bug Fixes & Improvements (Oct 3, 2025):**
 - ✅ Fixed CircularProgress errors in production (removed orphaned imports)
