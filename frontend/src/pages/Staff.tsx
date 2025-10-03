@@ -153,7 +153,6 @@ const Staff: React.FC = () => {
                 <MenuItem value="all">All Departments</MenuItem>
                 <MenuItem value="US Law">US Law</MenuItem>
                 <MenuItem value="HK Law">HK Law</MenuItem>
-                <MenuItem value="B&C">B&C</MenuItem>
               </TextField>
             </PageToolbar>
           </Paper>

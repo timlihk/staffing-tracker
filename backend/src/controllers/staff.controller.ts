@@ -5,11 +5,11 @@ import { trackFieldChanges } from '../utils/changeTracking';
 
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
-    const { role, department, status, search } = req.query;
+    const { position, department, status, search } = req.query;
 
     const where: any = {};
 
-    if (role) where.position = role;
+    if (position) where.position = position;
     if (department) where.department = department;
     if (status) where.status = status;
     if (search) {
