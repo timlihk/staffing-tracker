@@ -9,13 +9,13 @@ import { useStaff, useDeleteStaff } from '../hooks/useStaff';
 
 const Staff: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [positionFilter, setPositionFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const navigate = useNavigate();
 
   // Build params for the query
   const params = {
-    ...(roleFilter !== 'all' && { role: roleFilter }),
+    ...(positionFilter !== 'all' && { position: positionFilter }),
     ...(departmentFilter !== 'all' && { department: departmentFilter }),
     ...(searchTerm && { search: searchTerm }),
   };
@@ -47,7 +47,7 @@ const Staff: React.FC = () => {
         </Box>
       ),
     },
-    { field: 'role', headerName: 'Role', width: 200 },
+    { field: 'position', headerName: 'Position', width: 200 },
     { field: 'department', headerName: 'Department', width: 150 },
     { field: 'email', headerName: 'Email', width: 250 },
     {
@@ -129,13 +129,13 @@ const Staff: React.FC = () => {
               </Button>
               <TextField
                 select
-                label="Role"
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
+                label="Position"
+                value={positionFilter}
+                onChange={(e) => setPositionFilter(e.target.value)}
                 size="small"
                 sx={{ minWidth: 200 }}
               >
-                <MenuItem value="all">All Roles</MenuItem>
+                <MenuItem value="all">All Positions</MenuItem>
                 <MenuItem value="Partner">Partner</MenuItem>
                 <MenuItem value="Associate">Associate</MenuItem>
                 <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
