@@ -19,7 +19,9 @@ import {
   Assignment,
   Assessment,
   BarChart,
+  ManageAccounts,
 } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   drawerWidth: number;
@@ -29,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const { user } = useAuth();
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
@@ -36,6 +39,10 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
     { text: 'Staff', icon: <People />, path: '/staff' },
     { text: 'Project Report', icon: <BarChart />, path: '/project-report' },
   ];
+
+  if (user?.role === 'admin') {
+    menuItems.push({ text: 'Users', icon: <ManageAccounts />, path: '/users' });
+  }
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';

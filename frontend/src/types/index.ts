@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: string;
   staff?: Staff;
+  mustResetPassword?: boolean;
 }
 
 export interface Staff {
@@ -106,6 +107,16 @@ export interface DashboardSummary {
     }>;
   }>;
   recentActivity: ActivityLog[];
+}
+
+export interface ManagedUser {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  mustResetPassword: boolean;
+  lastLogin: string | null;
+  staff: { id: number; name: string } | null;
 }
 
 export interface LoginRequest {

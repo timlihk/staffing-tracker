@@ -35,3 +35,24 @@ export const staffSchema = z.object({
 });
 
 export type StaffFormData = z.infer<typeof staffSchema>;
+
+export const createUserSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  email: z.string().email('Valid email is required'),
+  role: z.enum(['admin', 'editor', 'viewer']),
+  staffId: z.number().optional().nullable(),
+});
+
+export type CreateUserFormData = z.infer<typeof createUserSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(8, 'Please confirm your password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

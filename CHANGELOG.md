@@ -22,6 +22,18 @@ All notable changes to the Staffing Tracker application will be documented in th
 - 🛡️ Adjusted data imports to respect the new categories and optional admin seeding flag while retaining separate B&C attorney presentation.
 
 
+## [1.5.0] - 2025-10-03
+
+### Added
+- 🧑‍💼 Admin-facing user management API (`/api/users`) with list, create, role-update, and password-reset support.
+- 🔐 Password reset enforcement workflow: new users receive a temporary password, must reset on first login, and admins can regenerate temps on demand.
+- 🌐 Frontend "User Management" page (admin-only) plus a first-login `ResetPassword` screen; sidebar navigation now surfaces the admin tool.
+
+### Changed
+- 🔑 Login responses flag accounts that require a reset and deliver a short-lived token for the reset endpoint.
+- 📦 Prisma schema now tracks `mustResetPassword`; migration guards prevent conflicts with existing columns.
+
+
 ## [1.3.0] - 2025-10-03
 
 

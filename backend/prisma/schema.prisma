@@ -21,6 +21,7 @@ model User {
   email        String    @unique
   passwordHash String    @map("password_hash")
   role         String    @default("viewer") // admin, editor, viewer
+  mustResetPassword Boolean @default(false) @map("must_reset_password")
   staffId      Int?      @map("staff_id")
   staff        Staff?    @relation(fields: [staffId], references: [id])
   lastLogin    DateTime? @map("last_login")

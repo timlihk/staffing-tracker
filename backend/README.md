@@ -68,6 +68,7 @@ npm start
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 - `GET /api/auth/me` - Get current user (requires auth)
+- `POST /api/auth/reset-password` - Complete a password reset using a one-time token
 
 ### Projects
 - `GET /api/projects` - List all projects (with filters)
@@ -97,6 +98,12 @@ npm start
 - `GET /api/dashboard/summary` - Get dashboard summary
 - `GET /api/dashboard/workload-report` - Get workload report
 - `GET /api/dashboard/activity-log` - Get activity log
+
+### Users (Admin Only)
+- `GET /api/users` - List application users
+- `POST /api/users` - Create user with temporary password (forces first-login reset)
+- `PATCH /api/users/:id` - Update role or linked staff member
+- `POST /api/users/:id/reset-password` - Generate a new temporary password
 
 ## Deployment to Railway
 

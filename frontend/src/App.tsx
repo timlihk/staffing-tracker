@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { ReactNode, useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { getTheme } from './theme';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -16,6 +16,16 @@ import StaffDetail from './pages/StaffDetail';
 import StaffForm from './pages/StaffForm';
 import ProjectReport from './pages/ProjectReport';
 import TestPage from './pages/TestPage';
+import UserManagement from './pages/UserManagement';
+import ResetPassword from './pages/ResetPassword';
+
+const AdminRoute = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
 
 function App() {
   const [mode, setMode] = useState<'light' | 'dark'>('light');
@@ -29,6 +39,9 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
+
+            {/* Public utility routes */}
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected routes */}
             <Route
@@ -130,6 +143,18 @@ function App() {
                   <Layout>
                     <ProjectReport />
                   </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <Layout>
+                      <UserManagement />
+                    </Layout>
+                  </AdminRoute>
                 </ProtectedRoute>
               }
             />

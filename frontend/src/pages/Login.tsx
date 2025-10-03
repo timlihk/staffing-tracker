@@ -29,7 +29,22 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data);
+      const result = await login(data);
+
+      if (result.requiresPasswordReset) {
+        toast.info(
+          'Password update required',
+          result.message || 'Please create a new password to complete your first login.'
+        );
+        navigate('/reset-password', {
+          state: {
+            username: result.username,
+            resetToken: result.resetToken,
+          },
+        });
+        return;
+      }
+
       toast.success('Login successful', 'Welcome back!');
       navigate('/');
     } catch (err: any) {

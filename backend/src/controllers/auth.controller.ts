@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
-import { generateToken } from '../utils/jwt';
+import { generateToken, generatePasswordResetToken, verifyPasswordResetToken } from '../utils/jwt';
 import { AuthRequest } from '../middleware/auth';
 
 export const login = async (req: Request, res: Response) => {
@@ -27,6 +27,15 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.mustResetPassword) {
+      const resetToken = generatePasswordResetToken(user.id);
+      return res.status(403).json({
+        error: 'Password reset required',
+        requiresPasswordReset: true,
+        resetToken,
+      });
+    }
+
     // Update last login
     await prisma.user.update({
       where: { id: user.id },
@@ -46,6 +55,7 @@ export const login = async (req: Request, res: Response) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        mustResetPassword: user.mustResetPassword,
         staff: user.staff,
       },
     });
@@ -91,6 +101,7 @@ export const register = async (req: AuthRequest, res: Response) => {
         passwordHash,
         role: normalizedRole,
         staffId: staffId || null,
+        mustResetPassword: false,
       },
       include: { staff: true },
     });
@@ -108,6 +119,7 @@ export const register = async (req: AuthRequest, res: Response) => {
         username: user.username,
         email: user.email,
         role: user.role,
+        mustResetPassword: user.mustResetPassword,
         staff: user.staff,
       },
     });
@@ -133,11 +145,62 @@ export const me = async (req: any, res: Response) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      mustResetPassword: user.mustResetPassword,
       staff: user.staff,
       lastLogin: user.lastLogin,
     });
   } catch (error) {
     console.error('Me error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    const payload = verifyPasswordResetToken(token);
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        mustResetPassword: false,
+        lastLogin: new Date(),
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        actionType: 'update',
+        entityType: 'user',
+        entityId: user.id,
+        description: `Password reset for user ${user.username}`,
+      },
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Reset password error:', error);
+    if (error.message === 'Invalid password reset token') {
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };

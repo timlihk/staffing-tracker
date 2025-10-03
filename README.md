@@ -32,6 +32,7 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - Projects management (List, Detail, Create/Edit, Delete)
 - Staff management (List, Detail, Create/Edit, Delete)
 - Project Report with filtering and sorting
+- Admin-only user management panel with on-demand password resets
 - Responsive layout with sidebar navigation
 - Hot module replacement for development
 - **Status**: ✅ Deployed and running in production
@@ -140,6 +141,8 @@ npm run dev
 ```
 
 Backend will run on `http://localhost:3000`
+
+> **Admin workflow:** Use the new `/users` admin page to provision accounts. Each user receives a temporary password and must set a new one on first login.
 
 ### Frontend Setup
 
