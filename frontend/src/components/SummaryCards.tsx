@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography, Box } from '@mui/material';
+import { Stack, Paper, Typography, Box } from '@mui/material';
 import { FolderOpen, Event, EventAvailable } from '@mui/icons-material';
 
 interface SummaryCardsProps {
@@ -30,28 +30,34 @@ const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming }: Sum
   ];
 
   return (
-    <Grid container spacing={2} alignItems="stretch">
+    <Stack
+      direction={{ xs: 'column', sm: 'row' }}
+      spacing={2}
+      sx={{ width: '100%', flexWrap: { sm: 'wrap', md: 'nowrap' } }}
+    >
       {cards.map((card, index) => (
-        <Grid item xs={12} sm={6} md={4} key={index}>
-          <Paper
-            sx={{
-              p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Box>
-              <Typography color="text.secondary" variant="body2" gutterBottom>
-                {card.title}
-              </Typography>
-              <Typography variant="h4">{card.value}</Typography>
-            </Box>
-            <Box sx={{ color: card.color }}>{card.icon}</Box>
-          </Paper>
-        </Grid>
+        <Paper
+          key={index}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            p: 3,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: '100%',
+          }}
+        >
+          <Box>
+            <Typography color="text.secondary" variant="body2" gutterBottom>
+              {card.title}
+            </Typography>
+            <Typography variant="h4">{card.value}</Typography>
+          </Box>
+          <Box sx={{ color: card.color }}>{card.icon}</Box>
+        </Paper>
       ))}
-    </Grid>
+    </Stack>
   );
 };
 

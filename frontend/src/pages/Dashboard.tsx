@@ -67,7 +67,7 @@ const Dashboard = () => {
   return (
     <Page title="Dashboard">
       <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={12} md={6}>
           <Stack spacing={2} sx={{ height: '100%' }}>
             <SummaryCards
               activeProjects={data.summary.activeProjects}
@@ -81,7 +81,7 @@ const Dashboard = () => {
           </Stack>
         </Grid>
 
-        <Grid item xs={12} lg={6}>
+        <Grid item xs={12} md={6}>
           <StaffingHeatmapCard
             weeks={heatmapWeeks}
             groups={groupHeatmapByRole(data.staffingHeatmap)}
