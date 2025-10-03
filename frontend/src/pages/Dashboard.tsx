@@ -18,7 +18,6 @@ import {
   TableRow,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import SummaryCards from '../components/SummaryCards';
 import { Page, DashboardSkeleton } from '../components/ui';
 import { useDashboard } from '../hooks/useDashboard';
 import { useNavigate } from 'react-router-dom';
@@ -61,24 +60,14 @@ const Dashboard = () => {
     return <Typography>No dashboard data available</Typography>;
   }
 
-  const filingsUpcoming = data.dealRadar.filter((event) => event.type === 'Filing').length;
-  const listingsUpcoming = data.dealRadar.filter((event) => event.type === 'Listing').length;
-
   return (
     <Page title="Dashboard">
       <Grid container spacing={2} alignItems="stretch">
         <Grid item xs={12} md={6}>
-          <Stack spacing={2} sx={{ height: '100%' }}>
-            <SummaryCards
-              activeProjects={data.summary.activeProjects}
-              filingsUpcoming={filingsUpcoming}
-              listingsUpcoming={listingsUpcoming}
-            />
-            <DealRadarCard
-              groups={dealRadarGroups}
-              onSelectProject={(id) => navigate(`/projects/${id}`)}
-            />
-          </Stack>
+          <DealRadarCard
+            groups={dealRadarGroups}
+            onSelectProject={(id) => navigate(`/projects/${id}`)}
+          />
         </Grid>
 
         <Grid item xs={12} md={6}>
