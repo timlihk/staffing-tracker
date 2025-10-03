@@ -38,10 +38,10 @@ const determineCategory = (rowIndex: number, projectName: string | undefined | n
   const lowerName = (projectName && typeof projectName === 'string') ? projectName.toLowerCase() : '';
 
   // Check row-based sections
-  if (rowIndex <= 35) return 'HK Transaction Projects';
-  if (rowIndex <= 60) return 'US Transaction Projects';
-  if (rowIndex <= 85) return 'HK Compliance Projects';
-  if (rowIndex <= 95) return 'US Compliance Projects';
+  if (rowIndex <= 35) return 'HK Trx';
+  if (rowIndex <= 60) return 'US Trx';
+  if (rowIndex <= 85) return 'HK Comp';
+  if (rowIndex <= 95) return 'US Comp';
   return 'Others';
 };
 

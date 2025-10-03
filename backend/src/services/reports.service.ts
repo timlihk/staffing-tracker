@@ -67,6 +67,8 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
           status: true,
           elStatus: true,
           timetable: true,
+          filingDate: true,
+          listingDate: true,
         },
       },
       staff: {
@@ -97,6 +99,8 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     status: a.project.status,
     elStatus: a.project.elStatus,
     timetable: a.project.timetable || null,
+    filingDate: a.project.filingDate?.toISOString() || null,
+    listingDate: a.project.listingDate?.toISOString() || null,
     staffName: a.staff.name,
     staffRole: a.staff.role,
     staffDepartment: a.staff.department,

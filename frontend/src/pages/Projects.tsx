@@ -152,10 +152,10 @@ const Projects: React.FC = () => {
             sx={{ minWidth: 200 }}
           >
             <MenuItem value="all">All Categories</MenuItem>
-            <MenuItem value="HK Transaction Projects">HK Transaction</MenuItem>
-            <MenuItem value="US Transaction Projects">US Transaction</MenuItem>
-            <MenuItem value="HK Compliance Projects">HK Compliance</MenuItem>
-            <MenuItem value="US Compliance Projects">US Compliance</MenuItem>
+            <MenuItem value="HK Trx">HK Trx</MenuItem>
+            <MenuItem value="US Trx">US Trx</MenuItem>
+            <MenuItem value="HK Comp">HK Comp</MenuItem>
+            <MenuItem value="US Comp">US Comp</MenuItem>
           </TextField>
         </Stack>
       </Paper>

@@ -32,6 +32,8 @@ type ReportRow = {
   status: string;
   elStatus: string | null;
   timetable: string | null;
+  filingDate: string | null;
+  listingDate: string | null;
   staffName: string;
   staffRole: string;
   staffDepartment: string | null;
@@ -42,15 +44,15 @@ type ReportRow = {
 };
 
 const CATEGORY_OPTIONS = [
-  'HK Transaction Projects',
-  'US Transaction Projects',
-  'HK Compliance Projects',
-  'US Compliance Projects',
+  'HK Trx',
+  'US Trx',
+  'HK Comp',
+  'US Comp',
   'Others',
 ];
 
 const STAFF_ROLES = [
-  'Income Partner',
+  'Partner',
   'Associate',
   'Senior FLIC',
   'Junior FLIC',
@@ -70,6 +72,18 @@ const columns: GridColDef<ReportRow>[] = [
   { field: 'status', headerName: 'Status', width: 110 },
   { field: 'elStatus', headerName: 'EL Status', width: 120 },
   { field: 'timetable', headerName: 'Timetable', width: 150 },
+  {
+    field: 'filingDate',
+    headerName: 'Filing Date',
+    width: 130,
+    valueGetter: (value, row) => (row.filingDate ? row.filingDate.slice(0, 10) : ''),
+  },
+  {
+    field: 'listingDate',
+    headerName: 'Listing Date',
+    width: 130,
+    valueGetter: (value, row) => (row.listingDate ? row.listingDate.slice(0, 10) : ''),
+  },
   { field: 'staffName', headerName: 'Staff', width: 180 },
   { field: 'staffRole', headerName: 'Staff Role', width: 130 },
   { field: 'staffDepartment', headerName: 'Dept', width: 100 },

@@ -101,6 +101,10 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
+  const teamAssignments = (project.assignments || []).filter(
+    (assignment) => assignment.jurisdiction !== 'B&C' && assignment.roleInProject !== 'B&C Working Attorney'
+  );
+
   return (
     <Page
       title={
@@ -222,6 +226,42 @@ const ProjectDetail: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      FILING DATE
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.filingDate ? project.filingDate.slice(0, 10) : '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      LISTING DATE
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                      {project.listingDate ? project.listingDate.slice(0, 10) : '-'}
+                    </Typography>
+                  </Box>
+                </Grid>
                 <Grid item xs={12}>
                   <Box
                     sx={{
@@ -264,15 +304,15 @@ const ProjectDetail: React.FC = () => {
             </Paper>
           </Grid>
 
-          {/* Right Column - Team Members */}
-          <Grid item xs={12} md={5}>
+          {/* Team Members */}
+          <Grid item xs={12}>
             <Paper sx={{ p: 3, height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                 Team Members
               </Typography>
-              {project.assignments && project.assignments.length > 0 ? (
+              {teamAssignments.length > 0 ? (
                 <Stack spacing={1.5}>
-                  {project.assignments.map((assignment) => (
+                  {teamAssignments.map((assignment) => (
                     <Box
                       key={assignment.id}
                       onClick={() => navigate(`/staff/${assignment.staffId}`)}

@@ -30,7 +30,8 @@ export interface Project {
   elStatus?: string;
   timetable?: Timetable;
   bcAttorney?: string;
-  actualFilingDate?: string;
+  filingDate?: string;
+  listingDate?: string;
   notes?: string;
   assignments?: ProjectAssignment[];
   createdAt: string;
@@ -84,17 +85,25 @@ export interface DashboardSummary {
   };
   projectsByStatus: Array<{ status: string; count: number }>;
   projectsByCategory: Array<{ category: string; count: number }>;
-  workloadDistribution: Array<{
+  timeline: Array<{
+    projectId: number;
+    projectName: string;
+    category: string;
+    status: string;
+    priority: string | null;
+    type: 'Filing' | 'Listing';
+    date: string;
+  }>;
+  busyStaff: Array<{
     staffId: number;
     name: string;
     role: string;
-    projectCount: number;
-  }>;
-  upcomingDeadlines: Array<{
-    id: number;
-    name: string;
-    category: string;
-    timetable: string;
+    upcomingProjects: Array<{
+      projectId: number;
+      projectName: string;
+      date: string;
+      type: 'Filing' | 'Listing';
+    }>;
   }>;
   recentActivity: ActivityLog[];
 }

@@ -61,13 +61,14 @@ enum Timetable {
 model Project {
   id                Int         @id @default(autoincrement())
   name              String      @unique // Project name (formerly projectCode)
-  category          String      // HK Transaction, US Transaction, HK Compliance, US Compliance, Others
+  category          String      // HK Trx, US Trx, HK Comp, US Comp, Others
   status            String      // Active, Slow-down, Suspended
   priority          String?     // High, Medium, Low
   elStatus          String?     @map("el_status") // EL Status field
   timetable         Timetable?  // Pre-A1, A1, Hearing, Listing
   bcAttorney        String?     @map("bc_attorney") // B&C Attorney assigned to project
-  actualFilingDate  DateTime?   @map("actual_filing_date")
+  filingDate       DateTime?   @map("filing_date")
+  listingDate      DateTime?   @map("listing_date")
   notes             String?     @db.Text
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")

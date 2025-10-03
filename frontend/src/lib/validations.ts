@@ -17,7 +17,8 @@ export const projectSchema = z.object({
   elStatus: z.string().optional(),
   timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING']).optional(),
   bcAttorney: z.string().optional(),
-  actualFilingDate: z.string().optional(),
+  filingDate: z.string().optional(),
+  listingDate: z.string().optional(),
   notes: z.string().optional(),
 });
 

@@ -9,6 +9,19 @@ All notable changes to the Staffing Tracker application will be documented in th
 - 🗒️ Added notes clarifying that older planning docs reference "IP" as the former label for partners.
 
 
+## [1.4.0] - 2025-10-03
+
+### Added
+- 📅 Introduced dedicated `filingDate` and `listingDate` fields across the API, reports, and UI (project forms, detail, and staffing report exports).
+- 🗂️ Expanded project report table with filing/listing columns and sortable headers; staff assignment tables now show the same dates with sorting.
+- 📈 Reimagined dashboard with an upcoming milestones timeline and "busy staff" focus driven by filing/listing dates.
+
+### Changed
+- 🔁 Shortened project category labels to `HK Trx`, `US Trx`, `HK Comp`, `US Comp`, `Others`, and migrated existing data/scripts accordingly.
+- 👥 Streamlined staff detail and edit layouts (vertical fields, resized edit button) and removed B&C attorneys from the Team Members card.
+- 🛡️ Adjusted data imports to respect the new categories and optional admin seeding flag while retaining separate B&C attorney presentation.
+
+
 ## [1.3.0] - 2025-10-03
 
 

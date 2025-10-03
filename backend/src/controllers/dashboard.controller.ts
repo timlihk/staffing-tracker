@@ -45,46 +45,154 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     ];
 
     // Get staff workload distribution
-    const staffWorkload = await prisma.staff.findMany({
-      where: { status: 'active' },
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        assignments: {
-          where: {
-            project: { status: { in: ['Active', 'Slow-down'] } },
-          },
-        },
-      },
-    });
+    const now = new Date();
+    const windowEnd = new Date();
+    windowEnd.setDate(windowEnd.getDate() + 60);
 
-    const workloadDistribution = staffWorkload.map((staff) => {
-      return {
-        staffId: staff.id,
-        name: staff.name,
-        role: staff.role,
-        projectCount: staff.assignments.length,
-      };
-    });
-
-    // Get upcoming projects by timetable (showing active projects with timetable)
-    const upcomingDeadlines = await prisma.project.findMany({
+    const projectsWithMilestones = await prisma.project.findMany({
       where: {
-        status: 'Active',
-        timetable: {
-          not: null,
-        },
+        OR: [
+          { filingDate: { not: null } },
+          { listingDate: { not: null } },
+        ],
       },
       select: {
         id: true,
         name: true,
         category: true,
-        timetable: true,
+        status: true,
+        priority: true,
+        filingDate: true,
+        listingDate: true,
       },
-      orderBy: { updatedAt: 'desc' },
-      take: 5,
     });
+
+    const timeline = projectsWithMilestones
+      .flatMap((project) => {
+        const events: Array<{
+          projectId: number;
+          projectName: string;
+          category: string;
+          status: string;
+          priority: string | null;
+          type: 'Filing' | 'Listing';
+          date: Date;
+        }> = [];
+
+        if (project.filingDate) {
+          events.push({
+            projectId: project.id,
+            projectName: project.name,
+            category: project.category,
+            status: project.status,
+            priority: project.priority,
+            type: 'Filing',
+            date: project.filingDate,
+          });
+        }
+
+        if (project.listingDate) {
+          events.push({
+            projectId: project.id,
+            projectName: project.name,
+            category: project.category,
+            status: project.status,
+            priority: project.priority,
+            type: 'Listing',
+            date: project.listingDate,
+          });
+        }
+
+        return events;
+      })
+      .filter((event) => event.date >= now && event.date <= windowEnd)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .slice(0, 40)
+      .map((event) => ({
+        ...event,
+        date: event.date.toISOString(),
+      }));
+
+    const upcomingAssignments = await prisma.projectAssignment.findMany({
+      where: {
+        project: {
+          OR: [
+            { filingDate: { gte: now, lte: windowEnd } },
+            { listingDate: { gte: now, lte: windowEnd } },
+          ],
+        },
+      },
+      include: {
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            filingDate: true,
+            listingDate: true,
+          },
+        },
+      },
+    });
+
+    const busyStaffMap = new Map<
+      number,
+      {
+        staffId: number;
+        name: string;
+        role: string;
+        upcomingProjects: Array<{ projectId: number; projectName: string; date: string; type: 'Filing' | 'Listing' }>;
+      }
+    >();
+
+    upcomingAssignments.forEach((assignment) => {
+      if (!assignment.staff || !assignment.project) return;
+
+      const candidateDates: Array<{ date: Date; type: 'Filing' | 'Listing' }> = [];
+      if (assignment.project.filingDate && assignment.project.filingDate >= now && assignment.project.filingDate <= windowEnd) {
+        candidateDates.push({ date: assignment.project.filingDate, type: 'Filing' });
+      }
+      if (assignment.project.listingDate && assignment.project.listingDate >= now && assignment.project.listingDate <= windowEnd) {
+        candidateDates.push({ date: assignment.project.listingDate, type: 'Listing' });
+      }
+
+      if (candidateDates.length === 0) return;
+
+      candidateDates.sort((a, b) => a.date.getTime() - b.date.getTime());
+      const nextMilestone = candidateDates[0];
+
+      if (!busyStaffMap.has(assignment.staff.id)) {
+        busyStaffMap.set(assignment.staff.id, {
+          staffId: assignment.staff.id,
+          name: assignment.staff.name,
+          role: assignment.staff.role,
+          upcomingProjects: [],
+        });
+      }
+
+      busyStaffMap.get(assignment.staff.id)!.upcomingProjects.push({
+        projectId: assignment.project.id,
+        projectName: assignment.project.name,
+        date: nextMilestone.date.toISOString(),
+        type: nextMilestone.type,
+      });
+    });
+
+    const busyStaff = Array.from(busyStaffMap.values())
+      .map((staff) => ({
+        ...staff,
+        upcomingProjects: staff.upcomingProjects
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+          .slice(0, 5),
+      }))
+      .sort((a, b) => b.upcomingProjects.length - a.upcomingProjects.length)
+      .slice(0, 10);
 
     res.json({
       summary: {
@@ -100,8 +208,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         category: item.category,
         count: item._count,
       })),
-      workloadDistribution,
-      upcomingDeadlines,
+      timeline,
+      busyStaff,
       recentActivity: recentActivity.map((activity) => ({
         id: activity.id,
         actionType: activity.actionType,

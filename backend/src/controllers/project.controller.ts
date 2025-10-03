@@ -85,7 +85,8 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       priority,
       elStatus,
       timetable,
-      actualFilingDate,
+      filingDate,
+      listingDate,
       bcAttorney,
       notes,
     } = req.body;
@@ -102,7 +103,8 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         priority,
         elStatus,
         timetable,
-        actualFilingDate: actualFilingDate ? new Date(actualFilingDate) : null,
+        filingDate: filingDate ? new Date(filingDate) : null,
+        listingDate: listingDate ? new Date(listingDate) : null,
         bcAttorney,
         notes,
       },
@@ -141,7 +143,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       priority,
       elStatus,
       timetable,
-      actualFilingDate,
+      filingDate,
+      listingDate,
       bcAttorney,
       notes,
     } = req.body;
@@ -162,7 +165,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (priority !== undefined) updateData.priority = priority;
     if (elStatus !== undefined) updateData.elStatus = elStatus;
     if (timetable !== undefined) updateData.timetable = timetable;
-    if (actualFilingDate !== undefined) updateData.actualFilingDate = actualFilingDate ? new Date(actualFilingDate) : null;
+    if (filingDate !== undefined) updateData.filingDate = filingDate ? new Date(filingDate) : null;
+    if (listingDate !== undefined) updateData.listingDate = listingDate ? new Date(listingDate) : null;
     if (bcAttorney !== undefined) updateData.bcAttorney = bcAttorney;
     if (notes !== undefined) updateData.notes = notes;
 

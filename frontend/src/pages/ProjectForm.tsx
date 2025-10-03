@@ -43,6 +43,8 @@ const ProjectForm: React.FC = () => {
       elStatus: '',
       timetable: undefined,
       bcAttorney: '',
+      filingDate: '',
+      listingDate: '',
       notes: '',
     },
   });
@@ -57,6 +59,8 @@ const ProjectForm: React.FC = () => {
         elStatus: project.elStatus || '',
         timetable: project.timetable,
         bcAttorney: project.bcAttorney || '',
+        filingDate: project.filingDate ? project.filingDate.slice(0, 10) : '',
+        listingDate: project.listingDate ? project.listingDate.slice(0, 10) : '',
         notes: project.notes || '',
       });
     }
@@ -126,10 +130,10 @@ const ProjectForm: React.FC = () => {
                     helperText={errors.category?.message}
                     disabled={isSubmitting}
                   >
-                    <MenuItem value="HK Transaction Projects">HK Transaction</MenuItem>
-                    <MenuItem value="US Transaction Projects">US Transaction</MenuItem>
-                    <MenuItem value="HK Compliance Projects">HK Compliance</MenuItem>
-                    <MenuItem value="US Compliance Projects">US Compliance</MenuItem>
+                    <MenuItem value="HK Trx">HK Trx</MenuItem>
+                    <MenuItem value="US Trx">US Trx</MenuItem>
+                    <MenuItem value="HK Comp">HK Comp</MenuItem>
+                    <MenuItem value="US Comp">US Comp</MenuItem>
                     <MenuItem value="Others">Others</MenuItem>
                   </TextField>
                 )}
@@ -209,6 +213,30 @@ const ProjectForm: React.FC = () => {
                     <MenuItem value="LISTING">Listing</MenuItem>
                   </TextField>
                 )}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Filing Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                {...register('filingDate')}
+                error={!!errors.filingDate}
+                helperText={errors.filingDate?.message}
+                disabled={isSubmitting}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Listing Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                {...register('listingDate')}
+                error={!!errors.listingDate}
+                helperText={errors.listingDate?.message}
+                disabled={isSubmitting}
               />
             </Grid>
             <Grid item xs={12} md={6}>

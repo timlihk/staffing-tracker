@@ -13,6 +13,8 @@ export interface ProjectReportRow {
   category: string;
   status: string;
   priority: string | null;
+  filingDate: string | null;
+  listingDate: string | null;
 
   // US Law team members by role
   usLawPartner: string | null;
@@ -94,6 +96,8 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
       category: project.category,
       status: project.status,
       priority: project.priority,
+      filingDate: project.filingDate ? project.filingDate.toISOString() : null,
+      listingDate: project.listingDate ? project.listingDate.toISOString() : null,
 
       // US Law team
       usLawPartner: getStaffByJurisdictionAndRole('US Law', 'Partner'),

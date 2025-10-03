@@ -50,6 +50,8 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
     { header: 'Status', key: 'status', width: 12 },
     { header: 'EL Status', key: 'elStatus', width: 16 },
     { header: 'Timetable', key: 'timetable', width: 20 },
+    { header: 'Filing Date', key: 'filingDate', width: 14 },
+    { header: 'Listing Date', key: 'listingDate', width: 14 },
     { header: 'Staff Name', key: 'staffName', width: 22 },
     { header: 'Staff Role', key: 'staffRole', width: 16 },
     { header: 'Department', key: 'staffDepartment', width: 14 },
@@ -79,6 +81,8 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
       status: r.status,
       elStatus: r.elStatus || '',
       timetable: r.timetable || '',
+      filingDate: r.filingDate ? new Date(r.filingDate).toISOString().split('T')[0] : '',
+      listingDate: r.listingDate ? new Date(r.listingDate).toISOString().split('T')[0] : '',
       staffName: r.staffName,
       staffRole: r.staffRole,
       staffDepartment: r.staffDepartment || '',
@@ -109,7 +113,7 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
   // Auto-filter
   ws.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: 1, column: 16 },
+    to: { row: 1, column: 18 },
   };
 
   return wb;

@@ -98,7 +98,7 @@ const StaffForm: React.FC = () => {
       <Paper sx={{ p: 3 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Name"
@@ -108,7 +108,7 @@ const StaffForm: React.FC = () => {
                 disabled={isSubmitting}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 type="email"
@@ -119,7 +119,7 @@ const StaffForm: React.FC = () => {
                 disabled={isSubmitting}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <Controller
                 name="role"
                 control={control}
@@ -143,7 +143,7 @@ const StaffForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <Controller
                 name="department"
                 control={control}
@@ -166,7 +166,7 @@ const StaffForm: React.FC = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <Controller
                 name="status"
                 control={control}

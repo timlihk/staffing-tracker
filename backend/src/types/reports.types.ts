@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const ReportQuerySchema = z.object({
-  categories: z.string().optional(),    // comma-separated: "HK Transaction Projects,US Transaction Projects"
-  staffRoles: z.string().optional(),    // comma-separated: "Associate,IP"
+  categories: z.string().optional(),    // comma-separated: "HK Trx,US Trx"
+  staffRoles: z.string().optional(),    // comma-separated: "Associate,Partner"
   priorities: z.string().optional(),    // comma-separated: "High,Medium,Low"
   statuses: z.string().optional(),      // comma-separated: "Active,Slow-down,Suspended"
   jurisdictions: z.string().optional(), // comma-separated: "US Law,HK Law,B&C"
@@ -21,6 +21,8 @@ export type ReportRow = {
   status: string;
   elStatus: string | null;
   timetable: string | null;
+  filingDate: string | null;
+  listingDate: string | null;
   staffName: string;
   staffRole: string;
   staffDepartment: string | null;

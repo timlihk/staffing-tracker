@@ -31,6 +31,8 @@ type ProjectReportRow = {
   category: string;
   status: string;
   priority: string | null;
+  filingDate: string | null;
+  listingDate: string | null;
 
   usLawPartner: string | null;
   usLawAssociate: string | null;
@@ -51,10 +53,10 @@ type ProjectReportRow = {
 };
 
 const CATEGORY_OPTIONS = [
-  'HK Transaction Projects',
-  'US Transaction Projects',
-  'HK Compliance Projects',
-  'US Compliance Projects',
+  'HK Trx',
+  'US Trx',
+  'HK Comp',
+  'US Comp',
   'Others',
 ];
 
@@ -76,7 +78,7 @@ const ProjectReport: React.FC = () => {
   const [totalProjects, setTotalProjects] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(100);
-  const [orderBy, setOrderBy] = useState<'projectName' | 'category'>('projectName');
+  const [orderBy, setOrderBy] = useState<'projectName' | 'filingDate' | 'listingDate'>('projectName');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchData = useCallback(async () => {
@@ -115,7 +117,7 @@ const ProjectReport: React.FC = () => {
 
   const onPrint = () => window.print();
 
-  const handleRequestSort = (property: 'projectName' | 'category') => {
+  const handleRequestSort = (property: 'projectName' | 'filingDate' | 'listingDate') => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
@@ -123,15 +125,28 @@ const ProjectReport: React.FC = () => {
 
   const sortedRows = React.useMemo(() => {
     const comparator = (a: ProjectReportRow, b: ProjectReportRow) => {
+      const compare = (valueA: string | null, valueB: string | null) => {
+        if (!valueA && !valueB) return 0;
+        if (!valueA) return -1;
+        if (!valueB) return 1;
+        return valueA.localeCompare(valueB);
+      };
+
       if (orderBy === 'projectName') {
         return order === 'asc'
           ? a.projectName.localeCompare(b.projectName)
           : b.projectName.localeCompare(a.projectName);
-      } else {
-        return order === 'asc'
-          ? a.category.localeCompare(b.category)
-          : b.category.localeCompare(a.category);
       }
+
+      if (orderBy === 'filingDate') {
+        return order === 'asc'
+          ? compare(a.filingDate, b.filingDate)
+          : compare(b.filingDate, a.filingDate);
+      }
+
+      return order === 'asc'
+        ? compare(a.listingDate, b.listingDate)
+        : compare(b.listingDate, a.listingDate);
     };
     return [...rows].sort(comparator);
   }, [rows, order, orderBy]);
@@ -248,13 +263,23 @@ const ProjectReport: React.FC = () => {
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>
                     <TableSortLabel
-                      active={orderBy === 'category'}
-                      direction={orderBy === 'category' ? order : 'asc'}
-                      onClick={() => handleRequestSort('category')}
+                      active={orderBy === 'filingDate'}
+                      direction={orderBy === 'filingDate' ? order : 'asc'}
+                      onClick={() => handleRequestSort('filingDate')}
                     >
-                      Category
+                      Filing Date
                     </TableSortLabel>
                   </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    <TableSortLabel
+                      active={orderBy === 'listingDate'}
+                      direction={orderBy === 'listingDate' ? order : 'asc'}
+                      onClick={() => handleRequestSort('listingDate')}
+                    >
+                      Listing Date
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>US - Partner</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>US - Associate</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>US - Sr FLIC</TableCell>
@@ -281,6 +306,8 @@ const ProjectReport: React.FC = () => {
                     }}
                   >
                     <TableCell>{row.projectName}</TableCell>
+                    <TableCell>{row.filingDate ? row.filingDate.slice(0, 10) : '-'}</TableCell>
+                    <TableCell>{row.listingDate ? row.listingDate.slice(0, 10) : '-'}</TableCell>
                     <TableCell>{row.category}</TableCell>
                     <TableCell>{row.usLawPartner || '-'}</TableCell>
                     <TableCell>{row.usLawAssociate || '-'}</TableCell>

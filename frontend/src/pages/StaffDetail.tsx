@@ -20,6 +20,7 @@ import {
   ListItemText,
   ListItemIcon,
   Stack,
+  TableSortLabel,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -54,6 +55,8 @@ const StaffDetail: React.FC = () => {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [orderBy, setOrderBy] = useState<'projectName' | 'filingDate' | 'listingDate'>('projectName');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,9 +89,41 @@ const StaffDetail: React.FC = () => {
     return <Typography>Staff member not found</Typography>;
   }
 
-  const activeProjects = staff.assignments?.filter(
+  const assignments = staff.assignments ?? [];
+  const activeProjects = assignments.filter(
     (a) => a.project?.status === 'Active' || a.project?.status === 'Slow-down'
-  ) || [];
+  );
+
+  const getSortableValue = (assignment: typeof assignments[number], field: 'projectName' | 'filingDate' | 'listingDate') => {
+    if (field === 'projectName') {
+      return assignment.project?.name || '';
+    }
+    if (field === 'filingDate') {
+      return assignment.project?.filingDate || '';
+    }
+    return assignment.project?.listingDate || '';
+  };
+
+  const sortedAssignments = [...assignments].sort((a, b) => {
+    const valueA = getSortableValue(a, orderBy);
+    const valueB = getSortableValue(b, orderBy);
+
+    if (!valueA && !valueB) return 0;
+    if (!valueA) return order === 'asc' ? -1 : 1;
+    if (!valueB) return order === 'asc' ? 1 : -1;
+
+    const comparison = valueA.localeCompare(valueB);
+    return order === 'asc' ? comparison : -comparison;
+  });
+
+  const handleSort = (field: 'projectName' | 'filingDate' | 'listingDate') => {
+    if (orderBy === field) {
+      setOrder(order === 'asc' ? 'desc' : 'asc');
+    } else {
+      setOrderBy(field);
+      setOrder('asc');
+    }
+  };
 
   return (
     <Page
@@ -100,14 +135,16 @@ const StaffDetail: React.FC = () => {
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
             {staff.name}
           </Typography>
-          <Chip label={staff.status} color={staff.status === 'active' ? 'success' : 'default'} />
+          <Chip label={staff.status} color={staff.status === 'active' ? 'success' : 'default'} size="small" />
         </Stack>
       }
       actions={
         <Button
           variant="contained"
+          size="small"
           startIcon={<Edit />}
           onClick={() => navigate(`/staff/${id}/edit`)}
+          sx={{ height: 32 }}
         >
           Edit
         </Button>
@@ -155,12 +192,38 @@ const StaffDetail: React.FC = () => {
         {/* Projects Table */}
         <Grid item xs={12}>
           <Section title="Project Assignments">
-            {staff.assignments && staff.assignments.length > 0 ? (
+            {sortedAssignments.length > 0 ? (
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Project Name</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={orderBy === 'projectName'}
+                          direction={orderBy === 'projectName' ? order : 'asc'}
+                          onClick={() => handleSort('projectName')}
+                        >
+                          Project Name
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={orderBy === 'filingDate'}
+                          direction={orderBy === 'filingDate' ? order : 'asc'}
+                          onClick={() => handleSort('filingDate')}
+                        >
+                          Filing Date
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={orderBy === 'listingDate'}
+                          direction={orderBy === 'listingDate' ? order : 'asc'}
+                          onClick={() => handleSort('listingDate')}
+                        >
+                          Listing Date
+                        </TableSortLabel>
+                      </TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Category</TableCell>
                       <TableCell>Role</TableCell>
@@ -168,7 +231,7 @@ const StaffDetail: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {staff.assignments.map((assignment) => (
+                    {sortedAssignments.map((assignment) => (
                       <TableRow
                         key={assignment.id}
                         hover
@@ -177,6 +240,16 @@ const StaffDetail: React.FC = () => {
                       >
                         <TableCell>
                           <Typography variant="body2">{assignment.project?.name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          {assignment.project?.filingDate
+                            ? assignment.project.filingDate.slice(0, 10)
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {assignment.project?.listingDate
+                            ? assignment.project.listingDate.slice(0, 10)
+                            : '-'}
                         </TableCell>
                         <TableCell>
                           <Chip

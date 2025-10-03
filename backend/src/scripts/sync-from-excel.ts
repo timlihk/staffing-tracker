@@ -50,10 +50,20 @@ const normalizeTimetable = (timetable: string | undefined): Timetable | null => 
 const normalizeCategory = (projectType: string | undefined): string => {
   if (!projectType || typeof projectType !== 'string') return 'Others';
   const cleaned = projectType.trim();
-  if (cleaned === 'HK Trx') return 'HK Transaction Projects';
-  if (cleaned === 'US Trx') return 'US Transaction Projects';
-  if (cleaned === 'HK Compliance') return 'HK Compliance Projects';
-  if (cleaned === 'US Compliance') return 'US Compliance Projects';
+
+  if (['HK Trx', 'HK Transaction', 'HK Transaction Projects'].includes(cleaned)) {
+    return 'HK Trx';
+  }
+  if (['US Trx', 'US Transaction', 'US Transaction Projects'].includes(cleaned)) {
+    return 'US Trx';
+  }
+  if (['HK Comp', 'HK Compliance', 'HK Compliance Projects'].includes(cleaned)) {
+    return 'HK Comp';
+  }
+  if (['US Comp', 'US Compliance', 'US Compliance Projects'].includes(cleaned)) {
+    return 'US Comp';
+  }
+
   return 'Others';
 };
 
