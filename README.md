@@ -112,8 +112,10 @@ npm install
 2. Set up environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your DATABASE_URL
+# Edit .env with your DATABASE_URL and JWT_SECRET
 ```
+
+**Note for localhost development**: The backend `.env` file is not tracked in Git. If you need to run locally, copy `.env.example` to `.env` and configure your database connection.
 
 3. Run database migrations:
 ```bash
@@ -143,8 +145,11 @@ npm install
 
 2. Create `.env` file:
 ```bash
-VITE_API_URL=http://localhost:3000/api
+cp .env.example .env
+# File should contain: VITE_API_URL=http://localhost:3000/api
 ```
+
+**Note for localhost development**: The frontend `.env` file is not tracked in Git. Copy `.env.example` to `.env` to configure the API URL for local development.
 
 3. Start development server:
 ```bash
