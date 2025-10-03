@@ -66,18 +66,22 @@ const Dashboard = () => {
 
   return (
     <Page title="Dashboard">
-      <SummaryCards
-        activeProjects={data.summary.activeProjects}
-        filingsUpcoming={filingsUpcoming}
-        listingsUpcoming={listingsUpcoming}
-      />
-
       <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} md={6}>
-          <DealRadarCard groups={dealRadarGroups} onSelectProject={(id) => navigate(`/projects/${id}`)} />
+        <Grid item xs={12} lg={6}>
+          <Stack spacing={2} sx={{ height: '100%' }}>
+            <SummaryCards
+              activeProjects={data.summary.activeProjects}
+              filingsUpcoming={filingsUpcoming}
+              listingsUpcoming={listingsUpcoming}
+            />
+            <DealRadarCard
+              groups={dealRadarGroups}
+              onSelectProject={(id) => navigate(`/projects/${id}`)}
+            />
+          </Stack>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} lg={6}>
           <StaffingHeatmapCard
             weeks={heatmapWeeks}
             groups={groupHeatmapByRole(data.staffingHeatmap)}
