@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
@@ -8,10 +8,20 @@ import { Page, StaffListSkeleton, PageHeader, PageToolbar, StyledDataGrid, Empty
 import { useStaff, useDeleteStaff } from '../hooks/useStaff';
 
 const Staff: React.FC = () => {
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [positionFilter, setPositionFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const navigate = useNavigate();
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Build params for the query
   const params = {
@@ -115,8 +125,8 @@ const Staff: React.FC = () => {
                 label="Search"
                 variant="outlined"
                 size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 sx={{ width: { xs: '100%', sm: 300 } }}
               />
               <Button
