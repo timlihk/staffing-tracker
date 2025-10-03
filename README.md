@@ -128,7 +128,13 @@ npx prisma migrate dev
 npx ts-node src/scripts/migrate-excel.ts
 ```
 
-5. Start development server:
+5. (Optional) Normalize legacy roles after importing historical data:
+```bash
+npm run db:fix-ip-role
+```
+This maintenance script converts any remaining `IP` project assignments to the current `Partner` label.
+
+6. Start development server:
 ```bash
 npm run dev
 ```

@@ -4,6 +4,8 @@
 **Estimated Total Time**: 4-6 hours
 **Priority Order**: Assignments → Reporting → Testing
 
+> **Terminology update:** Any references to the "IP" role below map to the modern `Partner` label. Use `npm run db:fix-ip-role` after data imports to normalize legacy values.
+
 ---
 
 ## 📊 Current Status

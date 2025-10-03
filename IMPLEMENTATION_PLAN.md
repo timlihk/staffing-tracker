@@ -1,5 +1,7 @@
 # Kirkland & Ellis Law Firm Staffing Tracker - Implementation Plan
 
+> **Terminology update:** These planning notes use "IP" to mean Income Partner. The live system records this role as `Partner`; run `npm run db:fix-ip-role` after importing historical spreadsheets to keep assignments consistent.
+
 ## Executive Summary
 This document outlines the detailed implementation plan for converting the Excel-based staffing tracker into a modern web-based application for Kirkland & Ellis. The application will enable efficient project tracking, staff assignment management, and real-time status monitoring through an intuitive dashboard interface.
 

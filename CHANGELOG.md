@@ -2,7 +2,15 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.3.1] - 2025-10-03
+
+### Changed
+- 📚 Documented the `npm run db:fix-ip-role` maintenance script used to normalize legacy "IP" assignments to "Partner" after historical imports.
+- 🗒️ Added notes clarifying that older planning docs reference "IP" as the former label for partners.
+
+
 ## [1.3.0] - 2025-10-03
+
 
 ### Added
 - ✨ TanStack Query (React Query) v5 for intelligent data caching and synchronization
