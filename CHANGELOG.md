@@ -34,6 +34,17 @@ All notable changes to the Staffing Tracker application will be documented in th
 - 📦 Prisma schema now tracks `mustResetPassword`; migration guards prevent conflicts with existing columns.
 
 
+## [1.6.0] - 2025-10-03
+
+### Added
+- 📅 "Deal Radar" view highlighting filings/listings over the next 30 days with lead-partner context and quick navigation.
+- 🔥 Staffing heatmap and action cards for unstaffed milestones and pending password resets.
+
+### Changed
+- 📊 Dashboard summary cards now emphasize upcoming filings/listings and outstanding resets.
+- 🎨 Updated layout combines status/category charts with actionable lists and revamped activity view.
+
+
 ## [1.3.0] - 2025-10-03
 
 
