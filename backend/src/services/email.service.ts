@@ -104,7 +104,7 @@ export async function sendProjectUpdateEmail(data: EmailNotificationData) {
 
     <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
       Staffing Tracker<br>
-      Kirkland & Ellis<br>
+      Asia CM Team<br>
       <a href="${appUrl}" style="color: #2563eb; text-decoration: none;">asia-cm.team</a>
     </p>
 
@@ -131,7 +131,7 @@ View Project: ${appUrl}/projects/${projectId}
 
 ---
 Staffing Tracker
-Kirkland & Ellis
+Asia CM Team
   `;
 
   try {

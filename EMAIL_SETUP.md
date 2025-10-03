@@ -159,7 +159,7 @@ View Project: https://asia-cm.team/projects/123
 
 ---
 Staffing Tracker
-Kirkland & Ellis
+Asia CM Team
 ```
 
 **Note**: All notification emails automatically BCC mengyu.lu@kirkland.hk for monitoring and oversight. This BCC is hidden from recipients.
