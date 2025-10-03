@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Grid,
   Typography,
@@ -6,6 +6,7 @@ import {
   Paper,
   Stack,
   Chip,
+  Button,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -239,88 +240,160 @@ const StaffingHeatmapCard = ({
   weeks: string[];
   groups: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }>;
   onSelectStaff: (id: number) => void;
-}) => (
-  <Paper sx={{ p: 3, height: '100%' }}>
-    <Typography variant="h6" fontWeight={700} gutterBottom>
-      Staffing Heatmap (Next 30 Days)
-    </Typography>
-    {groups.length === 0 ? (
-      <Typography color="text.secondary">No staffing data for upcoming milestones.</Typography>
-    ) : (
-      <Stack spacing={1.5}>
-        {groups.map((group) => (
-          <Accordion key={group.label} defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {group.label}
-                </Typography>
-                <Chip label={`${group.count} staff`} size="small" />
-              </Stack>
-            </AccordionSummary>
-            <AccordionDetails>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      {weeks.map((week) => (
-                        <TableCell key={week} align="center">
-                          <Typography variant="caption" fontWeight={600}>
-                            {formatWeekLabel(week)}
-                          </Typography>
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {group.rows.map((row) => (
-                      <TableRow
-                        key={row.staffId}
-                        hover
-                        sx={{ cursor: 'pointer' }}
-                        onClick={() => onSelectStaff(row.staffId)}
-                      >
-                        <TableCell sx={{ minWidth: 160 }}>
-                          <Typography variant="body2" fontWeight={600} color="primary.main">
-                            {row.name}
-                          </Typography>
-                        </TableCell>
-                        {weeks.map((week) => {
-                          const match = row.weeks.find((w) => w.week === week);
-                          const count = match?.count ?? 0;
-                          return (
-                            <TableCell key={`${row.staffId}-${week}`} align="center">
-                              <Box
-                                sx={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: 1,
-                                  bgcolor: getHeatColor(count),
-                                  color: count > 0 ? 'white' : 'text.secondary',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {count > 0 ? count : ''}
-                              </Box>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </AccordionDetails>
-          </Accordion>
-        ))}
+}) => {
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setExpandedGroups((prev) => {
+      const next: Record<string, boolean> = {};
+      groups.forEach((group) => {
+        next[group.label] = prev[group.label] ?? true;
+      });
+      return next;
+    });
+  }, [groups]);
+
+  const expandAll = () => {
+    const next: Record<string, boolean> = {};
+    groups.forEach((group) => {
+      next[group.label] = true;
+    });
+    setExpandedGroups(next);
+  };
+
+  const collapseAll = () => {
+    const next: Record<string, boolean> = {};
+    groups.forEach((group) => {
+      next[group.label] = false;
+    });
+    setExpandedGroups(next);
+  };
+
+  const allExpanded = groups.length > 0 && groups.every((group) => expandedGroups[group.label]);
+  const allCollapsed = groups.length > 0 && groups.every((group) => expandedGroups[group.label] === false);
+
+  return (
+    <Paper sx={{ p: 3, height: '100%' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} spacing={2}>
+        <Typography variant="h6" fontWeight={700}>
+          Staffing Heatmap (Next 30 Days)
+        </Typography>
+        {groups.length > 0 && (
+          <Stack direction="row" spacing={1}>
+            <Button size="small" variant="text" onClick={expandAll} disabled={allExpanded}>
+              Expand all
+            </Button>
+            <Button size="small" variant="text" onClick={collapseAll} disabled={allCollapsed}>
+              Collapse all
+            </Button>
+          </Stack>
+        )}
       </Stack>
-    )}
-  </Paper>
-);
+      {groups.length === 0 ? (
+        <Typography color="text.secondary">No staffing data for upcoming milestones.</Typography>
+      ) : (
+        <Stack spacing={1}>
+          {groups.map((group) => (
+            <Accordion
+              key={group.label}
+              disableGutters
+              square
+              expanded={expandedGroups[group.label] ?? true}
+              onChange={(_, expanded) =>
+                setExpandedGroups((prev) => ({ ...prev, [group.label]: expanded }))
+              }
+              sx={{
+                '&:before': { display: 'none' },
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon fontSize="small" />}
+                sx={{
+                  minHeight: 40,
+                  '& .MuiAccordionSummary-content': {
+                    margin: 0,
+                    alignItems: 'center',
+                  },
+                }}
+              >
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    {group.label}
+                  </Typography>
+                  <Chip label={`${group.count} staff`} size="small" />
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
+                <TableContainer>
+                  <Table size="small" stickyHeader={false}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ py: 1 }}>Name</TableCell>
+                        {weeks.map((week) => (
+                          <TableCell key={week} align="center" sx={{ py: 1 }}>
+                            <Typography variant="caption" fontWeight={600}>
+                              {formatWeekLabel(week)}
+                            </Typography>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {group.rows.map((row) => (
+                        <TableRow
+                          key={row.staffId}
+                          hover
+                          sx={{
+                            cursor: 'pointer',
+                            '& .MuiTableCell-root': { py: 0.75 },
+                          }}
+                          onClick={() => onSelectStaff(row.staffId)}
+                        >
+                          <TableCell sx={{ minWidth: 150 }}>
+                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                              {row.name}
+                            </Typography>
+                          </TableCell>
+                          {weeks.map((week) => {
+                            const match = row.weeks.find((w) => w.week === week);
+                            const count = match?.count ?? 0;
+                            return (
+                              <TableCell key={`${row.staffId}-${week}`} align="center">
+                                <Box
+                                  sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 1,
+                                    bgcolor: getHeatColor(count),
+                                    color: count > 0 ? 'common.white' : 'text.secondary',
+                                    fontWeight: 600,
+                                    fontSize: '0.75rem',
+                                  }}
+                                >
+                                  {count > 0 ? count : ''}
+                                </Box>
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Stack>
+      )}
+    </Paper>
+  );
+};
 
 const getHeatColor = (count: number) => {
   if (count === 0) return 'grey.200';
