@@ -30,17 +30,11 @@ const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming }: Sum
   ];
 
   return (
-    <Stack
-      direction={{ xs: 'column', sm: 'row' }}
-      spacing={2}
-      sx={{ width: '100%', flexWrap: { sm: 'wrap', md: 'nowrap' } }}
-    >
+    <Stack spacing={2} sx={{ width: '100%' }}>
       {cards.map((card, index) => (
         <Paper
           key={index}
           sx={{
-            flex: 1,
-            minWidth: 0,
             p: 3,
             display: 'flex',
             alignItems: 'center',
