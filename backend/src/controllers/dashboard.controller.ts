@@ -141,13 +141,12 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
       return {
         staffId: member.id,
         name: member.name,
-        role: member.role,
+        position: member.position,
         department: member.department,
         totalProjects: member.assignments.length,
         projectsByCategory,
         assignments: member.assignments.map((a) => ({
           project: a.project.name,
-          role: a.roleInProject,
           jurisdiction: a.jurisdiction,
         })),
       };
@@ -222,7 +221,9 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
       listingDate: true,
       assignments: {
         where: {
-          roleInProject: 'Partner',
+          staff: {
+            position: 'Partner',
+          },
         },
         select: {
           staff: {
@@ -303,7 +304,7 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
         select: {
           id: true,
           name: true,
-          role: true,
+          position: true,
         },
       },
       project: {
@@ -335,7 +336,7 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
       });
   });
 
-  const staffMap = new Map<number, { id: number; name: string; role: string }>();
+  const staffMap = new Map<number, { id: number; name: string; position: string }>();
   assignments.forEach((assignment) => {
     if (assignment.staff) {
       staffMap.set(assignment.staff.id, assignment.staff);
@@ -353,7 +354,7 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
   return Array.from(staffMap.values()).map((staff) => ({
     staffId: staff.id,
     name: staff.name,
-    role: staff.role,
+    position: staff.position,
     weeks: weeks.map((week) => ({ week, count: heatmap[staff.id]?.[week] || 0 })),
   }));
 };
@@ -376,8 +377,12 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
       listingDate: true,
       assignments: {
         select: {
-          roleInProject: true,
           jurisdiction: true,
+          staff: {
+            select: {
+              position: true,
+            },
+          },
         },
       },
     },
@@ -386,10 +391,10 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
   return projects
     .map((project) => {
       const needsUSPartner = !project.assignments.some(
-        (assignment) => assignment.jurisdiction === 'US Law' && assignment.roleInProject === 'Partner'
+        (assignment) => assignment.jurisdiction === 'US Law' && assignment.staff?.position === 'Partner'
       );
       const needsHKPartner = !project.assignments.some(
-        (assignment) => assignment.jurisdiction === 'HK Law' && assignment.roleInProject === 'Partner'
+        (assignment) => assignment.jurisdiction === 'HK Law' && assignment.staff?.position === 'Partner'
       );
 
       const milestoneDate = project.filingDate || project.listingDate;

@@ -17,6 +17,7 @@ import { ArrowBack, Save } from '@mui/icons-material';
 import { Page } from '../components/ui';
 import { projectSchema, type ProjectFormData } from '../lib/validations';
 import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProjects';
+import { useStaff } from '../hooks/useStaff';
 
 const ProjectForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ const ProjectForm: React.FC = () => {
   const isEdit = id !== 'new';
 
   const { data: project, isLoading: projectLoading } = useProject(isEdit ? id! : '');
+  const { data: staffList = [], isLoading: staffLoading } = useStaff();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
 
@@ -105,183 +107,196 @@ const ProjectForm: React.FC = () => {
     >
       <Paper sx={{ p: 3 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Project Code"
-                {...register('name')}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                disabled={isSubmitting}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="category"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    select
-                    fullWidth
-                    label="Category"
-                    error={!!errors.category}
-                    helperText={errors.category?.message}
-                    disabled={isSubmitting}
-                  >
-                    <MenuItem value="HK Trx">HK Trx</MenuItem>
-                    <MenuItem value="US Trx">US Trx</MenuItem>
-                    <MenuItem value="HK Comp">HK Comp</MenuItem>
-                    <MenuItem value="US Comp">US Comp</MenuItem>
-                    <MenuItem value="Others">Others</MenuItem>
-                  </TextField>
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    select
-                    fullWidth
-                    label="Status"
-                    error={!!errors.status}
-                    helperText={errors.status?.message}
-                    disabled={isSubmitting}
-                  >
-                    <MenuItem value="Active">Active</MenuItem>
-                    <MenuItem value="Slow-down">Slow-down</MenuItem>
-                    <MenuItem value="Suspended">Suspended</MenuItem>
-                  </TextField>
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="priority"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    select
-                    fullWidth
-                    label="Priority"
-                    error={!!errors.priority}
-                    helperText={errors.priority?.message}
-                    disabled={isSubmitting}
-                  >
-                    <MenuItem value="High">High</MenuItem>
-                    <MenuItem value="Medium">Medium</MenuItem>
-                    <MenuItem value="Low">Low</MenuItem>
-                  </TextField>
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="EL Status"
-                {...register('elStatus')}
-                error={!!errors.elStatus}
-                helperText={errors.elStatus?.message}
-                disabled={isSubmitting}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="timetable"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    select
-                    fullWidth
-                    label="Timetable"
-                    error={!!errors.timetable}
-                    helperText={errors.timetable?.message}
-                    disabled={isSubmitting}
-                  >
-                    <MenuItem value="">None</MenuItem>
-                    <MenuItem value="PRE_A1">Pre-A1</MenuItem>
-                    <MenuItem value="A1">A1</MenuItem>
-                    <MenuItem value="HEARING">Hearing</MenuItem>
-                    <MenuItem value="LISTING">Listing</MenuItem>
-                  </TextField>
-                )}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Filing Date"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                {...register('filingDate')}
-                error={!!errors.filingDate}
-                helperText={errors.filingDate?.message}
-                disabled={isSubmitting}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Listing Date"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                {...register('listingDate')}
-                error={!!errors.listingDate}
-                helperText={errors.listingDate?.message}
-                disabled={isSubmitting}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="B&C Attorney"
-                {...register('bcAttorney')}
-                error={!!errors.bcAttorney}
-                helperText={errors.bcAttorney?.message}
-                disabled={isSubmitting}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Notes"
-                {...register('notes')}
-                error={!!errors.notes}
-                helperText={errors.notes?.message}
-                disabled={isSubmitting}
-              />
-            </Grid>
+          <Stack spacing={2}>
+            <TextField
+              fullWidth
+              label="Project Code"
+              {...register('name')}
+              error={!!errors.name}
+              helperText={errors.name?.message}
+              disabled={isSubmitting}
+            />
 
-            <Grid item xs={12}>
-              <Box display="flex" gap={2}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
+            <Controller
+              name="category"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="Category"
+                  error={!!errors.category}
+                  helperText={errors.category?.message}
                   disabled={isSubmitting}
                 >
-                  {isEdit ? 'Update' : 'Create'} Project
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/projects')}
+                  <MenuItem value="HK Trx">HK Trx</MenuItem>
+                  <MenuItem value="US Trx">US Trx</MenuItem>
+                  <MenuItem value="HK Comp">HK Comp</MenuItem>
+                  <MenuItem value="US Comp">US Comp</MenuItem>
+                  <MenuItem value="Others">Others</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="Status"
+                  error={!!errors.status}
+                  helperText={errors.status?.message}
                   disabled={isSubmitting}
                 >
-                  Cancel
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Slow-down">Slow-down</MenuItem>
+                  <MenuItem value="Suspended">Suspended</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="priority"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="Priority"
+                  error={!!errors.priority}
+                  helperText={errors.priority?.message}
+                  disabled={isSubmitting}
+                >
+                  <MenuItem value="High">High</MenuItem>
+                  <MenuItem value="Medium">Medium</MenuItem>
+                  <MenuItem value="Low">Low</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="elStatus"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="EL Status"
+                  error={!!errors.elStatus}
+                  helperText={errors.elStatus?.message}
+                  disabled={isSubmitting}
+                  value={field.value || ''}
+                >
+                  <MenuItem value="Signed">Signed</MenuItem>
+                  <MenuItem value="Not Signed">Not Signed</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="timetable"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  value={field.value || ''}
+                  select
+                  fullWidth
+                  label="Timetable"
+                  error={!!errors.timetable}
+                  helperText={errors.timetable?.message}
+                  disabled={isSubmitting}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  <MenuItem value="PRE_A1">Pre-A1</MenuItem>
+                  <MenuItem value="A1">A1</MenuItem>
+                  <MenuItem value="HEARING">Hearing</MenuItem>
+                  <MenuItem value="LISTING">Listing</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <TextField
+              fullWidth
+              label="Filing Date"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              {...register('filingDate')}
+              error={!!errors.filingDate}
+              helperText={errors.filingDate?.message}
+              disabled={isSubmitting}
+            />
+
+            <TextField
+              fullWidth
+              label="Listing Date"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              {...register('listingDate')}
+              error={!!errors.listingDate}
+              helperText={errors.listingDate?.message}
+              disabled={isSubmitting}
+            />
+
+            <Controller
+              name="bcAttorney"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="B&C Attorney"
+                  error={!!errors.bcAttorney}
+                  helperText={errors.bcAttorney?.message}
+                  disabled={isSubmitting || staffLoading}
+                  value={field.value || ''}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  {staffList.map((staff) => (
+                    <MenuItem key={staff.id} value={staff.name}>
+                      {staff.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Notes"
+              {...register('notes')}
+              error={!!errors.notes}
+              helperText={errors.notes?.message}
+              disabled={isSubmitting}
+            />
+
+            <Box display="flex" gap={2} pt={1}>
+              <Button
+                type="submit"
+                variant="contained"
+                startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
+                disabled={isSubmitting}
+              >
+                {isEdit ? 'Update' : 'Create'} Project
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/projects')}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Stack>
         </form>
       </Paper>
     </Page>

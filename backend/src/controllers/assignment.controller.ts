@@ -87,15 +87,14 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
     const {
       projectId,
       staffId,
-      roleInProject,
       jurisdiction,
       startDate,
       endDate,
       notes,
     } = req.body;
 
-    if (!projectId || !staffId || !roleInProject) {
-      return res.status(400).json({ error: 'ProjectId, staffId, and roleInProject are required' });
+    if (!projectId || !staffId) {
+      return res.status(400).json({ error: 'ProjectId and staffId are required' });
     }
 
     // Verify project and staff exist
@@ -116,7 +115,7 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       data: {
         projectId,
         staffId,
-        roleInProject,
+        
         jurisdiction,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
@@ -135,12 +134,12 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
         actionType: 'assign',
         entityType: 'assignment',
         entityId: assignment.id,
-        description: `Assigned ${staff.name} to ${project.name} as ${roleInProject}`,
+        description: `Assigned ${staff.name} to ${project.name}`,
       },
     });
 
     // Track assignment change
-    const assignmentDetails = `${staff.name} as ${roleInProject}${jurisdiction ? ` (${jurisdiction})` : ''}`;
+    const assignmentDetails = `${staff.name} (${staff.position})${jurisdiction ? ` - ${jurisdiction}` : ''}`;
     await trackAssignmentChange(
       projectId,
       staffId,
@@ -163,7 +162,6 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {
-      roleInProject,
       jurisdiction,
       startDate,
       endDate,
@@ -182,7 +180,6 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
     const assignment = await prisma.projectAssignment.update({
       where: { id: parseInt(id) },
       data: {
-        ...(roleInProject && { roleInProject }),
         ...(jurisdiction !== undefined && { jurisdiction }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
@@ -230,7 +227,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
     });
 
     // Track assignment removal
-    const assignmentDetails = `${assignment.staff.name} as ${assignment.roleInProject}${assignment.jurisdiction ? ` (${assignment.jurisdiction})` : ''}`;
+    const assignmentDetails = `${assignment.staff.name} (${assignment.staff.position})${assignment.jurisdiction ? ` - ${assignment.jurisdiction}` : ''}`;
     await trackAssignmentChange(
       assignment.projectId,
       assignment.staffId,
@@ -271,11 +268,10 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
       const {
         projectId,
         staffId,
-        roleInProject,
         jurisdiction,
       } = assignmentData;
 
-      if (!projectId || !staffId || !roleInProject) {
+      if (!projectId || !staffId) {
         continue; // Skip invalid entries
       }
 
@@ -284,7 +280,6 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
           data: {
             projectId,
             staffId,
-            roleInProject,
             jurisdiction,
           },
           include: {

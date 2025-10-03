@@ -151,10 +151,10 @@ const ProjectDetail: React.FC = () => {
   const roleOrder = ['Partner', 'Associate', 'Senior FLIC', 'Junior FLIC', 'Intern'];
 
   const teamAssignments = (project.assignments ?? [])
-    .filter((assignment) => assignment.jurisdiction !== 'B&C' && assignment.roleInProject !== 'B&C Working Attorney')
+    .filter((assignment) => assignment.jurisdiction !== 'B&C' && assignment.staff?.position !== 'B&C Working Attorney')
     .sort((a, b) => {
-      const roleA = roleOrder.indexOf(a.roleInProject);
-      const roleB = roleOrder.indexOf(b.roleInProject);
+      const roleA = roleOrder.indexOf(a.staff?.position || '');
+      const roleB = roleOrder.indexOf(b.staff?.position || '');
 
       // If roles are different, sort by role order
       if (roleA !== roleB) {
@@ -418,7 +418,7 @@ const ProjectDetail: React.FC = () => {
                   <TableBody>
                     {teamAssignments.map((assignment) => (
                       <TableRow key={assignment.id} hover>
-                        <TableCell>{assignment.roleInProject}</TableCell>
+                        <TableCell>{assignment.staff?.position || '—'}</TableCell>
                         <TableCell sx={{ cursor: 'pointer' }} onClick={() => navigate(`/staff/${assignment.staffId}`)}>
                           <Typography variant="body2" fontWeight={600} color="primary.main">
                             {assignment.staff?.name || '—'}

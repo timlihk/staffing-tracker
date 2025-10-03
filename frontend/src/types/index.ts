@@ -11,7 +11,7 @@ export interface Staff {
   id: number;
   name: string;
   email?: string;
-  role: string;
+  position: string;
   department?: string;
   status: string;
   notes?: string;
@@ -43,7 +43,6 @@ export interface ProjectAssignment {
   id: number;
   projectId: number;
   staffId: number;
-  roleInProject: string;
   jurisdiction?: string;
   startDate?: string;
   endDate?: string;
@@ -99,7 +98,7 @@ export interface DashboardSummary {
   staffingHeatmap: Array<{
     staffId: number;
     name: string;
-    role: string;
+    position: string;
     weeks: Array<{ week: string; count: number }>;
   }>;
   actionItems: {

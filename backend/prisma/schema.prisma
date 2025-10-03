@@ -38,8 +38,8 @@ model Staff {
   id         Int       @id @default(autoincrement())
   name       String
   email      String?   @unique
-  role       String    // Income Partner, Associate, Senior FLIC, Junior FLIC, Intern
-  department String?   // US Law, HK Law
+  position   String    // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
+  department String?   // US Law, HK Law, B&C
   status     String    @default("active") // active, inactive, leaving
   notes      String?   @db.Text
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -83,21 +83,20 @@ model Project {
 }
 
 model ProjectAssignment {
-  id            Int       @id @default(autoincrement())
-  projectId     Int       @map("project_id")
-  staffId       Int       @map("staff_id")
-  roleInProject String    @map("role_in_project") // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
-  jurisdiction  String?   // US Law, HK Law, B&C
-  startDate     DateTime? @map("start_date")
-  endDate       DateTime? @map("end_date")
-  notes         String?   @db.Text
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id           Int       @id @default(autoincrement())
+  projectId    Int       @map("project_id")
+  staffId      Int       @map("staff_id")
+  jurisdiction String?   // US Law, HK Law, B&C
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, staffId, roleInProject, jurisdiction])
+  @@unique([projectId, staffId, jurisdiction])
   @@index([projectId])
   @@index([staffId])
   @@map("project_assignments")
@@ -124,7 +123,7 @@ model ProjectChangeHistory {
 model StaffChangeHistory {
   id          Int      @id @default(autoincrement())
   staffId     Int      @map("staff_id")
-  fieldName   String   @map("field_name") // name, role, department, status, email, notes
+  fieldName   String   @map("field_name") // name, position, department, status, email, notes
   oldValue    String?  @map("old_value") @db.Text
   newValue    String?  @map("new_value") @db.Text
   changeType  String   @map("change_type") // update, assignment_added, assignment_removed

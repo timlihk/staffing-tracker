@@ -94,17 +94,35 @@ const StaffDetail: React.FC = () => {
     (a) => a.project?.status === 'Active' || a.project?.status === 'Slow-down'
   );
 
-  const getSortableValue = (assignment: typeof assignments[number], field: 'projectName' | 'filingDate' | 'listingDate') => {
+  // Group assignments by project
+  const groupedAssignments = assignments.reduce((acc, assignment) => {
+    const projectId = assignment.projectId;
+    if (!acc[projectId]) {
+      acc[projectId] = {
+        project: assignment.project,
+        projectId,
+        jurisdictions: [],
+      };
+    }
+    if (assignment.jurisdiction) {
+      acc[projectId].jurisdictions.push(assignment.jurisdiction);
+    }
+    return acc;
+  }, {} as Record<number, { project: any; projectId: number; jurisdictions: string[] }>);
+
+  const groupedList = Object.values(groupedAssignments);
+
+  const getSortableValue = (item: typeof groupedList[number], field: 'projectName' | 'filingDate' | 'listingDate') => {
     if (field === 'projectName') {
-      return assignment.project?.name || '';
+      return item.project?.name || '';
     }
     if (field === 'filingDate') {
-      return assignment.project?.filingDate || '';
+      return item.project?.filingDate || '';
     }
-    return assignment.project?.listingDate || '';
+    return item.project?.listingDate || '';
   };
 
-  const sortedAssignments = [...assignments].sort((a, b) => {
+  const sortedAssignments = [...groupedList].sort((a, b) => {
     const valueA = getSortableValue(a, orderBy);
     const valueB = getSortableValue(b, orderBy);
 
@@ -151,182 +169,177 @@ const StaffDetail: React.FC = () => {
           </Button>
         }
       />
-      <Grid container spacing={2}>
-        {/* First Row: Staff Information + Active Projects Count */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Role
-                </Typography>
-                <Typography>{staff.role}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Department
-                </Typography>
-                <Typography>{staff.department || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Email
-                </Typography>
-                <Typography>{staff.email || '-'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Active Projects
-                </Typography>
-                <Typography variant="h6">{activeProjects.length}</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Notes
-                </Typography>
-                <Typography>{staff.notes || 'No notes available'}</Typography>
-              </Grid>
+      <Stack spacing={2}>
+        {/* Staff Information */}
+        <Paper sx={{ p: 2 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Position
+              </Typography>
+              <Typography>{staff.position}</Typography>
             </Grid>
-          </Paper>
-        </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Department
+              </Typography>
+              <Typography>{staff.department || '-'}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Email
+              </Typography>
+              <Typography>{staff.email || '-'}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Active Projects
+              </Typography>
+              <Typography variant="h6">{activeProjects.length}</Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Notes
+              </Typography>
+              <Typography>{staff.notes || 'No notes available'}</Typography>
+            </Grid>
+          </Grid>
+        </Paper>
 
-        {/* Projects Table */}
-        <Grid item xs={12}>
-          <Section title="Project Assignments">
-            {sortedAssignments.length > 0 ? (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>
-                        <TableSortLabel
-                          active={orderBy === 'projectName'}
-                          direction={orderBy === 'projectName' ? order : 'asc'}
-                          onClick={() => handleSort('projectName')}
-                        >
-                          Project Name
-                        </TableSortLabel>
-                      </TableCell>
-                      <TableCell>
-                        <TableSortLabel
-                          active={orderBy === 'filingDate'}
-                          direction={orderBy === 'filingDate' ? order : 'asc'}
-                          onClick={() => handleSort('filingDate')}
-                        >
-                          Filing Date
-                        </TableSortLabel>
-                      </TableCell>
-                      <TableCell>
-                        <TableSortLabel
-                          active={orderBy === 'listingDate'}
-                          direction={orderBy === 'listingDate' ? order : 'asc'}
-                          onClick={() => handleSort('listingDate')}
-                        >
-                          Listing Date
-                        </TableSortLabel>
-                      </TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell>Jurisdiction</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {sortedAssignments.map((assignment) => (
-                      <TableRow
-                        key={assignment.id}
-                        hover
-                        sx={{ cursor: 'pointer' }}
-                        onClick={() => navigate(`/projects/${assignment.projectId}`)}
-                      >
+        {/* Projects Table and Change History */}
+        <Box>
+          <Stack spacing={3}>
+            <Section title="Project Assignments">
+              {sortedAssignments.length > 0 ? (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
                         <TableCell>
-                          <Typography variant="body2">{assignment.project?.name}</Typography>
+                          <TableSortLabel
+                            active={orderBy === 'projectName'}
+                            direction={orderBy === 'projectName' ? order : 'asc'}
+                            onClick={() => handleSort('projectName')}
+                          >
+                            Project Name
+                          </TableSortLabel>
                         </TableCell>
                         <TableCell>
-                          {assignment.project?.filingDate
-                            ? assignment.project.filingDate.slice(0, 10)
-                            : '-'}
+                          <TableSortLabel
+                            active={orderBy === 'filingDate'}
+                            direction={orderBy === 'filingDate' ? order : 'asc'}
+                            onClick={() => handleSort('filingDate')}
+                          >
+                            Filing Date
+                          </TableSortLabel>
                         </TableCell>
                         <TableCell>
-                          {assignment.project?.listingDate
-                            ? assignment.project.listingDate.slice(0, 10)
-                            : '-'}
+                          <TableSortLabel
+                            active={orderBy === 'listingDate'}
+                            direction={orderBy === 'listingDate' ? order : 'asc'}
+                            onClick={() => handleSort('listingDate')}
+                          >
+                            Listing Date
+                          </TableSortLabel>
                         </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={assignment.project?.status}
-                            color={
-                              assignment.project?.status === 'Active'
-                                ? 'success'
-                                : assignment.project?.status === 'Slow-down'
-                                  ? 'warning'
-                                  : 'error'
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{assignment.project?.category}</TableCell>
-                        <TableCell>{assignment.roleInProject}</TableCell>
-                        <TableCell>{assignment.jurisdiction || '-'}</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Category</TableCell>
+                        <TableCell>Jurisdiction</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No project assignments
-              </Typography>
-            )}
-          </Section>
-        </Grid>
+                    </TableHead>
+                    <TableBody>
+                      {sortedAssignments.map((item) => (
+                        <TableRow
+                          key={item.projectId}
+                          hover
+                          sx={{ cursor: 'pointer' }}
+                          onClick={() => navigate(`/projects/${item.projectId}`)}
+                        >
+                          <TableCell>
+                            <Typography variant="body2">{item.project?.name}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            {item.project?.filingDate
+                              ? item.project.filingDate.slice(0, 10)
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {item.project?.listingDate
+                              ? item.project.listingDate.slice(0, 10)
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={item.project?.status}
+                              color={
+                                item.project?.status === 'Active'
+                                  ? 'success'
+                                  : item.project?.status === 'Slow-down'
+                                    ? 'warning'
+                                    : 'error'
+                              }
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{item.project?.category}</TableCell>
+                          <TableCell>{item.jurisdictions.length > 0 ? item.jurisdictions.join(', ') : '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No project assignments
+                </Typography>
+              )}
+            </Section>
 
-        {/* Change History */}
-        <Grid item xs={12}>
-          <Section title="Change History">
-            {changeHistory.length > 0 ? (
-              <List>
-                {changeHistory.map((change) => (
-                  <ListItem key={change.id}>
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      {getActionIcon(change.changeType)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box>
-                          <Typography variant="body2" component="span" fontWeight="medium">
-                            {change.fieldName}:{' '}
-                          </Typography>
-                          <Typography variant="body2" component="span" color="text.secondary">
-                            {change.oldValue || '(empty)'}
-                          </Typography>
-                          <Typography variant="body2" component="span">
-                            {' '}
-                            →{' '}
-                          </Typography>
-                          <Typography variant="body2" component="span" color="primary">
-                            {change.newValue || '(empty)'}
-                          </Typography>
-                        </Box>
-                      }
-                      secondary={
-                        <>
-                          {new Date(change.changedAt).toLocaleString()}
-                          {change.username && ` • by ${change.username}`}
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No changes recorded
-              </Typography>
-            )}
-          </Section>
-        </Grid>
-      </Grid>
+            <Section title="Change History">
+              {changeHistory.length > 0 ? (
+                <List>
+                  {changeHistory.map((change) => (
+                    <ListItem key={change.id}>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
+                        {getActionIcon(change.changeType)}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Box>
+                            <Typography variant="body2" component="span" fontWeight="medium">
+                              {change.fieldName}:{' '}
+                            </Typography>
+                            <Typography variant="body2" component="span" color="text.secondary">
+                              {change.oldValue || '(empty)'}
+                            </Typography>
+                            <Typography variant="body2" component="span">
+                              {' '}
+                              →{' '}
+                            </Typography>
+                            <Typography variant="body2" component="span" color="primary">
+                              {change.newValue || '(empty)'}
+                            </Typography>
+                          </Box>
+                        }
+                        secondary={
+                          <>
+                            {new Date(change.changedAt).toLocaleString()}
+                            {change.username && ` • by ${change.username}`}
+                          </>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No changes recorded
+                </Typography>
+              )}
+            </Section>
+          </Stack>
+        </Box>
+      </Stack>
     </Page>
   );
 };

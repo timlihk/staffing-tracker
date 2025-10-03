@@ -395,7 +395,7 @@ const groupHeatmapByRole = (heatmap: DashboardSummary['staffingHeatmap']) => {
   const map = new Map<string, DashboardSummary['staffingHeatmap']>();
 
   heatmap.forEach((row) => {
-    const key = order.includes(row.role) ? row.role : 'Other Roles';
+    const key = order.includes(row.position) ? row.position : 'Other Roles';
     if (!map.has(key)) {
       map.set(key, []);
     }

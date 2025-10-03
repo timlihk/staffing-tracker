@@ -45,7 +45,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
 
   // Staff filters
   if (staffRoles?.length) {
-    where.staff = { role: { in: staffRoles } };
+    where.staff = { position: { in: staffRoles } };
   }
 
   // Jurisdiction filter
@@ -74,7 +74,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
       staff: {
         select: {
           name: true,
-          role: true,
+          position: true,
           department: true,
         },
       },
@@ -102,9 +102,8 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     filingDate: a.project.filingDate?.toISOString() || null,
     listingDate: a.project.listingDate?.toISOString() || null,
     staffName: a.staff.name,
-    staffRole: a.staff.role,
+    staffRole: a.staff.position,
     staffDepartment: a.staff.department,
-    roleInProject: a.roleInProject,
     jurisdiction: a.jurisdiction,
     startDate: a.startDate?.toISOString() || null,
     endDate: a.endDate?.toISOString() || null,

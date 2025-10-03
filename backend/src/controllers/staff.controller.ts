@@ -9,7 +9,7 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
 
     const where: any = {};
 
-    if (role) where.role = role;
+    if (role) where.position = role;
     if (department) where.department = department;
     if (status) where.status = status;
     if (search) {
@@ -84,7 +84,7 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
       data: {
         name,
         email,
-        role,
+        position: role,
         department,
         status: status || 'active',
         notes,
@@ -125,11 +125,11 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     // Build update data
     const updateData: any = {};
     if (name) updateData.name = name;
-    if (email !== undefined) updateData.email = email;
-    if (role) updateData.role = role;
-    if (department !== undefined) updateData.department = department;
+    if (email !== undefined) updateData.email = email === '' ? null : email;
+    if (role) updateData.position = role;
+    if (department !== undefined) updateData.department = department === '' ? null : department;
     if (status) updateData.status = status;
-    if (notes !== undefined) updateData.notes = notes;
+    if (notes !== undefined) updateData.notes = notes === '' ? null : notes;
 
     // Track all field changes
     await trackFieldChanges({
@@ -157,8 +157,13 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     });
 
     res.json(staff);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update staff error:', error);
+    if (error.code === 'P2002') {
+      // Unique constraint violation
+      const field = error.meta?.target?.[0] || 'field';
+      return res.status(400).json({ error: `This ${field} is already in use by another staff member` });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -238,7 +243,7 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
       staff: {
         id: staff.id,
         name: staff.name,
-        role: staff.role,
+        position: staff.position,
       },
       activeProjects: staff.assignments?.length || 0,
       projectsByCategory,

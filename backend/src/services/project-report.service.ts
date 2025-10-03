@@ -63,7 +63,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
           staff: {
             select: {
               name: true,
-              role: true,
+              position: true,
             },
           },
         },
@@ -80,10 +80,10 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
   const rows: ProjectReportRow[] = projects.map(project => {
     const assignments = project.assignments || [];
 
-    // Helper to get staff names by jurisdiction and role
-    const getStaffByJurisdictionAndRole = (jurisdiction: string, role: string): string | null => {
+    // Helper to get staff names by jurisdiction and position
+    const getStaffByJurisdictionAndPosition = (jurisdiction: string, position: string): string | null => {
       const matches = assignments.filter(
-        a => a.jurisdiction === jurisdiction && a.roleInProject === role
+        a => a.jurisdiction === jurisdiction && a.staff.position === position
       );
       if (matches.length === 0) return null;
       return matches.map(m => m.staff.name).join(', ');
@@ -100,23 +100,23 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
       listingDate: project.listingDate ? project.listingDate.toISOString() : null,
 
       // US Law team
-      usLawPartner: getStaffByJurisdictionAndRole('US Law', 'Partner'),
-      usLawAssociate: getStaffByJurisdictionAndRole('US Law', 'Associate'),
-      usLawSeniorFlic: getStaffByJurisdictionAndRole('US Law', 'Senior FLIC'),
-      usLawJuniorFlic: getStaffByJurisdictionAndRole('US Law', 'Junior FLIC'),
-      usLawIntern: getStaffByJurisdictionAndRole('US Law', 'Intern'),
+      usLawPartner: getStaffByJurisdictionAndPosition('US Law', 'Partner'),
+      usLawAssociate: getStaffByJurisdictionAndPosition('US Law', 'Associate'),
+      usLawSeniorFlic: getStaffByJurisdictionAndPosition('US Law', 'Senior FLIC'),
+      usLawJuniorFlic: getStaffByJurisdictionAndPosition('US Law', 'Junior FLIC'),
+      usLawIntern: getStaffByJurisdictionAndPosition('US Law', 'Intern'),
 
       // HK Law team
-      hkLawPartner: getStaffByJurisdictionAndRole('HK Law', 'Partner'),
-      hkLawAssociate: getStaffByJurisdictionAndRole('HK Law', 'Associate'),
-      hkLawSeniorFlic: getStaffByJurisdictionAndRole('HK Law', 'Senior FLIC'),
-      hkLawJuniorFlic: getStaffByJurisdictionAndRole('HK Law', 'Junior FLIC'),
-      hkLawIntern: getStaffByJurisdictionAndRole('HK Law', 'Intern'),
+      hkLawPartner: getStaffByJurisdictionAndPosition('HK Law', 'Partner'),
+      hkLawAssociate: getStaffByJurisdictionAndPosition('HK Law', 'Associate'),
+      hkLawSeniorFlic: getStaffByJurisdictionAndPosition('HK Law', 'Senior FLIC'),
+      hkLawJuniorFlic: getStaffByJurisdictionAndPosition('HK Law', 'Junior FLIC'),
+      hkLawIntern: getStaffByJurisdictionAndPosition('HK Law', 'Intern'),
 
       // B&C attorney - use direct field or fallback to assignments
       bcAttorney:
         project.bcAttorney ||
-        getStaffByJurisdictionAndRole('B&C', 'B&C Working Attorney'),
+        getStaffByJurisdictionAndPosition('B&C', 'B&C Working Attorney'),
 
       // Milestone and notes
       milestone: project.timetable,
