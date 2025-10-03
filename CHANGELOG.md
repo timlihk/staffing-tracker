@@ -12,12 +12,14 @@ All notable changes to the Staffing Tracker application will be documented in th
 - ✨ Global error boundary for graceful error handling
 - ✨ Clickable rows in Project Report for navigation to project details
 - 📊 Restructured StaffDetail page with horizontal layout
+- 📝 Added frontend `.env` configuration for localhost development
 
 ### Fixed
 - 🐛 Fixed CircularProgress errors in production (removed orphaned imports from Projects.tsx and Staff.tsx)
 - 🐛 Fixed project navigation from Project Report using real database IDs
 - 🐛 Fixed project-report.service.ts to include projectId in response
 - 🐛 Fixed TypeScript compilation errors preventing deployment (removed all isLead references)
+- 🐛 Fixed localhost development environment by creating frontend `.env` file and regenerating Prisma client
 
 ### Changed
 - 🔄 **BREAKING**: Completely removed "Lead" field from application
