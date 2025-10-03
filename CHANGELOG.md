@@ -2,6 +2,16 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.7.1] - 2025-10-04
+
+### Changed
+- 🏢 Removed "B&C" as a valid department option for staff - only "US Law" and "HK Law" are now available.
+- 🔍 Updated staff list page filter to use "Position" terminology instead of "Role".
+
+### Fixed
+- 🐛 Fixed position filtering on staff list page - backend now correctly accepts 'position' query parameter.
+- 🎨 Fixed staff table not displaying position values due to field name mismatch.
+
 ## [1.7.0] - 2025-10-04
 
 ### Changed
