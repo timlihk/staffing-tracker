@@ -1,7 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import type { User, LoginRequest, LoginResponse } from '../types';
+import { toast } from '../lib/toast';
+
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
 
 interface LoginResult {
   requiresPasswordReset: boolean;
@@ -23,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Check if user is logged in
@@ -58,11 +63,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    queryClient.clear();
     setUser(null);
-  };
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const activityEvents: Array<keyof WindowEventMap> = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const handleInactivityLogout = () => {
+      toast.info('Session expired', 'You were logged out after 30 minutes of inactivity.');
+      logout();
+    };
+
+    const resetTimer = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = window.setTimeout(handleInactivityLogout, INACTIVITY_TIMEOUT_MS);
+    };
+
+    activityEvents.forEach((event) => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      activityEvents.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, [user, logout]);
 
   return (
     <AuthContext.Provider
