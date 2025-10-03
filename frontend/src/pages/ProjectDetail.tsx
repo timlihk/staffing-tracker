@@ -79,7 +79,7 @@ const ProjectDetail: React.FC = () => {
       staffList.map((member) => ({
         id: member.id,
         name: member.name,
-        role: member.role,
+        role: member.position,
         department: member.department,
       })),
     [staffList]
@@ -236,7 +236,6 @@ const ProjectDetail: React.FC = () => {
         const created = await createAssignment.mutateAsync({
           projectId: project.id,
           staffId: Number(values.staffId),
-          roleInProject: selectedStaff.role,
           jurisdiction: values.jurisdiction || selectedStaff.department || undefined,
           notes: values.notes || undefined,
         });
@@ -654,7 +653,7 @@ const TeamMemberDialog = ({
               }}
             >
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                Role: {selectedStaff.role}
+                Position: {selectedStaff.role}
               </Typography>
             </Box>
           )}

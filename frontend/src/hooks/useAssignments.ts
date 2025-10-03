@@ -6,7 +6,6 @@ import type { ProjectAssignment } from '../types';
 interface CreateAssignmentInput {
   projectId: number;
   staffId: number;
-  roleInProject: string;
   jurisdiction?: string;
   startDate?: string | null;
   endDate?: string | null;
@@ -16,7 +15,6 @@ interface CreateAssignmentInput {
 interface UpdateAssignmentInput {
   id: number;
   data: {
-    roleInProject?: string;
     jurisdiction?: string | null;
     startDate?: string | null;
     endDate?: string | null;

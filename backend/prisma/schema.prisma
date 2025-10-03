@@ -16,16 +16,16 @@ datasource db {
 // Core Models
 
 model User {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  role         String    @default("viewer") // admin, editor, viewer
-  mustResetPassword Boolean @default(false) @map("must_reset_password")
-  staffId      Int?      @map("staff_id")
-  staff        Staff?    @relation(fields: [staffId], references: [id])
-  lastLogin    DateTime? @map("last_login")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id                Int       @id @default(autoincrement())
+  username          String    @unique
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  role              String    @default("viewer") // admin, editor, viewer
+  mustResetPassword Boolean   @default(false) @map("must_reset_password")
+  staffId           Int?      @map("staff_id")
+  staff             Staff?    @relation(fields: [staffId], references: [id])
+  lastLogin         DateTime? @map("last_login")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   activityLogs   ActivityLog[]
   projectChanges ProjectChangeHistory[] @relation("ProjectChanges")
@@ -35,15 +35,15 @@ model User {
 }
 
 model Staff {
-  id         Int       @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   name       String
-  email      String?   @unique
-  position   String    // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
-  department String?   // US Law, HK Law, B&C
-  status     String    @default("active") // active, inactive, leaving
-  notes      String?   @db.Text
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  email      String?  @unique
+  position   String // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
+  department String? // US Law, HK Law, B&C
+  status     String   @default("active") // active, inactive, leaving
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   assignments   ProjectAssignment[]
   users         User[]
@@ -60,19 +60,19 @@ enum Timetable {
 }
 
 model Project {
-  id                Int         @id @default(autoincrement())
-  name              String      @unique // Project name (formerly projectCode)
-  category          String      // HK Trx, US Trx, HK Comp, US Comp, Others
-  status            String      // Active, Slow-down, Suspended
-  priority          String?     // High, Medium, Low
-  elStatus          String?     @map("el_status") // EL Status field
-  timetable         Timetable?  // Pre-A1, A1, Hearing, Listing
-  bcAttorney        String?     @map("bc_attorney") // B&C Attorney assigned to project
-  filingDate       DateTime?   @map("filing_date")
-  listingDate      DateTime?   @map("listing_date")
-  notes             String?     @db.Text
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // Project name (formerly projectCode)
+  category    String // HK Trx, US Trx, HK Comp, US Comp, Others
+  status      String // Active, Slow-down, Suspended
+  priority    String? // High, Medium, Low
+  elStatus    String?    @map("el_status") // EL Status field
+  timetable   Timetable? // Pre-A1, A1, Hearing, Listing
+  bcAttorney  String?    @map("bc_attorney") // B&C Attorney assigned to project
+  filingDate  DateTime?  @map("filing_date")
+  listingDate DateTime?  @map("listing_date")
+  notes       String?    @db.Text
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   assignments   ProjectAssignment[]
   changeHistory ProjectChangeHistory[] @relation("ProjectChangeHistory")
@@ -86,7 +86,7 @@ model ProjectAssignment {
   id           Int       @id @default(autoincrement())
   projectId    Int       @map("project_id")
   staffId      Int       @map("staff_id")
-  jurisdiction String?   // US Law, HK Law, B&C
+  jurisdiction String? // US Law, HK Law, B&C
   startDate    DateTime? @map("start_date")
   endDate      DateTime? @map("end_date")
   notes        String?   @db.Text
@@ -103,14 +103,14 @@ model ProjectAssignment {
 }
 
 model ProjectChangeHistory {
-  id          Int      @id @default(autoincrement())
-  projectId   Int      @map("project_id")
-  fieldName   String   @map("field_name") // name, priority, status, startDate, targetFilingDate, category, notes, etc.
-  oldValue    String?  @map("old_value") @db.Text
-  newValue    String?  @map("new_value") @db.Text
-  changeType  String   @map("change_type") // update, assignment_added, assignment_removed
-  changedBy   Int?     @map("changed_by")
-  changedAt   DateTime @default(now()) @map("changed_at")
+  id         Int      @id @default(autoincrement())
+  projectId  Int      @map("project_id")
+  fieldName  String   @map("field_name") // name, priority, status, startDate, targetFilingDate, category, notes, etc.
+  oldValue   String?  @map("old_value") @db.Text
+  newValue   String?  @map("new_value") @db.Text
+  changeType String   @map("change_type") // update, assignment_added, assignment_removed
+  changedBy  Int?     @map("changed_by")
+  changedAt  DateTime @default(now()) @map("changed_at")
 
   project Project @relation("ProjectChangeHistory", fields: [projectId], references: [id], onDelete: Cascade)
   user    User?   @relation("ProjectChanges", fields: [changedBy], references: [id])
@@ -121,14 +121,14 @@ model ProjectChangeHistory {
 }
 
 model StaffChangeHistory {
-  id          Int      @id @default(autoincrement())
-  staffId     Int      @map("staff_id")
-  fieldName   String   @map("field_name") // name, position, department, status, email, notes
-  oldValue    String?  @map("old_value") @db.Text
-  newValue    String?  @map("new_value") @db.Text
-  changeType  String   @map("change_type") // update, assignment_added, assignment_removed
-  changedBy   Int?     @map("changed_by")
-  changedAt   DateTime @default(now()) @map("changed_at")
+  id         Int      @id @default(autoincrement())
+  staffId    Int      @map("staff_id")
+  fieldName  String   @map("field_name") // name, position, department, status, email, notes
+  oldValue   String?  @map("old_value") @db.Text
+  newValue   String?  @map("new_value") @db.Text
+  changeType String   @map("change_type") // update, assignment_added, assignment_removed
+  changedBy  Int?     @map("changed_by")
+  changedAt  DateTime @default(now()) @map("changed_at")
 
   staff Staff @relation("StaffChangeHistory", fields: [staffId], references: [id], onDelete: Cascade)
   user  User? @relation("StaffChanges", fields: [changedBy], references: [id])
