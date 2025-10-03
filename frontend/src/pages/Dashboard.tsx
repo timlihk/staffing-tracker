@@ -344,103 +344,53 @@ const SegmentList = ({ title, items }: { title: string; items: string[] }) => (
 
 const ActionItemsCard = ({
   actionItems,
-  onManageUsers,
 }: {
   actionItems: DashboardSummary['actionItems'];
-  onManageUsers: () => void;
 }) => (
   <Paper sx={{ p: 3, height: '100%' }}>
-    <Stack spacing={3}>
-      <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-          <Typography variant="h6" fontWeight={700}>
-            Unstaffed Milestones
-          </Typography>
-        </Stack>
-        {actionItems.unstaffedMilestones.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            All upcoming filings/listings have partner coverage.
-          </Typography>
-        ) : (
-          <List dense>
-            {actionItems.unstaffedMilestones.slice(0, 5).map((item) => (
-              <ListItem key={item.projectId} alignItems="flex-start">
-                <ListItemText
-                  primary={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body1" fontWeight={600}>
-                        {item.projectName}
-                      </Typography>
-                      <Chip label={item.category} size="small" />
-                    </Stack>
-                  }
-                  secondary={
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(item.milestoneDate)} • {item.status}
-                      </Typography>
-                      {item.needsUSPartner && <Chip size="small" color="warning" label="Missing US Partner" />}
-                      {item.needsHKPartner && <Chip size="small" color="warning" label="Missing HK Partner" />}
-                    </Stack>
-                  }
-                />
-              </ListItem>
-            ))}
-            {actionItems.unstaffedMilestones.length > 5 && (
-              <ListItem>
-                <ListItemText
-                  primary={`${actionItems.unstaffedMilestones.length - 5} more milestones need attention`}
-                  primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                />
-              </ListItem>
-            )}
-          </List>
-        )}
-      </Box>
-
-      <Divider />
-
-      <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-          <Typography variant="h6" fontWeight={700}>
-            Pending Password Resets
-          </Typography>
-          <Button size="small" onClick={onManageUsers}>
-            Manage Users
-          </Button>
-        </Stack>
-        {actionItems.pendingResets.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            No users awaiting password setup.
-          </Typography>
-        ) : (
-          <List dense>
-            {actionItems.pendingResets.slice(0, 5).map((user) => (
-              <ListItem key={user.id}>
-                <ListItemText
-                  primary={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="body2" fontWeight={600}>
-                        {user.username}
-                      </Typography>
-                      <Chip label={user.role} size="small" />
-                    </Stack>
-                  }
-                  secondary={`Last login: ${formatDate(user.lastLogin)}`}
-                />
-              </ListItem>
-            ))}
-            {actionItems.pendingResets.length > 5 && (
-              <ListItem>
-                <ListItemText
-                  primary={`${actionItems.pendingResets.length - 5} more users pending`}
-                  primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                />
-              </ListItem>
-            )}
-          </List>
-        )}
-      </Box>
+    <Stack spacing={2}>
+      <Typography variant="h6" fontWeight={700}>
+        Unstaffed Milestones
+      </Typography>
+      {actionItems.unstaffedMilestones.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          All upcoming filings/listings have partner coverage.
+        </Typography>
+      ) : (
+        <List dense>
+          {actionItems.unstaffedMilestones.slice(0, 5).map((item) => (
+            <ListItem key={item.projectId} alignItems="flex-start">
+              <ListItemText
+                primary={
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body1" fontWeight={600}>
+                      {item.projectName}
+                    </Typography>
+                    <Chip label={item.category} size="small" />
+                  </Stack>
+                }
+                secondary={
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(item.milestoneDate)} • {item.status}
+                    </Typography>
+                    {item.needsUSPartner && <Chip size="small" color="warning" label="Missing US Partner" />}
+                    {item.needsHKPartner && <Chip size="small" color="warning" label="Missing HK Partner" />}
+                  </Stack>
+                }
+              />
+            </ListItem>
+          ))}
+          {actionItems.unstaffedMilestones.length > 5 && (
+            <ListItem>
+              <ListItemText
+                primary={`${actionItems.unstaffedMilestones.length - 5} more milestones need attention`}
+                primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+              />
+            </ListItem>
+          )}
+        </List>
+      )}
     </Stack>
   </Paper>
 );
