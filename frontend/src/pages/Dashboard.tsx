@@ -62,22 +62,17 @@ const Dashboard = () => {
 
   return (
     <Page title="Dashboard">
-      <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} sx={{ display: 'flex' }}>
-          <DealRadarCard
-            groups={dealRadarGroups}
-            onSelectProject={(id) => navigate(`/projects/${id}`)}
-          />
-        </Grid>
-
-        <Grid item xs={12} sx={{ display: 'flex' }}>
-          <StaffingHeatmapCard
-            weeks={heatmapWeeks}
-            groups={groupHeatmapByRole(data.staffingHeatmap)}
-            onSelectStaff={(id) => navigate(`/staff/${id}`)}
-          />
-        </Grid>
-      </Grid>
+      <Stack spacing={2}>
+        <DealRadarCard
+          groups={dealRadarGroups}
+          onSelectProject={(id) => navigate(`/projects/${id}`)}
+        />
+        <StaffingHeatmapCard
+          weeks={heatmapWeeks}
+          groups={groupHeatmapByRole(data.staffingHeatmap)}
+          onSelectStaff={(id) => navigate(`/staff/${id}`)}
+        />
+      </Stack>
     </Page>
   );
 };
@@ -144,7 +139,7 @@ const DealRadarCard = ({
             </Typography>
             <Grid container spacing={1.5}>
               {group.items.map((event) => (
-                <Grid item xs={12} md={6} key={`${event.projectId}-${event.type}`}>
+                <Grid item xs={12} key={`${event.projectId}-${event.type}`}>
                   <Paper
                     variant="outlined"
                     sx={{
