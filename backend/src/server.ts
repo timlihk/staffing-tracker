@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
@@ -17,13 +19,46 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Security Middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiter to all API routes
+app.use('/api/', limiter);
+
+// Stricter rate limit for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per windowMs
+  message: 'Too many login attempts, please try again later.',
+  skipSuccessfulRequests: true,
+});
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' })); // Add size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Routes
@@ -31,7 +66,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Staffing Tracker API is running' });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/assignments', assignmentRoutes);
