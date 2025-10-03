@@ -33,6 +33,7 @@ import {
 import api from '../api/client';
 import { Staff, ChangeHistory } from '../types';
 import { Page, Section, PageHeader } from '../components/ui';
+import { usePermissions } from '../hooks/usePermissions';
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -52,6 +53,7 @@ const getActionIcon = (actionType: string) => {
 const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const [staff, setStaff] = useState<Staff | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,15 +160,17 @@ const StaffDetail: React.FC = () => {
           </Stack>
         }
         actions={
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<Edit />}
-            onClick={() => navigate(`/staff/${id}/edit`)}
-            sx={{ height: 36 }}
-          >
-            Edit
-          </Button>
+          permissions.canEditStaff && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Edit />}
+              onClick={() => navigate(`/staff/${id}/edit`)}
+              sx={{ height: 36 }}
+            >
+              Edit
+            </Button>
+          )
         }
       />
       <Stack spacing={2}>

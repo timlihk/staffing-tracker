@@ -36,6 +36,7 @@ import api from '../api/client';
 import { Project, ChangeHistory, ProjectAssignment, Staff } from '../types';
 import { Page, Section, PageHeader } from '../components/ui';
 import { useStaff } from '../hooks/useStaff';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   useCreateAssignment,
   useUpdateAssignment,
@@ -66,6 +67,7 @@ const getActionIcon = (actionType: string) => {
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const [project, setProject] = useState<Project | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,9 +279,11 @@ const ProjectDetail: React.FC = () => {
           </Stack>
         }
         actions={
-          <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
-            Edit Project
-          </Button>
+          permissions.canEditProject && (
+            <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
+              Edit Project
+            </Button>
+          )
         }
       />
       <Stack spacing={3}>
@@ -388,20 +392,22 @@ const ProjectDetail: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 Team Members
               </Typography>
-              <Button
-                startIcon={<Add />}
-                variant="outlined"
-                size="small"
-                onClick={handleOpenAdd}
-                disabled={
-                  staffLoading ||
-                  staffOptions.length === 0 ||
-                  createAssignment.isPending ||
-                  updateAssignment.isPending
-                }
-              >
-                Add team member
-              </Button>
+              {permissions.canCreateAssignment && (
+                <Button
+                  startIcon={<Add />}
+                  variant="outlined"
+                  size="small"
+                  onClick={handleOpenAdd}
+                  disabled={
+                    staffLoading ||
+                    staffOptions.length === 0 ||
+                    createAssignment.isPending ||
+                    updateAssignment.isPending
+                  }
+                >
+                  Add team member
+                </Button>
+              )}
             </Stack>
             {teamAssignments.length > 0 ? (
               <TableContainer>
@@ -425,20 +431,24 @@ const ProjectDetail: React.FC = () => {
                         </TableCell>
                         <TableCell>{assignment.jurisdiction || '—'}</TableCell>
                         <TableCell align="right">
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => handleEditAssignment(assignment)}>
-                              <Edit fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Remove">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteAssignment(assignment)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          {permissions.canEditAssignment && (
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => handleEditAssignment(assignment)}>
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {permissions.canDeleteAssignment && (
+                            <Tooltip title="Remove">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteAssignment(assignment)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
