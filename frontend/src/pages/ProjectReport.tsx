@@ -22,6 +22,8 @@ import {
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
+import { useStaff } from '../hooks/useStaff';
+import { Staff } from '../types';
 
 type ProjectReportRow = {
   id: number;
@@ -72,6 +74,9 @@ const ProjectReport: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [priorities, setPriorities] = useState<string[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+
+  const { data: allStaff = [] } = useStaff({});
 
   const [rows, setRows] = useState<ProjectReportRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -88,6 +93,7 @@ const ProjectReport: React.FC = () => {
       if (categories.length) params.categories = toCsvParam(categories)!;
       if (statuses.length) params.statuses = toCsvParam(statuses)!;
       if (priorities.length) params.priorities = toCsvParam(priorities)!;
+      if (selectedStaff) params.staffId = selectedStaff.id.toString();
 
       const res = await api.get('/reports/project-report', { params });
 
@@ -103,7 +109,7 @@ const ProjectReport: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [categories, statuses, priorities]);
+  }, [categories, statuses, priorities, selectedStaff]);
 
   useEffect(() => {
     fetchData();
@@ -113,6 +119,7 @@ const ProjectReport: React.FC = () => {
     setCategories([]);
     setStatuses([]);
     setPriorities([]);
+    setSelectedStaff(null);
   };
 
   const onPrint = () => window.print();
@@ -208,6 +215,17 @@ const ProjectReport: React.FC = () => {
                   value={priorities}
                   onChange={(_, v) => setPriorities(v)}
                   renderInput={(params) => <TextField {...params} label="Priority" placeholder="All" />}
+                />
+              </Box>
+
+              <Box sx={{ flex: 1, minWidth: 200 }}>
+                <Autocomplete
+                  size="small"
+                  options={allStaff}
+                  value={selectedStaff}
+                  onChange={(_, v) => setSelectedStaff(v)}
+                  getOptionLabel={(option) => option.name}
+                  renderInput={(params) => <TextField {...params} label="Team Member" placeholder="All" />}
                 />
               </Box>
 

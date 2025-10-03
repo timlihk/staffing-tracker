@@ -8,6 +8,7 @@ export async function getProjectReportJson(req: AuthRequest, res: Response) {
       categories: req.query.categories as string | undefined,
       statuses: req.query.statuses as string | undefined,
       priorities: req.query.priorities as string | undefined,
+      staffId: req.query.staffId as string | undefined,
     };
 
     const rows = await getProjectReport(query);

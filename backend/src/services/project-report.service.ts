@@ -4,6 +4,7 @@ export interface ProjectReportQuery {
   categories?: string;
   statuses?: string;
   priorities?: string;
+  staffId?: string;
 }
 
 export interface ProjectReportRow {
@@ -45,12 +46,22 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
   const categories = csvToArray(q.categories);
   const statuses = csvToArray(q.statuses);
   const priorities = csvToArray(q.priorities);
+  const staffId = q.staffId ? parseInt(q.staffId) : undefined;
 
   // Build where filter for projects
   const where: any = {};
   if (categories?.length) where.category = { in: categories };
   if (statuses?.length) where.status = { in: statuses };
   if (priorities?.length) where.priority = { in: priorities };
+
+  // Filter by staff member
+  if (staffId) {
+    where.assignments = {
+      some: {
+        staffId: staffId,
+      },
+    };
+  }
 
   console.log('[Project Report] Filter WHERE:', JSON.stringify(where, null, 2));
 

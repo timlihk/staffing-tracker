@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography } from '@mui/material';
+import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography, Autocomplete } from '@mui/material';
 import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
-import { Project } from '../types';
+import { Project, Staff } from '../types';
 import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
 import { useProjects, useDeleteProject } from '../hooks/useProjects';
 import { usePermissions } from '../hooks/usePermissions';
+import { useStaff } from '../hooks/useStaff';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -18,8 +19,11 @@ const Projects: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const navigate = useNavigate();
   const permissions = usePermissions();
+
+  const { data: allStaff = [] } = useStaff({});
 
   // Build params for the query
   const params = {
@@ -27,6 +31,7 @@ const Projects: React.FC = () => {
     ...(statusFilter !== 'all' && { status: statusFilter }),
     ...(categoryFilter !== 'all' && { category: categoryFilter }),
     ...(searchTerm && { search: searchTerm }),
+    ...(selectedStaff && { staffId: selectedStaff.id.toString() }),
   };
 
   const { data, isLoading, error } = useProjects(params);
@@ -156,6 +161,15 @@ const Projects: React.FC = () => {
             <MenuItem value="HK Comp">HK Comp</MenuItem>
             <MenuItem value="US Comp">US Comp</MenuItem>
           </TextField>
+          <Autocomplete
+            size="small"
+            options={allStaff}
+            value={selectedStaff}
+            onChange={(_, v) => setSelectedStaff(v)}
+            getOptionLabel={(option) => option.name}
+            renderInput={(params) => <TextField {...params} label="Team Member" />}
+            sx={{ minWidth: 200 }}
+          />
         </PageToolbar>
       </Paper>
 

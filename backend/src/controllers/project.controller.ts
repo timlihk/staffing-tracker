@@ -5,7 +5,7 @@ import { trackFieldChanges } from '../utils/changeTracking';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, category, search, page = '1', limit = '50' } = req.query;
+    const { status, category, search, staffId, page = '1', limit = '50' } = req.query;
 
     const where: any = {};
 
@@ -16,6 +16,13 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
         { name: { contains: search as string, mode: 'insensitive' } },
         { notes: { contains: search as string, mode: 'insensitive' } },
       ];
+    }
+    if (staffId) {
+      where.assignments = {
+        some: {
+          staffId: parseInt(staffId as string),
+        },
+      };
     }
 
     const pageNum = parseInt(page as string);
