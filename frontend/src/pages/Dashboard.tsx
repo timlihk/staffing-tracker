@@ -73,11 +73,11 @@ const Dashboard = () => {
       />
 
       <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} md={7}>
+        <Grid item xs={12} md={6}>
           <DealRadarCard groups={dealRadarGroups} onSelectProject={(id) => navigate(`/projects/${id}`)} />
         </Grid>
 
-        <Grid item xs={12} md={5}>
+        <Grid item xs={12} md={6}>
           <StaffingHeatmapCard
             weeks={heatmapWeeks}
             groups={groupHeatmapByRole(data.staffingHeatmap)}

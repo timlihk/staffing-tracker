@@ -30,9 +30,9 @@ const SummaryCards = ({ activeProjects, filingsUpcoming, listingsUpcoming }: Sum
   ];
 
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={2} alignItems="stretch">
       {cards.map((card, index) => (
-        <Grid item xs={12} sm={6} md={3} key={index}>
+        <Grid item xs={12} sm={6} md={4} key={index}>
           <Paper
             sx={{
               p: 3,
