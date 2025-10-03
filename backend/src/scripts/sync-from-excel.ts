@@ -299,12 +299,12 @@ async function createAssignments(
   staffDbMap: Map<string, number>
 ) {
   const assignments = [
-    { names: splitNames(project.usLawIp), role: 'IP', jurisdiction: 'US Law' },
+    { names: splitNames(project.usLawIp), role: 'Partner', jurisdiction: 'US Law' },
     { names: splitNames(project.usAssociate), role: 'Associate', jurisdiction: 'US Law' },
     { names: splitNames(project.usSeniorFlic), role: 'Senior FLIC', jurisdiction: 'US Law' },
     { names: splitNames(project.usJuniorFlic), role: 'Junior FLIC', jurisdiction: 'US Law' },
     { names: splitNames(project.usIntern), role: 'Intern', jurisdiction: 'US Law' },
-    { names: splitNames(project.hkLawIp), role: 'IP', jurisdiction: 'HK Law' },
+    { names: splitNames(project.hkLawIp), role: 'Partner', jurisdiction: 'HK Law' },
     { names: splitNames(project.hkAssociate), role: 'Associate', jurisdiction: 'HK Law' },
     { names: splitNames(project.hkSeniorFlic), role: 'Senior FLIC', jurisdiction: 'HK Law' },
     { names: splitNames(project.hkJuniorFlic), role: 'Junior FLIC', jurisdiction: 'HK Law' },
@@ -350,12 +350,12 @@ async function syncAssignments(
   const expectedAssignments = new Map<string, { staffId: number; role: string; jurisdiction: string }>();
 
   const assignments = [
-    { names: splitNames(project.usLawIp), role: 'IP', jurisdiction: 'US Law' },
+    { names: splitNames(project.usLawIp), role: 'Partner', jurisdiction: 'US Law' },
     { names: splitNames(project.usAssociate), role: 'Associate', jurisdiction: 'US Law' },
     { names: splitNames(project.usSeniorFlic), role: 'Senior FLIC', jurisdiction: 'US Law' },
     { names: splitNames(project.usJuniorFlic), role: 'Junior FLIC', jurisdiction: 'US Law' },
     { names: splitNames(project.usIntern), role: 'Intern', jurisdiction: 'US Law' },
-    { names: splitNames(project.hkLawIp), role: 'IP', jurisdiction: 'HK Law' },
+    { names: splitNames(project.hkLawIp), role: 'Partner', jurisdiction: 'HK Law' },
     { names: splitNames(project.hkAssociate), role: 'Associate', jurisdiction: 'HK Law' },
     { names: splitNames(project.hkSeniorFlic), role: 'Senior FLIC', jurisdiction: 'HK Law' },
     { names: splitNames(project.hkJuniorFlic), role: 'Junior FLIC', jurisdiction: 'HK Law' },

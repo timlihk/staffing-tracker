@@ -143,6 +143,15 @@ Seed data:
 npx ts-node src/scripts/migrate-excel.ts
 ```
 
+### Maintenance Scripts
+
+Normalize legacy Income Partner assignments after importing historical data:
+```bash
+npm run db:fix-ip-role
+```
+
+This script converts any remaining `IP` project assignments to the current `Partner` label and reports if follow-up is needed.
+
 ## Default Credentials (After Migration)
 
 **Username**: `admin`

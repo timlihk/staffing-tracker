@@ -83,6 +83,7 @@ The local DATABASE_URL points to `localhost:5432`, but PostgreSQL is not running
 - `npm run db:truncate` - Delete all data from all tables
 - `npm run db:import` - Import data from Excel file
 - `npm run db:reset-import` - Truncate and import in one command
+- `npm run db:fix-ip-role` - Convert any legacy `IP` assignments to the `Partner` label
 
 ## Excel File Location
 
