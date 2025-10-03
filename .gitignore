@@ -29,5 +29,8 @@ coverage/
 *.tmp
 .claude/
 
-# Excel temp files
+# Excel files (contain sensitive data)
+*.xlsx
+*.xls
 ~$*.xlsx
+*:Zone.Identifier
