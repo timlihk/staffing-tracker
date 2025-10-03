@@ -201,3 +201,55 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const deleteUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const targetId = parseInt(id, 10);
+
+    if (Number.isNaN(targetId)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (targetId === req.user.userId) {
+      return res.status(400).json({ error: 'You cannot delete your own account' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: targetId },
+      select: { id: true, username: true, role: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      const adminCount = await prisma.user.count({ where: { role: 'admin' } });
+      if (adminCount <= 1) {
+        return res.status(400).json({ error: 'At least one admin account is required' });
+      }
+    }
+
+    await prisma.user.delete({ where: { id: targetId } });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: req.user.userId,
+        actionType: 'delete',
+        entityType: 'user',
+        entityId: targetId,
+        description: `Deleted user ${user.username}`,
+      },
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
