@@ -15,12 +15,16 @@ import {
   Stack,
   TextField,
   Typography,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Refresh, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../api/client';
 import { Page, PageHeader } from '../components/ui';
 import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDeleteUser } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
@@ -45,6 +49,16 @@ interface PasswordDialogState {
   tempPassword: string;
 }
 
+interface ActivityLog {
+  id: number;
+  actionType: string;
+  entityType: string;
+  entityId: number | null;
+  description: string;
+  username: string;
+  createdAt: string;
+}
+
 const UserManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -58,6 +72,19 @@ const UserManagement: React.FC = () => {
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [passwordDialog, setPasswordDialog] = useState<PasswordDialogState | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Fetch user-related activity logs
+  const { data: activityData, isLoading: activityLoading } = useQuery({
+    queryKey: ['activity-log', 'user'],
+    queryFn: async () => {
+      const response = await apiClient.get('/dashboard/activity-log', {
+        params: { entityType: 'user', limit: 100 },
+      });
+      return response.data;
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
   // Admin-only access control
   if (user?.role !== 'admin') {
@@ -182,10 +209,49 @@ const UserManagement: React.FC = () => {
 
   const userCountLabel = `${users.length} user${users.length === 1 ? '' : 's'}`;
 
+  const activityLogs: ActivityLog[] = activityData?.data || [];
+
+  const activityColumns: GridColDef<ActivityLog>[] = [
+    {
+      field: 'createdAt',
+      headerName: 'Date & Time',
+      width: 180,
+      headerAlign: 'left',
+      align: 'left',
+      valueFormatter: (value) => new Date(value).toLocaleString(),
+    },
+    {
+      field: 'actionType',
+      headerName: 'Action',
+      width: 120,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: ({ value }) => {
+        const color = value === 'create' ? 'success' : value === 'delete' ? 'error' : 'primary';
+        return <Chip size="small" label={value} color={color} />;
+      },
+    },
+    {
+      field: 'username',
+      headerName: 'Performed By',
+      width: 150,
+      headerAlign: 'left',
+      align: 'left',
+    },
+    {
+      field: 'description',
+      headerName: 'Description',
+      flex: 1,
+      minWidth: 300,
+      headerAlign: 'left',
+      align: 'left',
+    },
+  ];
+
   return (
     <Page>
       <PageHeader
-        title="User Management"
+        title="Admin Panel"
         subtitle={userCountLabel}
         actions={
           <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
@@ -193,29 +259,65 @@ const UserManagement: React.FC = () => {
           </Button>
         }
       />
-      <Paper sx={{ p: 2 }}>
-        {isLoading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <DataGrid
-            rows={users}
-            columns={columns}
-            autoHeight
-            disableRowSelectionOnClick
-            getRowId={(row) => row.id}
-            initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-            pageSizeOptions={[25, 50, 100]}
-            sx={{
-              '& .MuiDataGrid-cell': {
-                display: 'flex',
-                alignItems: 'center',
-              },
-            }}
-          />
-        )}
+
+      <Paper sx={{ mb: 2 }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="Users" />
+          <Tab label="Change Log" />
+        </Tabs>
       </Paper>
+
+      {activeTab === 0 && (
+        <Paper sx={{ p: 2 }}>
+          {isLoading ? (
+            <Box display="flex" justifyContent="center" py={6}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <DataGrid
+              rows={users}
+              columns={columns}
+              autoHeight
+              disableRowSelectionOnClick
+              getRowId={(row) => row.id}
+              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+              pageSizeOptions={[25, 50, 100]}
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+              }}
+            />
+          )}
+        </Paper>
+      )}
+
+      {activeTab === 1 && (
+        <Paper sx={{ p: 2 }}>
+          {activityLoading ? (
+            <Box display="flex" justifyContent="center" py={6}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <DataGrid
+              rows={activityLogs}
+              columns={activityColumns}
+              autoHeight
+              disableRowSelectionOnClick
+              getRowId={(row) => row.id}
+              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+              pageSizeOptions={[25, 50, 100]}
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+              }}
+            />
+          )}
+        </Paper>
+      )}
 
       <CreateOrEditUserDialog
         open={isCreateOpen}

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { generateTempPassword } from '../utils/password';
+import { sendWelcomeEmail } from '../services/email.service';
 
 const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
 
@@ -95,6 +96,15 @@ export const createUser = async (req: AuthRequest, res: Response) => {
         entityId: user.id,
         description: `Created user ${user.username}`,
       },
+    });
+
+    // Send welcome email asynchronously (don't wait for completion)
+    sendWelcomeEmail({
+      email: user.email,
+      username: user.username,
+      tempPassword,
+    }).catch((err) => {
+      console.error(`Failed to send welcome email to ${user.email}:`, err);
     });
 
     res.status(201).json({ user: sanitizeUser(user), tempPassword });

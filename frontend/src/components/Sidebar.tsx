@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
   ];
 
   if (user?.role === 'admin') {
-    menuItems.push({ text: 'Users', icon: <ManageAccounts />, path: '/users' });
+    menuItems.push({ text: 'Admin', icon: <ManageAccounts />, path: '/users' });
   }
 
   const isActive = (path: string) => {

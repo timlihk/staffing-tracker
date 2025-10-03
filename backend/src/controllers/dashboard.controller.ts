@@ -161,14 +161,21 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
 
 export const getActivityLog = async (req: AuthRequest, res: Response) => {
   try {
-    const { limit = '50', page = '1' } = req.query;
+    const { limit = '50', page = '1', entityType } = req.query;
 
     const limitNum = parseInt(limit as string);
     const pageNum = parseInt(page as string);
     const skip = (pageNum - 1) * limitNum;
 
+    // Build where clause
+    const where: any = {};
+    if (entityType) {
+      where.entityType = entityType as string;
+    }
+
     const [activities, total] = await Promise.all([
       prisma.activityLog.findMany({
+        where,
         take: limitNum,
         skip,
         orderBy: { createdAt: 'desc' },
@@ -178,7 +185,7 @@ export const getActivityLog = async (req: AuthRequest, res: Response) => {
           },
         },
       }),
-      prisma.activityLog.count(),
+      prisma.activityLog.count({ where }),
     ]);
 
     res.json({
