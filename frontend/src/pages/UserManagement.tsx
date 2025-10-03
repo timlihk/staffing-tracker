@@ -17,12 +17,14 @@ import {
   Typography,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Add, Refresh, Edit } from '@mui/icons-material';
+import { Add, Refresh, Edit, Delete } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from 'react-router-dom';
 import { Page, PageHeader } from '../components/ui';
-import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword } from '../hooks/useUsers';
+import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDeleteUser } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
+import { useAuth } from '../context/AuthContext';
 import type { ManagedUser, Staff } from '../types';
 import { createUserSchema, type CreateUserFormData } from '../lib/validations';
 import { toast } from '../lib/toast';
@@ -44,15 +46,37 @@ interface PasswordDialogState {
 }
 
 const UserManagement: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: users = [], isLoading } = useUsers();
   const { data: staff = [], isLoading: staffLoading } = useStaff();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const resetUserPassword = useResetUserPassword();
+  const deleteUser = useDeleteUser();
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [passwordDialog, setPasswordDialog] = useState<PasswordDialogState | null>(null);
+
+  // Admin-only access control
+  if (user?.role !== 'admin') {
+    return (
+      <Page>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            Access Denied
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Only administrators can access user management.
+          </Typography>
+          <Button variant="contained" onClick={() => navigate('/dashboard')}>
+            Return to Dashboard
+          </Button>
+        </Paper>
+      </Page>
+    );
+  }
 
   const staffOptions = useMemo(() => staff.map((member: Staff) => ({ label: member.name, value: member.id })), [staff]);
 
@@ -88,11 +112,11 @@ const UserManagement: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 160,
+      width: 200,
       sortable: false,
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={1}>
-          <IconButton size="small" onClick={() => setEditingUser(row)}>
+          <IconButton size="small" onClick={() => setEditingUser(row)} title="Edit user">
             <Edit fontSize="small" />
           </IconButton>
           <IconButton
@@ -106,8 +130,26 @@ const UserManagement: React.FC = () => {
                 toast.error('Reset failed', error.response?.data?.error || 'Unable to reset password.');
               }
             }}
+            title="Reset password"
           >
             <Refresh fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={async () => {
+              if (window.confirm(`Are you sure you want to delete user "${row.username}"? This action cannot be undone.`)) {
+                try {
+                  await deleteUser.mutateAsync(row.id);
+                  toast.success('User deleted', `User "${row.username}" has been successfully deleted.`);
+                } catch (error: any) {
+                  toast.error('Delete failed', error.response?.data?.error || 'Unable to delete user.');
+                }
+              }
+            }}
+            title="Delete user"
+          >
+            <Delete fontSize="small" />
           </IconButton>
         </Stack>
       ),
