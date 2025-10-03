@@ -41,8 +41,8 @@ All notable changes to the Staffing Tracker application will be documented in th
 - 🔥 Staffing heatmap and action cards for unstaffed milestones and pending password resets.
 
 ### Changed
-- 📊 Dashboard summary cards now emphasize upcoming filings/listings and outstanding resets.
-- 🎨 Updated layout combines status/category charts with actionable lists and revamped activity view.
+- 📊 Dashboard summary cards now emphasize active counts and upcoming filings/listings.
+- 🎨 Updated layout combines a streamlined deal radar with a rank-grouped staffing heatmap for quick scanning.
 - 👥 Project detail pages now show the team roster in a sortable table for faster scanning.
 
 
