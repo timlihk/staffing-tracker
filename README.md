@@ -41,12 +41,23 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 ### 🎉 Recent Updates (Oct 2025)
 
 **Latest Features (Oct 4, 2025):**
+- ✅ **Email Notifications** - Automatic email alerts for project updates
+  - Staff members receive emails when projects they're assigned to are updated
+  - Professional HTML email templates with change summaries
+  - Direct links to view updated projects
+  - Automatic BCC to mengyu.lu@kirkland.hk for oversight
+  - Resend email service integration (free tier: 3,000 emails/month)
 - ✅ **Excel Export for Project Report** - Professional Excel export functionality
   - Export button available to Admin and Editor users only
   - Summary sheet with filter details and totals
   - Detailed data sheet with all project information and team assignments
   - Professional formatting with auto-filter, zebra striping, and borders
   - Respects all current filter selections (category, status, priority, team member)
+- ✅ **Table Styling Improvements** - Professional UI enhancements
+  - Deep blue header backgrounds on all data tables
+  - White text and icons for better contrast
+  - Alternating row colors for improved readability
+  - Print-friendly Project Report showing all filtered rows
 - ✅ **Permission-Based UI Controls** - Enhanced security UX
   - Export and Print buttons hidden from Viewer role users
   - Consistent permission checks across all detail pages
