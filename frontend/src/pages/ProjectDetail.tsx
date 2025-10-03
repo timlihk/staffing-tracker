@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import api from '../api/client';
-import { Project, ChangeHistory, ProjectAssignment } from '../types';
+import { Project, ChangeHistory, ProjectAssignment, Staff } from '../types';
 import { Page, Section, PageHeader } from '../components/ui';
 import { useStaff } from '../hooks/useStaff';
 import {
@@ -44,10 +44,7 @@ import {
 
 interface TeamMemberFormValues {
   staffId: number | '';
-  roleInProject: string;
   jurisdiction: string;
-  startDate: string;
-  endDate: string;
   notes: string;
 }
 
@@ -151,9 +148,27 @@ const ProjectDetail: React.FC = () => {
     return value.replace('_', ' ');
   };
 
-  const teamAssignments = (project.assignments ?? []).filter(
-    (assignment) => assignment.jurisdiction !== 'B&C' && assignment.roleInProject !== 'B&C Working Attorney'
-  );
+  const roleOrder = ['Partner', 'Associate', 'Senior FLIC', 'Junior FLIC', 'Intern'];
+
+  const teamAssignments = (project.assignments ?? [])
+    .filter((assignment) => assignment.jurisdiction !== 'B&C' && assignment.roleInProject !== 'B&C Working Attorney')
+    .sort((a, b) => {
+      const roleA = roleOrder.indexOf(a.roleInProject);
+      const roleB = roleOrder.indexOf(b.roleInProject);
+
+      // If roles are different, sort by role order
+      if (roleA !== roleB) {
+        // If role not found in order array, put it at the end
+        if (roleA === -1) return 1;
+        if (roleB === -1) return -1;
+        return roleA - roleB;
+      }
+
+      // If roles are the same, sort by name alphabetically
+      const nameA = a.staff?.name || '';
+      const nameB = b.staff?.name || '';
+      return nameA.localeCompare(nameB);
+    });
 
   const handleOpenAdd = () => {
     setEditingAssignment(null);
@@ -200,10 +215,7 @@ const ProjectDetail: React.FC = () => {
         const updated = await updateAssignment.mutateAsync({
           id: editingAssignment.id,
           data: {
-            roleInProject: values.roleInProject,
             jurisdiction: values.jurisdiction || null,
-            startDate: values.startDate || null,
-            endDate: values.endDate || null,
             notes: values.notes || null,
           },
         });
@@ -218,13 +230,14 @@ const ProjectDetail: React.FC = () => {
             : prev
         );
       } else {
+        const selectedStaff = staffList.find((s) => s.id === Number(values.staffId));
+        if (!selectedStaff) return;
+
         const created = await createAssignment.mutateAsync({
           projectId: project.id,
           staffId: Number(values.staffId),
-          roleInProject: values.roleInProject,
-          jurisdiction: values.jurisdiction || undefined,
-          startDate: values.startDate || undefined,
-          endDate: values.endDate || undefined,
+          roleInProject: selectedStaff.role,
+          jurisdiction: values.jurisdiction || selectedStaff.department || undefined,
           notes: values.notes || undefined,
         });
         setProject((prev) =>
@@ -327,17 +340,20 @@ const ProjectDetail: React.FC = () => {
                 <Box
                   key={item.label}
                   sx={{
-                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    p: 1.5,
                     borderRadius: 2,
                     bgcolor: 'grey.50',
                     border: '1px solid',
                     borderColor: 'grey.200',
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, minWidth: 120 }}>
                     {item.label}
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
                     {item.value}
                   </Typography>
                 </Box>
@@ -345,17 +361,20 @@ const ProjectDetail: React.FC = () => {
               {project.notes && (
                 <Box
                   sx={{
-                    p: 2,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    p: 1.5,
                     borderRadius: 2,
                     bgcolor: 'grey.50',
                     border: '1px solid',
                     borderColor: 'grey.200',
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, minWidth: 120, pt: 0.5 }}>
                     NOTES
                   </Typography>
-                  <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, whiteSpace: 'pre-wrap', flex: 1 }}>
                     {project.notes}
                   </Typography>
                 </Box>
@@ -388,8 +407,8 @@ const ProjectDetail: React.FC = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Name</TableCell>
                       <TableCell>Role</TableCell>
+                      <TableCell>Name</TableCell>
                       <TableCell>Jurisdiction</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
@@ -397,12 +416,12 @@ const ProjectDetail: React.FC = () => {
                   <TableBody>
                     {teamAssignments.map((assignment) => (
                       <TableRow key={assignment.id} hover>
+                        <TableCell>{assignment.roleInProject}</TableCell>
                         <TableCell sx={{ cursor: 'pointer' }} onClick={() => navigate(`/staff/${assignment.staffId}`)}>
                           <Typography variant="body2" fontWeight={600} color="primary.main">
                             {assignment.staff?.name || '—'}
                           </Typography>
                         </TableCell>
-                        <TableCell>{assignment.roleInProject}</TableCell>
                         <TableCell>{assignment.jurisdiction || '—'}</TableCell>
                         <TableCell align="right">
                           <Tooltip title="Edit">
@@ -513,6 +532,7 @@ const ProjectDetail: React.FC = () => {
         }}
         initialData={editingAssignment}
         staffOptions={staffOptions}
+        staffList={staffList}
         staffLoading={staffLoading}
         onSave={handleSaveAssignment}
         isSaving={savingAssignment || createAssignment.isPending || updateAssignment.isPending}
@@ -526,6 +546,7 @@ interface TeamMemberDialogProps {
   onClose: () => void;
   initialData: ProjectAssignment | null;
   staffOptions: Array<{ id: number; name: string; role: string; department?: string | null }>;
+  staffList: Staff[];
   staffLoading: boolean;
   onSave: (values: TeamMemberFormValues) => Promise<void>;
   isSaving: boolean;
@@ -536,6 +557,7 @@ const TeamMemberDialog = ({
   onClose,
   initialData,
   staffOptions,
+  staffList,
   staffLoading,
   onSave,
   isSaving,
@@ -544,39 +566,43 @@ const TeamMemberDialog = ({
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<TeamMemberFormValues>({
     defaultValues: {
       staffId: '',
-      roleInProject: '',
       jurisdiction: '',
-      startDate: '',
-      endDate: '',
       notes: '',
     },
   });
+
+  const selectedStaffId = watch('staffId');
+  const selectedStaff = staffList.find((s) => s.id === Number(selectedStaffId));
 
   useEffect(() => {
     if (initialData) {
       reset({
         staffId: initialData.staffId,
-        roleInProject: initialData.roleInProject,
         jurisdiction: initialData.jurisdiction || '',
-        startDate: initialData.startDate ? initialData.startDate.slice(0, 10) : '',
-        endDate: initialData.endDate ? initialData.endDate.slice(0, 10) : '',
         notes: initialData.notes || '',
       });
     } else {
       reset({
         staffId: '',
-        roleInProject: '',
         jurisdiction: '',
-        startDate: '',
-        endDate: '',
         notes: '',
       });
     }
   }, [initialData, reset, open]);
+
+  useEffect(() => {
+    if (selectedStaff && !initialData) {
+      reset((prev) => ({
+        ...prev,
+        jurisdiction: selectedStaff.department || '',
+      }));
+    }
+  }, [selectedStaff, initialData, reset]);
 
   const submit = handleSubmit(async (values) => {
     await onSave(values);
@@ -615,21 +641,21 @@ const TeamMemberDialog = ({
             )}
           />
 
-          <Controller
-            name="roleInProject"
-            control={control}
-            rules={{ required: 'Role is required' }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                fullWidth
-                label="Role"
-                placeholder="Partner, Associate, etc."
-                error={!!errors.roleInProject}
-                helperText={errors.roleInProject?.message}
-              />
-            )}
-          />
+          {selectedStaff && !initialData && (
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: 'primary.50',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'primary.200',
+              }}
+            >
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Role: {selectedStaff.role}
+              </Typography>
+            </Box>
+          )}
 
           <Controller
             name="jurisdiction"
@@ -639,41 +665,12 @@ const TeamMemberDialog = ({
                 {...field}
                 fullWidth
                 label="Jurisdiction"
-                placeholder="HK, US, etc."
+                placeholder="Auto-filled from staff department"
+                helperText="Auto-populated from staff department, you can override if needed"
                 error={!!errors.jurisdiction}
-                helperText={errors.jurisdiction?.message}
               />
             )}
           />
-
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Controller
-              name="startDate"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  type="date"
-                  label="Start date"
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-              )}
-            />
-            <Controller
-              name="endDate"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  type="date"
-                  label="End date"
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                />
-              )}
-            />
-          </Stack>
 
           <Controller
             name="notes"
