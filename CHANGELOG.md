@@ -4,6 +4,10 @@ All notable changes to the Staffing Tracker application will be documented in th
 
 ## [1.7.1] - 2025-10-04
 
+### Added
+- 🔍 Added team member filter to Projects page - filter projects by assigned staff member.
+- 📊 Added team member filter to Project Report page - filter report by staff assignments.
+
 ### Changed
 - 🏢 Removed "B&C" as a valid department option for staff - only "US Law" and "HK Law" are now available.
 - 🔍 Updated staff list page filter to use "Position" terminology instead of "Role".
