@@ -72,9 +72,10 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              textAlign: 'center',
             }}
           >
-            K&E
+            Capital Markets
           </Typography>
           <Typography
             variant="caption"

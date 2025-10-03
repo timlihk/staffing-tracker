@@ -111,25 +111,26 @@ const Projects: React.FC = () => {
   ];
 
   return (
-    <Page
-      title="Projects"
-      actions={
-        <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/projects/new')}>
-          New Project
-        </Button>
-      }
-    >
+    <Page title="Projects">
       {/* Filters */}
       <Paper sx={{ p: 2 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
+        <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
           <TextField
             label="Search"
             variant="outlined"
             size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ width: 300 }}
+            sx={{ width: { xs: '100%', sm: 300 } }}
           />
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/projects/new')}
+            sx={{ flexShrink: 0 }}
+          >
+            New Project
+          </Button>
           <TextField
             select
             label="Status"

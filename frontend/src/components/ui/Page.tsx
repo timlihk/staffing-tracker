@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, Paper, Typography, Stack } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 
 interface PageProps {
   title: string;
@@ -7,17 +7,9 @@ interface PageProps {
   children: React.ReactNode;
 }
 
-export function Page({ title, actions, children }: PageProps) {
+export function Page({ title: _title, actions: _actions, children }: PageProps) {
   return (
     <Box sx={{ display: 'grid', gap: 2, width: '100%', maxWidth: '100%' }}>
-      <Paper sx={{ p: 2 }} className="no-print">
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Typography variant="h5" sx={{ fontWeight: 700, mr: 'auto' }}>
-            {title}
-          </Typography>
-          {actions}
-        </Stack>
-      </Paper>
       <Box sx={{ display: 'grid', gap: 2, width: '100%', maxWidth: '100%' }}>{children}</Box>
     </Box>
   );

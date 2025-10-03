@@ -20,6 +20,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { useStaff, useDeleteStaff } from '../hooks/useStaff';
 
 const Staff: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const Staff: React.FC = () => {
   const params = {
     ...(roleFilter !== 'all' && { role: roleFilter }),
     ...(departmentFilter !== 'all' && { department: departmentFilter }),
+    ...(searchTerm && { search: searchTerm }),
   };
 
   const { data: staff = [], isLoading, error } = useStaff(params);
@@ -99,14 +101,7 @@ const Staff: React.FC = () => {
   ];
 
   return (
-    <Page
-      title="Staff"
-      actions={
-        <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/staff/new')}>
-          New Staff
-        </Button>
-      }
-    >
+    <Page title="Staff">
       {isLoading ? (
         <StaffListSkeleton />
       ) : error ? (
@@ -122,66 +117,82 @@ const Staff: React.FC = () => {
         </Box>
       ) : (
         <>
-      {/* Filters */}
-      <Paper sx={{ p: 2 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <TextField
-            select
-            label="Role"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            size="small"
-            sx={{ minWidth: 200 }}
-          >
-            <MenuItem value="all">All Roles</MenuItem>
-            <MenuItem value="Partner">Partner</MenuItem>
-            <MenuItem value="Associate">Associate</MenuItem>
-            <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
-            <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
-            <MenuItem value="Intern">Intern</MenuItem>
-          </TextField>
-          <TextField
-            select
-            label="Department"
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            size="small"
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="all">All Departments</MenuItem>
-            <MenuItem value="US Law">US Law</MenuItem>
-            <MenuItem value="HK Law">HK Law</MenuItem>
-            <MenuItem value="B&C">B&C</MenuItem>
-          </TextField>
-        </Stack>
-      </Paper>
+          {/* Filters */}
+          <Paper sx={{ p: 2 }}>
+            <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
+              <TextField
+                label="Search"
+                variant="outlined"
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ width: { xs: '100%', sm: 300 } }}
+              />
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => navigate('/staff/new')}
+                sx={{ flexShrink: 0 }}
+              >
+                New Staff
+              </Button>
+              <TextField
+                select
+                label="Role"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                size="small"
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="all">All Roles</MenuItem>
+                <MenuItem value="Partner">Partner</MenuItem>
+                <MenuItem value="Associate">Associate</MenuItem>
+                <MenuItem value="Senior FLIC">Senior FLIC</MenuItem>
+                <MenuItem value="Junior FLIC">Junior FLIC</MenuItem>
+                <MenuItem value="Intern">Intern</MenuItem>
+              </TextField>
+              <TextField
+                select
+                label="Department"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                size="small"
+                sx={{ minWidth: 150 }}
+              >
+                <MenuItem value="all">All Departments</MenuItem>
+                <MenuItem value="US Law">US Law</MenuItem>
+                <MenuItem value="HK Law">HK Law</MenuItem>
+                <MenuItem value="B&C">B&C</MenuItem>
+              </TextField>
+            </Stack>
+          </Paper>
 
-      {/* Data Grid */}
-      {staff.length === 0 ? (
-        <Paper>
-          <EmptyState
-            title="No staff found"
-            subtitle="Add your first staff member to get started"
-            actionLabel="New Staff"
-            onAction={() => navigate('/staff/new')}
-          />
-        </Paper>
-      ) : (
-        <Paper sx={{ p: 1 }}>
-          <StyledDataGrid
-            rows={staff}
-            columns={columns}
-            autoHeight
-            initialState={{
-              pagination: { paginationModel: { pageSize: 50 } },
-            }}
-            pageSizeOptions={[25, 50, 100]}
-            onRowClick={(params) => navigate(`/staff/${params.row.id}`)}
-            sx={{ cursor: 'pointer' }}
-          />
-        </Paper>
-      )}
-      </>
+          {/* Data Grid */}
+          {staff.length === 0 ? (
+            <Paper>
+              <EmptyState
+                title="No staff found"
+                subtitle="Add your first staff member to get started"
+                actionLabel="New Staff"
+                onAction={() => navigate('/staff/new')}
+              />
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 1 }}>
+              <StyledDataGrid
+                rows={staff}
+                columns={columns}
+                autoHeight
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 50 } },
+                }}
+                pageSizeOptions={[25, 50, 100]}
+                onRowClick={(params) => navigate(`/staff/${params.row.id}`)}
+                sx={{ cursor: 'pointer' }}
+              />
+            </Paper>
+          )}
+        </>
       )}
     </Page>
   );
