@@ -2,6 +2,25 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.7.0] - 2025-10-04
+
+### Changed
+- 🔄 **BREAKING**: Renamed `Staff.role` to `Staff.position` across database, API, and UI for clearer terminology.
+- 🗑️ **BREAKING**: Removed `ProjectAssignment.roleInProject` field - staff position is now the single source of truth.
+- 🔒 Updated unique constraint on assignments to `(projectId, staffId, jurisdiction)` to prevent duplicates.
+- 📊 Modified dashboard staffing heatmap to group by staff position instead of removed roleInProject.
+- 📝 Updated all reports and exports to display staff position consistently.
+- 🎯 Simplified assignment tracking - position comes from staff record, eliminating data inconsistencies.
+
+### Fixed
+- ✅ Resolved data consistency issues where staff members showed different positions across projects.
+- 🐛 Fixed dashboard heatmap incorrectly grouping all staff under "Other Roles".
+- 🔧 Fixed StaffDetail page crash from accessing undefined roles array.
+
+### Migration
+- Automatic database migration removes duplicate assignments and renames fields.
+- Existing data preserved - staff position remains consistent across all projects.
+
 ## [1.6.1] - 2025-10-03
 
 ### Added
