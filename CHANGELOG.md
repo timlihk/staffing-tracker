@@ -2,6 +2,42 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.9.0] - 2025-10-04
+
+### Added
+- 📧 **Email Notifications** - Automatic email notifications for project updates
+  - Staff members receive emails when projects they're assigned to are updated
+  - Notifications sent for status changes, date changes, and other project updates
+  - Professional HTML email templates with project details and direct links
+  - Only staff with email addresses on file receive notifications
+  - All notification emails automatically BCC mengyu.lu@kirkland.hk for oversight
+  - Uses Resend email service (free tier: 3,000 emails/month)
+- 🎨 **Table Styling Improvements**
+  - Deep blue header backgrounds on all data tables (Staff, Projects, Project Report)
+  - White text and icons for better contrast
+  - Darker alternating row colors (grey.100) for improved readability
+  - Print-friendly version of Project Report showing all filtered rows
+
+### Technical Details
+**Backend:**
+- Installed Resend package (`resend@^6.1.2`)
+- Created `/backend/src/services/email.service.ts` - Email service with templates and change detection
+- Updated project controller to send email notifications on updates
+- Added environment variables: `RESEND_API_KEY`, `EMAIL_FROM`
+
+**Frontend:**
+- Updated StyledDataGrid component with professional color scheme
+- Updated ProjectReport with print-only table variant
+- White sort icons and improved hover states
+
+**Documentation:**
+- Created `EMAIL_SETUP.md` - Complete guide for setting up Resend with Cloudflare domain
+
+## [1.8.1] - 2025-10-04
+
+### Changed
+- 🎨 Improved table styling with deep blue headers and alternating row colors
+
 ## [1.8.0] - 2025-10-04
 
 ### Added
