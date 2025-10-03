@@ -24,6 +24,19 @@ const Dashboard = () => {
   const { data, isLoading, error } = useDashboard();
   const navigate = useNavigate();
 
+  const dealRadarGroups = useMemo(
+    () => groupDealRadar(data?.dealRadar ?? []),
+    [data?.dealRadar]
+  );
+
+  const heatmapWeeks = useMemo(() => {
+    const set = new Set<string>();
+    (data?.staffingHeatmap ?? []).forEach((row) => {
+      row.weeks.forEach((week) => set.add(week.week));
+    });
+    return Array.from(set).sort();
+  }, [data?.staffingHeatmap]);
+
   if (isLoading) {
     return (
       <Page title="Dashboard">
@@ -47,15 +60,6 @@ const Dashboard = () => {
   const filingsUpcoming = data.dealRadar.filter((event) => event.type === 'Filing').length;
   const listingsUpcoming = data.dealRadar.filter((event) => event.type === 'Listing').length;
   const pendingResets = data.actionItems.pendingResets.length;
-
-  const dealRadarGroups = useMemo(() => groupDealRadar(data.dealRadar), [data.dealRadar]);
-  const heatmapWeeks = useMemo(() => {
-    const set = new Set<string>();
-    data.staffingHeatmap.forEach((row) => {
-      row.weeks.forEach((week) => set.add(week.week));
-    });
-    return Array.from(set).sort();
-  }, [data.staffingHeatmap]);
 
   return (
     <Page title="Dashboard">
