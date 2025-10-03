@@ -64,18 +64,22 @@ const Dashboard = () => {
     <Page title="Dashboard">
       <Grid container spacing={2} alignItems="stretch">
         <Grid item xs={12} md={6}>
-          <DealRadarCard
-            groups={dealRadarGroups}
-            onSelectProject={(id) => navigate(`/projects/${id}`)}
-          />
+          <Box sx={{ height: '100%', display: 'flex' }}>
+            <DealRadarCard
+              groups={dealRadarGroups}
+              onSelectProject={(id) => navigate(`/projects/${id}`)}
+            />
+          </Box>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <StaffingHeatmapCard
-            weeks={heatmapWeeks}
-            groups={groupHeatmapByRole(data.staffingHeatmap)}
-            onSelectStaff={(id) => navigate(`/staff/${id}`)}
-          />
+          <Box sx={{ height: '100%', display: 'flex' }}>
+            <StaffingHeatmapCard
+              weeks={heatmapWeeks}
+              groups={groupHeatmapByRole(data.staffingHeatmap)}
+              onSelectStaff={(id) => navigate(`/staff/${id}`)}
+            />
+          </Box>
         </Grid>
       </Grid>
     </Page>
@@ -124,7 +128,7 @@ const DealRadarCard = ({
   groups: Array<{ label: string; items: DashboardSummary['dealRadar'] }>;
   onSelectProject: (id: number) => void;
 }) => (
-  <Paper sx={{ p: 3, height: '100%' }}>
+  <Paper sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
     <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
       <Typography variant="h6" fontWeight={700}>
         Deal Radar (Next 30 Days)
@@ -136,7 +140,7 @@ const DealRadarCard = ({
     {groups.length === 0 ? (
       <Typography color="text.secondary">No upcoming filing or listing dates.</Typography>
     ) : (
-      <Stack spacing={2}>
+      <Stack spacing={2} sx={{ flex: 1 }}>
         {groups.map((group) => (
           <Box key={group.label}>
             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
@@ -266,7 +270,7 @@ const StaffingHeatmapCard = ({
   const allCollapsed = groups.length > 0 && groups.every((group) => expandedGroups[group.label] === false);
 
   return (
-    <Paper sx={{ p: 3, height: '100%' }}>
+    <Paper sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} spacing={2}>
         <Typography variant="h6" fontWeight={700}>
           Staffing Heatmap (Next 30 Days)
@@ -285,7 +289,7 @@ const StaffingHeatmapCard = ({
       {groups.length === 0 ? (
         <Typography color="text.secondary">No staffing data for upcoming milestones.</Typography>
       ) : (
-        <Stack spacing={1}>
+        <Stack spacing={1} sx={{ flex: 1 }}>
           {groups.map((group) => (
             <Accordion
               key={group.label}
