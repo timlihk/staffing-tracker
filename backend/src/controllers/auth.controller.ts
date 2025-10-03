@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
 import { generateToken } from '../utils/jwt';
+import { AuthRequest } from '../middleware/auth';
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -54,12 +55,18 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const register = async (req: Request, res: Response) => {
+const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
+
+export const register = async (req: AuthRequest, res: Response) => {
   try {
     const { username, email, password, role, staffId } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin privileges required' });
     }
 
     // Check if user already exists
@@ -75,12 +82,14 @@ export const register = async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    const normalizedRole = typeof role === 'string' && ALLOWED_ROLES.has(role) ? role : 'viewer';
+
     const user = await prisma.user.create({
       data: {
         username,
         email,
         passwordHash,
-        role: role || 'viewer',
+        role: normalizedRole,
         staffId: staffId || null,
       },
       include: { staff: true },

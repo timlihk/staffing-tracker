@@ -238,25 +238,28 @@ async function migrateFromExcel(excelFilePath: string) {
     }
   }
 
-  // Create a default admin user
-  console.log('\n👤 Creating default admin user...');
-  try {
-    const passwordHash = await bcrypt.hash('admin123', 10);
-    const admin = await prisma.user.create({
-      data: {
-        username: 'admin',
-        email: 'admin@ke.com',
-        passwordHash,
-        role: 'admin',
-      },
-    });
-    console.log('  ✓ Created admin user (username: admin, password: admin123)');
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      console.log('  ⚠ Admin user already exists');
-    } else {
-      console.error('  ✗ Error creating admin user:', error.message);
+  if (process.env.SEED_DEFAULT_ADMIN === 'true') {
+    console.log('\n👤 Creating default admin user...');
+    try {
+      const passwordHash = await bcrypt.hash('admin123', 10);
+      await prisma.user.create({
+        data: {
+          username: 'admin',
+          email: 'admin@ke.com',
+          passwordHash,
+          role: 'admin',
+        },
+      });
+      console.log('  ✓ Created admin user (username: admin, password: admin123)');
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        console.log('  ⚠ Admin user already exists');
+      } else {
+        console.error('  ✗ Error creating admin user:', error.message);
+      }
     }
+  } else {
+    console.log('\n👤 Skipping default admin seeding (set SEED_DEFAULT_ADMIN=true to enable).');
   }
 
   console.log('\n✅ Migration completed successfully!');

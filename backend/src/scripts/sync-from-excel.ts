@@ -269,22 +269,25 @@ async function syncFromExcel(excelFilePath: string) {
     }
   }
 
-  // Ensure admin user exists
-  console.log('\n👤 Checking admin user...');
-  const adminExists = await prisma.user.findUnique({ where: { username: 'admin' } });
-  if (!adminExists) {
-    const passwordHash = await bcrypt.hash('admin123', 10);
-    await prisma.user.create({
-      data: {
-        username: 'admin',
-        email: 'admin@ke.com',
-        passwordHash,
-        role: 'admin',
-      },
-    });
-    console.log('  ✓ Created admin user (username: admin, password: admin123)');
+  if (process.env.SEED_DEFAULT_ADMIN === 'true') {
+    console.log('\n👤 Checking admin user...');
+    const adminExists = await prisma.user.findUnique({ where: { username: 'admin' } });
+    if (!adminExists) {
+      const passwordHash = await bcrypt.hash('admin123', 10);
+      await prisma.user.create({
+        data: {
+          username: 'admin',
+          email: 'admin@ke.com',
+          passwordHash,
+          role: 'admin',
+        },
+      });
+      console.log('  ✓ Created admin user (username: admin, password: admin123)');
+    } else {
+      console.log('  ✓ Admin user already exists');
+    }
   } else {
-    console.log('  ✓ Admin user already exists');
+    console.log('\n👤 Skipping default admin seeding (set SEED_DEFAULT_ADMIN=true to enable).');
   }
 
   console.log('\n✅ Excel sync completed successfully!');
