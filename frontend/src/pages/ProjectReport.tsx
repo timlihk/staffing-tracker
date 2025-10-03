@@ -296,8 +296,8 @@ const ProjectReport: React.FC = () => {
           </Typography>
       </Paper>
 
-      {/* Data table */}
-      <TableContainer component={Paper} sx={{ width: '100%' }}>
+      {/* Data table - Screen version with pagination */}
+      <TableContainer component={Paper} sx={{ width: '100%' }} className="no-print">
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
@@ -306,57 +306,61 @@ const ProjectReport: React.FC = () => {
           <>
             <Table sx={{ minWidth: 650 }} size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.100' }}>
-                  <TableCell sx={{ fontWeight: 700 }}>
+                <TableRow sx={{ bgcolor: 'primary.dark' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>
                     <TableSortLabel
                       active={orderBy === 'projectName'}
                       direction={orderBy === 'projectName' ? order : 'asc'}
                       onClick={() => handleRequestSort('projectName')}
+                      sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
                     >
                       Project
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>
                     <TableSortLabel
                       active={orderBy === 'filingDate'}
                       direction={orderBy === 'filingDate' ? order : 'asc'}
                       onClick={() => handleRequestSort('filingDate')}
+                      sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
                     >
                       Filing Date
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>
                     <TableSortLabel
                       active={orderBy === 'listingDate'}
                       direction={orderBy === 'listingDate' ? order : 'asc'}
                       onClick={() => handleRequestSort('listingDate')}
+                      sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
                     >
                       Listing Date
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>US - Partner</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>US - Associate</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>US - Sr FLIC</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>US - Jr FLIC</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>US - Intern</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>HK - Partner</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>HK - Associate</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>HK - Sr FLIC</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>HK - Jr FLIC</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>HK - Intern</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>B&C Attorney</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Milestone</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Partner</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Associate</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Sr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Jr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Intern</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Partner</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Associate</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Sr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Jr FLIC</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Intern</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>B&C Attorney</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>Milestone</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'white' }}>Notes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                {sortedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => (
                   <TableRow
                     key={row.id}
                     onClick={() => navigate(`/projects/${row.id}`)}
                     sx={{
-                      '&:hover': { bgcolor: 'grey.100', cursor: 'pointer' },
+                      bgcolor: index % 2 === 0 ? 'grey.100' : 'white',
+                      '&:hover': { bgcolor: 'grey.200', cursor: 'pointer' },
                       cursor: 'pointer'
                     }}
                   >
@@ -395,6 +399,61 @@ const ProjectReport: React.FC = () => {
             />
           </>
         )}
+      </TableContainer>
+
+      {/* Data table - Print version with all filtered rows */}
+      <TableContainer component={Paper} sx={{ width: '100%', display: 'none' }} className="print-only">
+        <Table sx={{ minWidth: 650 }} size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: 'primary.dark' }}>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>Project</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>Filing Date</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>Listing Date</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>Category</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Partner</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Associate</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Sr FLIC</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Jr FLIC</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>US - Intern</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Partner</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Associate</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Sr FLIC</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Jr FLIC</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>HK - Intern</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>B&C Attorney</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>Milestone</TableCell>
+              <TableCell sx={{ fontWeight: 700, color: 'white' }}>Notes</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedRows.map((row, index) => (
+              <TableRow
+                key={row.id}
+                sx={{
+                  bgcolor: index % 2 === 0 ? 'grey.100' : 'white',
+                }}
+              >
+                <TableCell>{row.projectName}</TableCell>
+                <TableCell>{row.filingDate ? row.filingDate.slice(0, 10) : '-'}</TableCell>
+                <TableCell>{row.listingDate ? row.listingDate.slice(0, 10) : '-'}</TableCell>
+                <TableCell>{row.category}</TableCell>
+                <TableCell>{row.usLawPartner || '-'}</TableCell>
+                <TableCell>{row.usLawAssociate || '-'}</TableCell>
+                <TableCell>{row.usLawSeniorFlic || '-'}</TableCell>
+                <TableCell>{row.usLawJuniorFlic || '-'}</TableCell>
+                <TableCell>{row.usLawIntern || '-'}</TableCell>
+                <TableCell>{row.hkLawPartner || '-'}</TableCell>
+                <TableCell>{row.hkLawAssociate || '-'}</TableCell>
+                <TableCell>{row.hkLawSeniorFlic || '-'}</TableCell>
+                <TableCell>{row.hkLawJuniorFlic || '-'}</TableCell>
+                <TableCell>{row.hkLawIntern || '-'}</TableCell>
+                <TableCell>{row.bcAttorney || '-'}</TableCell>
+                <TableCell>{row.milestone || '-'}</TableCell>
+                <TableCell>{row.notes || '-'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </TableContainer>
     </>
   );

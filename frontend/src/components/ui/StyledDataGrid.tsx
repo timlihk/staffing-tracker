@@ -13,14 +13,29 @@ export default function StyledDataGrid(props: DataGridProps) {
           position: 'sticky',
           top: 0,
           zIndex: 1,
-          background: theme.palette.mode === 'dark' ? '#0F172A' : '#F8FAFC',
+          background: theme.palette.primary.dark,
+          color: theme.palette.common.white,
           borderBottom: `1px solid ${theme.palette.divider}`,
+          fontWeight: 700,
+        },
+        [`& .${gridClasses.columnHeaderTitle}`]: {
+          color: theme.palette.common.white,
+          fontWeight: 700,
+        },
+        [`& .${gridClasses.iconButtonContainer}`]: {
+          color: theme.palette.common.white,
+        },
+        [`& .${gridClasses.menuIcon}`]: {
+          color: theme.palette.common.white,
+        },
+        [`& .${gridClasses.sortIcon}`]: {
+          color: theme.palette.common.white,
         },
         [`& .${gridClasses.row}.even`]: {
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.04)' : '#FBFDFF',
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.04)' : theme.palette.grey[100],
         },
         [`& .${gridClasses.row}`]: {
-          '&:hover': { backgroundColor: theme.palette.action.hover },
+          '&:hover': { backgroundColor: theme.palette.grey[200] },
         },
       })}
       getRowClassName={(p) => (p.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd')}
