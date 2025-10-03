@@ -302,7 +302,7 @@ const Reports: React.FC = () => {
             {/* Print header */}
             <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-                Kirkland & Ellis - Staffing Report
+                Asia CM - Staffing Report
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Generated: {new Date().toLocaleString()}

@@ -12,7 +12,7 @@ export async function buildStaffingWorkbook(rows: ReportRow[], filters: ReportQu
   const uniqueStaff = new Set(rows.map(r => r.staffName)).size;
 
   summary.addRows([
-    ['Kirkland & Ellis - Staffing Report'],
+    ['Asia CM - Staffing Report'],
     ['Generated:', new Date().toLocaleString()],
     [],
     ['FILTERS'],

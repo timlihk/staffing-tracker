@@ -12,7 +12,7 @@ export async function buildProjectReportWorkbook(
   const summary = wb.addWorksheet('Summary');
 
   summary.addRows([
-    ['Kirkland & Ellis - Project Report'],
+    ['Asia CM - Project Report'],
     ['Generated:', new Date().toLocaleString()],
     [],
     ['FILTERS'],

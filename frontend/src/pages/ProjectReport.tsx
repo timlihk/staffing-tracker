@@ -281,7 +281,7 @@ const ProjectReport: React.FC = () => {
       {/* Print header */}
       <Box className="print-only" sx={{ display: 'none', mb: 2 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-            Kirkland & Ellis - Project Report
+            Asia CM - Project Report
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Generated: {new Date().toLocaleString()}
