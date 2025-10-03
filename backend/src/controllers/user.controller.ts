@@ -68,7 +68,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     if (staffIdValue !== null && Number.isNaN(staffIdValue)) {
       return res.status(400).json({ error: 'Invalid staffId' });
     }
-    const tempPassword = generateTempPassword();
+    const tempPassword = '0000';
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     const user = await prisma.user.create({

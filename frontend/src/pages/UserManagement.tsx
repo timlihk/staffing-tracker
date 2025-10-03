@@ -81,25 +81,45 @@ const UserManagement: React.FC = () => {
   const staffOptions = useMemo(() => staff.map((member: Staff) => ({ label: member.name, value: member.id })), [staff]);
 
   const columns: GridColDef<ManagedUser>[] = [
-    { field: 'username', headerName: 'Username', flex: 1, minWidth: 140 },
-    { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 200 },
+    {
+      field: 'username',
+      headerName: 'Username',
+      flex: 1,
+      minWidth: 140,
+      headerAlign: 'left',
+      align: 'left',
+    },
+    {
+      field: 'email',
+      headerName: 'Email',
+      flex: 1.2,
+      minWidth: 200,
+      headerAlign: 'left',
+      align: 'left',
+    },
     {
       field: 'role',
       headerName: 'Role',
       width: 130,
-      renderCell: ({ value }) => <Chip size="small" label={value} color={value === 'admin' ? 'error' : value === 'editor' ? 'warning' : 'default'} />, 
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: ({ value }) => <Chip size="small" label={value} color={value === 'admin' ? 'error' : value === 'editor' ? 'warning' : 'default'} />,
     },
     {
       field: 'mustResetPassword',
       headerName: 'Reset Required',
       width: 150,
+      headerAlign: 'center',
+      align: 'center',
       renderCell: ({ value }) =>
-        value ? <Chip label="Pending" color="warning" size="small" /> : <Chip label="No" size="small" />, 
+        value ? <Chip label="Pending" color="warning" size="small" /> : <Chip label="No" size="small" />,
     },
     {
       field: 'lastLogin',
       headerName: 'Last Login',
       width: 200,
+      headerAlign: 'left',
+      align: 'left',
       valueGetter: (_value, row) => row.lastLogin,
       renderCell: ({ value }) => <Typography variant="body2">{formatDateTime(value)}</Typography>,
     },
@@ -107,12 +127,16 @@ const UserManagement: React.FC = () => {
       field: 'staff',
       headerName: 'Staff Link',
       width: 200,
+      headerAlign: 'left',
+      align: 'left',
       valueGetter: (_value, row) => row.staff?.name ?? '—',
     },
     {
       field: 'actions',
       headerName: 'Actions',
       width: 200,
+      headerAlign: 'center',
+      align: 'center',
       sortable: false,
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={1}>
@@ -183,6 +207,12 @@ const UserManagement: React.FC = () => {
             getRowId={(row) => row.id}
             initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
             pageSizeOptions={[25, 50, 100]}
+            sx={{
+              '& .MuiDataGrid-cell': {
+                display: 'flex',
+                alignItems: 'center',
+              },
+            }}
           />
         )}
       </Paper>

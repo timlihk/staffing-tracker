@@ -6,6 +6,7 @@ import { GridColDef } from '@mui/x-data-grid';
 import { Project } from '../types';
 import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
 import { useProjects, useDeleteProject } from '../hooks/useProjects';
+import { usePermissions } from '../hooks/usePermissions';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -18,6 +19,7 @@ const Projects: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const navigate = useNavigate();
+  const permissions = usePermissions();
 
   // Build params for the query
   const params = {
@@ -83,17 +85,21 @@ const Projects: React.FC = () => {
           <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}`)}>
             <Visibility fontSize="small" />
           </IconButton>
-          <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}/edit`)}>
-            <Edit fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => handleDelete(params.row.id)}
-            disabled={deleteProject.isPending}
-          >
-            <Delete fontSize="small" />
-          </IconButton>
+          {permissions.canEditProject && (
+            <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}/edit`)}>
+              <Edit fontSize="small" />
+            </IconButton>
+          )}
+          {permissions.canDeleteProject && (
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleDelete(params.row.id)}
+              disabled={deleteProject.isPending}
+            >
+              <Delete fontSize="small" />
+            </IconButton>
+          )}
         </Box>
       ),
     },
@@ -113,14 +119,16 @@ const Projects: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             sx={{ width: { xs: '100%', sm: 300 } }}
           />
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/projects/new')}
-            sx={{ flexShrink: 0 }}
-          >
-            New Project
-          </Button>
+          {permissions.canCreateProject && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => navigate('/projects/new')}
+              sx={{ flexShrink: 0 }}
+            >
+              New Project
+            </Button>
+          )}
           <TextField
             select
             label="Status"

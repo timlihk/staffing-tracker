@@ -286,19 +286,21 @@ const ProjectDetail: React.FC = () => {
       <Stack spacing={3}>
         {/* Project Header */}
         <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', mb: 1 }}>
-            {project.name}
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Chip label={project.status} color={statusColor} sx={{ fontWeight: 600 }} />
-            {project.priority && (
-              <Chip
-                label={`Priority: ${project.priority}`}
-                color={getPriorityColor(project.priority)}
-                sx={{ fontWeight: 600 }}
-              />
-            )}
-            {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
+          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', lineHeight: 1 }}>
+              {project.name}
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Chip label={project.status} color={statusColor} sx={{ fontWeight: 600 }} />
+              {project.priority && (
+                <Chip
+                  label={`Priority: ${project.priority}`}
+                  color={getPriorityColor(project.priority)}
+                  sx={{ fontWeight: 600 }}
+                />
+              )}
+              {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
+            </Stack>
           </Stack>
         </Paper>
 
