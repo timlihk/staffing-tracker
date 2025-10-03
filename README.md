@@ -40,6 +40,17 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ### 🎉 Recent Updates (Oct 2025)
 
+**Latest Features (Oct 4, 2025):**
+- ✅ **Excel Export for Project Report** - Professional Excel export functionality
+  - Export button available to Admin and Editor users only
+  - Summary sheet with filter details and totals
+  - Detailed data sheet with all project information and team assignments
+  - Professional formatting with auto-filter, zebra striping, and borders
+  - Respects all current filter selections (category, status, priority, team member)
+- ✅ **Permission-Based UI Controls** - Enhanced security UX
+  - Export and Print buttons hidden from Viewer role users
+  - Consistent permission checks across all detail pages
+
 **Phase 4: Modern Frontend (Oct 3, 2025)**
 - ✅ **TanStack Query v5** - Replaced manual data fetching with React Query
   - Custom hooks for all data operations (useDashboard, useProjects, useStaff)

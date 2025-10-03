@@ -2,6 +2,33 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.8.0] - 2025-10-04
+
+### Added
+- 📊 Excel export functionality for Project Report page
+  - Professional formatting with summary and data sheets
+  - Includes all project details and team assignments by position
+  - Respects current filter selections (category, status, priority, team member)
+  - Auto-filter enabled for easy data manipulation
+  - Zebra striping and borders for improved readability
+- 🔒 Permission-based access controls for Project Report export/print features
+  - Export Excel and Print buttons only visible to Admin and Editor roles
+  - Viewer role users cannot access export functionality
+
+### Changed
+- 🎨 Updated Project Report page header with new Export Excel button
+
+### Technical Details
+**Backend:**
+- Created `/backend/src/services/project-report.excel.ts` - Excel workbook builder using ExcelJS
+- Added `getProjectReportExcel` controller method in `/backend/src/controllers/project-report.controller.ts`
+- Added `/api/reports/project-report/excel` route endpoint
+
+**Frontend:**
+- Implemented `onExportExcel` handler with blob download in `/frontend/src/pages/ProjectReport.tsx`
+- Integrated `usePermissions` hook to control button visibility
+- Added FileDownloadIcon for Export Excel button
+
 ## [1.7.1] - 2025-10-04
 
 ### Added
