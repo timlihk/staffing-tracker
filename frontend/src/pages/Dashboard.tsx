@@ -1,22 +1,8 @@
 import { Fragment, useMemo } from 'react';
-import {
-  Grid,
-  Typography,
-  Box,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  Stack,
-  Chip,
-  Divider,
-  Button,
-} from '@mui/material';
+import { Grid, Typography, Box, Paper, List, ListItem, ListItemText, Stack, Chip, Divider, Button } from '@mui/material';
 import SummaryCards from '../components/SummaryCards';
-import ActivityFeed from '../components/ActivityFeed';
 import { Page, DashboardSkeleton } from '../components/ui';
 import { useDashboard } from '../hooks/useDashboard';
-import { ProjectStatusChart, ProjectCategoryChart } from '../components/dashboard';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardSummary } from '../types';
 
@@ -79,28 +65,14 @@ const Dashboard = () => {
           <ActionItemsCard actionItems={data.actionItems} onManageUsers={() => navigate('/users')} />
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <ProjectStatusChart data={data.projectsByStatus} />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <ProjectCategoryChart data={data.projectsByCategory} />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <StaffingHeatmapLegend weeks={heatmapWeeks} />
-        </Grid>
-
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12}>
           <StaffingHeatmapCard
             weeks={heatmapWeeks}
             heatmap={data.staffingHeatmap}
+            projectsByStatus={data.projectsByStatus}
+            projectsByCategory={data.projectsByCategory}
             onSelectStaff={(id) => navigate(`/staff/${id}`)}
           />
-        </Grid>
-
-        <Grid item xs={12}>
-          <ActivityFeed />
         </Grid>
       </Grid>
     </Page>
@@ -339,6 +311,36 @@ const getHeatColor = (count: number) => {
   if (count === 2 || count === 3) return 'rgba(30, 136, 229, 0.7)';
   return 'rgba(198, 40, 40, 0.85)';
 };
+
+const LegendSwatch = ({ color, label }: { color: string; label: string }) => (
+  <Stack direction="row" spacing={1} alignItems="center">
+    <Box sx={{ width: 18, height: 18, borderRadius: 1, bgcolor: color, border: '1px solid rgba(0,0,0,0.1)' }} />
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+  </Stack>
+);
+
+const SegmentList = ({ title, items }: { title: string; items: string[] }) => (
+  <Paper variant="outlined" sx={{ p: 2, flex: 1, minWidth: 0 }}>
+    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+      {title}
+    </Typography>
+    {items.length === 0 ? (
+      <Typography variant="caption" color="text.secondary">
+        No data available
+      </Typography>
+    ) : (
+      <Stack spacing={0.5}>
+        {items.map((item) => (
+          <Typography key={item} variant="body2">
+            {item}
+          </Typography>
+        ))}
+      </Stack>
+    )}
+  </Paper>
+);
 
 const ActionItemsCard = ({
   actionItems,

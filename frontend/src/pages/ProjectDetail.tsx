@@ -306,44 +306,40 @@ const ProjectDetail: React.FC = () => {
 
           {/* Team Members */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 3, height: '100%' }}>
+            <Paper sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                 Team Members
               </Typography>
               {teamAssignments.length > 0 ? (
-                <Stack spacing={1.5}>
-                  {teamAssignments.map((assignment) => (
-                    <Box
-                      key={assignment.id}
-                      onClick={() => navigate(`/staff/${assignment.staffId}`)}
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        bgcolor: 'grey.50',
-                        border: '1px solid',
-                        borderColor: 'grey.200',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          bgcolor: 'primary.50',
-                          borderColor: 'primary.main',
-                          transform: 'translateY(-2px)',
-                          boxShadow: 1,
-                        },
-                      }}
-                    >
-                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {assignment.staff?.name}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {assignment.roleInProject}
-                        {assignment.jurisdiction && ` • ${assignment.jurisdiction}`}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Role</TableCell>
+                        <TableCell>Jurisdiction</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {teamAssignments.map((assignment) => (
+                        <TableRow
+                          key={assignment.id}
+                          hover
+                          sx={{ cursor: 'pointer' }}
+                          onClick={() => navigate(`/staff/${assignment.staffId}`)}
+                        >
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                              {assignment.staff?.name || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{assignment.roleInProject}</TableCell>
+                          <TableCell>{assignment.jurisdiction || '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               ) : (
                 <Box
                   sx={{
