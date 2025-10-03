@@ -63,14 +63,14 @@ const Dashboard = () => {
   return (
     <Page title="Dashboard">
       <Grid container spacing={2} alignItems="stretch">
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+        <Grid item xs={12} sx={{ display: 'flex' }}>
           <DealRadarCard
             groups={dealRadarGroups}
             onSelectProject={(id) => navigate(`/projects/${id}`)}
           />
         </Grid>
 
-        <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+        <Grid item xs={12} sx={{ display: 'flex' }}>
           <StaffingHeatmapCard
             weeks={heatmapWeeks}
             groups={groupHeatmapByRole(data.staffingHeatmap)}
