@@ -66,8 +66,14 @@ const Login: React.FC = () => {
         }}
       >
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Asian Capital Markets
+          <Typography
+            component="h1"
+            variant="h4"
+            align="center"
+            gutterBottom
+            sx={{ fontSize: { xs: '1.6rem', sm: '1.8rem' } }}
+          >
+            Asia Capital Markets
           </Typography>
           <Typography component="h2" variant="h6" align="center" color="text.secondary" gutterBottom>
             Staffing Tracker
