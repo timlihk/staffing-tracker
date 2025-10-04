@@ -41,6 +41,17 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 ### 🎉 Recent Updates (Oct 2025)
 
 **Latest Features (Oct 4, 2025):**
+- ✅ **Daily Partner Reminders** - Automated email notifications
+  - Railway Worker service with node-cron scheduler
+  - Daily reminders at 9 AM HKT for partners with incomplete projects
+  - Filters for HK Trx and US Trx categories only (excludes Comp and Other)
+  - Consolidated emails showing all missing fields per project
+  - Professional HTML templates with direct project update links
+  - Rate-limited sending (600ms delay) to comply with Resend limits
+  - Test mode and feature flags for safe rollout
+  - Runs continuously on Railway worker (separate from backend service)
+- ✅ **Email Service Improvements**
+  - Removed BCC from project update emails for cleaner delivery
 - ✅ **Welcome Email for New Users** - Automated onboarding
   - New users automatically receive welcome email with credentials
   - Professional HTML template with username and temporary password
@@ -57,7 +68,6 @@ This application replaces the Excel-based staffing tracker with a full-stack web
   - Staff members receive emails when projects they're assigned to are updated
   - Professional HTML email templates with change summaries
   - Direct links to view updated projects
-  - Automatic BCC to mengyu.lu@kirkland.hk for oversight
   - Resend email service integration (free tier: 3,000 emails/month)
   - Email sender displays as "Asia CM Team" instead of generic "notifications"
 - ✅ **Excel Export & Print Improvements** - Professional output formatting
@@ -385,18 +395,29 @@ After running the migration script:
 
 Automated daily emails to partners about projects with missing critical information.
 
-**Schedule**: 9 AM HKT (1 AM UTC) via Railway cron
+**Schedule**: 9 AM HKT (1 AM UTC) via Railway Worker with node-cron
 **Recipient**: Partners (position='Partner', status='active', email not null)
-**Projects**: Active and Slow-down only
+**Projects**: Active and Slow-down status, HK Trx and US Trx categories only
 **Missing Fields**: Filing Date, Listing Date, EL Status, B&C Attorney
 
-### Configuration
+### Railway Worker Setup
 
-Set in Railway cron service:
-- `ENABLE_PROJECT_REMINDERS=true` - Master switch to enable/disable
-- `EMAIL_TEST_MODE=false` - Set to `true` to redirect all emails in testing
-- `EMAIL_TEST_RECIPIENT=admin@example.com` - Test recipient address
-- `LOG_EMAIL_PAYLOADS=false` - Debug logging (optional)
+The reminder system runs as a dedicated Railway worker service:
+1. **Create Worker Service** in Railway dashboard
+2. **Deploy from GitHub** repo (same as backend)
+3. **Start Command**: `npm run start:worker`
+4. **Environment Variables**:
+   - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+   - `RESEND_API_KEY` - Your Resend API key
+   - `EMAIL_FROM=notifications@asia-cm.team`
+   - `FRONTEND_URL` - Your production frontend URL
+   - `ENABLE_PROJECT_REMINDERS=true` - Master switch to enable/disable
+   - `EMAIL_TEST_MODE=false` - Set to `true` to redirect all emails in testing
+   - `EMAIL_TEST_RECIPIENT=admin@example.com` - Test recipient address
+   - `LOG_EMAIL_PAYLOADS=false` - Debug logging (optional)
+   - `RUN_REMINDERS_ON_START=true` - Run immediately on deployment (optional, for testing)
+
+The worker runs continuously and executes the reminder job daily at 1 AM UTC using the `Asia/Hong_Kong` timezone.
 
 ### Development
 
