@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import prisma from '../utils/prisma';
 
 const router = Router();
 const execAsync = promisify(exec);
@@ -10,8 +11,6 @@ const execAsync = promisify(exec);
 router.post('/run-excel-migration', async (req: Request, res: Response) => {
   try {
     // Check if migration already ran (check if data exists)
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
 
     const projectCount = await prisma.project.count();
     const staffCount = await prisma.staff.count();
@@ -27,8 +26,6 @@ router.post('/run-excel-migration', async (req: Request, res: Response) => {
     // Run the migration script
     const scriptPath = path.join(__dirname, '../scripts/migrate-excel.ts');
     const { stdout, stderr } = await execAsync(`npx ts-node ${scriptPath}`);
-
-    await prisma.$disconnect();
 
     res.json({
       success: true,
@@ -49,17 +46,12 @@ router.post('/run-excel-migration', async (req: Request, res: Response) => {
 // Check migration status
 router.get('/migration-status', async (req: Request, res: Response) => {
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const [projectCount, staffCount, userCount, assignmentCount] = await Promise.all([
       prisma.project.count(),
       prisma.staff.count(),
       prisma.user.count(),
       prisma.projectAssignment.count()
     ]);
-
-    await prisma.$disconnect();
 
     res.json({
       hasMigrated: projectCount > 0 || staffCount > 0,
