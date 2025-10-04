@@ -73,6 +73,17 @@ const UserManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [passwordDialog, setPasswordDialog] = useState<PasswordDialogState | null>(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [gridKey, setGridKey] = useState(0);
+
+  // Force DataGrid to remount on window resize to recalculate column widths
+  React.useEffect(() => {
+    const handleResize = () => {
+      setGridKey(prev => prev + 1);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch user-related activity logs
   const { data: activityData, isLoading: activityLoading } = useQuery({
@@ -80,6 +91,18 @@ const UserManagement: React.FC = () => {
     queryFn: async () => {
       const response = await apiClient.get('/dashboard/activity-log', {
         params: { entityType: 'user', limit: 100 },
+      });
+      return response.data;
+    },
+    staleTime: 30000, // 30 seconds
+  });
+
+  // Fetch detailed change history for staff and projects
+  const { data: allActivityData, isLoading: allActivityLoading } = useQuery({
+    queryKey: ['change-history'],
+    queryFn: async () => {
+      const response = await apiClient.get('/dashboard/change-history', {
+        params: { limit: 100 },
       });
       return response.data;
     },
@@ -112,22 +135,52 @@ const UserManagement: React.FC = () => {
       field: 'username',
       headerName: 'Username',
       flex: 1,
-      minWidth: 140,
       headerAlign: 'left',
       align: 'left',
+      renderCell: ({ row }) => {
+        if (row.staff?.id) {
+          return (
+            <Typography
+              component="a"
+              variant="body2"
+              href={`/staff/${row.staff.id}`}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/staff/${row.staff.id}`, { state: { from: '/admin' } });
+              }}
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                textTransform: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              {row.username}
+            </Typography>
+          );
+        }
+        return (
+          <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'none' }}>
+            {row.username}
+          </Typography>
+        );
+      },
     },
     {
       field: 'email',
       headerName: 'Email',
       flex: 1.2,
-      minWidth: 200,
       headerAlign: 'left',
       align: 'left',
+      renderCell: ({ value }) => value,
     },
     {
       field: 'role',
       headerName: 'Role',
-      width: 130,
+      flex: 0.6,
       headerAlign: 'center',
       align: 'center',
       renderCell: ({ value }) => <Chip size="small" label={value} color={value === 'admin' ? 'error' : value === 'editor' ? 'warning' : 'default'} />,
@@ -135,7 +188,7 @@ const UserManagement: React.FC = () => {
     {
       field: 'mustResetPassword',
       headerName: 'Reset Required',
-      width: 150,
+      flex: 0.7,
       headerAlign: 'center',
       align: 'center',
       renderCell: ({ value }) =>
@@ -144,7 +197,7 @@ const UserManagement: React.FC = () => {
     {
       field: 'lastLogin',
       headerName: 'Last Login',
-      width: 200,
+      flex: 1,
       headerAlign: 'left',
       align: 'left',
       valueGetter: (_value, row) => row.lastLogin,
@@ -153,7 +206,7 @@ const UserManagement: React.FC = () => {
     {
       field: 'staff',
       headerName: 'Staff Link',
-      width: 200,
+      flex: 1,
       headerAlign: 'left',
       align: 'left',
       valueGetter: (_value, row) => row.staff?.name ?? '—',
@@ -161,7 +214,7 @@ const UserManagement: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 200,
+      flex: 0.8,
       headerAlign: 'center',
       align: 'center',
       sortable: false,
@@ -210,12 +263,13 @@ const UserManagement: React.FC = () => {
   const userCountLabel = `${users.length} user${users.length === 1 ? '' : 's'}`;
 
   const activityLogs: ActivityLog[] = activityData?.data || [];
+  const allActivityLogs: ActivityLog[] = allActivityData?.data || [];
 
   const activityColumns: GridColDef<ActivityLog>[] = [
     {
       field: 'createdAt',
       headerName: 'Date & Time',
-      width: 180,
+      flex: 0.8,
       headerAlign: 'left',
       align: 'left',
       valueFormatter: (value) => new Date(value).toLocaleString(),
@@ -223,7 +277,7 @@ const UserManagement: React.FC = () => {
     {
       field: 'actionType',
       headerName: 'Action',
-      width: 120,
+      flex: 0.5,
       headerAlign: 'center',
       align: 'center',
       renderCell: ({ value }) => {
@@ -234,15 +288,142 @@ const UserManagement: React.FC = () => {
     {
       field: 'username',
       headerName: 'Performed By',
-      width: 150,
+      flex: 0.7,
       headerAlign: 'left',
       align: 'left',
     },
     {
       field: 'description',
       headerName: 'Description',
-      flex: 1,
-      minWidth: 300,
+      flex: 1.5,
+      headerAlign: 'left',
+      align: 'left',
+    },
+  ];
+
+  const allActivityColumns: GridColDef<ActivityLog>[] = [
+    {
+      field: 'createdAt',
+      headerName: 'Date & Time',
+      flex: 0.7,
+      headerAlign: 'left',
+      align: 'left',
+      valueFormatter: (value) => new Date(value).toLocaleString(),
+    },
+    {
+      field: 'entityType',
+      headerName: 'Type',
+      flex: 0.4,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: ({ value }) => {
+        const color = value === 'staff' ? 'success' : 'warning';
+        return <Chip size="small" label={value} color={color} />;
+      },
+    },
+    {
+      field: 'entityName',
+      headerName: 'Entity',
+      flex: 0.8,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: ({ row }) => {
+        const { entityType, entityId, entityName } = row;
+
+        if (entityType === 'staff') {
+          return (
+            <Typography
+              component="a"
+              variant="body2"
+              href={`/staff/${entityId}`}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/staff/${entityId}`);
+              }}
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              {entityName}
+            </Typography>
+          );
+        }
+
+        if (entityType === 'project') {
+          return (
+            <Typography
+              component="a"
+              variant="body2"
+              href={`/projects/${entityId}`}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/projects/${entityId}`);
+              }}
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+            >
+              {entityName}
+            </Typography>
+          );
+        }
+
+        return <span>{entityName}</span>;
+      },
+    },
+    {
+      field: 'fieldName',
+      headerName: 'Field',
+      flex: 0.5,
+      headerAlign: 'left',
+      align: 'left',
+    },
+    {
+      field: 'changes',
+      headerName: 'Changes',
+      flex: 1.2,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: ({ row }) => {
+        const { oldValue, newValue, actionType } = row;
+
+        if (actionType === 'assignment_added') {
+          return <span>Added assignment: {newValue}</span>;
+        }
+
+        if (actionType === 'assignment_removed') {
+          return <span>Removed assignment: {oldValue}</span>;
+        }
+
+        if (!oldValue && newValue) {
+          return <span>Set to: <strong>{newValue}</strong></span>;
+        }
+
+        if (oldValue && !newValue) {
+          return <span>Cleared from: <strong>{oldValue}</strong></span>;
+        }
+
+        return (
+          <span>
+            Changed from <strong>{oldValue || '(empty)'}</strong> to <strong>{newValue || '(empty)'}</strong>
+          </span>
+        );
+      },
+    },
+    {
+      field: 'username',
+      headerName: 'Performed By',
+      flex: 0.6,
       headerAlign: 'left',
       align: 'left',
     },
@@ -252,7 +433,6 @@ const UserManagement: React.FC = () => {
     <Page>
       <PageHeader
         title="Admin Panel"
-        subtitle={userCountLabel}
         actions={
           <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
             New User
@@ -263,7 +443,8 @@ const UserManagement: React.FC = () => {
       <Paper sx={{ mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label="Users" />
-          <Tab label="Change Log" />
+          <Tab label="User Change Log" />
+          <Tab label="Activity Log" />
         </Tabs>
       </Paper>
 
@@ -275,17 +456,35 @@ const UserManagement: React.FC = () => {
             </Box>
           ) : (
             <DataGrid
+              key={`users-grid-${gridKey}`}
               rows={users}
               columns={columns}
               autoHeight
               disableRowSelectionOnClick
+              disableColumnResize
+              disableColumnMenu
               getRowId={(row) => row.id}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 25 } },
+                columns: {
+                  columnVisibilityModel: {},
+                }
+              }}
               pageSizeOptions={[25, 50, 100]}
               sx={{
                 '& .MuiDataGrid-cell': {
                   display: 'flex',
                   alignItems: 'center',
+                  textTransform: 'none !important',
+                },
+                '& .MuiDataGrid-columnHeader': {
+                  minWidth: '0 !important',
+                },
+                '& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader': {
+                  maxWidth: 'none !important',
+                },
+                '& .MuiDataGrid-cell *': {
+                  textTransform: 'none !important',
                 },
               }}
             />
@@ -301,17 +500,79 @@ const UserManagement: React.FC = () => {
             </Box>
           ) : (
             <DataGrid
+              key={`activity-grid-${gridKey}`}
               rows={activityLogs}
               columns={activityColumns}
               autoHeight
               disableRowSelectionOnClick
+              disableColumnResize
+              disableColumnMenu
               getRowId={(row) => row.id}
-              initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 25 } },
+                columns: {
+                  columnVisibilityModel: {},
+                }
+              }}
               pageSizeOptions={[25, 50, 100]}
               sx={{
                 '& .MuiDataGrid-cell': {
                   display: 'flex',
                   alignItems: 'center',
+                  textTransform: 'none !important',
+                },
+                '& .MuiDataGrid-columnHeader': {
+                  minWidth: '0 !important',
+                },
+                '& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader': {
+                  maxWidth: 'none !important',
+                },
+                '& .MuiDataGrid-cell *': {
+                  textTransform: 'none !important',
+                },
+              }}
+            />
+          )}
+        </Paper>
+      )}
+
+      {activeTab === 2 && (
+        <Paper sx={{ p: 2 }}>
+          {allActivityLoading ? (
+            <Box display="flex" justifyContent="center" py={6}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <DataGrid
+              key={`all-activity-grid-${gridKey}`}
+              rows={allActivityLogs}
+              columns={allActivityColumns}
+              autoHeight
+              disableRowSelectionOnClick
+              disableColumnResize
+              disableColumnMenu
+              getRowId={(row) => row.id}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 25 } },
+                columns: {
+                  columnVisibilityModel: {},
+                }
+              }}
+              pageSizeOptions={[25, 50, 100]}
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  textTransform: 'none !important',
+                },
+                '& .MuiDataGrid-columnHeader': {
+                  minWidth: '0 !important',
+                },
+                '& .MuiDataGrid-cell, & .MuiDataGrid-columnHeader': {
+                  maxWidth: 'none !important',
+                },
+                '& .MuiDataGrid-cell *': {
+                  textTransform: 'none !important',
                 },
               }}
             />

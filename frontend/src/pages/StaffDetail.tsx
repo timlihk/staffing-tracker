@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -53,6 +53,7 @@ const getActionIcon = (actionType: string) => {
 const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const permissions = usePermissions();
   const [staff, setStaff] = useState<Staff | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
@@ -150,7 +151,10 @@ const StaffDetail: React.FC = () => {
       <PageHeader
         title={
           <Stack direction="row" spacing={2} alignItems="center">
-            <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
+            <Button startIcon={<ArrowBack />} onClick={() => {
+              const from = (location.state as { from?: string })?.from;
+              navigate(from === '/admin' ? '/admin' : '/staff');
+            }}>
               Back
             </Button>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>

@@ -7,5 +7,6 @@ const router = Router();
 router.get('/summary', authenticate, dashboardController.getDashboardSummary);
 router.get('/workload-report', authenticate, dashboardController.getWorkloadReport);
 router.get('/activity-log', authenticate, dashboardController.getActivityLog);
+router.get('/change-history', authenticate, dashboardController.getDetailedChangeHistory);
 
 export default router;
