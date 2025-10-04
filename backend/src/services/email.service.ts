@@ -554,10 +554,18 @@ export async function sendPartnerReminderEmail(
   }
 
   // Test mode: redirect to test recipient
-  const recipient =
-    process.env.EMAIL_TEST_MODE === 'true'
-      ? process.env.EMAIL_TEST_RECIPIENT || partnerEmail
-      : partnerEmail;
+  let recipient: string;
+  if (process.env.EMAIL_TEST_MODE === 'true') {
+    if (!process.env.EMAIL_TEST_RECIPIENT) {
+      throw new Error(
+        '[Reminders] EMAIL_TEST_MODE is enabled but EMAIL_TEST_RECIPIENT is not set. ' +
+        'Refusing to send to partner email in test mode.'
+      );
+    }
+    recipient = process.env.EMAIL_TEST_RECIPIENT;
+  } else {
+    recipient = partnerEmail;
+  }
 
   // Debug logging
   if (process.env.LOG_EMAIL_PAYLOADS === 'true') {
