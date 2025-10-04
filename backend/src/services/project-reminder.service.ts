@@ -106,12 +106,16 @@ export async function getPartnersWithIncompleteProjects(): Promise<
   PartnerReminderPayload[]
 > {
   // Query all partner assignments to Active/Slow-down projects
+  // Only include HK Trx and US Trx categories
   // Only include active partners with email addresses
   const assignments = await prisma.projectAssignment.findMany({
     where: {
       project: {
         status: {
           in: ['Active', 'Slow-down'],
+        },
+        category: {
+          in: ['HK Trx', 'US Trx'],
         },
       },
       staff: {
