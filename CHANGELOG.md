@@ -2,6 +2,37 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.10.0] - 2025-10-04
+
+### Added
+- 📊 **Enhanced Admin Panel Activity Tracking**
+  - New detailed Activity Log showing field-level changes for staff and projects
+  - Shows exactly what changed: "Changed from X to Y" instead of generic descriptions
+  - Separated User Change Log and Activity Log (staff/project changes) into different tabs
+  - Clickable entity names to navigate directly to staff or project detail pages
+  - Displays field name, old value, new value, who made the change, and when
+
+### Changed
+- 🔗 **Clickable Usernames** - Usernames in admin panel now link to staff detail pages (when staff record exists)
+- 📧 **Email Normalization** - New user emails are automatically stored in lowercase
+- 🔙 **Smart Back Button** - Staff detail page back button returns to admin panel when navigated from there
+- 📱 **Responsive Tables** - Improved DataGrid column width behavior - columns now shrink and expand with window resize
+- 🎨 **UI Improvements** - Removed user count subtitle from Admin Panel header
+
+### Technical Details
+**Backend:**
+- Added `getDetailedChangeHistory` endpoint at `/dashboard/change-history`
+- Fetches from `StaffChangeHistory` and `ProjectChangeHistory` tables
+- Returns field-level change details including old/new values, field names, and change types
+- Supports filtering by entity type (staff/project) or combined view
+
+**Frontend:**
+- Updated `UserManagement.tsx` with three-tab layout: Users, User Change Log, Activity Log
+- New column structure showing entity type, entity name, field, changes, and performed by
+- Added window resize handler to force DataGrid remount for proper column width recalculation
+- Enhanced navigation with location state to preserve user flow from admin panel
+- Made username cells clickable when linked to staff records
+
 ## [1.9.0] - 2025-10-04
 
 ### Added
