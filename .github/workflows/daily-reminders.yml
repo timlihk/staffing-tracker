@@ -1,11 +1,8 @@
- name: Daily Partner Reminders
+name: Daily Partner Reminders
 
   on:
-    # Run daily at 1 AM UTC (9 AM Hong Kong Time)
     schedule:
       - cron: '0 1 * * *'
-
-    # Allow manual trigger for testing
     workflow_dispatch:
 
   jobs:
