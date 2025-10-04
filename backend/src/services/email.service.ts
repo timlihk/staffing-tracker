@@ -625,11 +625,9 @@ export async function sendDailyPartnerReminders(
     try {
       await sendPartnerReminderEmail(reminder);
       results.sent++;
-      console.log(`✓ [Reminders] Sent to ${reminder.partnerEmail}`);
     } catch (error) {
       results.failed++;
       results.errors.push({ email: reminder.partnerEmail, error });
-      console.error(`✗ [Reminders] Failed for ${reminder.partnerEmail}:`, error);
     }
   }
 
