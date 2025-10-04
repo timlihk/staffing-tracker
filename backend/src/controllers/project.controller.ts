@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
-import { detectProjectChanges, sendProjectUpdateEmail } from '../services/email.service';
+import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
@@ -225,20 +225,22 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      // Send emails asynchronously (don't wait for completion)
-      for (const assignment of assignedStaff) {
-        if (assignment.staff.email) {
-          sendProjectUpdateEmail({
-            staffEmail: assignment.staff.email,
-            staffName: assignment.staff.name,
-            projectId: project.id,
-            projectName: project.name,
-            projectCategory: project.category,
-            changes,
-          }).catch((err) => {
-            console.error(`Failed to send email to ${assignment.staff.email}:`, err);
-          });
-        }
+      // Send emails asynchronously with rate limiting (don't wait for completion)
+      const emailDataList = assignedStaff
+        .filter(assignment => assignment.staff.email)
+        .map(assignment => ({
+          staffEmail: assignment.staff.email!,
+          staffName: assignment.staff.name,
+          projectId: project.id,
+          projectName: project.name,
+          projectCategory: project.category,
+          changes,
+        }));
+
+      if (emailDataList.length > 0) {
+        sendProjectUpdateEmails(emailDataList).catch((err) => {
+          console.error('Failed to send project update emails:', err);
+        });
       }
     }
 

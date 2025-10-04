@@ -4,6 +4,9 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const fromEmail = process.env.EMAIL_FROM || 'Asia CM Team <notifications@asia-cm.team>';
 const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+// Utility function to add delay between emails to avoid rate limits
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 interface ProjectChange {
   field: string;
   oldValue: string | null;
@@ -373,4 +376,32 @@ ${appUrl}
     // Don't throw - we don't want email failures to break user creation
     return null;
   }
+}
+
+/**
+ * Sends multiple project update emails with rate limiting
+ * Resend rate limit: 2 requests per second
+ * We send 1 email every 600ms to stay well under the limit
+ */
+export async function sendProjectUpdateEmails(emailDataList: EmailNotificationData[]) {
+  const results = [];
+
+  for (let i = 0; i < emailDataList.length; i++) {
+    const emailData = emailDataList[i];
+
+    // Add delay before each email (except the first one)
+    if (i > 0) {
+      await delay(600); // 600ms = 1.67 emails per second (safely under 2/sec limit)
+    }
+
+    try {
+      const result = await sendProjectUpdateEmail(emailData);
+      results.push({ success: true, email: emailData.staffEmail, result });
+    } catch (error) {
+      console.error(`Failed to send email to ${emailData.staffEmail}:`, error);
+      results.push({ success: false, email: emailData.staffEmail, error });
+    }
+  }
+
+  return results;
 }
