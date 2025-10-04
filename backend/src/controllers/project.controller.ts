@@ -209,7 +209,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     });
 
     // Send email notifications to assigned staff
-    const changes = detectProjectChanges(existingProject, updateData);
+    // Compare old project with updated project (not partial updateData) to avoid false "Removed" messages
+    const changes = detectProjectChanges(existingProject, project);
     if (changes.length > 0) {
       // Get all staff assigned to this project with email addresses
       const assignedStaff = await prisma.projectAssignment.findMany({

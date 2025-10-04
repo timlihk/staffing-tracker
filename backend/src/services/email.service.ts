@@ -406,6 +406,27 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
     }
   }
 
+  // Log failures to database for monitoring
+  const failures = results.filter(r => !r.success);
+  if (failures.length > 0) {
+    const prisma = (await import('../utils/prisma')).default;
+
+    try {
+      await prisma.activityLog.create({
+        data: {
+          actionType: 'error',
+          entityType: 'email',
+          description: `Project update email failures: ${failures.length}/${results.length} emails failed`,
+          userId: null, // System action
+        },
+      });
+
+      console.error(`⚠️  [Email] Logged ${failures.length} project update email failures to database`);
+    } catch (logError) {
+      console.error('[Email] Failed to log email failures to database:', logError);
+    }
+  }
+
   return results;
 }
 
@@ -642,6 +663,32 @@ export async function sendDailyPartnerReminders(
   console.log(
     `✅ [Reminders] Complete: Sent ${results.sent}/${results.total}, Failed ${results.failed}`
   );
+
+  // Log failures to database for monitoring
+  if (results.failed > 0) {
+    const prisma = (await import('../utils/prisma')).default;
+
+    try {
+      await prisma.activityLog.create({
+        data: {
+          actionType: 'error',
+          entityType: 'email',
+          description: `Partner reminder failures: ${results.failed}/${results.total} emails failed`,
+          userId: null, // System action
+        },
+      });
+
+      console.error(`⚠️  [Reminders] Logged ${results.failed} failures to database`);
+
+      // If failure rate is high, log additional warning
+      const failureRate = (results.failed / results.total) * 100;
+      if (failureRate > 20) {
+        console.error(`🚨 [Reminders] HIGH FAILURE RATE: ${failureRate.toFixed(1)}% of emails failed!`);
+      }
+    } catch (logError) {
+      console.error('[Reminders] Failed to log email failures to database:', logError);
+    }
+  }
 
   return results;
 }
