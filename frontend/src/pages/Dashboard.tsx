@@ -16,6 +16,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Page, DashboardSkeleton } from '../components/ui';
@@ -225,6 +226,7 @@ const StaffingHeatmapCard = ({
   onSelectStaff: (id: number) => void;
 }) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [sortConfig, setSortConfig] = useState<Record<string, { field: 'name' | string; order: 'asc' | 'desc' }>>({});
 
   useEffect(() => {
     setExpandedGroups((prev) => {
@@ -254,6 +256,35 @@ const StaffingHeatmapCard = ({
 
   const allExpanded = groups.length > 0 && groups.every((group) => expandedGroups[group.label]);
   const allCollapsed = groups.length > 0 && groups.every((group) => expandedGroups[group.label] === false);
+
+  const handleSort = (groupLabel: string, field: 'name' | string) => {
+    setSortConfig((prev) => {
+      const current = prev[groupLabel];
+      const newOrder = current?.field === field && current.order === 'asc' ? 'desc' : 'asc';
+      return { ...prev, [groupLabel]: { field, order: newOrder } };
+    });
+  };
+
+  const getSortedRows = (rows: DashboardSummary['staffingHeatmap'], groupLabel: string) => {
+    const config = sortConfig[groupLabel];
+    if (!config) {
+      // Default: sort by name alphabetically
+      return [...rows].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return [...rows].sort((a, b) => {
+      if (config.field === 'name') {
+        return config.order === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      }
+
+      // Sorting by week column
+      const weekA = a.weeks.find(w => w.week === config.field)?.count ?? 0;
+      const weekB = b.weeks.find(w => w.week === config.field)?.count ?? 0;
+      return config.order === 'asc' ? weekA - weekB : weekB - weekA;
+    });
+  };
 
   return (
     <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -314,18 +345,32 @@ const StaffingHeatmapCard = ({
                   <Table size="small" stickyHeader={false}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ py: 1 }}>Name</TableCell>
+                        <TableCell sx={{ py: 1 }}>
+                          <TableSortLabel
+                            active={sortConfig[group.label]?.field === 'name' || !sortConfig[group.label]}
+                            direction={sortConfig[group.label]?.field === 'name' ? sortConfig[group.label].order : 'asc'}
+                            onClick={() => handleSort(group.label, 'name')}
+                          >
+                            Name
+                          </TableSortLabel>
+                        </TableCell>
                         {weeks.map((week) => (
                           <TableCell key={week} align="center" sx={{ py: 1 }}>
-                            <Typography variant="caption" fontWeight={600}>
-                              {formatWeekLabel(week)}
-                            </Typography>
+                            <TableSortLabel
+                              active={sortConfig[group.label]?.field === week}
+                              direction={sortConfig[group.label]?.field === week ? sortConfig[group.label].order : 'asc'}
+                              onClick={() => handleSort(group.label, week)}
+                            >
+                              <Typography variant="caption" fontWeight={600}>
+                                {formatWeekLabel(week)}
+                              </Typography>
+                            </TableSortLabel>
                           </TableCell>
                         ))}
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {group.rows.map((row) => (
+                      {getSortedRows(group.rows, group.label).map((row) => (
                         <TableRow
                           key={row.staffId}
                           hover
