@@ -1,4 +1,8 @@
 import { Resend } from 'resend';
+import {
+  PartnerReminderPayload,
+  formatFieldName as formatReminderFieldName,
+} from './project-reminder.service';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromEmail = process.env.EMAIL_FROM || 'Asia CM Team <notifications@asia-cm.team>';
@@ -402,6 +406,237 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
       results.push({ success: false, email: emailData.staffEmail, error });
     }
   }
+
+  return results;
+}
+
+/**
+ * Build partner reminder email HTML and text content
+ * Pure function - returns both formats for reuse in preview and sender
+ */
+export function buildPartnerReminderHTML(data: PartnerReminderPayload): {
+  html: string;
+  text: string;
+} {
+  const { partnerName, projects } = data;
+
+  // Build table rows
+  const tableRows = projects
+    .map(
+      (project) => `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+            <strong style="color: #1e40af;">${project.name || 'Untitled Project'}</strong>
+          </td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #64748b;">
+            ${project.category || '-'}
+          </td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+            <ul style="margin: 0; padding-left: 20px; color: #dc2626;">
+              ${project.missingFields.map((field) => `<li>${formatReminderFieldName(field)}</li>`).join('')}
+            </ul>
+          </td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+            <a href="${appUrl}/projects/${project.id}"
+               style="display: inline-block; background: #2563eb; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">
+              Update
+            </a>
+          </td>
+        </tr>
+      `
+    )
+    .join('');
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Information Reminder</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
+
+  <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">Project Information Reminder</h1>
+  </div>
+
+  <div style="background: #fff; border: 1px solid #e5e7eb; border-top: none; padding: 30px 20px; border-radius: 0 0 8px 8px;">
+
+    <p style="font-size: 16px; margin-top: 0;">Hello <strong>${partnerName}</strong>,</p>
+
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      You have <strong>${projects.length}</strong> project${projects.length > 1 ? 's' : ''} with missing critical information that need${projects.length === 1 ? 's' : ''} to be updated:
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 24px 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <thead>
+        <tr style="background: #f8fafc;">
+          <th style="padding: 12px; text-align: left; font-weight: 600; color: #1e40af; border-bottom: 2px solid #e5e7eb;">Project Name</th>
+          <th style="padding: 12px; text-align: left; font-weight: 600; color: #1e40af; border-bottom: 2px solid #e5e7eb;">Category</th>
+          <th style="padding: 12px; text-align: left; font-weight: 600; color: #1e40af; border-bottom: 2px solid #e5e7eb;">Missing Information</th>
+          <th style="padding: 12px; text-align: center; font-weight: 600; color: #1e40af; border-bottom: 2px solid #e5e7eb;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
+
+    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 4px;">
+      <p style="margin: 0; font-size: 14px; color: #92400e;">
+        <strong>📅 Reminder Schedule:</strong> This reminder runs daily at 9 AM HKT. Please update the missing information by end of day.
+      </p>
+    </div>
+
+    <div style="background: #f0f9ff; border-left: 4px solid #2563eb; padding: 16px; margin: 20px 0; border-radius: 4px;">
+      <p style="margin: 0; font-size: 13px; color: #1e40af;">
+        <strong>Note:</strong> If multiple partners are assigned to a project, any partner can update these fields.
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+    <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
+      Staffing Tracker<br>
+      Asia CM Team<br>
+      <a href="${appUrl}" style="color: #2563eb; text-decoration: none;">asia-cm.team</a>
+    </p>
+
+  </div>
+
+</body>
+</html>
+  `;
+
+  const text = `
+Project Information Reminder
+
+Hello ${partnerName},
+
+You have ${projects.length} project${projects.length > 1 ? 's' : ''} with missing critical information:
+
+${projects
+  .map(
+    (project, index) => `
+${index + 1}. ${project.name || 'Untitled Project'} (${project.category || '-'})
+   Missing: ${project.missingFields.map((f) => formatReminderFieldName(f)).join(', ')}
+   Update: ${appUrl}/projects/${project.id}
+`
+  )
+  .join('\n')}
+
+📅 This reminder runs daily at 9 AM HKT. Please update by end of day.
+
+Note: If multiple partners are assigned to a project, any partner can update these fields.
+
+---
+Staffing Tracker
+Asia CM Team
+${appUrl}
+  `;
+
+  return { html, text };
+}
+
+/**
+ * Send partner reminder email
+ * Respects test mode and debug logging
+ */
+export async function sendPartnerReminderEmail(
+  data: PartnerReminderPayload
+): Promise<any> {
+  const { partnerEmail } = data;
+
+  // Skip if no email configured
+  if (!process.env.RESEND_API_KEY) {
+    console.log('[Reminders] Skipping (no RESEND_API_KEY):', { to: partnerEmail });
+    return null;
+  }
+
+  // Test mode: redirect to test recipient
+  const recipient =
+    process.env.EMAIL_TEST_MODE === 'true'
+      ? process.env.EMAIL_TEST_RECIPIENT || partnerEmail
+      : partnerEmail;
+
+  // Debug logging
+  if (process.env.LOG_EMAIL_PAYLOADS === 'true') {
+    console.log('[DEBUG] Partner reminder payload:', JSON.stringify(data, null, 2));
+  }
+
+  // Build email content
+  const { html, text } = buildPartnerReminderHTML(data);
+
+  try {
+    if (!resend) {
+      throw new Error('Resend client not initialized');
+    }
+
+    const result = await resend.emails.send({
+      from: fromEmail,
+      to: recipient,
+      subject: 'Project Information Reminder - Action Required',
+      html,
+      text,
+    });
+
+    console.log('[Reminders] Sent successfully:', {
+      to: recipient,
+      projects: data.projects.length,
+      emailId: result.data?.id,
+    });
+
+    return result;
+  } catch (error) {
+    console.error('[Reminders] Failed to send email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send daily partner reminders with rate limiting
+ * Returns summary of sent/failed emails
+ */
+export async function sendDailyPartnerReminders(
+  reminders: PartnerReminderPayload[]
+): Promise<{
+  sent: number;
+  failed: number;
+  total: number;
+  errors: Array<{ email: string; error: any }>;
+}> {
+  console.log(`📧 [Reminders] Sending to ${reminders.length} partners`);
+
+  const results = {
+    sent: 0,
+    failed: 0,
+    total: reminders.length,
+    errors: [] as Array<{ email: string; error: any }>,
+  };
+
+  for (let i = 0; i < reminders.length; i++) {
+    const reminder = reminders[i];
+
+    // Rate limiting: delay between emails (except first)
+    if (i > 0) {
+      await delay(600); // 600ms = 1.67 emails/sec (under Resend's 2/sec limit)
+    }
+
+    try {
+      await sendPartnerReminderEmail(reminder);
+      results.sent++;
+      console.log(`✓ [Reminders] Sent to ${reminder.partnerEmail}`);
+    } catch (error) {
+      results.failed++;
+      results.errors.push({ email: reminder.partnerEmail, error });
+      console.error(`✗ [Reminders] Failed for ${reminder.partnerEmail}:`, error);
+    }
+  }
+
+  console.log(
+    `✅ [Reminders] Complete: Sent ${results.sent}/${results.total}, Failed ${results.failed}`
+  );
 
   return results;
 }

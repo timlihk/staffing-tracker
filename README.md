@@ -381,6 +381,56 @@ After running the migration script:
 
 ⚠️ **Change immediately after first login!**
 
+## 📧 Daily Partner Reminders
+
+Automated daily emails to partners about projects with missing critical information.
+
+**Schedule**: 9 AM HKT (1 AM UTC) via Railway cron
+**Recipient**: Partners (position='Partner', status='active', email not null)
+**Projects**: Active and Slow-down only
+**Missing Fields**: Filing Date, Listing Date, EL Status, B&C Attorney
+
+### Configuration
+
+Set in Railway cron service:
+- `ENABLE_PROJECT_REMINDERS=true` - Master switch to enable/disable
+- `EMAIL_TEST_MODE=false` - Set to `true` to redirect all emails in testing
+- `EMAIL_TEST_RECIPIENT=admin@example.com` - Test recipient address
+- `LOG_EMAIL_PAYLOADS=false` - Debug logging (optional)
+
+### Development
+
+**Preview Email Template** (requires ts-node dev dependency):
+```bash
+cd backend
+npm run preview:emails
+open email-previews/partner-reminder.html
+```
+
+**Test Mode Run** (requires ts-node dev dependency):
+```bash
+cd backend
+EMAIL_TEST_MODE=true \
+EMAIL_TEST_RECIPIENT=test@example.com \
+ENABLE_PROJECT_REMINDERS=true \
+npm run send:reminders:dev
+```
+
+**Manual Run** (production build):
+```bash
+cd backend
+npm run build
+npm run send:reminders
+```
+
+### Edge Cases
+- **Projects without active partner emails**: Silently skipped (expected)
+- **Inactive partners**: Not notified (filtered out)
+- **Multiple partners per project**: Each receives the project once
+- **Null/missing project fields**: Display as '-' in email
+
+---
+
 ## 🔧 Development
 
 ### Running Tests

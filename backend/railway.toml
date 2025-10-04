@@ -1,0 +1,4 @@
+[[cron]]
+name = "project-reminders"
+schedule = "0 1 * * *"  # Daily at 1 AM UTC (9 AM HKT)
+command = "npm run send:reminders"
