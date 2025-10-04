@@ -148,7 +148,6 @@ Asia CM Team
     const result = await resend.emails.send({
       from: fromEmail,
       to: staffEmail,
-      bcc: 'mengyu.lu@kirkland.hk',
       subject: `Project Update: ${projectName}`,
       html: htmlContent,
       text: textContent,
