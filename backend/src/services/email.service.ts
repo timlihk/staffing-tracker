@@ -382,52 +382,163 @@ ${appUrl}
 }
 
 /**
- * Sends multiple project update emails with rate limiting
- * Resend rate limit: 2 requests per second
- * We send 1 email every 600ms to stay well under the limit
+ * Sends project update email to all assigned staff in one email
+ * This saves API quota by sending 1 email instead of N individual emails
+ * All recipients in To field for full deal team transparency
  */
 export async function sendProjectUpdateEmails(emailDataList: EmailNotificationData[]) {
-  const results = [];
-
-  for (let i = 0; i < emailDataList.length; i++) {
-    const emailData = emailDataList[i];
-
-    // Add delay before each email (except the first one)
-    if (i > 0) {
-      await delay(600); // 600ms = 1.67 emails per second (safely under 2/sec limit)
-    }
-
-    try {
-      const result = await sendProjectUpdateEmail(emailData);
-      results.push({ success: true, email: emailData.staffEmail, result });
-    } catch (error) {
-      console.error(`Failed to send email to ${emailData.staffEmail}:`, error);
-      results.push({ success: false, email: emailData.staffEmail, error });
-    }
+  if (emailDataList.length === 0) {
+    return [];
   }
 
-  // Log failures to database for monitoring
-  const failures = results.filter(r => !r.success);
-  if (failures.length > 0) {
-    const prisma = (await import('../utils/prisma')).default;
+  // Skip if no email configured
+  if (!process.env.RESEND_API_KEY) {
+    console.log('Skipping project update emails (no RESEND_API_KEY):', {
+      project: emailDataList[0]?.projectName,
+      recipients: emailDataList.length,
+    });
+    return [];
+  }
 
+  // Extract unique email addresses for CC
+  const ccEmails = [...new Set(emailDataList.map(data => data.staffEmail))];
+
+  // Use first staff member's data for email content (all have same project/changes)
+  const firstData = emailDataList[0];
+  const { projectId, projectName, projectCategory, changes } = firstData;
+
+  // Format changes for email
+  const changesHtml = changes
+    .map(
+      (change) => `
+    <li style="margin-bottom: 8px;">
+      <strong>${formatFieldName(change.field)}</strong>:
+      ${change.oldValue ? `<span style="color: #666;">${change.oldValue}</span> → ` : ''}
+      <span style="color: #2563eb; font-weight: 600;">${change.newValue || 'Removed'}</span>
+    </li>
+  `
+    )
+    .join('');
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Update</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+  <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">Project Update</h1>
+  </div>
+
+  <div style="background: #fff; border: 1px solid #e5e7eb; border-top: none; padding: 30px 20px; border-radius: 0 0 8px 8px;">
+
+    <p style="font-size: 16px; margin-top: 0;">Hello,</p>
+
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      A project you're assigned to has been updated:
+    </p>
+
+    <div style="background: #f8fafc; border-left: 4px solid #2563eb; padding: 16px; margin: 20px 0; border-radius: 4px;">
+      <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #1e40af;">
+        ${projectName}
+      </p>
+      <p style="margin: 0; font-size: 14px; color: #64748b;">
+        Category: ${projectCategory}
+      </p>
+    </div>
+
+    <h3 style="color: #1e40af; font-size: 16px; font-weight: 700; margin: 24px 0 12px 0;">
+      Changes Made:
+    </h3>
+
+    <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
+      ${changesHtml}
+    </ul>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${appUrl}/projects/${projectId}"
+         style="display: inline-block; background: #2563eb; color: white; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+        View Project Details
+      </a>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+    <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
+      Staffing Tracker<br>
+      Asia CM Team<br>
+      <a href="${appUrl}" style="color: #2563eb; text-decoration: none;">asia-cm.team</a>
+    </p>
+
+  </div>
+
+</body>
+</html>
+  `;
+
+  const textContent = `
+Project Update
+
+A project you're assigned to has been updated:
+
+Project: ${projectName}
+Category: ${projectCategory}
+
+Changes Made:
+${changes.map((c) => `- ${formatFieldName(c.field)}: ${c.oldValue || 'None'} → ${c.newValue || 'Removed'}`).join('\n')}
+
+View Project: ${appUrl}/projects/${projectId}
+
+---
+Staffing Tracker
+Asia CM Team
+  `;
+
+  try {
+    if (!resend) {
+      throw new Error('Resend client not initialized');
+    }
+
+    // Send ONE email with all recipients in To field (deal team transparency)
+    const result = await resend.emails.send({
+      from: fromEmail,
+      to: ccEmails, // All recipients in To field
+      subject: `Project Update: ${projectName}`,
+      html: htmlContent,
+      text: textContent,
+    });
+
+    console.log('Project update email sent successfully:', {
+      project: projectName,
+      recipients: ccEmails.length,
+      emailId: result.data?.id,
+    });
+
+    return [{ success: true, recipients: ccEmails, result }];
+  } catch (error) {
+    console.error('Failed to send project update email:', error);
+
+    // Log failure to database
+    const prisma = (await import('../utils/prisma')).default;
     try {
       await prisma.activityLog.create({
         data: {
           actionType: 'error',
           entityType: 'email',
-          description: `Project update email failures: ${failures.length}/${results.length} emails failed`,
-          userId: null, // System action
+          description: `Project update email failed: ${projectName} (${ccEmails.length} recipients)`,
+          userId: null,
         },
       });
-
-      console.error(`⚠️  [Email] Logged ${failures.length} project update email failures to database`);
     } catch (logError) {
-      console.error('[Email] Failed to log email failures to database:', logError);
+      console.error('[Email] Failed to log email failure to database:', logError);
     }
-  }
 
-  return results;
+    return [{ success: false, recipients: ccEmails, error }];
+  }
 }
 
 /**

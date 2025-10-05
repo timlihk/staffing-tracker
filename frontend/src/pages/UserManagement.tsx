@@ -62,7 +62,7 @@ interface ActivityLog {
 const UserManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: users = [], isLoading } = useUsers();
+  const { data: users = [], isLoading, refetch: refetchUsers } = useUsers();
   const { data: staff = [], isLoading: staffLoading } = useStaff();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -85,6 +85,21 @@ const UserManagement: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Auto-refresh user list every 5 minutes to update online status
+  // Only runs when this component is mounted (page is being viewed)
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('[UserManagement] Auto-refreshing user data for online status...');
+      refetchUsers();
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+
+    // Cleanup: stop auto-refresh when component unmounts (user navigates away)
+    return () => {
+      console.log('[UserManagement] Stopping auto-refresh (page closed/navigated away)');
+      clearInterval(interval);
+    };
+  }, [refetchUsers]);
+
   // Fetch user-related activity logs
   const { data: activityData, isLoading: activityLoading } = useQuery({
     queryKey: ['activity-log', 'user'],
@@ -97,11 +112,11 @@ const UserManagement: React.FC = () => {
     staleTime: 30000, // 30 seconds
   });
 
-  // Fetch detailed change history for staff and projects
+  // Fetch all activity logs (includes create, delete, update, assign for all entity types)
   const { data: allActivityData, isLoading: allActivityLoading } = useQuery({
-    queryKey: ['change-history'],
+    queryKey: ['activity-log', 'all'],
     queryFn: async () => {
-      const response = await apiClient.get('/dashboard/change-history', {
+      const response = await apiClient.get('/dashboard/activity-log', {
         params: { limit: 100 },
       });
       return response.data;
@@ -130,6 +145,13 @@ const UserManagement: React.FC = () => {
 
   const staffOptions = useMemo(() => staff.map((member: Staff) => ({ label: member.name, value: member.id })), [staff]);
 
+  // Helper function to check if user is online (logged in within last 5 minutes)
+  const isUserOnline = (lastLogin: string | null) => {
+    if (!lastLogin) return false;
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return new Date(lastLogin) > fiveMinutesAgo;
+  };
+
   const columns: GridColDef<ManagedUser>[] = [
     {
       field: 'username',
@@ -138,34 +160,70 @@ const UserManagement: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: ({ row }) => {
+        const online = isUserOnline(row.lastLogin);
+
         if (row.staff?.id) {
           return (
-            <Typography
-              component="a"
-              variant="body2"
-              href={`/staff/${row.staff.id}`}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`/staff/${row.staff.id}`, { state: { from: '/admin' } });
-              }}
-              sx={{
-                color: 'primary.main',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                textTransform: 'none',
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
-              }}
-            >
-              {row.username}
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              {online && (
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: 'success.main',
+                    animation: 'pulse 2s infinite',
+                    '@keyframes pulse': {
+                      '0%, 100%': { opacity: 1 },
+                      '50%': { opacity: 0.5 },
+                    },
+                  }}
+                />
+              )}
+              <Typography
+                component="a"
+                variant="body2"
+                href={`/staff/${row.staff.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/staff/${row.staff.id}`, { state: { from: '/admin' } });
+                }}
+                sx={{
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  textTransform: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                {row.username}
+              </Typography>
+            </Stack>
           );
         }
         return (
-          <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'none' }}>
-            {row.username}
-          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {online && (
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: 'success.main',
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                  },
+                }}
+              />
+            )}
+            <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'none' }}>
+              {row.username}
+            </Typography>
+          </Stack>
         );
       },
     },
@@ -176,6 +234,22 @@ const UserManagement: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: ({ value }) => value,
+    },
+    {
+      field: 'online',
+      headerName: 'Status',
+      flex: 0.5,
+      headerAlign: 'center',
+      align: 'center',
+      valueGetter: (_value, row) => isUserOnline(row.lastLogin),
+      renderCell: ({ row }) => {
+        const online = isUserOnline(row.lastLogin);
+        return online ? (
+          <Chip size="small" label="Online" color="success" />
+        ) : (
+          <Chip size="small" label="Offline" variant="outlined" />
+        );
+      },
     },
     {
       field: 'role',
@@ -193,6 +267,18 @@ const UserManagement: React.FC = () => {
       align: 'center',
       renderCell: ({ value }) =>
         value ? <Chip label="Pending" color="warning" size="small" /> : <Chip label="No" size="small" />,
+    },
+    {
+      field: 'recentActionCount',
+      headerName: 'Actions (7d)',
+      flex: 0.6,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: ({ value }) => (
+        <Typography variant="body2" fontWeight={600} color={value > 0 ? 'success.main' : 'text.secondary'}>
+          {value}
+        </Typography>
+      ),
     },
     {
       field: 'lastLogin',
@@ -260,7 +346,9 @@ const UserManagement: React.FC = () => {
     },
   ];
 
+  const onlineUsers = useMemo(() => users.filter(user => isUserOnline(user.lastLogin)), [users]);
   const userCountLabel = `${users.length} user${users.length === 1 ? '' : 's'}`;
+  const onlineCountLabel = `${onlineUsers.length} online`;
 
   const activityLogs: ActivityLog[] = activityData?.data || [];
   const allActivityLogs: ActivityLog[] = allActivityData?.data || [];
@@ -305,125 +393,44 @@ const UserManagement: React.FC = () => {
     {
       field: 'createdAt',
       headerName: 'Date & Time',
-      flex: 0.7,
+      flex: 0.8,
       headerAlign: 'left',
       align: 'left',
       valueFormatter: (value) => new Date(value).toLocaleString(),
     },
     {
-      field: 'entityType',
-      headerName: 'Type',
-      flex: 0.4,
+      field: 'actionType',
+      headerName: 'Action',
+      flex: 0.5,
       headerAlign: 'center',
       align: 'center',
       renderCell: ({ value }) => {
-        const color = value === 'staff' ? 'success' : 'warning';
+        const color = value === 'create' ? 'success' : value === 'delete' ? 'error' : value === 'assign' ? 'info' : 'primary';
         return <Chip size="small" label={value} color={color} />;
       },
     },
     {
-      field: 'entityName',
-      headerName: 'Entity',
-      flex: 0.8,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: ({ row }) => {
-        const { entityType, entityId, entityName } = row;
-
-        if (entityType === 'staff') {
-          return (
-            <Typography
-              component="a"
-              variant="body2"
-              href={`/staff/${entityId}`}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`/staff/${entityId}`);
-              }}
-              sx={{
-                color: 'primary.main',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
-              }}
-            >
-              {entityName}
-            </Typography>
-          );
-        }
-
-        if (entityType === 'project') {
-          return (
-            <Typography
-              component="a"
-              variant="body2"
-              href={`/projects/${entityId}`}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`/projects/${entityId}`);
-              }}
-              sx={{
-                color: 'primary.main',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
-              }}
-            >
-              {entityName}
-            </Typography>
-          );
-        }
-
-        return <span>{entityName}</span>;
-      },
-    },
-    {
-      field: 'fieldName',
-      headerName: 'Field',
+      field: 'entityType',
+      headerName: 'Type',
       flex: 0.5,
-      headerAlign: 'left',
-      align: 'left',
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: ({ value }) => {
+        const color = value === 'staff' ? 'success' : value === 'project' ? 'warning' : 'default';
+        return <Chip size="small" label={value} color={color} variant="outlined" />;
+      },
     },
     {
-      field: 'changes',
-      headerName: 'Changes',
-      flex: 1.2,
+      field: 'description',
+      headerName: 'Description',
+      flex: 1.5,
       headerAlign: 'left',
       align: 'left',
-      renderCell: ({ row }) => {
-        const { oldValue, newValue, actionType } = row;
-
-        if (actionType === 'assignment_added') {
-          return <span>Added assignment: {newValue}</span>;
-        }
-
-        if (actionType === 'assignment_removed') {
-          return <span>Removed assignment: {oldValue}</span>;
-        }
-
-        if (!oldValue && newValue) {
-          return <span>Set to: <strong>{newValue}</strong></span>;
-        }
-
-        if (oldValue && !newValue) {
-          return <span>Cleared from: <strong>{oldValue}</strong></span>;
-        }
-
-        return (
-          <span>
-            Changed from <strong>{oldValue || '(empty)'}</strong> to <strong>{newValue || '(empty)'}</strong>
-          </span>
-        );
-      },
     },
     {
       field: 'username',
       headerName: 'Performed By',
-      flex: 0.6,
+      flex: 0.7,
       headerAlign: 'left',
       align: 'left',
     },
@@ -450,6 +457,25 @@ const UserManagement: React.FC = () => {
 
       {activeTab === 0 && (
         <Paper sx={{ p: 2 }}>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {userCountLabel}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">•</Typography>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: 'success.main',
+                }}
+              />
+              <Typography variant="body2" color="success.main" fontWeight={600}>
+                {onlineCountLabel}
+              </Typography>
+            </Stack>
+          </Stack>
           {isLoading ? (
             <Box display="flex" justifyContent="center" py={6}>
               <CircularProgress />

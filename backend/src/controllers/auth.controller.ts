@@ -36,10 +36,21 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Update last login
+    // Update last login and log the login action
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
+    });
+
+    // Log login action for activity tracking
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        actionType: 'login',
+        entityType: 'user',
+        entityId: user.id,
+        description: `User ${user.username} logged in`,
+      },
     });
 
     const token = generateToken({

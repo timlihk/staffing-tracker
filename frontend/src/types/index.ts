@@ -130,6 +130,7 @@ export interface ManagedUser {
   mustResetPassword: boolean;
   lastLogin: string | null;
   staff: { id: number; name: string } | null;
+  recentActionCount: number;
 }
 
 export interface LoginRequest {

@@ -130,49 +130,103 @@ Once the implementation is complete, you can test email notifications by:
 
 ## Email Notification Triggers
 
-The system will send emails when:
+The system sends **3 types of emails**:
 
-1. **Project Status Changes**: Active → Slow-down, Suspended, etc.
-2. **Project Dates Change**: Filing date or listing date updated
-3. **Staff Assignment Changes**: Staff added or removed from project
-4. **Project Details Update**: Name, category, priority, or notes changed
+### 1. Project Update Emails (Real-time)
+**Trigger**: When project information is updated (via PUT /api/projects/:id)
+
+**Monitored Fields**:
+- Status
+- Project Name
+- Category
+- Priority
+- EL Status
+- Timetable
+- B&C Attorney
+- Filing Date
+- Listing Date
+- Notes
+
+**Recipients**: ALL staff assigned to the project (sent as one email with all recipients in "To" field)
+
+**When NOT sent**:
+- ❌ Project creation
+- ❌ Project deletion
+- ❌ Staff assignment changes only (no field changes)
+- ❌ No actual changes detected
+
+### 2. Partner Reminder Emails (Scheduled Daily)
+**Trigger**: Automated cron job at 9:00 AM HKT (01:00 UTC)
+
+**Criteria**: Active or Slow-down projects missing:
+- Filing Date
+- Listing Date
+- EL Status
+- B&C Attorney
+
+**Recipients**: Only Partners (position = "Partner") assigned to incomplete projects
+
+**Schedule**: Once per day
+
+### 3. Welcome Emails (One-time)
+**Trigger**: When admin creates new user account
+
+**Recipients**: New user's email address
+
+**Content**: Username, temporary password, login link
 
 ## Email Template Preview
 
+### Project Update Email
 ```
-To: [Staff Member Email]
-BCC: mengyu.lu@kirkland.hk (automatic)
+To: staff1@example.com, staff2@example.com, staff3@example.com
 Subject: Project Update: [Project Name]
 
-Hello [Staff Name],
+Hello,
 
 A project you're assigned to has been updated:
 
 Project: [Project Name]
 Category: [Category]
 
-Changes:
-- Status changed from "Active" to "Slow-down"
-- Filing date changed to 2025-10-15
+Changes Made:
+• Status: Active → Slow-down
+• Filing Date: → 2025-10-15
+• Notes: Updated project timeline
 
-View Project: https://asia-cm.team/projects/123
+[View Project Details]
 
 ---
 Staffing Tracker
 Asia CM Team
+asia-cm.team
 ```
 
-**Note**: All notification emails automatically BCC mengyu.lu@kirkland.hk for monitoring and oversight. This BCC is hidden from recipients.
+**Note**: All assigned staff receive the email together (in "To" field) for transparency. This allows easy "Reply All" for team discussion.
 
 ## Monthly Usage Limits
 
 **Free Tier**: 3,000 emails/month
 
-Estimated usage for your team:
-- ~50 staff members
-- ~10 project updates per day
-- ~5 staff per project average
-- **Estimated**: ~1,500 emails/month (well within free tier)
+### Optimized Email Usage (Current Implementation)
+
+**Project Update Emails** (Most efficient):
+- ✅ **1 email per project update** (all staff in "To" field)
+- Example: 5 staff on project = 1 API call (not 5!)
+- **Savings**: 80-90% reduction vs individual emails
+
+**Estimated Monthly Usage**:
+- ~100 projects
+- ~10 project updates/day → 10 emails/day
+- ~20 partner reminders/day → 20 emails/day
+- ~5 welcome emails/month → 5 emails/month
+- **Total**: ~900-1,000 emails/month (well within free tier)
+
+**Previous Method** (Individual Emails):
+- Would use ~1,500-2,000 emails/month
+- Risk of exceeding free tier
+
+**API Quota Savings**: ~40-50% overall reduction!
 
 ## Support
 

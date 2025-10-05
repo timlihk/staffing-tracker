@@ -15,10 +15,15 @@ const sanitizeUser = (user: any) => ({
   mustResetPassword: user.mustResetPassword,
   lastLogin: user.lastLogin,
   staff: user.staff ? { id: user.staff.id, name: user.staff.name } : null,
+  recentActionCount: user.recentActionCount || 0,
 });
 
 export const listUsers = async (req: AuthRequest, res: Response) => {
   try {
+    // Calculate date for "last 7 days"
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const users = await prisma.user.findMany({
       orderBy: { username: 'asc' },
       include: {
@@ -31,7 +36,26 @@ export const listUsers = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.json(users.map(sanitizeUser));
+    // For each user, count their actions in the last 7 days
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const recentActionCount = await prisma.activityLog.count({
+          where: {
+            userId: user.id,
+            createdAt: {
+              gte: sevenDaysAgo,
+            },
+          },
+        });
+
+        return {
+          ...user,
+          recentActionCount,
+        };
+      })
+    );
+
+    res.json(usersWithStats.map(sanitizeUser));
   } catch (error) {
     console.error('List users error:', error);
     res.status(500).json({ error: 'Internal server error' });
