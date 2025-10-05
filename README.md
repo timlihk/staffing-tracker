@@ -56,6 +56,21 @@ This application replaces the Excel-based staffing tracker with a full-stack web
   - Calendar cards with bordered boxes and grey background
   - Alternating row shading in project table for better readability
   - Fixed team member deduplication (prevents duplicate entries when staff has multiple roles)
+  - **Pagination**: Show 10 projects by default with "Show More" button to expand
+- ✅ **Automated Testing Suite** - 52 comprehensive tests for quality assurance
+  - Backend: 33 tests (email settings, email service, dashboard deduplication)
+  - Frontend: 19 tests (email settings hook, dashboard utils)
+  - Full coverage of new features with Jest and Vitest
+  - Proper mocking and edge case handling
+- ✅ **Smart Back Navigation** - Intelligent navigation history tracking
+  - New useSmartBack hook with 3-tier fallback strategy
+  - Remembers where users came from (dashboard, admin panel, etc.)
+  - Works from any entry point including direct URLs
+  - Applied to all detail and form pages
+- ✅ **UI Simplification** - Cleaner interface with focused actions
+  - Actions column shows only Edit button (removed View/Delete)
+  - Click anywhere on row to view details
+  - Less clutter, more intuitive navigation
 - ✅ **Team Members on Project Creation** - Add team members when creating projects
   - Select staff members from autocomplete dropdown
   - Auto-assign jurisdiction (HK Law, US Law, B&C)

@@ -26,6 +26,24 @@ All notable changes to the Staffing Tracker application will be documented in th
   - Calendar cards wrapped in bordered boxes with grey background
   - Alternating row shading in Deal Radar project table (grey/white)
   - Improved table readability with consistent row backgrounds
+  - Simplified Actions column showing only Edit button (removed View/Delete)
+  - Deal Radar pagination: Show 10 projects by default with "Show More" button
+
+- 🧪 **Automated Testing Suite** - 52 comprehensive tests added
+  - **Backend Tests (33 tests):**
+    - Email Settings Controller: 8 tests for GET/PATCH endpoints
+    - Email Service: 17 tests for filtering, deduplication, error handling
+    - Dashboard Controller: 8 tests including team deduplication
+  - **Frontend Tests (19 tests):**
+    - useEmailSettings Hook: 8 tests for queries/mutations
+    - Dashboard Utils: 11 tests for team categorization logic
+
+- 🔙 **Smart Back Navigation**
+  - Created `useSmartBack` hook with 3-tier fallback strategy
+  - Checks location.state for 'from' path first
+  - Uses browser history navigate(-1) as fallback
+  - Defaults to logical path if no history available
+  - Applied to all detail and form pages
 
 ### Fixed
 - 🐛 **Team Member Deduplication** - Fixed duplicate team member entries
@@ -70,9 +88,27 @@ All notable changes to the Staffing Tracker application will be documented in th
   - Added "Side" column, removed "Status" column
   - Added alternating row background colors (grey.50 / background.paper)
   - Wrapped calendar cards in bordered Box components with grey.50 background
+  - Added pagination: Show 10 events by default, "Show More" to expand
+  - Auto-reset pagination when time range changes
 - Updated `types/index.ts`:
   - Added `side` and `teamMembers` fields to DashboardSummary.dealRadar type
   - Team members include id, name, and position
+- Created `useSmartBack.ts` hook for intelligent back navigation
+- Updated `Projects.tsx` and `Staff.tsx`:
+  - Simplified Actions column to show only Edit button
+  - Removed View and Delete buttons for cleaner interface
+- Updated `ProjectDetail.tsx`, `ProjectForm.tsx`, `StaffDetail.tsx`, `StaffForm.tsx`:
+  - Integrated useSmartBack hook for proper navigation history
+
+**Testing:**
+- Backend: Created comprehensive test suites with Jest
+  - `email-settings.controller.test.ts`: 8 tests
+  - `email.service.test.ts`: 17 tests
+  - `dashboard.controller.test.ts`: Added 3 tests for deduplication
+- Frontend: Created test suites with Vitest
+  - `useEmailSettings.test.tsx`: 8 tests for hook behavior
+  - `dashboard.utils.test.ts`: 11 tests for team categorization
+- All 52 tests passing with proper mocking and edge case coverage
 
 ## [1.12.0] - 2025-10-05
 
