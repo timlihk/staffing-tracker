@@ -149,11 +149,11 @@ const UserManagement: React.FC = () => {
 
   const staffOptions = useMemo(() => staff.map((member: Staff) => ({ label: member.name, value: member.id })), [staff]);
 
-  // Helper function to check if user is online (logged in within last 5 minutes)
-  const isUserOnline = (lastLogin: string | null) => {
-    if (!lastLogin) return false;
+  // Helper function to check if user is online (active within last 5 minutes)
+  const isUserOnline = (lastActivity: string | null) => {
+    if (!lastActivity) return false;
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    return new Date(lastLogin) > fiveMinutesAgo;
+    return new Date(lastActivity) > fiveMinutesAgo;
   };
 
   const columns: GridColDef<ManagedUser>[] = [
@@ -164,7 +164,7 @@ const UserManagement: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: ({ row }) => {
-        const online = isUserOnline(row.lastLogin);
+        const online = isUserOnline(row.lastActivity);
 
         if (row.staff?.id) {
           return (
@@ -245,9 +245,9 @@ const UserManagement: React.FC = () => {
       flex: 0.5,
       headerAlign: 'center',
       align: 'center',
-      valueGetter: (_value, row) => isUserOnline(row.lastLogin),
+      valueGetter: (_value, row) => isUserOnline(row.lastActivity),
       renderCell: ({ row }) => {
-        const online = isUserOnline(row.lastLogin);
+        const online = isUserOnline(row.lastActivity);
         return online ? (
           <Chip size="small" label="Online" color="success" />
         ) : (
@@ -350,7 +350,7 @@ const UserManagement: React.FC = () => {
     },
   ];
 
-  const onlineUsers = useMemo(() => users.filter(user => isUserOnline(user.lastLogin)), [users]);
+  const onlineUsers = useMemo(() => users.filter(user => isUserOnline(user.lastActivity)), [users]);
   const userCountLabel = `${users.length} user${users.length === 1 ? '' : 's'}`;
   const onlineCountLabel = `${onlineUsers.length} online`;
 

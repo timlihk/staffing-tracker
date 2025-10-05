@@ -47,6 +47,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           role: true,
           email: true,
           lastLogin: true,
+          lastActivity: true,
         },
         orderBy: { username: 'asc' },
       }),

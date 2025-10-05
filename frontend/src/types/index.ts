@@ -136,6 +136,7 @@ export interface ManagedUser {
   role: string;
   mustResetPassword: boolean;
   lastLogin: string | null;
+  lastActivity: string | null;
   staff: { id: number; name: string } | null;
   recentActionCount: number;
 }

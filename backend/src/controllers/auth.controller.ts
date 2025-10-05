@@ -36,10 +36,14 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Update last login and log the login action
+    // Update last login and activity
+    const now = new Date();
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLogin: new Date() },
+      data: {
+        lastLogin: now,
+        lastActivity: now,
+      },
     });
 
     // Log login action for activity tracking
@@ -187,12 +191,14 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
+    const now = new Date();
     await prisma.user.update({
       where: { id: user.id },
       data: {
         passwordHash,
         mustResetPassword: false,
-        lastLogin: new Date(),
+        lastLogin: now,
+        lastActivity: now,
       },
     });
 

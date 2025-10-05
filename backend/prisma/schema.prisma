@@ -25,6 +25,7 @@ model User {
   staffId           Int?      @map("staff_id")
   staff             Staff?    @relation(fields: [staffId], references: [id])
   lastLogin         DateTime? @map("last_login")
+  lastActivity      DateTime? @map("last_activity") // Tracks user activity for online status
   createdAt         DateTime  @default(now()) @map("created_at")
 
   activityLogs         ActivityLog[]
@@ -33,6 +34,7 @@ model User {
   projectConfirmations Project[]              @relation("ProjectConfirmations")
 
   @@index([role])
+  @@index([lastActivity])
   @@map("users")
 }
 

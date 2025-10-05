@@ -14,6 +14,7 @@ const sanitizeUser = (user: any) => ({
   role: user.role,
   mustResetPassword: user.mustResetPassword,
   lastLogin: user.lastLogin,
+  lastActivity: user.lastActivity,
   staff: user.staff ? { id: user.staff.id, name: user.staff.name } : null,
   recentActionCount: user.recentActionCount || 0,
 });
