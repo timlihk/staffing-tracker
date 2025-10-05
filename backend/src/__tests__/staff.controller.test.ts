@@ -10,6 +10,10 @@ import {
 import prisma from '../utils/prisma';
 
 // Mock dependencies
+jest.mock('../utils/changeTracking', () => ({
+  trackFieldChanges: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('../utils/prisma', () => ({
   __esModule: true,
   default: {
@@ -23,7 +27,7 @@ jest.mock('../utils/prisma', () => ({
     activityLog: {
       create: jest.fn(),
     },
-    changeHistory: {
+    staffChangeHistory: {
       create: jest.fn(),
     },
   },
@@ -398,7 +402,7 @@ describe('Staff Controller', () => {
       (prisma.staff.findUnique as jest.Mock).mockResolvedValue(existingStaff);
       (prisma.staff.update as jest.Mock).mockResolvedValue({ ...existingStaff, ...updatedData });
       (prisma.activityLog.create as jest.Mock).mockResolvedValue({});
-      (prisma.changeHistory.create as jest.Mock).mockResolvedValue({});
+      (prisma.staffChangeHistory.create as jest.Mock).mockResolvedValue({});
 
       await request(app).put('/api/staff/1').send(updatedData);
 
