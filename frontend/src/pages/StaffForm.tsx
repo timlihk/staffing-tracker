@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSmartBack } from '../hooks/useSmartBack';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -21,6 +22,7 @@ import { useStaffMember, useCreateStaff, useUpdateStaff } from '../hooks/useStaf
 const StaffForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useSmartBack('/staff');
   const isEdit = id !== 'new';
 
   const { data: staff, isLoading: staffLoading } = useStaffMember(isEdit ? id! : '');
@@ -86,7 +88,7 @@ const StaffForm: React.FC = () => {
     <Page
       title={
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/staff')}>
+          <Button startIcon={<ArrowBack />} onClick={goBack}>
             Back
           </Button>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>

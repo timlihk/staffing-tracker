@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSmartBack } from '../hooks/useSmartBack';
 import {
   Box,
   Paper,
@@ -67,6 +68,7 @@ const getActionIcon = (actionType: string) => {
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useSmartBack('/projects');
   const permissions = usePermissions();
   const [project, setProject] = useState<Project | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
@@ -268,7 +270,7 @@ const ProjectDetail: React.FC = () => {
               variant="outlined"
               size="small"
               startIcon={<ArrowBack />}
-              onClick={() => navigate('/projects')}
+              onClick={goBack}
               sx={{ mr: 1 }}
             >
               Back
