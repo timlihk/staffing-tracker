@@ -86,14 +86,20 @@ const Projects: React.FC = () => {
       width: 180,
       renderCell: (params) => {
         if (!params.row.lastConfirmedAt) {
-          return <Typography variant="body2" color="warning.main" fontWeight={600}>Never confirmed</Typography>;
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+              <Typography variant="body2" color="warning.main" fontWeight={600}>Never confirmed</Typography>
+            </Box>
+          );
         }
         const daysAgo = Math.floor((Date.now() - new Date(params.row.lastConfirmedAt).getTime()) / (1000 * 60 * 60 * 24));
         const color = daysAgo > 7 ? 'warning.main' : daysAgo > 14 ? 'error.main' : 'text.secondary';
         return (
-          <Typography variant="body2" color={color}>
-            {daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Typography variant="body2" color={color}>
+              {daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`}
+            </Typography>
+          </Box>
         );
       },
     },
