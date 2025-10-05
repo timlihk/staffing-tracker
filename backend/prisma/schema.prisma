@@ -31,6 +31,7 @@ model User {
   projectChanges ProjectChangeHistory[] @relation("ProjectChanges")
   staffChanges   StaffChangeHistory[]   @relation("StaffChanges")
 
+  @@index([role])
   @@map("users")
 }
 
@@ -49,6 +50,9 @@ model Staff {
   users         User[]
   changeHistory StaffChangeHistory[] @relation("StaffChangeHistory")
 
+  @@index([position])
+  @@index([status])
+  @@index([department])
   @@map("staff")
 }
 
@@ -81,6 +85,8 @@ model Project {
 
   @@index([status])
   @@index([category])
+  @@index([priority])
+  @@index([timetable])
   @@map("projects")
 }
 
@@ -153,6 +159,9 @@ model ActivityLog {
 
   @@index([userId])
   @@index([createdAt(sort: Desc)])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([entityType, entityId])
   @@map("activity_log")
 }
 

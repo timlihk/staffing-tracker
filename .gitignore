@@ -34,3 +34,9 @@ coverage/
 *.xls
 ~$*.xlsx
 *:Zone.Identifier
+
+# Database backups and migrations
+backups/
+*.sql
+SUPABASE_MIGRATION_GUIDE.md
+migrate.sql
