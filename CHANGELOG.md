@@ -2,6 +2,82 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.11.0] - 2025-10-05
+
+### Added
+- 📅 **Dashboard Time Range Selector**
+  - Time range dropdown at top-right of dashboard (30 days, 2 months, 3 months, 4 months)
+  - Applies to both Deal Radar and Staffing Heatmap
+  - Backend accepts `days` query parameter in `/api/dashboard/summary`
+
+- 📆 **Calendar View in Deal Radar**
+  - Multiple calendar cards displaying 1-4 months based on selected time range
+  - Color-coded dots on calendar dates: blue for Filing events, purple for Listing events
+  - Legend showing Filing (blue) and Listing (purple) indicators
+  - Calendars use `referenceDate` prop to control displayed months
+  - Only today's date highlighted in blue across all calendars
+  - Dots only appear for events within the displayed month (no overflow from adjacent months)
+
+- 📋 **Table Format for Deal Radar Events**
+  - Replaced card-based event display with compact table
+  - Columns: Date, Type, Project, Category, Status, Priority
+  - All events sorted chronologically by date
+  - Clickable rows navigate to project details
+  - More space-efficient layout
+
+- 📊 **Dynamic Staffing Heatmap Intervals**
+  - Smart interval calculation to maintain ~6 columns maximum
+  - 30 days: 7-day intervals (weekly view)
+  - 60 days: 10-day intervals (biweekly view)
+  - 90 days: 15-day intervals
+  - 120 days: 20-day intervals (monthly view)
+  - Period-based architecture with `findPeriodForDate` helper function
+
+- 🍔 **Hamburger Menu Sidebar Toggle**
+  - Click-based sidebar toggle replaces hover-based expansion
+  - Hamburger menu button positioned at top-left of sidebar
+  - Button centered when collapsed, left-aligned when expanded
+  - Smooth 0.2s transitions
+
+### Fixed
+- 🐛 **Calendar Date Timezone Issues**
+  - Fixed dots appearing on wrong dates due to UTC conversion
+  - Use local timezone components (`getFullYear()`, `getMonth()`, `getDate()`)
+  - Extract date strings directly without `new Date()` conversion on event dates
+
+- 🐛 **Calendar Highlighting**
+  - Fixed first day of each month being highlighted in blue
+  - Changed from `value={month}` to `value={null}` with `referenceDate={month}`
+
+- 🐛 **Calendar Month Display**
+  - Fixed all calendars showing same month (October repeated 4 times)
+  - Properly generate array of consecutive months
+  - Use unique keys based on year and month
+
+### Changed
+- 🎨 **Sidebar Interaction** - Changed from hover-based to click-based expansion
+- 📐 **Toolbar Spacing** - Reduced toolbar padding from `py: 2` to `py: 1`
+
+### Technical Details
+**Backend:**
+- Updated `dashboard.controller.ts` to accept `days` query parameter (default 30)
+- Implemented dynamic period calculation with smart interval strategy
+- Created `Period` interface with `key`, `start`, `end` properties
+- Added `findPeriodForDate` helper to map milestone dates to periods
+- Updated `formatWeekKey` to accept optional `customEndDate` parameter
+- Period definitions built before mapping milestone dates
+
+**Frontend:**
+- Added time range state management in `Dashboard.tsx`
+- Updated `useDashboard` hook to accept and pass `days` parameter
+- Included `days` in TanStack Query key for proper cache management
+- Imported MUI X Date Pickers components (`DateCalendar`, `LocalizationProvider`, `AdapterDateFns`, `PickersDay`)
+- Created `CustomDay` component to render dots on calendar dates
+- Used `outsideCurrentMonth` prop to hide dots for adjacent month dates
+- Updated `Layout.tsx` to pass `onToggle` callback to `Sidebar`
+- Added `Menu` icon button to `Sidebar.tsx` with click handler
+- Removed `onMouseEnter`/`onMouseLeave` events from layout
+
 ## [1.10.0] - 2025-10-04
 
 ### Added

@@ -40,7 +40,24 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ### 🎉 Recent Updates (Oct 2025)
 
-**Latest Features (Oct 4, 2025):**
+**Latest Features (Oct 5, 2025):**
+- ✅ **Dashboard Enhancements** - Improved time range options and visualization
+  - Time range selector at top of dashboard (30 days, 2 months, 3 months, 4 months)
+  - Multiple calendar view in Deal Radar showing filing/listing events with color-coded dots
+  - Blue dots for Filing events, purple dots for Listing events
+  - Calendar displays correct number of months based on selected time range
+  - Table format for Deal Radar events (replaces cards for better space efficiency)
+  - Dynamic staffing heatmap with ~6 columns maximum across all time ranges
+  - Smart interval calculation: 7-day (30 days), 10-day (60 days), 15-day (90 days), 20-day (120 days)
+  - Fixed timezone issues causing calendar dots to appear on wrong dates
+  - Only today's date highlighted in blue across all calendar cards
+  - Calendar dots only show for events within the displayed month
+- ✅ **Sidebar Navigation Improvements** - Modern click-based toggle
+  - Hamburger menu button at top-left of sidebar for expand/collapse
+  - Click-based toggle replaces hover-based expansion
+  - Smooth animations and transitions
+
+**Earlier Updates (Oct 4, 2025):**
 - ✅ **Daily Partner Reminders** - Automated email notifications
   - Railway Worker service with node-cron scheduler
   - Daily reminders at 9 AM HKT for partners with incomplete projects
