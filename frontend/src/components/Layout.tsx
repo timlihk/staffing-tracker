@@ -12,6 +12,10 @@ const collapsedWidth = 80;
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
 
+  const handleToggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
     <Box sx={{
       display: 'flex',
@@ -25,8 +29,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       alignItems: 'flex-start',
     }}>
       <Box
-        onMouseEnter={() => setIsCollapsed(false)}
-        onMouseLeave={() => setIsCollapsed(true)}
         sx={{
           flexShrink: 0,
           height: '100vh',
@@ -37,6 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           drawerWidth={drawerWidth}
           collapsedWidth={collapsedWidth}
           collapsed={isCollapsed}
+          onToggle={handleToggleSidebar}
         />
       </Box>
       <Box

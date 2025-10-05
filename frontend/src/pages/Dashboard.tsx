@@ -17,16 +17,25 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
+  Select,
+  MenuItem,
+  FormControl,
+  Badge,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { Page, DashboardSkeleton, PageHeader } from '../components/ui';
 import { useDashboard } from '../hooks/useDashboard';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardSummary } from '../types';
 
 const Dashboard = () => {
-  const { data, isLoading, error } = useDashboard();
   const navigate = useNavigate();
+  const [timeRange, setTimeRange] = useState(30);
+  const { data, isLoading, error } = useDashboard(timeRange);
 
   const dealRadarGroups = useMemo(
     () => groupDealRadar(data?.dealRadar ?? []),
@@ -70,18 +79,42 @@ const Dashboard = () => {
     );
   }
 
+  const getTimeRangeLabel = (days: number) => {
+    if (days === 30) return 'Next 30 Days';
+    if (days === 60) return 'Next 2 Months';
+    if (days === 90) return 'Next 3 Months';
+    if (days === 120) return 'Next 4 Months';
+    return `Next ${days} Days`;
+  };
+
   return (
     <Page>
-      <PageHeader title="Dashboard" />
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+        <PageHeader title="Dashboard" />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <Select
+            value={timeRange}
+            onChange={(e) => setTimeRange(Number(e.target.value))}
+            sx={{ fontSize: '0.875rem' }}
+          >
+            <MenuItem value={30}>30 Days</MenuItem>
+            <MenuItem value={60}>2 Months</MenuItem>
+            <MenuItem value={90}>3 Months</MenuItem>
+            <MenuItem value={120}>4 Months</MenuItem>
+          </Select>
+        </FormControl>
+      </Stack>
       <Stack spacing={2}>
         <DealRadarCard
           groups={dealRadarGroups}
           onSelectProject={(id) => navigate(`/projects/${id}`)}
+          timeRange={timeRange}
         />
         <StaffingHeatmapCard
           weeks={heatmapWeeks}
           groups={groupHeatmapByRole(data.staffingHeatmap)}
           onSelectStaff={(id) => navigate(`/staff/${id}`)}
+          timeRange={timeRange}
         />
       </Stack>
     </Page>
@@ -123,74 +156,250 @@ const groupDealRadar = (
   }));
 };
 
+interface DealRadarEvent {
+  date: string;
+  filingCount: number;
+  listingCount: number;
+  events: DashboardSummary['dealRadar'];
+}
+
 const DealRadarCard = ({
   groups,
   onSelectProject,
+  timeRange,
 }: {
   groups: Array<{ label: string; items: DashboardSummary['dealRadar'] }>;
   onSelectProject: (id: number) => void;
-}) => (
-  <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
-    <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-      <Typography variant="h6" fontWeight={700}>
-        Deal Radar (Next 30 Days)
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        Click a project to view details
-      </Typography>
-    </Stack>
+  timeRange: number;
+}) => {
+  const getTimeRangeLabel = (days: number) => {
+    if (days === 30) return 'Next 30 Days';
+    if (days === 60) return 'Next 2 Months';
+    if (days === 90) return 'Next 3 Months';
+    if (days === 120) return 'Next 4 Months';
+    return `Next ${days} Days`;
+  };
+
+  // Calculate number of months to display based on time range
+  const numMonths = useMemo(() => {
+    if (timeRange <= 30) return 1;
+    if (timeRange <= 60) return 2;
+    if (timeRange <= 90) return 3;
+    return 4;
+  }, [timeRange]);
+
+  // Generate array of months to display
+  const months = useMemo(() => {
+    const result = [];
+    const today = new Date();
+    for (let i = 0; i < numMonths; i++) {
+      const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      result.push(month);
+    }
+    return result;
+  }, [numMonths]);
+
+  // Build event map by date
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, DealRadarEvent>();
+    groups.forEach((group) => {
+      group.items.forEach((event) => {
+        if (!event.date) return;
+        // Extract date string directly without timezone conversion
+        const dateKey = event.date.split('T')[0];
+        if (!map.has(dateKey)) {
+          map.set(dateKey, {
+            date: dateKey,
+            filingCount: 0,
+            listingCount: 0,
+            events: [],
+          });
+        }
+        const entry = map.get(dateKey)!;
+        entry.events.push(event);
+        if (event.type === 'Filing') {
+          entry.filingCount += 1;
+        } else if (event.type === 'Listing') {
+          entry.listingCount += 1;
+        }
+      });
+    });
+    return map;
+  }, [groups]);
+
+  const CustomDay = (props: PickersDayProps<Date>) => {
+    const { day, outsideCurrentMonth, ...other } = props;
+    // Format date in local timezone to avoid UTC conversion issues
+    const year = day.getFullYear();
+    const month = String(day.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(day.getDate()).padStart(2, '0');
+    const dateKey = `${year}-${month}-${dayOfMonth}`;
+    const eventData = eventsByDate.get(dateKey);
+
+    // Don't show dots for days outside the current month
+    if (outsideCurrentMonth || !eventData || (eventData.filingCount === 0 && eventData.listingCount === 0)) {
+      return <PickersDay day={day} outsideCurrentMonth={outsideCurrentMonth} {...other} />;
+    }
+
+    return (
+      <Box sx={{ position: 'relative' }}>
+        <PickersDay day={day} outsideCurrentMonth={outsideCurrentMonth} {...other} />
+        <Stack
+          direction="row"
+          spacing={0.25}
+          sx={{
+            position: 'absolute',
+            bottom: 2,
+            left: '50%',
+            transform: 'translateX(-50%)',
+          }}
+        >
+          {eventData.filingCount > 0 && (
+            <Box
+              sx={{
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                bgcolor: 'info.main',
+              }}
+            />
+          )}
+          {eventData.listingCount > 0 && (
+            <Box
+              sx={{
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                bgcolor: 'secondary.main',
+              }}
+            />
+          )}
+        </Stack>
+      </Box>
+    );
+  };
+
+  // Flatten all events and sort by date
+  const allEvents = useMemo(() => {
+    const events: Array<DashboardSummary['dealRadar'][0]> = [];
+    groups.forEach((group) => {
+      events.push(...group.items);
+    });
+    return events.sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+  }, [groups]);
+
+  return (
+    <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+        <Typography variant="h6" fontWeight={700}>
+          Deal Radar ({getTimeRangeLabel(timeRange)})
+        </Typography>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'info.main' }} />
+            <Typography variant="caption">Filing</Typography>
+          </Stack>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'secondary.main' }} />
+            <Typography variant="caption">Listing</Typography>
+          </Stack>
+        </Stack>
+      </Stack>
     {groups.length === 0 ? (
       <Typography color="text.secondary">No upcoming filing or listing dates.</Typography>
     ) : (
-      <Stack spacing={2} sx={{ flex: 1 }}>
-        {groups.map((group) => (
-          <Box key={group.label}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-              {group.label}
-            </Typography>
-            <Grid container spacing={1.5}>
-              {group.items.map((event) => (
-                <Grid item xs={12} key={`${event.projectId}-${event.type}`}>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        boxShadow: 1,
-                      },
-                    }}
-                    onClick={() => onSelectProject(event.projectId)}
-                  >
-                    <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-                      <Chip
-                        label={event.type}
-                        size="small"
-                        color={event.type === 'Filing' ? 'info' : 'secondary'}
-                      />
-                      {event.priority && (
-                        <Chip label={`Priority ${event.priority}`} size="small" variant="outlined" />
-                      )}
-                    </Stack>
-                    <Typography variant="subtitle1" fontWeight={700}>
+      <Stack spacing={3}>
+        {/* Calendar Cards */}
+        <Grid container spacing={2}>
+          {months.map((month, index) => (
+            <Grid item xs={12} sm={6} md={numMonths === 1 ? 12 : numMonths === 2 ? 6 : 3} key={`${month.getFullYear()}-${month.getMonth()}`}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DateCalendar
+                  value={null}
+                  referenceDate={month}
+                  readOnly
+                  disabled
+                  slots={{
+                    day: CustomDay,
+                  }}
+                  sx={{
+                    width: '100%',
+                    '& .MuiPickersDay-root': {
+                      fontSize: '0.75rem',
+                    },
+                    '& .MuiPickersCalendarHeader-root': {
+                      paddingLeft: 1,
+                      paddingRight: 1,
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Events Table */}
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Project</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Priority</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {allEvents.map((event, index) => (
+                <TableRow
+                  key={`${event.projectId}-${event.type}-${index}`}
+                  hover
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                  onClick={() => onSelectProject(event.projectId)}
+                >
+                  <TableCell>{formatDate(event.date)}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={event.type}
+                      size="small"
+                      color={event.type === 'Filing' ? 'info' : 'secondary'}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight={600} color="primary.main">
                       {event.projectName}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {event.category} • {event.status}
-                    </Typography>
-                  </Paper>
-                </Grid>
+                  </TableCell>
+                  <TableCell>{event.category}</TableCell>
+                  <TableCell>{event.status}</TableCell>
+                  <TableCell>
+                    {event.priority ? (
+                      <Chip label={`P${event.priority}`} size="small" variant="outlined" />
+                    ) : (
+                      '—'
+                    )}
+                  </TableCell>
+                </TableRow>
               ))}
-            </Grid>
-          </Box>
-        ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Stack>
     )}
   </Paper>
-);
+  );
+};
 
 const StaffingHeatmapLegend = ({ weeks }: { weeks: string[] }) => (
   <Paper sx={{ p: 2.25, display: 'grid', gap: 1.25 }}>
@@ -230,10 +439,12 @@ const StaffingHeatmapCard = ({
   weeks,
   groups,
   onSelectStaff,
+  timeRange,
 }: {
   weeks: string[];
   groups: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }>;
   onSelectStaff: (id: number) => void;
+  timeRange: number;
 }) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<Record<string, { field: 'name' | string; order: 'asc' | 'desc' }>>({});
@@ -300,7 +511,7 @@ const StaffingHeatmapCard = ({
     <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} spacing={2}>
         <Typography variant="h6" fontWeight={700}>
-          Staffing Heatmap (Next 30 Days)
+          Staffing Heatmap
         </Typography>
         {groups.length > 0 && (
           <Stack direction="row" spacing={1}>

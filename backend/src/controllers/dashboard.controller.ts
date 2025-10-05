@@ -6,7 +6,10 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
     const windowEnd = new Date();
-    windowEnd.setDate(windowEnd.getDate() + 30);
+
+    // Allow customizable time window (default 30 days)
+    const days = parseInt(req.query.days as string) || 30;
+    windowEnd.setDate(windowEnd.getDate() + days);
 
     const [
       totalProjects,
@@ -432,6 +435,73 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
     },
   });
 
+  // Calculate number of periods based on the date range
+  // Strategy: Keep columns to ~6 for better UX
+  // 30 days = 6 weeks (7-day intervals)
+  // 60 days = 6 biweeks (10-day intervals)
+  // 90 days = 6 biweeks (15-day intervals)
+  // 120 days = 6 periods (20-day intervals)
+  const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  let intervalDays: number;
+  let numPeriods: number;
+
+  if (daysDiff <= 40) {
+    // 30-40 days: weekly view (7-day intervals)
+    intervalDays = 7;
+    numPeriods = Math.ceil(daysDiff / intervalDays);
+  } else if (daysDiff <= 70) {
+    // 60 days: biweekly view (10-day intervals, ~6 columns)
+    intervalDays = 10;
+    numPeriods = Math.ceil(daysDiff / intervalDays);
+  } else if (daysDiff <= 100) {
+    // 90 days: biweekly+ view (15-day intervals, ~6 columns)
+    intervalDays = 15;
+    numPeriods = Math.ceil(daysDiff / intervalDays);
+  } else {
+    // 120+ days: monthly view (20-day intervals, ~6 columns)
+    intervalDays = 20;
+    numPeriods = Math.ceil(daysDiff / intervalDays);
+  }
+
+  // Build period definitions
+  interface Period {
+    key: string;
+    start: Date;
+    end: Date;
+  }
+
+  const periods: Period[] = [];
+  const cursor = new Date(start);
+  for (let i = 0; i < numPeriods; i += 1) {
+    const periodEnd = new Date(cursor);
+    periodEnd.setDate(periodEnd.getDate() + intervalDays - 1);
+
+    // Don't exceed the end date
+    if (periodEnd > end) {
+      periodEnd.setTime(end.getTime());
+    }
+
+    const weekKey = formatWeekKey(cursor, periodEnd);
+    periods.push({
+      key: weekKey,
+      start: new Date(cursor),
+      end: new Date(periodEnd),
+    });
+    cursor.setDate(cursor.getDate() + intervalDays);
+  }
+
+  const weeks: string[] = periods.map((p) => p.key);
+
+  // Helper function to find which period a date falls into
+  const findPeriodForDate = (date: Date): string | null => {
+    for (const period of periods) {
+      if (date >= period.start && date <= period.end) {
+        return period.key;
+      }
+    }
+    return null;
+  };
+
   const heatmap: Record<number, Record<string, number>> = {};
 
   assignments.forEach((assignment) => {
@@ -444,11 +514,13 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
     dates
       .filter((date) => date >= start && date <= end)
       .forEach((date) => {
-        const weekKey = formatWeekKey(date);
-        if (!heatmap[assignment.staff.id]) {
-          heatmap[assignment.staff.id] = {};
+        const periodKey = findPeriodForDate(date);
+        if (periodKey) {
+          if (!heatmap[assignment.staff.id]) {
+            heatmap[assignment.staff.id] = {};
+          }
+          heatmap[assignment.staff.id][periodKey] = (heatmap[assignment.staff.id][periodKey] || 0) + 1;
         }
-        heatmap[assignment.staff.id][weekKey] = (heatmap[assignment.staff.id][weekKey] || 0) + 1;
       });
   });
 
@@ -458,14 +530,6 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
       staffMap.set(assignment.staff.id, assignment.staff);
     }
   });
-
-  const weeks: string[] = [];
-  const cursor = new Date(start);
-  for (let i = 0; i < 6; i += 1) {
-    const weekKey = formatWeekKey(cursor);
-    weeks.push(weekKey);
-    cursor.setDate(cursor.getDate() + 7);
-  }
 
   return Array.from(staffMap.values()).map((staff) => ({
     staffId: staff.id,
@@ -533,12 +597,19 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
     });
 };
 
-const formatWeekKey = (date: Date) => {
+const formatWeekKey = (date: Date, customEndDate?: Date) => {
   const startOfWeek = new Date(date);
   startOfWeek.setDate(date.getDate() - date.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+  const endOfWeek = customEndDate
+    ? new Date(customEndDate)
+    : new Date(startOfWeek);
+
+  if (!customEndDate) {
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+  }
+  endOfWeek.setHours(23, 59, 59, 999);
 
   return `${startOfWeek.toISOString().split('T')[0]}_${endOfWeek.toISOString().split('T')[0]}`;
 };

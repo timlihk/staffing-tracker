@@ -12,17 +12,19 @@ import {
   alpha,
   useTheme,
   Divider,
+  IconButton,
 } from '@mui/material';
-import { Dashboard, FolderOpen, People, BarChart, ManageAccounts, Logout } from '@mui/icons-material';
+import { Dashboard, FolderOpen, People, BarChart, ManageAccounts, Logout, Menu } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   drawerWidth: number;
   collapsedWidth?: number;
   collapsed?: boolean;
+  onToggle?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, collapsed = false }) => {
+const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, collapsed = false, onToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -63,7 +65,23 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
         },
       }}
     >
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+      {/* Menu Toggle Button */}
+      <Box sx={{ p: 1, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        <IconButton
+          onClick={onToggle}
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+              color: 'primary.main',
+            },
+          }}
+        >
+          <Menu />
+        </IconButton>
+      </Box>
+
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 }}>
         <Box textAlign="center" sx={{ width: '100%' }}>
           {collapsed ? (
             <Typography
