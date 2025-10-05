@@ -21,6 +21,9 @@ jest.mock('../utils/prisma', () => ({
     activityLog: {
       findMany: jest.fn(),
     },
+    projectAssignment: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -87,6 +90,8 @@ describe('Dashboard Controller', () => {
           weeks: [{ week: '2025-W41', count: 3 }],
         },
       ]);
+
+      (prisma.projectAssignment.findMany as jest.Mock).mockResolvedValue([]);
 
       (prisma.user.findMany as jest.Mock).mockResolvedValue([
         {
@@ -229,6 +234,178 @@ describe('Dashboard Controller', () => {
       );
       expect(unstaffed).toBeDefined();
       expect(unstaffed.needsUSPartner).toBe(true);
+    });
+  });
+
+  describe('Team Member Deduplication in Deal Radar', () => {
+    it('should deduplicate team members with same staff ID', async () => {
+      const now = new Date();
+      const futureDate = new Date(now);
+      futureDate.setDate(futureDate.getDate() + 15);
+
+      // Mock projects with duplicate staff assignments
+      const mockProjects = [
+        {
+          id: 1,
+          name: 'Sailing',
+          category: 'HK Trx',
+          status: 'Active',
+          priority: 'High',
+          side: 'Buyer',
+          filingDate: futureDate,
+          listingDate: null,
+          assignments: [
+            {
+              staff: {
+                id: 10,
+                name: 'George Zheng',
+                position: 'Partner',
+              },
+            },
+            {
+              staff: {
+                id: 10, // Same staff ID - should be deduplicated
+                name: 'George Zheng',
+                position: 'Partner',
+              },
+            },
+            {
+              staff: {
+                id: 20,
+                name: 'Jane Associate',
+                position: 'Associate',
+              },
+            },
+          ],
+        },
+      ];
+
+      (prisma.project.count as jest.Mock).mockResolvedValue(10);
+      (prisma.staff.count as jest.Mock).mockResolvedValue(15);
+      (prisma.project.groupBy as jest.Mock).mockResolvedValue([]);
+      (prisma.project.findMany as jest.Mock).mockResolvedValue(mockProjects);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.activityLog.findMany as jest.Mock).mockResolvedValue([]);
+
+      const response = await request(app).get('/api/dashboard/summary');
+
+      expect(response.status).toBe(200);
+      expect(response.body.dealRadar).toBeDefined();
+      expect(response.body.dealRadar.length).toBeGreaterThan(0);
+
+      // Check that team members are deduplicated
+      const firstEvent = response.body.dealRadar[0];
+      expect(firstEvent.teamMembers).toBeDefined();
+
+      // Should have only 2 unique staff members (not 3)
+      const uniqueStaffIds = new Set(firstEvent.teamMembers.map((m: any) => m.id));
+      expect(uniqueStaffIds.size).toBe(2); // George Zheng (once) and Jane Associate
+
+      // Verify George Zheng appears only once
+      const georgeEntries = firstEvent.teamMembers.filter((m: any) => m.id === 10);
+      expect(georgeEntries.length).toBe(1);
+    });
+
+    it('should include side field in Deal Radar events', async () => {
+      const now = new Date();
+      const futureDate = new Date(now);
+      futureDate.setDate(futureDate.getDate() + 15);
+
+      const mockProjects = [
+        {
+          id: 1,
+          name: 'Test Project',
+          category: 'HK Trx',
+          status: 'Active',
+          priority: 'High',
+          side: 'Seller',
+          filingDate: futureDate,
+          listingDate: null,
+          assignments: [
+            {
+              staff: {
+                id: 10,
+                name: 'Partner Name',
+                position: 'Partner',
+              },
+            },
+          ],
+        },
+      ];
+
+      (prisma.project.count as jest.Mock).mockResolvedValue(10);
+      (prisma.staff.count as jest.Mock).mockResolvedValue(15);
+      (prisma.project.groupBy as jest.Mock).mockResolvedValue([]);
+      (prisma.project.findMany as jest.Mock).mockResolvedValue(mockProjects);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.activityLog.findMany as jest.Mock).mockResolvedValue([]);
+
+      const response = await request(app).get('/api/dashboard/summary');
+
+      expect(response.status).toBe(200);
+      expect(response.body.dealRadar).toBeDefined();
+      expect(response.body.dealRadar[0].side).toBe('Seller');
+    });
+
+    it('should include team member position data', async () => {
+      const now = new Date();
+      const futureDate = new Date(now);
+      futureDate.setDate(futureDate.getDate() + 15);
+
+      const mockProjects = [
+        {
+          id: 1,
+          name: 'Test Project',
+          category: 'HK Trx',
+          status: 'Active',
+          priority: null,
+          side: null,
+          filingDate: futureDate,
+          listingDate: null,
+          assignments: [
+            {
+              staff: {
+                id: 10,
+                name: 'Partner Name',
+                position: 'Partner',
+              },
+            },
+            {
+              staff: {
+                id: 20,
+                name: 'Associate Name',
+                position: 'Associate',
+              },
+            },
+            {
+              staff: {
+                id: 30,
+                name: 'FLIC Name',
+                position: 'Junior FLIC',
+              },
+            },
+          ],
+        },
+      ];
+
+      (prisma.project.count as jest.Mock).mockResolvedValue(10);
+      (prisma.staff.count as jest.Mock).mockResolvedValue(15);
+      (prisma.project.groupBy as jest.Mock).mockResolvedValue([]);
+      (prisma.project.findMany as jest.Mock).mockResolvedValue(mockProjects);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.activityLog.findMany as jest.Mock).mockResolvedValue([]);
+
+      const response = await request(app).get('/api/dashboard/summary');
+
+      expect(response.status).toBe(200);
+      expect(response.body.dealRadar).toBeDefined();
+      const teamMembers = response.body.dealRadar[0].teamMembers;
+
+      expect(teamMembers).toHaveLength(3);
+      expect(teamMembers[0]).toHaveProperty('position');
+      expect(teamMembers[0].position).toBe('Partner');
+      expect(teamMembers[1].position).toBe('Associate');
+      expect(teamMembers[2].position).toBe('Junior FLIC');
     });
   });
 });
