@@ -2,6 +2,44 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.12.0] - 2025-10-05
+
+### Added
+- 🎯 **Team Members on Project Creation Page**
+  - Select staff members when creating new projects
+  - Autocomplete dropdown with duplicate prevention
+  - Auto-assign jurisdiction (default: HK Law)
+  - Display team members with position and jurisdiction info
+  - Visual chips showing: "Name - Position (Jurisdiction)"
+  - Bulk assignment API call after project creation
+  - Full-width staff selector using flex layout
+  - Remove team members before submission
+
+### Fixed
+- 🐛 **Project Creation Bug** - Critical fix for "Invalid project ID" error
+  - Fixed isEdit condition using Boolean check with NaN validation
+  - Changed from `id !== 'new'` to `Boolean(id && id !== 'new' && !isNaN(Number(id)))`
+  - Added NaN validation in updateProject controller
+  - Better error logging showing ID parameter value
+  - Proper "Invalid project ID" error response for NaN values
+
+### Technical Details
+**Backend:**
+- Enhanced `updateProject` in `project.controller.ts`:
+  - Added projectId validation: `const projectId = parseInt(id); if (isNaN(projectId)) return 400`
+  - Improved logging: `console.log('Update project request - ID:', id, 'Body:', ...)`
+  - Returns proper 400 error for invalid IDs
+
+**Frontend:**
+- Updated `ProjectForm.tsx` with team members feature:
+  - New TeamMember interface with staffId, staffName, position, jurisdiction
+  - State management for team members, selected staff, jurisdiction
+  - `handleAddTeamMember` and `handleRemoveTeamMember` functions
+  - Bulk assignment API call: `POST /assignments/bulk`
+  - Position data pulled from staff.position
+  - Autocomplete with staff filtering (removes already-added members)
+- Fixed isEdit logic to prevent false positives
+
 ## [1.11.0] - 2025-10-05
 
 ### Added

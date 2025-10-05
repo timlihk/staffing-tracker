@@ -41,6 +41,18 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 ### 🎉 Recent Updates (Oct 2025)
 
 **Latest Features (Oct 5, 2025):**
+- ✅ **Team Members on Project Creation** - Add team members when creating projects
+  - Select staff members from autocomplete dropdown
+  - Auto-assign jurisdiction (HK Law, US Law, B&C)
+  - Display team members with position and jurisdiction
+  - Visual chips showing: "Name - Position (Jurisdiction)"
+  - Bulk assignment API integration
+  - Clean, modern UI with full-width staff selector
+- ✅ **Project Creation Bug Fixes** - Fixed critical issues
+  - Fixed "Invalid project ID" error when creating projects
+  - Added NaN validation in update controller
+  - Improved isEdit detection logic
+  - Better error logging and messages
 - ✅ **Dashboard Enhancements** - Improved time range options and visualization
   - Time range selector at top of dashboard (30 days, 2 months, 3 months, 4 months)
   - Multiple calendar view in Deal Radar showing filing/listing events with color-coded dots
