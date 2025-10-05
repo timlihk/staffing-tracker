@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography } from '@mui/material';
-import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
+import { Add, Edit } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Staff as StaffType } from '../types';
 import { Page, StaffListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
-import { useStaff, useDeleteStaff } from '../hooks/useStaff';
+import { useStaff } from '../hooks/useStaff';
 
 const Staff: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
@@ -31,17 +31,6 @@ const Staff: React.FC = () => {
   };
 
   const { data: staff = [], isLoading, error } = useStaff(params);
-  const deleteStaff = useDeleteStaff();
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this staff member?')) {
-      try {
-        await deleteStaff.mutateAsync(id);
-      } catch (error) {
-        console.error('Failed to delete staff:', error);
-      }
-    }
-  };
 
   const columns: GridColDef<StaffType>[] = [
     {
@@ -75,23 +64,12 @@ const Staff: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 80,
       sortable: false,
       renderCell: (params) => (
         <Box onClick={(e) => e.stopPropagation()}>
-          <IconButton size="small" onClick={() => navigate(`/staff/${params.row.id}`)}>
-            <Visibility fontSize="small" />
-          </IconButton>
           <IconButton size="small" onClick={() => navigate(`/staff/${params.row.id}/edit`)}>
             <Edit fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => handleDelete(params.row.id)}
-            disabled={deleteStaff.isPending}
-          >
-            <Delete fontSize="small" />
           </IconButton>
         </Box>
       ),

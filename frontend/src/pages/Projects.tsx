@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography, Autocomplete } from '@mui/material';
-import { Add, Edit, Delete, Visibility } from '@mui/icons-material';
+import { Add, Edit } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Project, Staff } from '../types';
 import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
-import { useProjects, useDeleteProject } from '../hooks/useProjects';
+import { useProjects } from '../hooks/useProjects';
 import { usePermissions } from '../hooks/usePermissions';
 import { useStaff } from '../hooks/useStaff';
 
@@ -45,19 +45,8 @@ const Projects: React.FC = () => {
   };
 
   const { data, isLoading, error } = useProjects(params);
-  const deleteProject = useDeleteProject();
 
   const projects = data?.data || [];
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      try {
-        await deleteProject.mutateAsync(id);
-      } catch (error) {
-        console.error('Failed to delete project:', error);
-      }
-    }
-  };
 
   const columns: GridColDef<Project>[] = [
     {
@@ -94,26 +83,13 @@ const Projects: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 80,
       sortable: false,
       renderCell: (params) => (
         <Box onClick={(e) => e.stopPropagation()}>
-          <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}`)}>
-            <Visibility fontSize="small" />
-          </IconButton>
           {permissions.canEditProject && (
             <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}/edit`)}>
               <Edit fontSize="small" />
-            </IconButton>
-          )}
-          {permissions.canDeleteProject && (
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDelete(params.row.id)}
-              disabled={deleteProject.isPending}
-            >
-              <Delete fontSize="small" />
             </IconButton>
           )}
         </Box>
