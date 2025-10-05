@@ -425,34 +425,50 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
 };
 
 const buildStaffingHeatmap = async (start: Date, end: Date) => {
-  const assignments = await prisma.projectAssignment.findMany({
-    where: {
-      project: {
-        OR: [
-          { filingDate: { gte: start, lte: end } },
-          { listingDate: { gte: start, lte: end } },
-        ],
-      },
-      staff: {
+  // Fetch all active staff members and their assignments with upcoming milestones
+  const [allStaff, assignments] = await Promise.all([
+    prisma.staff.findMany({
+      where: {
         status: 'active',
       },
-    },
-    include: {
-      staff: {
-        select: {
-          id: true,
-          name: true,
-          position: true,
+      select: {
+        id: true,
+        name: true,
+        position: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    }),
+    prisma.projectAssignment.findMany({
+      where: {
+        project: {
+          OR: [
+            { filingDate: { gte: start, lte: end } },
+            { listingDate: { gte: start, lte: end } },
+          ],
+        },
+        staff: {
+          status: 'active',
         },
       },
-      project: {
-        select: {
-          filingDate: true,
-          listingDate: true,
+      include: {
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+          },
+        },
+        project: {
+          select: {
+            filingDate: true,
+            listingDate: true,
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   // Calculate number of periods based on the date range
   // Strategy: Keep columns to ~6 for better UX
@@ -543,14 +559,8 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
       });
   });
 
-  const staffMap = new Map<number, { id: number; name: string; position: string }>();
-  assignments.forEach((assignment) => {
-    if (assignment.staff) {
-      staffMap.set(assignment.staff.id, assignment.staff);
-    }
-  });
-
-  return Array.from(staffMap.values()).map((staff) => ({
+  // Return all active staff members, including those with no assignments (0 milestones)
+  return allStaff.map((staff) => ({
     staffId: staff.id,
     name: staff.name,
     position: staff.position,

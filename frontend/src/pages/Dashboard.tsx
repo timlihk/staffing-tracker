@@ -65,7 +65,7 @@ const categorizeTeamMembers = (members: Array<{ id: number; name: string; positi
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [timeRange, setTimeRange] = useState(30);
+  const [timeRange, setTimeRange] = useState(120);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const { data, isLoading, error } = useDashboard(timeRange);
 
