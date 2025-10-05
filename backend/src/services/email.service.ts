@@ -3,6 +3,7 @@ import {
   PartnerReminderPayload,
   formatFieldName as formatReminderFieldName,
 } from './project-reminder.service';
+import prisma from '../utils/prisma';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const fromEmail = process.env.EMAIL_FROM || 'Asia CM Team <notifications@asia-cm.team>';
@@ -20,6 +21,7 @@ interface ProjectChange {
 interface EmailNotificationData {
   staffEmail: string;
   staffName: string;
+  staffPosition: string;
   projectId: number;
   projectName: string;
   projectCategory: string;
@@ -382,6 +384,38 @@ ${appUrl}
 }
 
 /**
+ * Check if a staff member should receive email notifications based on their position
+ */
+export async function shouldReceiveNotification(staffPosition: string): Promise<boolean> {
+  try {
+    // Get email settings
+    const settings = await prisma.emailSettings.findFirst();
+
+    // If no settings exist or emails are globally disabled, don't send
+    if (!settings || !settings.emailNotificationsEnabled) {
+      return false;
+    }
+
+    // Map position to notification setting
+    const positionMap: Record<string, boolean> = {
+      'Partner': settings.notifyPartner,
+      'Associate': settings.notifyAssociate,
+      'Junior FLIC': settings.notifyJuniorFlic,
+      'Senior FLIC': settings.notifySeniorFlic,
+      'Intern': settings.notifyIntern,
+      'B&C Working Attorney': settings.notifyBCWorkingAttorney,
+    };
+
+    // Return the setting for this position, default to true if position not found
+    return positionMap[staffPosition] ?? true;
+  } catch (error) {
+    console.error('Error checking email notification settings:', error);
+    // Default to true if there's an error (fail open for notifications)
+    return true;
+  }
+}
+
+/**
  * Sends project update email to all assigned staff in one email
  * This saves API quota by sending 1 email instead of N individual emails
  * All recipients in To field for full deal team transparency
@@ -400,8 +434,43 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
     return [];
   }
 
-  // Extract unique email addresses for CC
-  const ccEmails = [...new Set(emailDataList.map(data => data.staffEmail))];
+  // Check if email notifications are enabled globally
+  const settings = await prisma.emailSettings.findFirst();
+  if (!settings || !settings.emailNotificationsEnabled) {
+    console.log('Skipping project update emails (notifications disabled):', {
+      project: emailDataList[0]?.projectName,
+      recipients: emailDataList.length,
+    });
+    return [];
+  }
+
+  // Filter recipients based on their position settings
+  const filteredEmailData = [];
+  for (const emailData of emailDataList) {
+    if (await shouldReceiveNotification(emailData.staffPosition)) {
+      filteredEmailData.push(emailData);
+    }
+  }
+
+  if (filteredEmailData.length === 0) {
+    console.log('No recipients after filtering by position settings:', {
+      project: emailDataList[0]?.projectName,
+      originalRecipients: emailDataList.length,
+    });
+    return [];
+  }
+
+  // Extract unique email addresses - this prevents duplicates if:
+  // 1. Same person is assigned to project multiple times (different jurisdictions)
+  // 2. Same person's position matches multiple enabled notification settings
+  const ccEmails = [...new Set(filteredEmailData.map(data => data.staffEmail))];
+
+  console.log('Email recipients after deduplication:', {
+    project: emailDataList[0]?.projectName,
+    totalAssignments: emailDataList.length,
+    afterFiltering: filteredEmailData.length,
+    uniqueEmails: ccEmails.length,
+  });
 
   // Use first staff member's data for email content (all have same project/changes)
   const firstData = emailDataList[0];

@@ -32,6 +32,37 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardSummary } from '../types';
 
+// Helper function to categorize team members by position
+const categorizeTeamMembers = (members: Array<{ id: number; name: string; position: string }>) => {
+  const partners: typeof members = [];
+  const associates: typeof members = [];
+  const flics: typeof members = [];
+  const interns: typeof members = [];
+
+  members.forEach((member) => {
+    const positionLower = member.position.toLowerCase();
+    if (positionLower.includes('partner')) {
+      partners.push(member);
+    } else if (positionLower.includes('associate')) {
+      associates.push(member);
+    } else if (positionLower.includes('flic')) {
+      flics.push(member);
+    } else if (positionLower.includes('intern')) {
+      interns.push(member);
+    }
+  });
+
+  // Sort alphabetically within each category
+  const sortByName = (a: typeof members[0], b: typeof members[0]) => a.name.localeCompare(b.name);
+
+  return {
+    partners: partners.sort(sortByName),
+    associates: associates.sort(sortByName),
+    flics: flics.sort(sortByName),
+    interns: interns.sort(sortByName),
+  };
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState(30);
@@ -317,84 +348,160 @@ const DealRadarCard = ({
         <Grid container spacing={2}>
           {months.map((month, index) => (
             <Grid item xs={12} sm={6} md={numMonths === 1 ? 12 : numMonths === 2 ? 6 : 3} key={`${month.getFullYear()}-${month.getMonth()}`}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DateCalendar
-                  value={null}
-                  referenceDate={month}
-                  readOnly
-                  disabled
-                  slots={{
-                    day: CustomDay,
-                  }}
-                  sx={{
-                    width: '100%',
-                    '& .MuiPickersDay-root': {
-                      fontSize: '0.75rem',
-                    },
-                    '& .MuiPickersCalendarHeader-root': {
-                      paddingLeft: 1,
-                      paddingRight: 1,
-                    },
-                  }}
-                />
-              </LocalizationProvider>
+              <Box
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'grey.50',
+                  p: 1,
+                }}
+              >
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DateCalendar
+                    value={null}
+                    referenceDate={month}
+                    readOnly
+                    disabled
+                    slots={{
+                      day: CustomDay,
+                    }}
+                    sx={{
+                      width: '100%',
+                      '& .MuiPickersDay-root': {
+                        fontSize: '0.75rem',
+                      },
+                      '& .MuiPickersCalendarHeader-root': {
+                        paddingLeft: 1,
+                        paddingRight: 1,
+                      },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Box>
             </Grid>
           ))}
         </Grid>
 
         {/* Events Table */}
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Project</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Priority</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {allEvents.map((event, index) => (
-                <TableRow
-                  key={`${event.projectId}-${event.type}-${index}`}
-                  hover
-                  sx={{
-                    cursor: 'pointer',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                  onClick={() => onSelectProject(event.projectId)}
-                >
-                  <TableCell>{formatDate(event.date)}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={event.type}
-                      size="small"
-                      color={event.type === 'Filing' ? 'info' : 'secondary'}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={600} color="primary.main">
-                      {event.projectName}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{event.category}</TableCell>
-                  <TableCell>{event.status}</TableCell>
-                  <TableCell>
-                    {event.priority ? (
-                      <Chip label={`P${event.priority}`} size="small" variant="outlined" />
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Accordion defaultExpanded>
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls="deal-radar-table-content"
+            id="deal-radar-table-header"
+          >
+            <Typography variant="subtitle1" fontWeight={600}>
+              Project Table ({allEvents.length} {allEvents.length === 1 ? 'event' : 'events'})
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ p: 0 }}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Project</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Side</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Partner</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Associate</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>FLIC</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Intern</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {allEvents.map((event, index) => {
+                    const categorized = categorizeTeamMembers(event.teamMembers || []);
+
+                    return (
+                      <TableRow
+                        key={`${event.projectId}-${event.type}-${index}`}
+                        hover
+                        sx={{
+                          cursor: 'pointer',
+                          bgcolor: index % 2 === 0 ? 'grey.50' : 'background.paper',
+                          '&:hover': {
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                        onClick={() => onSelectProject(event.projectId)}
+                      >
+                        <TableCell>{formatDate(event.date)}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={event.type}
+                            size="small"
+                            color={event.type === 'Filing' ? 'info' : 'secondary'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600} color="primary.main">
+                            {event.projectName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{event.category}</TableCell>
+                        <TableCell>{event.side || '—'}</TableCell>
+                        <TableCell>
+                          {categorized.partners.length > 0 ? (
+                            <Stack direction="column" spacing={0.5}>
+                              {categorized.partners.map((member) => (
+                                <Typography key={member.id} variant="body2">
+                                  {member.name}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">—</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {categorized.associates.length > 0 ? (
+                            <Stack direction="column" spacing={0.5}>
+                              {categorized.associates.map((member) => (
+                                <Typography key={member.id} variant="body2">
+                                  {member.name}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">—</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {categorized.flics.length > 0 ? (
+                            <Stack direction="column" spacing={0.5}>
+                              {categorized.flics.map((member) => (
+                                <Typography key={member.id} variant="body2">
+                                  {member.name}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">—</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {categorized.interns.length > 0 ? (
+                            <Stack direction="column" spacing={0.5}>
+                              {categorized.interns.map((member) => (
+                                <Typography key={member.id} variant="body2">
+                                  {member.name}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">—</Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </AccordionDetails>
+        </Accordion>
       </Stack>
     )}
   </Paper>

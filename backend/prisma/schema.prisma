@@ -155,3 +155,21 @@ model ActivityLog {
   @@index([createdAt(sort: Desc)])
   @@map("activity_log")
 }
+
+model EmailSettings {
+  id                         Int      @id @default(autoincrement())
+  emailNotificationsEnabled  Boolean  @default(true) @map("email_notifications_enabled") // Global toggle for project update emails
+
+  // Position-specific toggles for receiving project update emails
+  notifyPartner              Boolean  @default(true) @map("notify_partner")
+  notifyAssociate            Boolean  @default(true) @map("notify_associate")
+  notifyJuniorFlic           Boolean  @default(true) @map("notify_junior_flic")
+  notifySeniorFlic           Boolean  @default(true) @map("notify_senior_flic")
+  notifyIntern               Boolean  @default(true) @map("notify_intern")
+  notifyBCWorkingAttorney    Boolean  @default(true) @map("notify_bc_working_attorney")
+
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  updatedBy                  Int?     @map("updated_by")
+
+  @@map("email_settings")
+}

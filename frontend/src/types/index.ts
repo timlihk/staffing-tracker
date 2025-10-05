@@ -93,9 +93,11 @@ export interface DashboardSummary {
     category: string;
     status: string;
     priority: string | null;
+    side: string | null;
     type: 'Filing' | 'Listing';
     date: string;
     partner: string | null;
+    teamMembers: Array<{ id: number; name: string; position: string }>;
   }>;
   staffingHeatmap: Array<{
     staffId: number;

@@ -239,6 +239,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
               id: true,
               name: true,
               email: true,
+              position: true,
             },
           },
         },
@@ -250,6 +251,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         .map(assignment => ({
           staffEmail: assignment.staff.email!,
           staffName: assignment.staff.name,
+          staffPosition: assignment.staff.position,
           projectId: project.id,
           projectName: project.name,
           projectCategory: project.category,

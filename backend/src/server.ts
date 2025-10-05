@@ -13,6 +13,7 @@ import dashboardRoutes from './routes/dashboard.routes';
 import reportsRoutes from './routes/reports.routes';
 import projectReportRoutes from './routes/project-report.routes';
 import userRoutes from './routes/user.routes';
+import emailSettingsRoutes from './routes/email-settings.routes';
 
 dotenv.config();
 
@@ -78,6 +79,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/reports', projectReportRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/email-settings', emailSettingsRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

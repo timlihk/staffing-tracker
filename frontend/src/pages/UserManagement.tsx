@@ -13,6 +13,7 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Switch,
   TextField,
   Typography,
   Tabs,
@@ -29,6 +30,7 @@ import { Page, PageHeader } from '../components/ui';
 import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDeleteUser } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth } from '../context/AuthContext';
+import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSettings';
 import type { ManagedUser, Staff } from '../types';
 import { createUserSchema, type CreateUserFormData } from '../lib/validations';
 import { toast } from '../lib/toast';
@@ -64,10 +66,12 @@ const UserManagement: React.FC = () => {
   const { user } = useAuth();
   const { data: users = [], isLoading, refetch: refetchUsers } = useUsers();
   const { data: staff = [], isLoading: staffLoading } = useStaff();
+  const { data: emailSettings, isLoading: emailSettingsLoading } = useEmailSettings();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const resetUserPassword = useResetUserPassword();
   const deleteUser = useDeleteUser();
+  const updateEmailSettings = useUpdateEmailSettings();
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
@@ -452,6 +456,7 @@ const UserManagement: React.FC = () => {
           <Tab label="Users" />
           <Tab label="User Change Log" />
           <Tab label="Activity Log" />
+          <Tab label="Email Settings" />
         </Tabs>
       </Paper>
 
@@ -602,6 +607,196 @@ const UserManagement: React.FC = () => {
                 },
               }}
             />
+          )}
+        </Paper>
+      )}
+
+      {activeTab === 3 && (
+        <Paper sx={{ p: 3 }}>
+          {emailSettingsLoading ? (
+            <Box display="flex" justifyContent="center" py={6}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Stack spacing={3}>
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Email Notification Settings
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Configure which staff positions receive email updates when projects are modified.
+                </Typography>
+              </Box>
+
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Stack>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Enable Email Notifications
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Master toggle for all project update email notifications
+                    </Typography>
+                  </Stack>
+                  <TextField
+                    select
+                    size="small"
+                    value={emailSettings?.emailNotificationsEnabled ? 'enabled' : 'disabled'}
+                    onChange={async (e) => {
+                      try {
+                        await updateEmailSettings.mutateAsync({
+                          emailNotificationsEnabled: e.target.value === 'enabled',
+                        });
+                        toast.success('Settings updated', 'Email notification settings have been saved.');
+                      } catch (error: any) {
+                        toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                      }
+                    }}
+                    sx={{ width: 140 }}
+                  >
+                    <MenuItem value="enabled">Enabled</MenuItem>
+                    <MenuItem value="disabled">Disabled</MenuItem>
+                  </TextField>
+                </Box>
+
+                <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    Position-Based Notifications
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Select which staff positions should receive email updates for project changes
+                  </Typography>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Partner</Typography>
+                        <Switch
+                          checked={emailSettings?.notifyPartner ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await updateEmailSettings.mutateAsync({
+                                notifyPartner: e.target.checked,
+                              });
+                              toast.success('Settings updated', 'Partner notification preference saved.');
+                            } catch (error: any) {
+                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            }
+                          }}
+                          disabled={!emailSettings?.emailNotificationsEnabled}
+                        />
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Associate</Typography>
+                        <Switch
+                          checked={emailSettings?.notifyAssociate ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await updateEmailSettings.mutateAsync({
+                                notifyAssociate: e.target.checked,
+                              });
+                              toast.success('Settings updated', 'Associate notification preference saved.');
+                            } catch (error: any) {
+                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            }
+                          }}
+                          disabled={!emailSettings?.emailNotificationsEnabled}
+                        />
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Junior FLIC</Typography>
+                        <Switch
+                          checked={emailSettings?.notifyJuniorFlic ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await updateEmailSettings.mutateAsync({
+                                notifyJuniorFlic: e.target.checked,
+                              });
+                              toast.success('Settings updated', 'Junior FLIC notification preference saved.');
+                            } catch (error: any) {
+                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            }
+                          }}
+                          disabled={!emailSettings?.emailNotificationsEnabled}
+                        />
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Senior FLIC</Typography>
+                        <Switch
+                          checked={emailSettings?.notifySeniorFlic ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await updateEmailSettings.mutateAsync({
+                                notifySeniorFlic: e.target.checked,
+                              });
+                              toast.success('Settings updated', 'Senior FLIC notification preference saved.');
+                            } catch (error: any) {
+                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            }
+                          }}
+                          disabled={!emailSettings?.emailNotificationsEnabled}
+                        />
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Intern</Typography>
+                        <Switch
+                          checked={emailSettings?.notifyIntern ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await updateEmailSettings.mutateAsync({
+                                notifyIntern: e.target.checked,
+                              });
+                              toast.success('Settings updated', 'Intern notification preference saved.');
+                            } catch (error: any) {
+                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            }
+                          }}
+                          disabled={!emailSettings?.emailNotificationsEnabled}
+                        />
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">B&C Working Attorney</Typography>
+                        <Switch
+                          checked={emailSettings?.notifyBCWorkingAttorney ?? false}
+                          onChange={async (e) => {
+                            try {
+                              await updateEmailSettings.mutateAsync({
+                                notifyBCWorkingAttorney: e.target.checked,
+                              });
+                              toast.success('Settings updated', 'B&C Working Attorney notification preference saved.');
+                            } catch (error: any) {
+                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            }
+                          }}
+                          disabled={!emailSettings?.emailNotificationsEnabled}
+                        />
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
+                  <Typography variant="body2" color="info.dark">
+                    <strong>Note:</strong> When a project is updated, only staff members assigned to that project with positions that have notifications enabled will receive email updates.
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
           )}
         </Paper>
       )}

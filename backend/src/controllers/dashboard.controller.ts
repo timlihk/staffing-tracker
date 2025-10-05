@@ -336,18 +336,16 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
       category: true,
       status: true,
       priority: true,
+      side: true,
       filingDate: true,
       listingDate: true,
       assignments: {
-        where: {
-          staff: {
-            position: 'Partner',
-          },
-        },
         select: {
           staff: {
             select: {
+              id: true,
               name: true,
+              position: true,
             },
           },
         },
@@ -363,12 +361,28 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
         category: string;
         status: string;
         priority: string | null;
+        side: string | null;
         type: 'Filing' | 'Listing';
         date: Date;
         partner: string | null;
+        teamMembers: Array<{ id: number; name: string; position: string }>;
       }> = [];
 
-      const leadPartner = project.assignments[0]?.staff?.name ?? null;
+      const leadPartner = project.assignments.find(a => a.staff.name.includes('Partner'))?.staff?.name ??
+                          project.assignments[0]?.staff?.name ?? null;
+
+      // Deduplicate team members by staff ID to ensure each person appears only once
+      const uniqueStaffMap = new Map<number, { id: number; name: string; position: string }>();
+      project.assignments.forEach(a => {
+        if (!uniqueStaffMap.has(a.staff.id)) {
+          uniqueStaffMap.set(a.staff.id, {
+            id: a.staff.id,
+            name: a.staff.name,
+            position: a.staff.position
+          });
+        }
+      });
+      const teamMembers = Array.from(uniqueStaffMap.values());
 
       if (project.filingDate && project.filingDate >= start && project.filingDate <= end) {
         events.push({
@@ -377,9 +391,11 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
           category: project.category,
           status: project.status,
           priority: project.priority,
+          side: project.side,
           type: 'Filing',
           date: project.filingDate,
           partner: leadPartner,
+          teamMembers,
         });
       }
 
@@ -390,9 +406,11 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
           category: project.category,
           status: project.status,
           priority: project.priority,
+          side: project.side,
           type: 'Listing',
           date: project.listingDate,
           partner: leadPartner,
+          teamMembers,
         });
       }
 
