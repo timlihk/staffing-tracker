@@ -36,7 +36,8 @@ const Staff: React.FC = () => {
     {
       field: 'name',
       headerName: 'Name',
-      width: 200,
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) => (
         <Box
           sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
@@ -46,13 +47,14 @@ const Staff: React.FC = () => {
         </Box>
       ),
     },
-    { field: 'position', headerName: 'Position', width: 200 },
-    { field: 'department', headerName: 'Department', width: 150 },
-    { field: 'email', headerName: 'Email', width: 250 },
+    { field: 'position', headerName: 'Position', flex: 1, minWidth: 150 },
+    { field: 'department', headerName: 'Department', flex: 0.7, minWidth: 120 },
+    { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 200 },
     {
       field: 'status',
       headerName: 'Status',
-      width: 120,
+      flex: 0.5,
+      minWidth: 100,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -154,18 +156,36 @@ const Staff: React.FC = () => {
               />
             </Paper>
           ) : (
-            <Paper sx={{ p: 1 }}>
-              <StyledDataGrid
-                rows={staff}
-                columns={columns}
-                autoHeight
-                initialState={{
-                  pagination: { paginationModel: { pageSize: 50 } },
-                }}
-                pageSizeOptions={[25, 50, 100]}
-                onRowClick={(params) => navigate(`/staff/${params.row.id}`)}
-                sx={{ cursor: 'pointer' }}
-              />
+            <Paper sx={{ p: 1, width: '100%', overflow: 'hidden' }}>
+              <Box sx={{ width: '100%', overflow: 'auto' }}>
+                <StyledDataGrid
+                  rows={staff}
+                  columns={columns}
+                  autoHeight
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 50 } },
+                  }}
+                  pageSizeOptions={[25, 50, 100]}
+                  onRowClick={(params) => navigate(`/staff/${params.row.id}`)}
+                  getRowClassName={(params) => params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row'}
+                  sx={{
+                    cursor: 'pointer',
+                    width: '100%',
+                    '& .even-row': {
+                      bgcolor: 'grey.100',
+                    },
+                    '& .odd-row': {
+                      bgcolor: 'white',
+                    },
+                    '& .even-row:hover': {
+                      bgcolor: 'grey.200',
+                    },
+                    '& .odd-row:hover': {
+                      bgcolor: 'grey.200',
+                    },
+                  }}
+                />
+              </Box>
             </Paper>
           )}
         </>

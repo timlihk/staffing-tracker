@@ -52,7 +52,8 @@ const Projects: React.FC = () => {
     {
       field: 'name',
       headerName: 'Project Code',
-      width: 280,
+      flex: 1,
+      minWidth: 200,
       renderCell: (params) => (
         <Box
           sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
@@ -65,7 +66,8 @@ const Projects: React.FC = () => {
     {
       field: 'status',
       headerName: 'Status',
-      width: 130,
+      flex: 0.5,
+      minWidth: 120,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -74,16 +76,17 @@ const Projects: React.FC = () => {
         />
       ),
     },
-    { field: 'category', headerName: 'Category', width: 120 },
-    { field: 'side', headerName: 'Side', width: 120 },
-    { field: 'sector', headerName: 'Sector', width: 120 },
-    { field: 'priority', headerName: 'Priority', width: 100 },
-    { field: 'elStatus', headerName: 'EL Status', width: 120 },
-    { field: 'timetable', headerName: 'Timetable', width: 120 },
+    { field: 'category', headerName: 'Category', flex: 0.5, minWidth: 100 },
+    { field: 'side', headerName: 'Side', flex: 0.5, minWidth: 100 },
+    { field: 'sector', headerName: 'Sector', flex: 0.5, minWidth: 100 },
+    { field: 'priority', headerName: 'Priority', flex: 0.4, minWidth: 90 },
+    { field: 'elStatus', headerName: 'EL Status', flex: 0.5, minWidth: 100 },
+    { field: 'timetable', headerName: 'Timetable', flex: 0.5, minWidth: 100 },
     {
       field: 'lastConfirmedAt',
       headerName: 'Last Confirmed',
-      width: 180,
+      flex: 0.7,
+      minWidth: 150,
       renderCell: (params) => {
         if (!params.row.lastConfirmedAt) {
           return (
@@ -207,18 +210,36 @@ const Projects: React.FC = () => {
           />
         </Paper>
       ) : (
-        <Paper sx={{ p: 1 }}>
-          <StyledDataGrid
-            rows={projects}
-            columns={columns}
-            autoHeight
-            initialState={{
-              pagination: { paginationModel: { pageSize: 100 } },
-            }}
-            pageSizeOptions={[25, 50, 100, 200]}
-            onRowClick={(params) => navigate(`/projects/${params.row.id}`)}
-            sx={{ cursor: 'pointer' }}
-          />
+        <Paper sx={{ p: 1, width: '100%', overflow: 'hidden' }}>
+          <Box sx={{ width: '100%', overflow: 'auto' }}>
+            <StyledDataGrid
+              rows={projects}
+              columns={columns}
+              autoHeight
+              initialState={{
+                pagination: { paginationModel: { pageSize: 100 } },
+              }}
+              pageSizeOptions={[25, 50, 100, 200]}
+              onRowClick={(params) => navigate(`/projects/${params.row.id}`)}
+              getRowClassName={(params) => params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row'}
+              sx={{
+                cursor: 'pointer',
+                width: '100%',
+                '& .even-row': {
+                  bgcolor: 'grey.100',
+                },
+                '& .odd-row': {
+                  bgcolor: 'white',
+                },
+                '& .even-row:hover': {
+                  bgcolor: 'grey.200',
+                },
+                '& .odd-row:hover': {
+                  bgcolor: 'grey.200',
+                },
+              }}
+            />
+          </Box>
         </Paper>
       )}
     </Page>
