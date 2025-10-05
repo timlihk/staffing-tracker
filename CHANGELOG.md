@@ -2,6 +2,78 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.13.0] - 2025-10-05
+
+### Added
+- 📧 **Email Notification Settings Panel**
+  - Admin-only settings page in User Management section
+  - Global toggle to enable/disable all email notifications
+  - Position-specific toggles for granular control (Partner, Associate, Junior FLIC, Senior FLIC, Intern, B&C Working Attorney)
+  - Individual toggles automatically disabled when global toggle is off
+  - Settings persist across sessions
+  - Real-time notification filtering based on settings
+
+- 👥 **Enhanced Deal Radar Team Display**
+  - Team members separated into dedicated columns (Partner, Associate, FLIC, Intern)
+  - Each column displays all members of that position type
+  - Alphabetically sorted names within each position category
+  - FLIC column includes both Senior FLIC and Junior FLIC
+  - Empty columns show "—" placeholder
+  - Added "Side" field column showing project side (buyer/seller/etc.)
+  - Removed "Priority" and "Status" columns for cleaner layout
+
+- 🎨 **UI Improvements**
+  - Calendar cards wrapped in bordered boxes with grey background
+  - Alternating row shading in Deal Radar project table (grey/white)
+  - Improved table readability with consistent row backgrounds
+
+### Fixed
+- 🐛 **Team Member Deduplication** - Fixed duplicate team member entries
+  - Staff members with multiple assignments (e.g., Partner + B&C Working Attorney) now appear only once
+  - Backend deduplication by staff ID ensures unique team members per project
+  - Position shown is the primary staff position from their record
+
+### Changed
+- 🔄 **Email Service Enhancements**
+  - Email recipients filtered based on position settings before sending
+  - Global email toggle checked before processing any notifications
+  - Automatic deduplication of email addresses to prevent duplicate sends
+  - Enhanced logging showing filtering and deduplication process
+
+### Technical Details
+**Backend:**
+- Added `EmailSettings` model to Prisma schema with global and position-specific toggles
+- Created `email-settings.controller.ts` with GET and PATCH endpoints
+- Created `email-settings.routes.ts` with admin-only access control
+- Updated `email.service.ts` with:
+  - `shouldReceiveNotification()` function to check position-based settings
+  - Enhanced `sendProjectUpdateEmails()` with filtering and deduplication
+  - Comprehensive logging for email recipient processing
+- Updated `dashboard.controller.ts`:
+  - Added `side` and `teamMembers` fields to Deal Radar response
+  - Implemented team member deduplication using Map by staff ID
+  - Included position data in team member objects
+- Updated `project.controller.ts` to include staff position in update emails
+- Registered email settings routes in `server.ts`
+
+**Frontend:**
+- Created `useEmailSettings.ts` hook with GET and PATCH operations
+- Updated `UserManagement.tsx`:
+  - Added "Email Settings" tab (4th tab)
+  - Global toggle using Switch component with enabled/disabled states
+  - Six position-specific Switch components
+  - Toast notifications on setting updates
+  - All position toggles disabled when global toggle is off
+- Updated `Dashboard.tsx`:
+  - Created `categorizeTeamMembers()` helper function
+  - Replaced single Team Members column with 4 separate columns
+  - Added "Side" column, removed "Status" column
+  - Added alternating row background colors (grey.50 / background.paper)
+  - Wrapped calendar cards in bordered Box components with grey.50 background
+- Updated `types/index.ts`:
+  - Added `side` and `teamMembers` fields to DashboardSummary.dealRadar type
+  - Team members include id, name, and position
+
 ## [1.12.0] - 2025-10-05
 
 ### Added

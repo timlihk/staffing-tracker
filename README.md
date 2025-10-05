@@ -41,6 +41,21 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 ### 🎉 Recent Updates (Oct 2025)
 
 **Latest Features (Oct 5, 2025):**
+- ✅ **Email Notification Settings** - Granular control over project update emails
+  - Admin-only settings panel in User Management section
+  - Global toggle to enable/disable all email notifications
+  - Position-specific toggles for granular control (Partner, Associate, Junior FLIC, Senior FLIC, Intern, B&C Working Attorney)
+  - Real-time filtering of email recipients based on settings
+  - Automatic deduplication to prevent duplicate emails
+  - Settings persist across sessions
+- ✅ **Enhanced Dashboard Deal Radar** - Improved team visibility and readability
+  - Team members separated into dedicated columns (Partner, Associate, FLIC, Intern)
+  - Alphabetically sorted names within each position category
+  - Added "Side" field column showing project side
+  - Removed "Priority" and "Status" columns for cleaner layout
+  - Calendar cards with bordered boxes and grey background
+  - Alternating row shading in project table for better readability
+  - Fixed team member deduplication (prevents duplicate entries when staff has multiple roles)
 - ✅ **Team Members on Project Creation** - Add team members when creating projects
   - Select staff members from autocomplete dropdown
   - Auto-assign jurisdiction (HK Law, US Law, B&C)
