@@ -198,129 +198,47 @@ const WeeklyReview: React.FC = () => {
                     </Stack>
 
                     {(() => {
-                      const hasMissingData = project.attentionReasons?.some((reason: string) =>
+                      const missingDataReasons = project.attentionReasons?.filter((reason: string) =>
                         reason.includes('not assigned') ||
                         reason.includes('not set') ||
                         reason.includes('No team')
-                      );
+                      ) || [];
+
+                      const otherReasons = project.attentionReasons?.filter((reason: string) =>
+                        !reason.includes('not assigned') &&
+                        !reason.includes('not set') &&
+                        !reason.includes('No team')
+                      ) || [];
 
                       return (
-                        <Alert severity={hasMissingData ? 'error' : 'warning'} icon={<WarningAmber />}>
-                          <AlertTitle>{hasMissingData ? 'Missing Information - Cannot Confirm!' : 'Issues Found:'}</AlertTitle>
-                          <ul style={{ margin: 0, paddingLeft: 20 }}>
-                            {project.attentionReasons?.map((reason: string, idx: number) => (
-                              <li key={idx}>
-                                <Typography variant="body2">{reason}</Typography>
-                              </li>
-                            ))}
-                          </ul>
-                          {hasMissingData && (
-                            <Typography variant="body2" fontWeight={600} sx={{ mt: 1 }}>
-                              Please edit this project to add the missing information.
-                            </Typography>
+                        <Stack spacing={1}>
+                          {missingDataReasons.length > 0 && (
+                            <Alert severity="error" icon={<WarningAmber />}>
+                              <AlertTitle>Missing Information</AlertTitle>
+                              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                {missingDataReasons.map((reason: string, idx: number) => (
+                                  <li key={idx}>
+                                    <Typography variant="body2">{reason}</Typography>
+                                  </li>
+                                ))}
+                              </ul>
+                            </Alert>
                           )}
-                        </Alert>
+                          {otherReasons.length > 0 && (
+                            <Alert severity="warning" icon={<WarningAmber />}>
+                              <AlertTitle>Needs Review:</AlertTitle>
+                              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                {otherReasons.map((reason: string, idx: number) => (
+                                  <li key={idx}>
+                                    <Typography variant="body2">{reason}</Typography>
+                                  </li>
+                                ))}
+                              </ul>
+                            </Alert>
+                          )}
+                        </Stack>
                       );
                     })()}
-
-                    {project.assignments && project.assignments.length > 0 && (
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" gutterBottom fontWeight={600}>
-                          Team Structure:
-                        </Typography>
-                        <Stack spacing={0.5}>
-                          {/* Partner */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90, fontWeight: 600 }}>
-                              Partner:
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                              {project.assignments
-                                .filter((a: any) => a.staff?.position === 'Partner')
-                                .map((assignment: any) => (
-                                  <Chip
-                                    key={assignment.id}
-                                    label={assignment.staff?.name}
-                                    size="small"
-                                    color="primary"
-                                    variant="outlined"
-                                  />
-                                ))}
-                              {project.assignments.filter((a: any) => a.staff?.position === 'Partner').length === 0 && (
-                                <Typography variant="caption" color="text.disabled">None</Typography>
-                              )}
-                            </Stack>
-                          </Box>
-
-                          {/* Associate */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90, fontWeight: 600 }}>
-                              Associate:
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                              {project.assignments
-                                .filter((a: any) => a.staff?.position === 'Associate')
-                                .map((assignment: any) => (
-                                  <Chip
-                                    key={assignment.id}
-                                    label={assignment.staff?.name}
-                                    size="small"
-                                    color="secondary"
-                                    variant="outlined"
-                                  />
-                                ))}
-                              {project.assignments.filter((a: any) => a.staff?.position === 'Associate').length === 0 && (
-                                <Typography variant="caption" color="text.disabled">None</Typography>
-                              )}
-                            </Stack>
-                          </Box>
-
-                          {/* Senior FLIC */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90, fontWeight: 600 }}>
-                              Senior FLIC:
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                              {project.assignments
-                                .filter((a: any) => a.staff?.position === 'Senior FLIC')
-                                .map((assignment: any) => (
-                                  <Chip
-                                    key={assignment.id}
-                                    label={assignment.staff?.name}
-                                    size="small"
-                                    variant="outlined"
-                                  />
-                                ))}
-                              {project.assignments.filter((a: any) => a.staff?.position === 'Senior FLIC').length === 0 && (
-                                <Typography variant="caption" color="text.disabled">None</Typography>
-                              )}
-                            </Stack>
-                          </Box>
-
-                          {/* Junior FLIC */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90, fontWeight: 600 }}>
-                              Junior FLIC:
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                              {project.assignments
-                                .filter((a: any) => a.staff?.position === 'Junior FLIC')
-                                .map((assignment: any) => (
-                                  <Chip
-                                    key={assignment.id}
-                                    label={assignment.staff?.name}
-                                    size="small"
-                                    variant="outlined"
-                                  />
-                                ))}
-                              {project.assignments.filter((a: any) => a.staff?.position === 'Junior FLIC').length === 0 && (
-                                <Typography variant="caption" color="text.disabled">None</Typography>
-                              )}
-                            </Stack>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    )}
                   </Stack>
                 </CardContent>
                 <CardActions sx={{ justifyContent: 'flex-end', gap: 1, px: 2, pb: 2 }}>
