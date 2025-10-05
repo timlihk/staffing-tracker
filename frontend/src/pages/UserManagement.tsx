@@ -638,25 +638,19 @@ const UserManagement: React.FC = () => {
                       Master toggle for all project update email notifications
                     </Typography>
                   </Stack>
-                  <TextField
-                    select
-                    size="small"
-                    value={emailSettings?.emailNotificationsEnabled ? 'enabled' : 'disabled'}
+                  <Switch
+                    checked={emailSettings?.emailNotificationsEnabled ?? false}
                     onChange={async (e) => {
                       try {
                         await updateEmailSettings.mutateAsync({
-                          emailNotificationsEnabled: e.target.value === 'enabled',
+                          emailNotificationsEnabled: e.target.checked,
                         });
                         toast.success('Settings updated', 'Email notification settings have been saved.');
                       } catch (error: any) {
                         toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
                       }
                     }}
-                    sx={{ width: 140 }}
-                  >
-                    <MenuItem value="enabled">Enabled</MenuItem>
-                    <MenuItem value="disabled">Disabled</MenuItem>
-                  </TextField>
+                  />
                 </Box>
 
                 <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
