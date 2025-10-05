@@ -15,7 +15,7 @@ export const projectSchema = z.object({
   status: z.string().min(1, 'Status is required'),
   priority: z.string().optional(),
   elStatus: z.string().optional(),
-  timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING']).optional(),
+  timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING']).optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   bcAttorney: z.string().optional(),
   filingDate: z.string().optional(),
   listingDate: z.string().optional(),

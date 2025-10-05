@@ -86,6 +86,7 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('Create project request body:', JSON.stringify(req.body, null, 2));
     const {
       name,
       category,
@@ -137,13 +138,22 @@ export const createProject = async (req: AuthRequest, res: Response) => {
     res.status(201).json(project);
   } catch (error) {
     console.error('Create project error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
   }
 };
 
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    console.log('Update project request - ID:', id, 'Body:', JSON.stringify(req.body, null, 2));
+
+    // Validate ID is a number
+    const projectId = parseInt(id);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
     const {
       name,
       category,
@@ -158,7 +168,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     const existingProject = await prisma.project.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
     });
 
     if (!existingProject) {
@@ -248,7 +258,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     res.json(project);
   } catch (error) {
     console.error('Update project error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
   }
 };
 

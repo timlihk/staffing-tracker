@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,22 +12,37 @@ import {
   MenuItem,
   CircularProgress,
   Stack,
+  Autocomplete,
+  Chip,
+  Divider,
 } from '@mui/material';
-import { ArrowBack, Save } from '@mui/icons-material';
+import { ArrowBack, Save, PersonAdd } from '@mui/icons-material';
 import { Page } from '../components/ui';
 import { projectSchema, type ProjectFormData } from '../lib/validations';
 import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProjects';
 import { useStaff } from '../hooks/useStaff';
+import api from '../api/client';
+
+interface TeamMember {
+  staffId: number;
+  staffName: string;
+  position: string;
+  jurisdiction: string;
+}
 
 const ProjectForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEdit = id !== 'new';
+  const isEdit = Boolean(id && id !== 'new' && !isNaN(Number(id)));
 
   const { data: project, isLoading: projectLoading } = useProject(isEdit ? id! : '');
   const { data: staffList = [], isLoading: staffLoading } = useStaff();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
+
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [jurisdiction, setJurisdiction] = useState('HK Law');
 
   const {
     register,
@@ -68,12 +83,61 @@ const ProjectForm: React.FC = () => {
     }
   }, [project, isEdit, reset]);
 
+  const handleAddTeamMember = () => {
+    if (selectedStaff && !teamMembers.find(m => m.staffId === selectedStaff.id)) {
+      setTeamMembers([...teamMembers, {
+        staffId: selectedStaff.id,
+        staffName: selectedStaff.name,
+        position: selectedStaff.position || 'Staff',
+        jurisdiction,
+      }]);
+      setSelectedStaff(null);
+    }
+  };
+
+  const handleRemoveTeamMember = (staffId: number) => {
+    setTeamMembers(teamMembers.filter(m => m.staffId !== staffId));
+  };
+
   const onSubmit = async (data: ProjectFormData) => {
     try {
+      console.log('Form submit - isEdit:', isEdit, 'id:', id);
+      console.log('Form data:', data);
+
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...data,
+        timetable: data.timetable === '' ? undefined : data.timetable,
+        bcAttorney: data.bcAttorney === '' ? null : data.bcAttorney,
+        elStatus: data.elStatus === '' ? null : data.elStatus,
+        filingDate: data.filingDate === '' ? null : data.filingDate,
+        listingDate: data.listingDate === '' ? null : data.listingDate,
+        notes: data.notes === '' ? null : data.notes,
+      };
+
+      console.log('Cleaned data:', cleanedData);
+
+      let projectId: number;
+
       if (isEdit) {
-        await updateProject.mutateAsync({ id: Number(id), data });
+        console.log('Calling updateProject with id:', id);
+        await updateProject.mutateAsync({ id: Number(id), data: cleanedData });
+        projectId = Number(id);
       } else {
-        await createProject.mutateAsync(data);
+        console.log('Calling createProject');
+        const createdProject = await createProject.mutateAsync(cleanedData);
+        projectId = createdProject.id;
+
+        // Add team members if any
+        if (teamMembers.length > 0) {
+          await api.post('/assignments/bulk', {
+            assignments: teamMembers.map(member => ({
+              projectId,
+              staffId: member.staffId,
+              jurisdiction: member.jurisdiction,
+            })),
+          });
+        }
       }
       navigate('/projects');
     } catch (error) {
@@ -278,6 +342,72 @@ const ProjectForm: React.FC = () => {
               helperText={errors.notes?.message}
               disabled={isSubmitting}
             />
+
+            {!isEdit && (
+              <>
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="h6" gutterBottom>
+                  Team Members
+                </Typography>
+
+                <Stack direction="row" spacing={2} alignItems="flex-end">
+                  <Box sx={{ flex: 1 }}>
+                    <Autocomplete
+                      value={selectedStaff}
+                      onChange={(_, newValue) => {
+                        setSelectedStaff(newValue);
+                        if (newValue) {
+                          // Auto-set jurisdiction based on staff position/department
+                          // You can customize this logic
+                          setJurisdiction('HK Law');
+                        }
+                      }}
+                      options={staffList.filter(s => !teamMembers.find(m => m.staffId === s.id))}
+                      getOptionLabel={(option) => option.name}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Select Staff Member"
+                          disabled={isSubmitting || staffLoading}
+                        />
+                      )}
+                      disabled={isSubmitting}
+                    />
+                  </Box>
+                  <Box>
+                    <Button
+                      variant="outlined"
+                      startIcon={<PersonAdd />}
+                      onClick={handleAddTeamMember}
+                      disabled={!selectedStaff || isSubmitting}
+                      sx={{ height: 56 }}
+                    >
+                      Add Member
+                    </Button>
+                  </Box>
+                </Stack>
+
+                {teamMembers.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Team Members ({teamMembers.length}):
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      {teamMembers.map((member) => (
+                        <Chip
+                          key={member.staffId}
+                          label={`${member.staffName} - ${member.position} (${member.jurisdiction})`}
+                          onDelete={() => handleRemoveTeamMember(member.staffId)}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </>
+            )}
 
             <Box display="flex" gap={2} pt={1}>
               <Button
