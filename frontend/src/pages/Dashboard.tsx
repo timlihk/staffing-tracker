@@ -66,12 +66,18 @@ const categorizeTeamMembers = (members: Array<{ id: number; name: string; positi
 const Dashboard = () => {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState(30);
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const { data, isLoading, error } = useDashboard(timeRange);
 
   const dealRadarGroups = useMemo(
     () => groupDealRadar(data?.dealRadar ?? []),
     [data?.dealRadar]
   );
+
+  // Reset show all events when time range changes
+  useEffect(() => {
+    setShowAllEvents(false);
+  }, [timeRange]);
 
   const heatmapWeeks = useMemo(() => {
     const set = new Set<string>();
@@ -323,6 +329,11 @@ const DealRadarCard = ({
     });
   }, [groups]);
 
+  // Get displayed events (first 10 or all)
+  const displayedEvents = useMemo(() => {
+    return showAllEvents ? allEvents : allEvents.slice(0, 10);
+  }, [allEvents, showAllEvents]);
+
   return (
     <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
@@ -391,7 +402,7 @@ const DealRadarCard = ({
             id="deal-radar-table-header"
           >
             <Typography variant="subtitle1" fontWeight={600}>
-              Project Table ({allEvents.length} {allEvents.length === 1 ? 'event' : 'events'})
+              Project Table (Showing {displayedEvents.length} of {allEvents.length} {allEvents.length === 1 ? 'event' : 'events'})
             </Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 0 }}>
@@ -411,7 +422,7 @@ const DealRadarCard = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {allEvents.map((event, index) => {
+                  {displayedEvents.map((event, index) => {
                     const categorized = categorizeTeamMembers(event.teamMembers || []);
 
                     return (
@@ -500,6 +511,17 @@ const DealRadarCard = ({
                 </TableBody>
               </Table>
             </TableContainer>
+            {allEvents.length > 10 && (
+              <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowAllEvents(!showAllEvents)}
+                  size="small"
+                >
+                  {showAllEvents ? 'Show Less' : `Show More (${allEvents.length - 10} more)`}
+                </Button>
+              </Box>
+            )}
           </AccordionDetails>
         </Accordion>
       </Stack>
