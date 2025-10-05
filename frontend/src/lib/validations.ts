@@ -19,6 +19,8 @@ export const projectSchema = z.object({
   bcAttorney: z.string().optional(),
   filingDate: z.string().optional(),
   listingDate: z.string().optional(),
+  side: z.string().optional(),
+  sector: z.string().optional(),
   notes: z.string().optional(),
 });
 

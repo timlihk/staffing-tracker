@@ -70,6 +70,8 @@ model Project {
   bcAttorney  String?    @map("bc_attorney") // B&C Attorney assigned to project
   filingDate  DateTime?  @map("filing_date")
   listingDate DateTime?  @map("listing_date")
+  side        String? // Issuer or Underwriter (only for HK Trx and US Trx)
+  sector      String? // Healthcare, TMT, Consumer, Industrial
   notes       String?    @db.Text
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")

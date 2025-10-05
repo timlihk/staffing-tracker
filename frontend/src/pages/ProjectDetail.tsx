@@ -319,6 +319,14 @@ const ProjectDetail: React.FC = () => {
                 value: project.category || '-',
               },
               {
+                label: 'SIDE',
+                value: project.side || '-',
+              },
+              {
+                label: 'SECTOR',
+                value: project.sector || '-',
+              },
+              {
                 label: 'PRIORITY',
                 value: project.priority || '-',
               },

@@ -97,6 +97,8 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       filingDate,
       listingDate,
       bcAttorney,
+      side,
+      sector,
       notes,
     } = req.body;
 
@@ -115,6 +117,8 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         filingDate: filingDate ? new Date(filingDate) : null,
         listingDate: listingDate ? new Date(listingDate) : null,
         bcAttorney,
+        side,
+        sector,
         notes,
       },
       include: {
@@ -164,6 +168,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       filingDate,
       listingDate,
       bcAttorney,
+      side,
+      sector,
       notes,
     } = req.body;
 
@@ -186,6 +192,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (filingDate !== undefined) updateData.filingDate = filingDate ? new Date(filingDate) : null;
     if (listingDate !== undefined) updateData.listingDate = listingDate ? new Date(listingDate) : null;
     if (bcAttorney !== undefined) updateData.bcAttorney = bcAttorney;
+    if (side !== undefined) updateData.side = side;
+    if (sector !== undefined) updateData.sector = sector;
     if (notes !== undefined) updateData.notes = notes;
 
     // Track all field changes

@@ -33,6 +33,8 @@ export interface Project {
   bcAttorney?: string;
   filingDate?: string;
   listingDate?: string;
+  side?: string;
+  sector?: string;
   notes?: string;
   assignments?: ProjectAssignment[];
   createdAt: string;

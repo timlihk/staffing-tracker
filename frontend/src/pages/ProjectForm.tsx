@@ -62,6 +62,8 @@ const ProjectForm: React.FC = () => {
       bcAttorney: '',
       filingDate: '',
       listingDate: '',
+      side: '',
+      sector: '',
       notes: '',
     },
   });
@@ -78,6 +80,8 @@ const ProjectForm: React.FC = () => {
         bcAttorney: project.bcAttorney || '',
         filingDate: project.filingDate ? project.filingDate.slice(0, 10) : '',
         listingDate: project.listingDate ? project.listingDate.slice(0, 10) : '',
+        side: project.side || '',
+        sector: project.sector || '',
         notes: project.notes || '',
       });
     }
@@ -112,6 +116,8 @@ const ProjectForm: React.FC = () => {
         elStatus: data.elStatus === '' ? null : data.elStatus,
         filingDate: data.filingDate === '' ? null : data.filingDate,
         listingDate: data.listingDate === '' ? null : data.listingDate,
+        side: data.side === '' ? null : data.side,
+        sector: data.sector === '' ? null : data.sector,
         notes: data.notes === '' ? null : data.notes,
       };
 
@@ -306,6 +312,50 @@ const ProjectForm: React.FC = () => {
               error={!!errors.listingDate}
               helperText={errors.listingDate?.message}
               disabled={isSubmitting}
+            />
+
+            <Controller
+              name="side"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="Side"
+                  error={!!errors.side}
+                  helperText={errors.side?.message}
+                  disabled={isSubmitting}
+                  value={field.value || ''}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  <MenuItem value="Issuer">Issuer</MenuItem>
+                  <MenuItem value="Underwriter">Underwriter</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="sector"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="Sector"
+                  error={!!errors.sector}
+                  helperText={errors.sector?.message}
+                  disabled={isSubmitting}
+                  value={field.value || ''}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  <MenuItem value="Healthcare">Healthcare</MenuItem>
+                  <MenuItem value="TMT">TMT</MenuItem>
+                  <MenuItem value="Consumer">Consumer</MenuItem>
+                  <MenuItem value="Industrial">Industrial</MenuItem>
+                </TextField>
+              )}
             />
 
             <Controller

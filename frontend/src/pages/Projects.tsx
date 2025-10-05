@@ -85,9 +85,11 @@ const Projects: React.FC = () => {
         />
       ),
     },
-    { field: 'category', headerName: 'Category', width: 200 },
+    { field: 'category', headerName: 'Category', width: 120 },
+    { field: 'side', headerName: 'Side', width: 120 },
+    { field: 'sector', headerName: 'Sector', width: 120 },
     { field: 'priority', headerName: 'Priority', width: 100 },
-    { field: 'elStatus', headerName: 'EL Status', width: 150 },
+    { field: 'elStatus', headerName: 'EL Status', width: 120 },
     { field: 'timetable', headerName: 'Timetable', width: 120 },
     {
       field: 'actions',
