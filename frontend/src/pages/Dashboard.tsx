@@ -362,43 +362,56 @@ const DealRadarCard = ({
     ) : (
       <Stack spacing={3}>
         {/* Calendar Cards */}
-        <Grid container spacing={2}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
           {months.map((month, index) => (
-            <Grid item xs={12} sm={6} md={numMonths === 1 ? 12 : numMonths === 2 ? 6 : 3} key={`${month.getFullYear()}-${month.getMonth()}`}>
-              <Box
-                sx={{
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  bgcolor: 'grey.50',
-                  p: 1,
-                }}
-              >
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DateCalendar
-                    value={null}
-                    referenceDate={month}
-                    readOnly
-                    disabled
-                    slots={{
-                      day: CustomDay,
-                    }}
-                    sx={{
-                      width: '100%',
-                      '& .MuiPickersDay-root': {
-                        fontSize: '0.75rem',
-                      },
-                      '& .MuiPickersCalendarHeader-root': {
-                        paddingLeft: 1,
-                        paddingRight: 1,
-                      },
-                    }}
-                  />
-                </LocalizationProvider>
-              </Box>
-            </Grid>
+            <Box
+              key={`${month.getFullYear()}-${month.getMonth()}`}
+              sx={{
+                flex: numMonths === 1
+                  ? '1 1 100%'
+                  : numMonths === 2
+                  ? '1 1 calc(50% - 8px)'
+                  : numMonths === 3
+                  ? '1 1 calc(33.333% - 11px)'
+                  : '1 1 calc(25% - 12px)',
+                minWidth: 250,
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 2,
+                bgcolor: 'grey.50',
+                p: 1,
+              }}
+            >
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DateCalendar
+                  value={null}
+                  referenceDate={month}
+                  readOnly
+                  disabled
+                  slots={{
+                    day: CustomDay,
+                  }}
+                  sx={{
+                    width: '100%',
+                    '& .MuiPickersDay-root': {
+                      fontSize: '0.75rem',
+                    },
+                    '& .MuiPickersCalendarHeader-root': {
+                      paddingLeft: 1,
+                      paddingRight: 1,
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </Box>
           ))}
-        </Grid>
+        </Box>
 
         {/* Events Table */}
         <Accordion defaultExpanded>
