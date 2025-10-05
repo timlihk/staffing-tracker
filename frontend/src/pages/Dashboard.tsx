@@ -146,6 +146,8 @@ const Dashboard = () => {
           groups={dealRadarGroups}
           onSelectProject={(id) => navigate(`/projects/${id}`)}
           timeRange={timeRange}
+          showAllEvents={showAllEvents}
+          setShowAllEvents={setShowAllEvents}
         />
         <StaffingHeatmapCard
           weeks={heatmapWeeks}
@@ -204,10 +206,14 @@ const DealRadarCard = ({
   groups,
   onSelectProject,
   timeRange,
+  showAllEvents,
+  setShowAllEvents,
 }: {
   groups: Array<{ label: string; items: DashboardSummary['dealRadar'] }>;
   onSelectProject: (id: number) => void;
   timeRange: number;
+  showAllEvents: boolean;
+  setShowAllEvents: (show: boolean) => void;
 }) => {
   const getTimeRangeLabel = (days: number) => {
     if (days === 30) return 'Next 30 Days';
