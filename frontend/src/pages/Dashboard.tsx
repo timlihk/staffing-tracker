@@ -399,12 +399,29 @@ const DealRadarCard = ({
                   }}
                   sx={{
                     width: '100%',
-                    '& .MuiPickersDay-root': {
-                      fontSize: '0.75rem',
-                    },
+                    maxHeight: 280,
                     '& .MuiPickersCalendarHeader-root': {
                       paddingLeft: 1,
                       paddingRight: 1,
+                      paddingTop: 0.5,
+                      paddingBottom: 0.5,
+                      marginTop: 0,
+                      marginBottom: 0.5,
+                    },
+                    '& .MuiDayCalendar-header': {
+                      paddingBottom: 0.5,
+                    },
+                    '& .MuiPickersDay-root': {
+                      fontSize: '0.75rem',
+                      width: 32,
+                      height: 32,
+                      margin: 0.25,
+                    },
+                    '& .MuiDayCalendar-weekContainer': {
+                      margin: 0,
+                    },
+                    '& .MuiPickersCalendarHeader-label': {
+                      fontSize: '0.875rem',
                     },
                   }}
                 />
