@@ -2,6 +2,51 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.14.0] - 2025-10-06
+
+### Added
+- ✅ **Weekly Project Confirmation System**
+  - New "Weekly Review" page for partners to confirm project details
+  - Smart categorization logic identifies projects needing attention vs. all good
+  - Projects flagged when: not confirmed in 7+ days, updated since last confirmation, missing critical data, status/team changes
+  - Urgency scoring system prioritizes projects by importance
+  - "Last Confirmed" tracking shows when and by whom projects were last reviewed
+
+- 🎯 **Intelligent Issue Detection**
+  - Separate alerts for "Missing Information" (red, blocks confirmation) vs "Needs Review" (orange, informational)
+  - Missing data detection: unassigned BC Attorney, no team, missing filing date
+  - Recent change detection: status changes, team composition changes in last 7 days
+  - Conditional actions: "Edit to Fix" button for missing data, "Confirm Details" for review-only
+
+- 📊 **Enhanced Project Views**
+  - Added "Last Confirmed" column to Projects list with color-coded status (green < 7 days, orange > 7 days, red > 14 days)
+  - "Confirm Details" button added to Project Detail page header
+  - Shows confirmation timestamp and confirming user
+  - User-specific filtering: partners see only their assigned projects, admins see all
+
+- 🎨 **Minimalist UI Design**
+  - Clean, focused Weekly Review interface showing only projects needing attention
+  - Removed redundant team structure display from project cards
+  - Simplified alert titles and removed instructional text
+  - Summary cards showing total projects, needing attention count, and all good count
+
+### Technical Details
+**Backend:**
+- Added `lastConfirmedAt` and `lastConfirmedBy` fields to Project model
+- Created `confirmProject()` endpoint (POST /projects/:id/confirm)
+- Created `getProjectsNeedingAttention()` endpoint with smart categorization
+- Implemented urgency scoring algorithm considering multiple factors
+- Added filtering logic: staff-linked users see their projects, admins see all
+- Created database indexes for `lastConfirmedAt` field
+
+**Frontend:**
+- Created `WeeklyReview.tsx` page component with conditional UI logic
+- Added `useConfirmProject()` and `useProjectsNeedingAttention()` hooks
+- Updated Project type to include confirmation fields
+- Added route `/weekly-review` to App.tsx
+- Enhanced Projects list and ProjectDetail pages with confirmation UI
+- Implemented separate alert rendering for missing data vs review items
+
 ## [1.13.0] - 2025-10-05
 
 ### Added

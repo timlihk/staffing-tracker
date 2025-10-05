@@ -40,6 +40,16 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ### 🎉 Recent Updates (Oct 2025)
 
+**Latest Features (Oct 6, 2025):**
+- ✅ **Weekly Project Confirmation System** - Partners can now review and confirm project details
+  - New "Weekly Review" page shows projects needing attention
+  - Smart categorization: flags projects not confirmed in 7+ days, updated since confirmation, missing data, or recent changes
+  - Separate alerts for missing information (must edit) vs needs review (can confirm)
+  - "Last Confirmed" tracking with color-coded status in Projects list
+  - User-specific filtering: partners see only their projects, admins see all
+  - Urgency scoring prioritizes most important projects
+  - Minimalist UI showing only what needs attention
+
 **Latest Features (Oct 5, 2025):**
 - ✅ **Email Notification Settings** - Granular control over project update emails
   - Admin-only settings panel in User Management section
