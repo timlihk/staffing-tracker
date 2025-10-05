@@ -48,7 +48,6 @@ const Projects: React.FC = () => {
   const deleteProject = useDeleteProject();
 
   const projects = data?.data || [];
-  const projectCountLabel = data ? `${projects.length} project${projects.length === 1 ? '' : 's'}` : undefined;
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
@@ -122,7 +121,7 @@ const Projects: React.FC = () => {
 
   return (
     <Page>
-      <PageHeader title="Projects" subtitle={projectCountLabel} />
+      <PageHeader title="Projects" />
       {/* Filters */}
       <Paper sx={{ p: 2 }}>
         <PageToolbar>

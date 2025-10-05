@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
 
@@ -7,8 +7,11 @@ interface LayoutProps {
 }
 
 const drawerWidth = 280;
+const collapsedWidth = 80;
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
   return (
     <Box sx={{
       display: 'flex',
@@ -21,7 +24,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       justifyContent: 'flex-start',
       alignItems: 'flex-start',
     }}>
-      <Sidebar drawerWidth={drawerWidth} />
+      <Box
+        onMouseEnter={() => setIsCollapsed(false)}
+        onMouseLeave={() => setIsCollapsed(true)}
+        sx={{
+          flexShrink: 0,
+          height: '100vh',
+          position: 'relative',
+        }}
+      >
+        <Sidebar
+          drawerWidth={drawerWidth}
+          collapsedWidth={collapsedWidth}
+          collapsed={isCollapsed}
+        />
+      </Box>
       <Box
         component="main"
         sx={{

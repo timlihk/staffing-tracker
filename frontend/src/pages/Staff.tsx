@@ -98,11 +98,9 @@ const Staff: React.FC = () => {
     },
   ];
 
-  const staffCountLabel = !isLoading && !error ? `${staff.length} staff` : undefined;
-
   return (
     <Page>
-      <PageHeader title="Staff" subtitle={staffCountLabel} />
+      <PageHeader title="Staff" />
       {isLoading ? (
         <StaffListSkeleton />
       ) : error ? (

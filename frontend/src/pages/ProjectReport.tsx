@@ -26,6 +26,7 @@ import api from '../api/client';
 import { useStaff } from '../hooks/useStaff';
 import { usePermissions } from '../hooks/usePermissions';
 import { Staff } from '../types';
+import { Page, PageHeader } from '../components/ui';
 
 type ProjectReportRow = {
   id: number;
@@ -188,26 +189,23 @@ const ProjectReport: React.FC = () => {
     return [...rows].sort(comparator);
   }, [rows, order, orderBy]);
 
+  const headerActions =
+    permissions.isAdmin || permissions.isEditor ? (
+      <Stack direction="row" spacing={1}>
+        <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={onExportExcel}>
+          Export Excel
+        </Button>
+        <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
+          Print
+        </Button>
+      </Stack>
+    ) : undefined;
+
   return (
-    <>
-      {/* Header */}
-      <Paper sx={{ p: 2, mb: 2 }} className="no-print">
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Typography variant="h5" sx={{ fontWeight: 700, mr: 'auto' }}>
-            📊 Project Report
-          </Typography>
-          {(permissions.isAdmin || permissions.isEditor) && (
-            <>
-              <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={onExportExcel}>
-                Export Excel
-              </Button>
-              <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
-                Print
-              </Button>
-            </>
-          )}
-        </Stack>
-      </Paper>
+    <Page>
+      <Box className="no-print">
+        <PageHeader title="Project Report" actions={headerActions} />
+      </Box>
 
       {/* Horizontal Filter Bar */}
       <Paper className="no-print" sx={{ p: 2, mb: 2 }}>
@@ -455,7 +453,7 @@ const ProjectReport: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-    </>
+    </Page>
   );
 };
 

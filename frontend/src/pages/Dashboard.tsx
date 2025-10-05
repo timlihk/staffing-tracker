@@ -19,7 +19,7 @@ import {
   TableSortLabel,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Page, DashboardSkeleton } from '../components/ui';
+import { Page, DashboardSkeleton, PageHeader } from '../components/ui';
 import { useDashboard } from '../hooks/useDashboard';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardSummary } from '../types';
@@ -43,7 +43,8 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <Page title="Dashboard">
+      <Page>
+        <PageHeader title="Dashboard" />
         <DashboardSkeleton />
       </Page>
     );
@@ -51,18 +52,27 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography color="error">Failed to load dashboard data. Please try again.</Typography>
-      </Box>
+      <Page>
+        <PageHeader title="Dashboard" />
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <Typography color="error">Failed to load dashboard data. Please try again.</Typography>
+        </Box>
+      </Page>
     );
   }
 
   if (!data) {
-    return <Typography>No dashboard data available</Typography>;
+    return (
+      <Page>
+        <PageHeader title="Dashboard" />
+        <Typography>No dashboard data available</Typography>
+      </Page>
+    );
   }
 
   return (
-    <Page title="Dashboard">
+    <Page>
+      <PageHeader title="Dashboard" />
       <Stack spacing={2}>
         <DealRadarCard
           groups={dealRadarGroups}

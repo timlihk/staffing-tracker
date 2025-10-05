@@ -18,13 +18,17 @@ import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   drawerWidth: number;
+  collapsedWidth?: number;
+  collapsed?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
+const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, collapsed = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const { user, logout } = useAuth();
+
+  const width = collapsed ? collapsedWidth : drawerWidth;
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
@@ -46,35 +50,53 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
     <Drawer
       variant="permanent"
       sx={{
-        width: drawerWidth,
+        width,
         flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: drawerWidth,
+          width,
+          transition: 'width 0.2s ease',
           boxSizing: 'border-box',
           borderRight: `1px solid ${theme.palette.divider}`,
           display: 'flex',
           flexDirection: 'column',
+          overflowX: 'hidden',
         },
       }}
     >
       <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-        <Box textAlign="center">
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 800,
-              background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            Capital Markets
-          </Typography>
+        <Box textAlign="center" sx={{ width: '100%' }}>
+          {collapsed ? (
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 800,
+                letterSpacing: 1.5,
+                background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              CM
+            </Typography>
+          ) : (
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 800,
+                background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Capital Markets
+            </Typography>
+          )}
         </Box>
       </Toolbar>
 
-      <List sx={{ px: 2, py: 1, flexGrow: 1 }}>
+      <List sx={{ px: collapsed ? 1 : 2, py: 1, flexGrow: 1 }}>
         {menuItems.map((item) => {
           const active = isActive(item.path);
           return (
@@ -84,8 +106,9 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
               sx={{
                 mb: 0.5,
                 borderRadius: 2,
-                py: 1.25,
+                py: collapsed ? 1 : 1.25,
                 transition: 'all 0.2s',
+                justifyContent: collapsed ? 'center' : 'flex-start',
                 ...(active && {
                   bgcolor: alpha(theme.palette.primary.main, 0.12),
                   color: 'primary.main',
@@ -104,27 +127,31 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
             >
               <ListItemIcon
                 sx={{
-                  minWidth: 40,
+                  minWidth: collapsed ? 0 : 40,
                   color: active ? 'primary.main' : 'text.secondary',
+                  display: 'flex',
+                  justifyContent: 'center',
                 }}
               >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontWeight: active ? 600 : 500,
-                  fontSize: '0.875rem',
-                }}
-              />
+              {!collapsed && (
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: active ? 600 : 500,
+                    fontSize: '0.875rem',
+                  }}
+                />
+              )}
             </ListItemButton>
           );
         })}
       </List>
 
-      <Box sx={{ px: 2, pb: 3 }}>
-        <Divider sx={{ mb: 2 }} />
-        {user && (
+      <Box sx={{ px: collapsed ? 1 : 2, pb: 3 }}>
+        {!collapsed && <Divider sx={{ mb: 2 }} />}
+        {user && !collapsed && (
           <Box sx={{ mb: 1.5 }}>
             <Typography variant="subtitle2" fontWeight={600} noWrap>
               {user.staff?.name ?? user.username}
@@ -141,18 +168,26 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth }) => {
           }}
           sx={{
             borderRadius: 2,
-            py: 1.25,
-            color: 'text.secondary',
+            py: collapsed ? 1 : 1.25,
+            color: collapsed ? 'text.secondary' : 'text.secondary',
             '&:hover': {
               bgcolor: alpha(theme.palette.error.main, 0.08),
               color: 'error.main',
             },
+            justifyContent: collapsed ? 'center' : 'flex-start',
           }}
         >
-          <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+          <ListItemIcon
+            sx={{
+              minWidth: collapsed ? 0 : 40,
+              color: 'inherit',
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
             <Logout />
           </ListItemIcon>
-          <ListItemText primary="Log out" primaryTypographyProps={{ fontWeight: 600 }} />
+          {!collapsed && <ListItemText primary="Log out" primaryTypographyProps={{ fontWeight: 600 }} />}
         </ListItemButton>
       </Box>
     </Drawer>
