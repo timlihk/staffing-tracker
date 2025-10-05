@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
 
@@ -10,7 +10,16 @@ const drawerWidth = 280;
 const collapsedWidth = 80;
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  // Load collapsed state from localStorage, default to true
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  // Save collapsed state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(isCollapsed));
+  }, [isCollapsed]);
 
   const handleToggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
