@@ -31,6 +31,7 @@ import {
   Update,
   Delete as DeleteIcon,
   ChangeCircle,
+  CheckCircleOutline,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import api from '../api/client';
@@ -38,6 +39,7 @@ import { Project, ChangeHistory, ProjectAssignment, Staff } from '../types';
 import { Page, Section, PageHeader } from '../components/ui';
 import { useStaff } from '../hooks/useStaff';
 import { usePermissions } from '../hooks/usePermissions';
+import { useConfirmProject } from '../hooks/useProjects';
 import {
   useCreateAssignment,
   useUpdateAssignment,
@@ -92,6 +94,7 @@ const ProjectDetail: React.FC = () => {
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
+  const confirmProject = useConfirmProject();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -281,11 +284,29 @@ const ProjectDetail: React.FC = () => {
           </Stack>
         }
         actions={
-          permissions.canEditProject && (
-            <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
-              Edit Project
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              color="success"
+              startIcon={<CheckCircleOutline />}
+              onClick={async () => {
+                if (id) {
+                  await confirmProject.mutateAsync(parseInt(id));
+                  // Refetch project data
+                  const projectResponse = await api.get(`/projects/${id}`);
+                  setProject(projectResponse.data);
+                }
+              }}
+              disabled={confirmProject.isPending}
+            >
+              {confirmProject.isPending ? 'Confirming...' : 'Confirm Details'}
             </Button>
-          )
+            {permissions.canEditProject && (
+              <Button variant="contained" startIcon={<Edit />} onClick={() => navigate(`/projects/${id}/edit`)}>
+                Edit Project
+              </Button>
+            )}
+          </Stack>
         }
       />
       <Stack spacing={3}>
@@ -351,6 +372,12 @@ const ProjectDetail: React.FC = () => {
               {
                 label: 'B&C ATTORNEY',
                 value: project.bcAttorney || '-',
+              },
+              {
+                label: 'LAST CONFIRMED',
+                value: project.lastConfirmedAt
+                  ? `${formatDate(project.lastConfirmedAt)} by ${project.confirmedBy?.username || 'Unknown'}`
+                  : 'Never confirmed',
               }].map((item) => (
                 <Box
                   key={item.label}

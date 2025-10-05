@@ -36,6 +36,9 @@ export interface Project {
   side?: string;
   sector?: string;
   notes?: string;
+  lastConfirmedAt?: string;
+  lastConfirmedBy?: number;
+  confirmedBy?: { id: number; username: string };
   assignments?: ProjectAssignment[];
   createdAt: string;
   updatedAt: string;

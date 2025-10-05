@@ -357,3 +357,196 @@ export const getProjectChangeHistory = async (req: AuthRequest, res: Response) =
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const confirmProject = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: { id: parseInt(id) },
+      data: {
+        lastConfirmedAt: new Date(),
+        lastConfirmedBy: userId,
+      },
+      include: {
+        confirmedBy: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      message: 'Project confirmed successfully',
+      project: updatedProject,
+    });
+  } catch (error) {
+    console.error('Confirm project error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getProjectsNeedingAttention = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Get user's staff record to find their assigned projects
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { staff: true },
+    });
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Build filter based on user's staff assignment
+    const projectFilter: any = {};
+
+    // If user is linked to a staff member, only show their projects
+    // Otherwise (admin), show all projects
+    if (user?.staff) {
+      projectFilter.assignments = {
+        some: {
+          staffId: user.staff.id,
+        },
+      };
+    }
+
+    const projects = await prisma.project.findMany({
+      where: projectFilter,
+      include: {
+        assignments: {
+          include: { staff: true },
+        },
+        changeHistory: {
+          orderBy: { changedAt: 'desc' },
+          take: 10,
+        },
+        confirmedBy: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    // Categorize projects
+    const needsAttention = [];
+    const allGood = [];
+
+    for (const project of projects) {
+      const reasons = [];
+
+      // Check if not confirmed in 7+ days
+      const daysSinceConfirmed = project.lastConfirmedAt
+        ? Math.floor((Date.now() - project.lastConfirmedAt.getTime()) / (1000 * 60 * 60 * 24))
+        : 999;
+
+      if (daysSinceConfirmed > 7) {
+        reasons.push(daysSinceConfirmed === 999
+          ? 'Never confirmed'
+          : `Not reviewed in ${daysSinceConfirmed} days`);
+      }
+
+      // Check if changed since last confirmation
+      const changedSinceConfirmed = project.lastConfirmedAt
+        ? project.updatedAt > project.lastConfirmedAt
+        : true;
+
+      if (changedSinceConfirmed && project.lastConfirmedAt) {
+        reasons.push('Updated since last confirmation');
+      }
+
+      // Check for missing critical data
+      const isTrxProject = ['HK Trx', 'US Trx'].includes(project.category);
+      if (isTrxProject && !project.bcAttorney) {
+        reasons.push('BC Attorney not assigned');
+      }
+
+      if (project.assignments.length === 0) {
+        reasons.push('No team assigned');
+      }
+
+      if (project.status === 'Active' && !project.filingDate && isTrxProject) {
+        reasons.push('Filing date not set');
+      }
+
+      // Check if status changed in last 7 days
+      const recentStatusChange = project.changeHistory.find(
+        (change) =>
+          change.fieldName === 'status' &&
+          change.changedAt > sevenDaysAgo &&
+          (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
+      );
+
+      if (recentStatusChange) {
+        reasons.push(`Status changed: ${recentStatusChange.oldValue} → ${recentStatusChange.newValue}`);
+      }
+
+      // Check if team changed in last 7 days
+      const recentTeamChanges = project.changeHistory.filter(
+        (change) =>
+          change.changeType === 'assignment_added' ||
+          change.changeType === 'assignment_removed' &&
+          change.changedAt > sevenDaysAgo &&
+          (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
+      );
+
+      if (recentTeamChanges.length > 0) {
+        reasons.push('Team composition changed');
+      }
+
+      // Categorize
+      if (reasons.length > 0) {
+        needsAttention.push({
+          ...project,
+          attentionReasons: reasons,
+          urgencyScore:
+            (recentStatusChange ? 100 : 0) +
+            (reasons.some(r => r.includes('not assigned') || r.includes('not set')) ? 80 : 0) +
+            (daysSinceConfirmed * 2) +
+            (changedSinceConfirmed ? 10 : 0),
+        });
+      } else {
+        allGood.push(project);
+      }
+    }
+
+    // Sort needs attention by urgency
+    needsAttention.sort((a, b) => b.urgencyScore - a.urgencyScore);
+
+    res.json({
+      needsAttention,
+      allGood,
+      summary: {
+        totalProjects: projects.length,
+        needingAttention: needsAttention.length,
+        allGood: allGood.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get projects needing attention error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

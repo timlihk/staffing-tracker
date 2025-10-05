@@ -27,9 +27,10 @@ model User {
   lastLogin         DateTime? @map("last_login")
   createdAt         DateTime  @default(now()) @map("created_at")
 
-  activityLogs   ActivityLog[]
-  projectChanges ProjectChangeHistory[] @relation("ProjectChanges")
-  staffChanges   StaffChangeHistory[]   @relation("StaffChanges")
+  activityLogs         ActivityLog[]
+  projectChanges       ProjectChangeHistory[] @relation("ProjectChanges")
+  staffChanges         StaffChangeHistory[]   @relation("StaffChanges")
+  projectConfirmations Project[]              @relation("ProjectConfirmations")
 
   @@index([role])
   @@map("users")
@@ -74,19 +75,23 @@ model Project {
   bcAttorney  String?    @map("bc_attorney") // B&C Attorney assigned to project
   filingDate  DateTime?  @map("filing_date")
   listingDate DateTime?  @map("listing_date")
-  side        String? // Issuer or Underwriter (only for HK Trx and US Trx)
-  sector      String? // Healthcare, TMT, Consumer, Industrial
-  notes       String?    @db.Text
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  side             String?   // Issuer or Underwriter (only for HK Trx and US Trx)
+  sector           String?   // Healthcare, TMT, Consumer, Industrial
+  notes            String?   @db.Text
+  lastConfirmedAt  DateTime? @map("last_confirmed_at") // When project details were last confirmed
+  lastConfirmedBy  Int?      @map("last_confirmed_by") // User who confirmed
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   assignments   ProjectAssignment[]
   changeHistory ProjectChangeHistory[] @relation("ProjectChangeHistory")
+  confirmedBy   User?                  @relation("ProjectConfirmations", fields: [lastConfirmedBy], references: [id])
 
   @@index([status])
   @@index([category])
   @@index([priority])
   @@index([timetable])
+  @@index([lastConfirmedAt])
   @@map("projects")
 }
 

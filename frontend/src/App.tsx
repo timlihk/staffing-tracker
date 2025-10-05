@@ -18,6 +18,7 @@ import ProjectReport from './pages/ProjectReport';
 import TestPage from './pages/TestPage';
 import UserManagement from './pages/UserManagement';
 import ResetPassword from './pages/ResetPassword';
+import WeeklyReview from './pages/WeeklyReview';
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -90,6 +91,16 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <ProjectForm />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/weekly-review"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <WeeklyReview />
                   </Layout>
                 </ProtectedRoute>
               }

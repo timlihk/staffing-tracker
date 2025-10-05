@@ -97,3 +97,44 @@ export const useDeleteProject = () => {
     },
   });
 };
+
+export const useConfirmProject = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await api.post<{ message: string; project: Project }>(`/projects/${id}/confirm`);
+      return response.data;
+    },
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['projects-needing-attention'] });
+      toast.success('Project confirmed', 'Project details have been confirmed');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to confirm project', error.response?.data?.error || 'Please try again');
+    },
+  });
+};
+
+interface ProjectsNeedingAttentionResponse {
+  needsAttention: (Project & { attentionReasons: string[]; urgencyScore: number })[];
+  allGood: Project[];
+  summary: {
+    totalProjects: number;
+    needingAttention: number;
+    allGood: number;
+  };
+}
+
+export const useProjectsNeedingAttention = () => {
+  return useQuery({
+    queryKey: ['projects-needing-attention'],
+    queryFn: async () => {
+      const response = await api.get<ProjectsNeedingAttentionResponse>('/projects/needing-attention');
+      return response.data;
+    },
+    staleTime: 60000, // 1 minute
+  });
+};
