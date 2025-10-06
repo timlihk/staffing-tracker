@@ -215,6 +215,7 @@ const DealRadarCard = ({
   showAllEvents: boolean;
   setShowAllEvents: (show: boolean) => void;
 }) => {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const getTimeRangeLabel = (days: number) => {
     if (days === 30) return 'Next 30 Days';
     if (days === 60) return 'Next 2 Months';
@@ -284,9 +285,27 @@ const DealRadarCard = ({
       return <PickersDay day={day} outsideCurrentMonth={outsideCurrentMonth} {...other} />;
     }
 
+    const isSelected = selectedDate === dateKey;
+
     return (
       <Box sx={{ position: 'relative' }}>
-        <PickersDay day={day} outsideCurrentMonth={outsideCurrentMonth} {...other} />
+        <PickersDay
+          day={day}
+          outsideCurrentMonth={outsideCurrentMonth}
+          {...other}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedDate(selectedDate === dateKey ? null : dateKey);
+          }}
+          sx={{
+            cursor: 'pointer',
+            bgcolor: isSelected ? 'primary.main' : undefined,
+            color: isSelected ? 'common.white' : undefined,
+            '&:hover': {
+              bgcolor: isSelected ? 'primary.dark' : 'action.hover',
+            },
+          }}
+        />
         <Stack
           direction="row"
           spacing={0.25}
@@ -295,6 +314,7 @@ const DealRadarCard = ({
             bottom: 2,
             left: '50%',
             transform: 'translateX(-50%)',
+            pointerEvents: 'none',
           }}
         >
           {eventData.filingCount > 0 && (
@@ -303,7 +323,7 @@ const DealRadarCard = ({
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                bgcolor: 'info.main',
+                bgcolor: isSelected ? 'common.white' : 'info.main',
               }}
             />
           )}
@@ -313,7 +333,7 @@ const DealRadarCard = ({
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                bgcolor: 'secondary.main',
+                bgcolor: isSelected ? 'common.white' : 'secondary.main',
               }}
             />
           )}
@@ -335,10 +355,20 @@ const DealRadarCard = ({
     });
   }, [groups]);
 
+  // Filter events by selected date
+  const filteredEvents = useMemo(() => {
+    if (!selectedDate) return allEvents;
+    return allEvents.filter(event => {
+      if (!event.date) return false;
+      const dateKey = event.date.split('T')[0];
+      return dateKey === selectedDate;
+    });
+  }, [allEvents, selectedDate]);
+
   // Get displayed events (first 10 or all)
   const displayedEvents = useMemo(() => {
-    return showAllEvents ? allEvents : allEvents.slice(0, 10);
-  }, [allEvents, showAllEvents]);
+    return showAllEvents ? filteredEvents : filteredEvents.slice(0, 10);
+  }, [filteredEvents, showAllEvents]);
 
   return (
     <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -393,7 +423,6 @@ const DealRadarCard = ({
                   value={null}
                   referenceDate={month}
                   readOnly
-                  disabled
                   slots={{
                     day: CustomDay,
                   }}
@@ -437,9 +466,19 @@ const DealRadarCard = ({
             aria-controls="deal-radar-table-content"
             id="deal-radar-table-header"
           >
-            <Typography variant="subtitle1" fontWeight={600}>
-              Project Table (Showing {displayedEvents.length} of {allEvents.length} {allEvents.length === 1 ? 'event' : 'events'})
-            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="subtitle1" fontWeight={600}>
+                Project Table (Showing {displayedEvents.length} of {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'})
+              </Typography>
+              {selectedDate && (
+                <Chip
+                  label={`Filtered: ${formatDate(selectedDate)}`}
+                  size="small"
+                  onDelete={() => setSelectedDate(null)}
+                  color="primary"
+                />
+              )}
+            </Stack>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 0 }}>
             <TableContainer>
@@ -547,14 +586,14 @@ const DealRadarCard = ({
                 </TableBody>
               </Table>
             </TableContainer>
-            {allEvents.length > 10 && (
+            {filteredEvents.length > 10 && (
               <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
                 <Button
                   variant="outlined"
                   onClick={() => setShowAllEvents(!showAllEvents)}
                   size="small"
                 >
-                  {showAllEvents ? 'Show Less' : `Show More (${allEvents.length - 10} more)`}
+                  {showAllEvents ? 'Show Less' : `Show More (${filteredEvents.length - 10} more)`}
                 </Button>
               </Box>
             )}
