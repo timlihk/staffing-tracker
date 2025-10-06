@@ -172,7 +172,7 @@ const Staff: React.FC = () => {
               />
             </Section>
           ) : (
-            <Section sx={{ p: { xs: 0.5, md: 1.5 }, overflow: 'hidden' }}>
+            <Section sx={{ p: { xs: 0.5, md: 1 }, overflow: 'hidden', borderRadius: 1.5 }}>
               <Box sx={{ width: '100%', overflow: 'auto' }}>
                 <StyledDataGrid
                   rows={staff}
@@ -187,10 +187,7 @@ const Staff: React.FC = () => {
                   sx={{
                     cursor: 'pointer',
                     width: '100%',
-                    '& .even-row': {
-                      bgcolor: 'background.default',
-                    },
-                    '& .odd-row': {
+                    '& .even-row, & .odd-row': {
                       bgcolor: 'background.paper',
                     },
                     '& .even-row:hover, & .odd-row:hover': {
