@@ -4,10 +4,24 @@ import prisma from '../utils/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { generateTempPassword } from '../utils/password';
 import { sendWelcomeEmail } from '../services/email.service';
+import { ControllerError } from '../types/prisma';
+import { Prisma } from '@prisma/client';
 
 const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
 
-const sanitizeUser = (user: any) => ({
+interface UserWithStats {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  mustResetPassword: boolean;
+  lastLogin: Date | null;
+  lastActivity: Date | null;
+  staff?: { id: number; name: string } | null;
+  recentActionCount?: number;
+}
+
+const sanitizeUser = (user: UserWithStats) => ({
   id: user.id,
   username: user.username,
   email: user.email,
@@ -149,7 +163,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { role, staffId }: UpdateUserBody = req.body;
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
 
     if (role !== undefined) {
       if (!ALLOWED_ROLES.has(role)) {
@@ -196,8 +210,8 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     });
 
     res.json(sanitizeUser(user));
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error: ControllerError) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
     console.error('Update user error:', error);

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { getProjectReport, ProjectReportQuery } from '../services/project-report.service';
 import { buildProjectReportWorkbook } from '../services/project-report.excel';
 import { isAppError } from '../utils/errors';
+import { ControllerError } from '../types/prisma';
 
 export async function getProjectReportJson(req: AuthRequest, res: Response) {
   try {
@@ -22,7 +23,7 @@ export async function getProjectReportJson(req: AuthRequest, res: Response) {
         totalProjects: rows.length,
       },
     });
-  } catch (error: any) {
+  } catch (error: ControllerError) {
     console.error('Get project report error:', error);
     if (isAppError(error)) {
       return res.status(error.statusCode).json({ error: error.message });
@@ -54,7 +55,7 @@ export async function getProjectReportExcel(req: AuthRequest, res: Response) {
 
     await wb.xlsx.write(res);
     res.end();
-  } catch (error: any) {
+  } catch (error: ControllerError) {
     console.error('Get project report Excel error:', error);
     if (isAppError(error)) {
       return res.status(error.statusCode).json({ error: error.message });

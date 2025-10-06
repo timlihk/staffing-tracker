@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
+import { ActivityLogWhereInput } from '../types/prisma';
 
 // Helper functions
 const getTopAssignedStaff = async () => {
@@ -206,19 +207,19 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         upcomingListings30Days,
       },
       projectsByStatus,
-      projectsByCategory: projectsByCategory.map((item: any) => ({
+      projectsByCategory: projectsByCategory.map((item) => ({
         category: item.category,
         count: item._count,
       })),
-      projectsBySector: projectsBySector.map((item: any) => ({
+      projectsBySector: projectsBySector.map((item) => ({
         sector: item.sector,
         count: item._count,
       })),
-      projectsBySide: projectsBySide.map((item: any) => ({
+      projectsBySide: projectsBySide.map((item) => ({
         side: item.side,
         count: item._count,
       })),
-      staffByRole: staffByRole.map((item: any) => ({
+      staffByRole: staffByRole.map((item) => ({
         position: item.position,
         count: item._count,
       })),
@@ -228,7 +229,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       staffingHeatmap,
       actionItems: {
         unstaffedMilestones,
-        pendingResets: pendingResets.map((user: any) => ({
+        pendingResets: pendingResets.map((user) => ({
           id: user.id,
           username: user.username,
           email: user.email,
@@ -236,7 +237,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           lastLogin: user.lastLogin,
         })),
       },
-      recentActivity: recentActivity.map((activity: any) => ({
+      recentActivity: recentActivity.map((activity) => ({
         id: activity.id,
         actionType: activity.actionType,
         entityType: activity.entityType,
@@ -277,12 +278,12 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
     });
 
     const report = staff.map((member) => {
-      const projectsByCategory = member.assignments.reduce((acc: any, assignment) => {
+      const projectsByCategory = member.assignments.reduce((acc: Record<string, string[]>, assignment) => {
         const category = assignment.project.category;
         if (!acc[category]) acc[category] = [];
         acc[category].push(assignment.project.name);
         return acc;
-      }, {});
+      }, {} as Record<string, string[]>);
 
       return {
         staffId: member.id,
@@ -318,7 +319,7 @@ export const getActivityLog = async (req: AuthRequest, res: Response) => {
     }
 
     // Build where clause
-    const where: any = {};
+    const where: ActivityLogWhereInput = {};
     if (entityType) {
       where.entityType = entityType as string;
     }

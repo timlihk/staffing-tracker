@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { AssignmentWhereInput, ControllerError } from '../types/prisma';
 
 const trackAssignmentChange = async (
   projectId: number,
@@ -38,7 +39,7 @@ export const getAllAssignments = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId, staffId } = req.query;
 
-    const where: any = {};
+    const where: AssignmentWhereInput = {};
 
     if (projectId) {
       const parsedProjectId = parseInt(projectId as string, 10);
@@ -166,9 +167,9 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
     );
 
     res.status(201).json(assignment);
-  } catch (error: any) {
+  } catch (error: ControllerError) {
     console.error('Create assignment error:', error);
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return res.status(400).json({ error: 'This assignment already exists' });
     }
     res.status(500).json({ error: 'Internal server error' });
@@ -336,9 +337,9 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         });
 
         createdAssignments.push(assignment);
-      } catch (error: any) {
+      } catch (error: ControllerError) {
         // Skip duplicates
-        if (error.code === 'P2002') {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
           errors.push({ index: i, error: 'Duplicate assignment' });
         } else {
           throw error;

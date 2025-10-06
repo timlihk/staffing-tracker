@@ -4,17 +4,27 @@ import prisma from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
+import { ProjectWhereInput } from '../types/prisma';
+import { Prisma } from '@prisma/client';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
     const { status, category, side, sector, search, staffId, page = '1', limit = '50' } = req.query;
 
-    const where: any = {};
+    const where: ProjectWhereInput = {};
 
-    if (status) where.status = status;
-    if (category) where.category = category;
-    if (side) where.side = side;
-    if (sector) where.sector = sector;
+    if (status && typeof status === 'string') {
+      where.status = status;
+    }
+    if (category && typeof category === 'string') {
+      where.category = category;
+    }
+    if (side && typeof side === 'string') {
+      where.side = side;
+    }
+    if (sector && typeof sector === 'string') {
+      where.sector = sector;
+    }
     if (search) {
       where.OR = [
         { name: { contains: search as string, mode: 'insensitive' } },
@@ -194,7 +204,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     }
 
     // Build update data
-    const updateData: any = {};
+    const updateData: Prisma.ProjectUpdateInput = {};
     if (name !== undefined) updateData.name = name;
     if (category) updateData.category = category;
     if (status) updateData.status = status;
@@ -450,7 +460,7 @@ export const getProjectsNeedingAttention = async (req: AuthRequest, res: Respons
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     // Build filter based on user's staff assignment
-    const projectFilter: any = {};
+    const projectFilter: ProjectWhereInput = {};
 
     // If user is linked to a staff member, only show their projects
     // Otherwise (admin), show all projects

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
 import { generateToken, generatePasswordResetToken, verifyPasswordResetToken } from '../utils/jwt';
 import { AuthRequest } from '../middleware/auth';
+import { ControllerError } from '../types/prisma';
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -90,7 +91,11 @@ export const register = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Username, email, and password are required' });
     }
 
-    if (!req.user || req.user.role !== 'admin') {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin privileges required' });
     }
 
@@ -144,8 +149,12 @@ export const register = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const me = async (req: any, res: Response) => {
+export const me = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
       include: { staff: true },
@@ -213,9 +222,9 @@ export const resetPassword = async (req: Request, res: Response) => {
     });
 
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error: ControllerError) {
     console.error('Reset password error:', error);
-    if (error.message === 'Invalid password reset token') {
+    if (error && typeof error === 'object' && 'message' in error && error.message === 'Invalid password reset token') {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
     res.status(500).json({ error: 'Internal server error' });
