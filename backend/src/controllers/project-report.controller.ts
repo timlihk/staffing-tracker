@@ -21,8 +21,11 @@ export async function getProjectReportJson(req: AuthRequest, res: Response) {
         totalProjects: rows.length,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get project report error:', error);
+    if (error.statusCode === 400 && error.userFacing) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -50,8 +53,11 @@ export async function getProjectReportExcel(req: AuthRequest, res: Response) {
 
     await wb.xlsx.write(res);
     res.end();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get project report Excel error:', error);
+    if (error.statusCode === 400 && error.userFacing) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 }

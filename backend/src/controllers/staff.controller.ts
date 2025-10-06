@@ -50,8 +50,13 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const staffId = parseInt(id, 10);
+    if (Number.isNaN(staffId)) {
+      return res.status(400).json({ error: 'Invalid staff ID' });
+    }
+
     const staff = await prisma.staff.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: staffId },
       include: {
         assignments: {
           include: {
@@ -119,8 +124,8 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
 
     console.log('[UPDATE STAFF] Received ID:', id, 'Type:', typeof id);
 
-    const staffId = parseInt(id);
-    if (isNaN(staffId)) {
+    const staffId = parseInt(id, 10);
+    if (Number.isNaN(staffId)) {
       console.log('[UPDATE STAFF] Invalid ID - returning 400');
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
@@ -144,7 +149,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
 
     // Track all field changes
     await trackFieldChanges({
-      entityId: parseInt(id),
+      entityId: staffId,
       entityType: 'staff',
       oldData: existingStaff,
       newData: updateData,
@@ -152,7 +157,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     });
 
     const staff = await prisma.staff.update({
-      where: { id: parseInt(id) },
+      where: { id: staffId },
       data: updateData,
     });
 
@@ -183,8 +188,13 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const staffId = parseInt(id, 10);
+    if (Number.isNaN(staffId)) {
+      return res.status(400).json({ error: 'Invalid staff ID' });
+    }
+
     const staff = await prisma.staff.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: staffId },
     });
 
     if (!staff) {
@@ -192,7 +202,7 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
     }
 
     await prisma.staff.delete({
-      where: { id: parseInt(id) },
+      where: { id: staffId },
     });
 
     // Log activity
@@ -201,7 +211,7 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
         userId: req.user?.userId,
         actionType: 'delete',
         entityType: 'staff',
-        entityId: parseInt(id),
+        entityId: staffId,
         description: `Deleted staff member: ${staff.name}`,
       },
     });
@@ -217,8 +227,13 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const staffId = parseInt(id, 10);
+    if (Number.isNaN(staffId)) {
+      return res.status(400).json({ error: 'Invalid staff ID' });
+    }
+
     const staff = await prisma.staff.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: staffId },
       include: {
         assignments: {
           where: {

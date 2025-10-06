@@ -170,8 +170,13 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No updates provided' });
     }
 
+    const userId = parseInt(id, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
     const user = await prisma.user.update({
-      where: { id: parseInt(id, 10) },
+      where: { id: userId },
       data: updateData,
       include: {
         staff: {
@@ -204,7 +209,12 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.findUnique({ where: { id: parseInt(id, 10) } });
+    const userId = parseInt(id, 10);
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }

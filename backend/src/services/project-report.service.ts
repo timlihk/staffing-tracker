@@ -46,7 +46,19 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
   const categories = csvToArray(q.categories);
   const statuses = csvToArray(q.statuses);
   const priorities = csvToArray(q.priorities);
-  const staffId = q.staffId ? parseInt(q.staffId) : undefined;
+
+  let staffId: number | undefined;
+  if (q.staffId) {
+    const parsed = parseInt(q.staffId, 10);
+    if (Number.isNaN(parsed)) {
+      // Return a validation error object that the controller can handle
+      throw Object.assign(
+        new Error('Invalid staffId parameter'),
+        { statusCode: 400, userFacing: true }
+      );
+    }
+    staffId = parsed;
+  }
 
   // Build where filter for projects
   const where: any = {};

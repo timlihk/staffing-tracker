@@ -71,8 +71,13 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
     const project = await prisma.project.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
       include: {
         assignments: {
           include: { staff: true },
@@ -160,8 +165,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     console.log('Update project request - ID:', id, 'Body:', JSON.stringify(req.body, null, 2));
 
     // Validate ID is a number
-    const projectId = parseInt(id);
-    if (isNaN(projectId)) {
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 
@@ -205,7 +210,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     // Track all field changes
     await trackFieldChanges({
-      entityId: parseInt(id),
+      entityId: projectId,
       entityType: 'project',
       oldData: existingProject,
       newData: updateData,
@@ -213,7 +218,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     });
 
     const project = await prisma.project.update({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
       data: updateData,
       include: {
         assignments: {
@@ -239,7 +244,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (changes.length > 0) {
       // Get all staff assigned to this project with email addresses
       const assignedStaff = await prisma.projectAssignment.findMany({
-        where: { projectId: parseInt(id) },
+        where: { projectId },
         include: {
           staff: {
             select: {
@@ -284,8 +289,13 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
     const project = await prisma.project.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
     });
 
     if (!project) {
@@ -293,7 +303,7 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
     }
 
     await prisma.project.delete({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
     });
 
     // Log activity
@@ -302,7 +312,7 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
         userId: req.user?.userId,
         actionType: 'delete',
         entityType: 'project',
-        entityId: parseInt(id),
+        entityId: projectId,
         description: `Deleted project: ${project.name}`,
       },
     });
@@ -383,8 +393,13 @@ export const confirmProject = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
     const project = await prisma.project.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
     });
 
     if (!project) {
@@ -392,7 +407,7 @@ export const confirmProject = async (req: AuthRequest, res: Response) => {
     }
 
     const updatedProject = await prisma.project.update({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
       data: {
         lastConfirmedAt: new Date(),
         lastConfirmedBy: userId,

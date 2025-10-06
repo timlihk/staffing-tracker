@@ -185,8 +185,13 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
       notes,
     } = req.body;
 
+    const assignmentId = parseInt(id, 10);
+    if (Number.isNaN(assignmentId)) {
+      return res.status(400).json({ error: 'Invalid assignment ID' });
+    }
+
     const existingAssignment = await prisma.projectAssignment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: assignmentId },
       include: { project: true, staff: true },
     });
 
@@ -195,7 +200,7 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
     }
 
     const assignment = await prisma.projectAssignment.update({
-      where: { id: parseInt(id) },
+      where: { id: assignmentId },
       data: {
         ...(jurisdiction !== undefined && { jurisdiction }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
@@ -230,8 +235,13 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const assignmentId = parseInt(id, 10);
+    if (Number.isNaN(assignmentId)) {
+      return res.status(400).json({ error: 'Invalid assignment ID' });
+    }
+
     const assignment = await prisma.projectAssignment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: assignmentId },
       include: { project: true, staff: true },
     });
 
@@ -240,7 +250,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
     }
 
     await prisma.projectAssignment.delete({
-      where: { id: parseInt(id) },
+      where: { id: assignmentId },
     });
 
     // Track assignment removal
@@ -259,7 +269,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
         userId: req.user?.userId,
         actionType: 'delete',
         entityType: 'assignment',
-        entityId: parseInt(id),
+        entityId: assignmentId,
         description: `Removed ${assignment.staff.name} from ${assignment.project.name}`,
       },
     });
