@@ -4,10 +4,9 @@
 
 **Tiered Retention:**
 - **Hourly**: Every hour, retained for 1 day (~24 backups)
-- **Daily**: Daily at 2 AM UTC, retained for 7 days (7 backups)
-- **Weekly**: Sunday at 3 AM UTC, retained for 30 days (~4 backups)
+- **Daily**: Daily at 2 AM UTC (10 AM HKT), retained for 7 days (7 backups)
 
-**Total**: ~35 backups at any given time
+**Total**: ~31 backups at any given time
 
 **Storage Location:**
 - **GitHub Actions Artifacts**: Validated backups with automatic retention management
@@ -15,7 +14,7 @@
 ## Finding Backups
 
 1. Go to: https://github.com/timlihk/staffing-tracker/actions
-2. Click on any completed backup workflow (Hourly/Daily/Weekly)
+2. Click on any completed backup workflow (Hourly or Daily)
 3. Scroll to "Artifacts" section
 4. Download the backup file
 

@@ -727,9 +727,8 @@ The application uses Prisma for database migrations. Current migrations:
 Production database is protected with a comprehensive multi-tier backup system:
 
 **Automated Backups:**
-- **Hourly**: Every hour, validated and stored for 24 hours
-- **Daily**: 2 AM UTC (10 AM HKT), stored for 7 days
-- **Weekly**: Sunday 3 AM UTC (11 AM HKT), stored for 30 days
+- **Hourly**: Every hour, retained for 24 hours (~24 backups)
+- **Daily**: 2 AM UTC (10 AM HKT), retained for 7 days (7 backups)
 
 **Storage Location:**
 - **GitHub Actions Artifacts**: Validated backups with automatic retention management (1-30 days)
