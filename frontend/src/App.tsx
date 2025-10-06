@@ -1,4 +1,4 @@
-import { ReactNode, useState, useMemo, lazy, Suspense } from 'react';
+import { ReactNode, useState, useMemo, lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -8,6 +8,7 @@ import { getTheme } from './theme';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -44,6 +45,17 @@ const LoadingScreen = () => (
   </Box>
 );
 
+const SuspenseFallback = () => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setVisible(true), 200);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  return visible ? <LoadingScreen /> : null;
+};
+
 function App() {
   const [mode, setMode] = useState<'light' | 'dark'>('light');
   const theme = useMemo(() => getTheme(mode), [mode]);
@@ -53,8 +65,9 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <Router>
-          <Suspense fallback={<LoadingScreen />}>
-            <Routes>
+          <ErrorBoundary>
+            <Suspense fallback={<SuspenseFallback />}>
+              <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
 
@@ -197,8 +210,9 @@ function App() {
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </Router>
       </AuthProvider>
     </ThemeProvider>
