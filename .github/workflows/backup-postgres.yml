@@ -1,5 +1,3 @@
-name: Backup Railway Postgres
-
 on:
   schedule:
     - cron: '0 2 * * *'   # Daily 02:00 UTC (10:00 AM HKT)
@@ -10,10 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install PostgreSQL client
+      - name: Install PostgreSQL 17 client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y wget gnupg
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
 
       - name: Dump database
         id: dump
@@ -33,7 +35,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-           name: railway-postgres-${{ github.run_id }}
-           path: ${{ steps.dump.outputs.backup_path }}
-           retention-days: 30   # Keep backups for 30 days
-
+          name: railway-postgres-${{ github.run_id }}
+          path: ${{ steps.dump.outputs.backup_path }}
+          retention-days: 30   # Keep backups for 30 days
