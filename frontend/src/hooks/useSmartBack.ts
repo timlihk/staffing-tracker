@@ -17,11 +17,8 @@ export const useSmartBack = (defaultPath: string) => {
     if (from) {
       // Navigate to the stored 'from' path
       navigate(from);
-    } else if (window.history.length > 1) {
-      // Use browser history if available
-      navigate(-1);
     } else {
-      // Fall back to default path
+      // Always fall back to default path for consistent behavior
       navigate(defaultPath);
     }
   };
