@@ -5,9 +5,9 @@ export const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({ r
   return (
     <Box>
       {Array.from({ length: rows }).map((_, i) => (
-        <Box key={i} display="flex" gap={2} py={1.5} borderBottom="1px solid rgba(0,0,0,0.1)">
+        <Box key={i} display="flex" gap={2} py={1.5} borderBottom="1px solid rgba(15,23,42,0.08)">
           {Array.from({ length: columns }).map((_, j) => (
-            <MuiSkeleton key={j} width={`${100 / columns}%`} height={40} />
+            <MuiSkeleton key={j} width={`${100 / columns}%`} height={40} animation="wave" />
           ))}
         </Box>
       ))}
@@ -18,9 +18,9 @@ export const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({ r
 export const DashboardCardSkeleton: React.FC = () => {
   return (
     <Paper sx={{ p: 3 }}>
-      <MuiSkeleton variant="text" width="60%" height={32} />
-      <MuiSkeleton variant="text" width="40%" height={48} sx={{ mt: 1 }} />
-      <MuiSkeleton variant="text" width="80%" height={24} sx={{ mt: 2 }} />
+      <MuiSkeleton variant="text" width="55%" height={32} animation="wave" />
+      <MuiSkeleton variant="text" width="35%" height={48} sx={{ mt: 1 }} animation="wave" />
+      <MuiSkeleton variant="rectangular" width="100%" height={120} sx={{ mt: 2, borderRadius: 2 }} animation="wave" />
     </Paper>
   );
 };
@@ -39,7 +39,7 @@ export const DashboardSkeleton: React.FC = () => {
         {Array.from({ length: 2 }).map((_, i) => (
           <Grid item xs={12} md={6} key={i}>
             <Paper sx={{ p: 3 }}>
-              <MuiSkeleton variant="text" width="50%" height={32} sx={{ mb: 2 }} />
+              <MuiSkeleton variant="text" width="50%" height={32} sx={{ mb: 2 }} animation="wave" />
               <TableSkeleton rows={6} columns={3} />
             </Paper>
           </Grid>
@@ -55,16 +55,16 @@ export const FormSkeleton: React.FC = () => {
       <Grid container spacing={2}>
         {Array.from({ length: 6 }).map((_, i) => (
           <Grid item xs={12} md={6} key={i}>
-            <MuiSkeleton variant="rectangular" height={56} />
+            <MuiSkeleton variant="rectangular" height={56} animation="wave" />
           </Grid>
         ))}
         <Grid item xs={12}>
-          <MuiSkeleton variant="rectangular" height={120} />
+          <MuiSkeleton variant="rectangular" height={120} animation="wave" />
         </Grid>
         <Grid item xs={12}>
           <Box display="flex" gap={2}>
-            <MuiSkeleton variant="rectangular" width={120} height={42} />
-            <MuiSkeleton variant="rectangular" width={100} height={42} />
+            <MuiSkeleton variant="rectangular" width={120} height={42} animation="wave" />
+            <MuiSkeleton variant="rectangular" width={100} height={42} animation="wave" />
           </Box>
         </Grid>
       </Grid>
@@ -77,7 +77,7 @@ export const ProjectListSkeleton: React.FC = () => {
     <Box>
       <Box display="flex" gap={2} mb={3}>
         {Array.from({ length: 3 }).map((_, i) => (
-          <MuiSkeleton key={i} variant="rectangular" width={200} height={56} />
+          <MuiSkeleton key={i} variant="rectangular" width={200} height={56} animation="wave" />
         ))}
       </Box>
       <TableSkeleton rows={10} columns={8} />
@@ -90,7 +90,7 @@ export const StaffListSkeleton: React.FC = () => {
     <Box>
       <Box display="flex" gap={2} mb={3}>
         {Array.from({ length: 2 }).map((_, i) => (
-          <MuiSkeleton key={i} variant="rectangular" width={200} height={56} />
+          <MuiSkeleton key={i} variant="rectangular" width={200} height={56} animation="wave" />
         ))}
       </Box>
       <TableSkeleton rows={8} columns={6} />

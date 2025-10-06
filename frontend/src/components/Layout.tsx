@@ -58,9 +58,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           flexShrink: 0,
           flexBasis: 0,
           minWidth: 0,
-          mt: 0,
-          p: 2,
           overflow: 'auto',
+          py: { xs: 4, md: 6 },
         }}
       >
         {children}
