@@ -1,3 +1,9 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,153 +13,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model activity_log {
-  id          Int      @id @default(autoincrement())
-  user_id     Int?
-  action_type String
-  entity_type String
-  entity_id   Int?
-  description String?
-  created_at  DateTime @default(now())
-  users       users?   @relation(fields: [user_id], references: [id])
+// Core Models
 
-  @@index([created_at(sort: Desc)])
-  @@index([entity_id])
-  @@index([entity_type, entity_id])
-  @@index([entity_type])
-  @@index([user_id])
+model User {
+  id                Int       @id @default(autoincrement())
+  username          String    @unique
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  role              String    @default("viewer") // admin, editor, viewer
+  mustResetPassword Boolean   @default(false) @map("must_reset_password")
+  staffId           Int?      @map("staff_id")
+  staff             Staff?    @relation(fields: [staffId], references: [id])
+  lastLogin         DateTime? @map("last_login")
+  lastActivity      DateTime? @map("last_activity") // Tracks user activity for online status
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  activityLogs         ActivityLog[]
+  projectChanges       ProjectChangeHistory[] @relation("ProjectChanges")
+  staffChanges         StaffChangeHistory[]   @relation("StaffChanges")
+  projectConfirmations Project[]              @relation("ProjectConfirmations")
+
+  @@index([role])
+  @@index([lastActivity])
+  @@map("users")
 }
 
-model email_settings {
-  id                          Int      @id @default(autoincrement())
-  email_notifications_enabled Boolean  @default(true)
-  notify_partner              Boolean  @default(true)
-  notify_associate            Boolean  @default(true)
-  notify_junior_flic          Boolean  @default(true)
-  notify_senior_flic          Boolean  @default(true)
-  notify_intern               Boolean  @default(true)
-  notify_bc_working_attorney  Boolean  @default(true)
-  updated_at                  DateTime
-  updated_by                  Int?
-}
+model Staff {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String?  @unique
+  position   String // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
+  department String? // US Law, HK Law, B&C
+  status     String   @default("active") // active, inactive, leaving
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-model project_assignments {
-  id           Int       @id @default(autoincrement())
-  project_id   Int
-  staff_id     Int
-  jurisdiction String?
-  start_date   DateTime?
-  end_date     DateTime?
-  notes        String?
-  created_at   DateTime  @default(now())
-  updated_at   DateTime
-  projects     projects  @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  staff        staff     @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+  assignments   ProjectAssignment[]
+  users         User[]
+  changeHistory StaffChangeHistory[] @relation("StaffChangeHistory")
 
-  @@unique([project_id, staff_id, jurisdiction])
-  @@index([project_id])
-  @@index([staff_id])
-}
-
-model project_change_history {
-  id          Int      @id @default(autoincrement())
-  project_id  Int
-  field_name  String
-  old_value   String?
-  new_value   String?
-  change_type String
-  changed_by  Int?
-  changed_at  DateTime @default(now())
-  users       users?   @relation(fields: [changed_by], references: [id])
-  projects    projects @relation(fields: [project_id], references: [id], onDelete: Cascade)
-
-  @@index([changed_at(sort: Desc)])
-  @@index([project_id])
-}
-
-model projects {
-  id                     Int                      @id @default(autoincrement())
-  name                   String                   @unique
-  category               String
-  status                 String
-  priority               String?
-  notes                  String?
-  created_at             DateTime                 @default(now())
-  updated_at             DateTime
-  el_status              String?
-  bc_attorney            String?
-  timetable              Timetable?
-  filing_date            DateTime?
-  listing_date           DateTime?
-  sector                 String?
-  side                   String?
-  last_confirmed_at      DateTime?
-  last_confirmed_by      Int?
-  project_assignments    project_assignments[]
-  project_change_history project_change_history[]
-  users                  users?                   @relation(fields: [last_confirmed_by], references: [id])
-
-  @@index([category])
-  @@index([last_confirmed_at])
-  @@index([priority])
-  @@index([status])
-  @@index([timetable])
-}
-
-model staff {
-  id                   Int                    @id @default(autoincrement())
-  name                 String
-  email                String?                @unique
-  position             String
-  department           String?
-  status               String                 @default("active")
-  notes                String?
-  created_at           DateTime               @default(now())
-  updated_at           DateTime
-  project_assignments  project_assignments[]
-  staff_change_history staff_change_history[]
-  users                users[]
-
-  @@index([department])
   @@index([position])
   @@index([status])
-}
-
-model staff_change_history {
-  id          Int      @id @default(autoincrement())
-  staff_id    Int
-  field_name  String
-  old_value   String?
-  new_value   String?
-  change_type String
-  changed_by  Int?
-  changed_at  DateTime @default(now())
-  users       users?   @relation(fields: [changed_by], references: [id])
-  staff       staff    @relation(fields: [staff_id], references: [id], onDelete: Cascade)
-
-  @@index([changed_at(sort: Desc)])
-  @@index([staff_id])
-}
-
-model users {
-  id                     Int                      @id @default(autoincrement())
-  username               String                   @unique
-  email                  String                   @unique
-  password_hash          String
-  role                   String                   @default("viewer")
-  staff_id               Int?
-  last_login             DateTime?
-  created_at             DateTime                 @default(now())
-  must_reset_password    Boolean                  @default(false)
-  last_activity          DateTime?
-  activity_log           activity_log[]
-  project_change_history project_change_history[]
-  projects               projects[]
-  staff_change_history   staff_change_history[]
-  staff                  staff?                   @relation(fields: [staff_id], references: [id])
-
-  @@index([last_activity])
-  @@index([role])
+  @@index([department])
+  @@map("staff")
 }
 
 enum Timetable {
@@ -161,4 +64,128 @@ enum Timetable {
   A1
   HEARING
   LISTING
+}
+
+model Project {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // Project name (formerly projectCode)
+  category    String // HK Trx, US Trx, HK Comp, US Comp, Others
+  status      String // Active, Slow-down, Suspended
+  priority    String? // High, Medium, Low
+  elStatus    String?    @map("el_status") // EL Status field
+  timetable   Timetable? // Pre-A1, A1, Hearing, Listing
+  bcAttorney  String?    @map("bc_attorney") // B&C Attorney assigned to project
+  filingDate  DateTime?  @map("filing_date")
+  listingDate DateTime?  @map("listing_date")
+  side             String?   // Issuer or Underwriter (only for HK Trx and US Trx)
+  sector           String?   // Healthcare, TMT, Consumer, Industrial
+  notes            String?   @db.Text
+  lastConfirmedAt  DateTime? @map("last_confirmed_at") // When project details were last confirmed
+  lastConfirmedBy  Int?      @map("last_confirmed_by") // User who confirmed
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  assignments   ProjectAssignment[]
+  changeHistory ProjectChangeHistory[] @relation("ProjectChangeHistory")
+  confirmedBy   User?                  @relation("ProjectConfirmations", fields: [lastConfirmedBy], references: [id])
+
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([timetable])
+  @@index([lastConfirmedAt])
+  @@map("projects")
+}
+
+model ProjectAssignment {
+  id           Int       @id @default(autoincrement())
+  projectId    Int       @map("project_id")
+  staffId      Int       @map("staff_id")
+  jurisdiction String? // US Law, HK Law, B&C
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, staffId, jurisdiction])
+  @@index([projectId])
+  @@index([staffId])
+  @@map("project_assignments")
+}
+
+model ProjectChangeHistory {
+  id         Int      @id @default(autoincrement())
+  projectId  Int      @map("project_id")
+  fieldName  String   @map("field_name") // name, priority, status, startDate, targetFilingDate, category, notes, etc.
+  oldValue   String?  @map("old_value") @db.Text
+  newValue   String?  @map("new_value") @db.Text
+  changeType String   @map("change_type") // update, assignment_added, assignment_removed
+  changedBy  Int?     @map("changed_by")
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  project Project @relation("ProjectChangeHistory", fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?   @relation("ProjectChanges", fields: [changedBy], references: [id])
+
+  @@index([projectId])
+  @@index([changedAt(sort: Desc)])
+  @@map("project_change_history")
+}
+
+model StaffChangeHistory {
+  id         Int      @id @default(autoincrement())
+  staffId    Int      @map("staff_id")
+  fieldName  String   @map("field_name") // name, position, department, status, email, notes
+  oldValue   String?  @map("old_value") @db.Text
+  newValue   String?  @map("new_value") @db.Text
+  changeType String   @map("change_type") // update, assignment_added, assignment_removed
+  changedBy  Int?     @map("changed_by")
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  staff Staff @relation("StaffChangeHistory", fields: [staffId], references: [id], onDelete: Cascade)
+  user  User? @relation("StaffChanges", fields: [changedBy], references: [id])
+
+  @@index([staffId])
+  @@index([changedAt(sort: Desc)])
+  @@map("staff_change_history")
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id")
+  actionType  String   @map("action_type") // create, update, delete, assign, status_change
+  entityType  String   @map("entity_type") // project, staff, assignment
+  entityId    Int?     @map("entity_id")
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([entityType, entityId])
+  @@map("activity_log")
+}
+
+model EmailSettings {
+  id                         Int      @id @default(autoincrement())
+  emailNotificationsEnabled  Boolean  @default(true) @map("email_notifications_enabled") // Global toggle for project update emails
+
+  // Position-specific toggles for receiving project update emails
+  notifyPartner              Boolean  @default(true) @map("notify_partner")
+  notifyAssociate            Boolean  @default(true) @map("notify_associate")
+  notifyJuniorFlic           Boolean  @default(true) @map("notify_junior_flic")
+  notifySeniorFlic           Boolean  @default(true) @map("notify_senior_flic")
+  notifyIntern               Boolean  @default(true) @map("notify_intern")
+  notifyBCWorkingAttorney    Boolean  @default(true) @map("notify_bc_working_attorney")
+
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  updatedBy                  Int?     @map("updated_by")
+
+  @@map("email_settings")
 }
