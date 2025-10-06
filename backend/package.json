@@ -15,6 +15,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:truncate": "ts-node src/scripts/truncate-all.ts",
+    "db:backup": "ts-node scripts/backup-database.ts",
     "send:reminders": "node dist/scripts/send-project-reminders.js",
     "send:reminders:dev": "ts-node src/scripts/send-project-reminders.ts",
     "preview:emails": "ts-node src/scripts/preview-emails.ts"
