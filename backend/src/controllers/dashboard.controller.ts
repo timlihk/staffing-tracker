@@ -81,8 +81,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     const now = new Date();
     const windowEnd = new Date();
 
-    // Allow customizable time window (default 30 days)
-    const days = parseInt(req.query.days as string) || 30;
+    // Allow customizable time window (default 30 days, min 1, max 365)
+    const days = parseQueryInt(req.query.days as string, { default: 30, min: 1, max: 365 });
     windowEnd.setDate(windowEnd.getDate() + days);
 
     // Calculate 7 days ago for trends
