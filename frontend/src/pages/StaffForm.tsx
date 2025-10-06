@@ -20,10 +20,12 @@ import { staffSchema, type StaffFormData } from '../lib/validations';
 import { useStaffMember, useCreateStaff, useUpdateStaff } from '../hooks/useStaff';
 
 const StaffForm: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const goBack = useSmartBack('/staff');
-  const isEdit = id !== 'new';
+  const isEdit = !!id && id !== 'new';
+
+  console.log('[STAFF FORM] ID from params:', id, 'isEdit:', isEdit);
 
   const { data: staff, isLoading: staffLoading } = useStaffMember(isEdit ? id! : '');
   const createStaff = useCreateStaff();

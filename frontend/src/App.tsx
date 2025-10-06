@@ -126,21 +126,21 @@ function App() {
               }
             />
             <Route
-              path="/staff/:id"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <StaffDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/staff/:id/edit"
               element={
                 <ProtectedRoute>
                   <Layout>
                     <StaffForm />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <StaffDetail />
                   </Layout>
                 </ProtectedRoute>
               }

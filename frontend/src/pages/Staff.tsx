@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography } from '@mui/material';
-import { Add, Edit } from '@mui/icons-material';
+import { Add, Edit, Delete } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Staff as StaffType } from '../types';
 import { Page, StaffListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
-import { useStaff } from '../hooks/useStaff';
+import { useStaff, useDeleteStaff } from '../hooks/useStaff';
 
 const Staff: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
@@ -31,6 +31,13 @@ const Staff: React.FC = () => {
   };
 
   const { data: staff = [], isLoading, error } = useStaff(params);
+  const deleteStaff = useDeleteStaff();
+
+  const handleDelete = async (id: number, name: string) => {
+    if (window.confirm(`Are you sure you want to delete ${name}?\n\nSTRONGLY RECOMMENDED: Instead of deleting, change the status from Active to Leaving.`)) {
+      await deleteStaff.mutateAsync(id);
+    }
+  };
 
   const columns: GridColDef<StaffType>[] = [
     {
@@ -66,12 +73,19 @@ const Staff: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 80,
+      width: 120,
       sortable: false,
       renderCell: (params) => (
-        <Box onClick={(e) => e.stopPropagation()}>
+        <Box onClick={(e) => e.stopPropagation()} sx={{ display: 'flex', gap: 0.5, alignItems: 'center', height: '100%' }}>
           <IconButton size="small" onClick={() => navigate(`/staff/${params.row.id}/edit`)}>
             <Edit fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(params.row.id, params.row.name)}
+            color="error"
+          >
+            <Delete fontSize="small" />
           </IconButton>
         </Box>
       ),

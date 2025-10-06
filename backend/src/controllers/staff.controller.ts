@@ -76,6 +76,8 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, role, department, status, notes } = req.body;
 
+    console.log('[CREATE STAFF] Received data:', { name, email, role, department, status });
+
     if (!name || !role) {
       return res.status(400).json({ error: 'Name and role are required' });
     }
@@ -114,8 +116,16 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { name, email, role, department, status, notes } = req.body;
 
+    console.log('[UPDATE STAFF] Received ID:', id, 'Type:', typeof id);
+
+    const staffId = parseInt(id);
+    if (isNaN(staffId)) {
+      console.log('[UPDATE STAFF] Invalid ID - returning 400');
+      return res.status(400).json({ error: 'Invalid staff ID' });
+    }
+
     const existingStaff = await prisma.staff.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: staffId },
     });
 
     if (!existingStaff) {
