@@ -1,32 +1,108 @@
-import React from 'react';
 import {
-  Paper,
-  Typography,
   Box,
+  Paper,
   Stack,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
+  Typography,
+  alpha,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Section } from './ui';
 import { DashboardSummary } from '../types';
 
-// Color palettes for different categories
-const CATEGORY_COLORS = ['#1976d2', '#2196f3', '#42a5f5', '#64b5f6', '#90caf9'];
-const STATUS_COLORS = ['#4caf50', '#ff9800', '#f44336'];
-const SECTOR_COLORS = ['#9c27b0', '#ab47bc', '#ba68c8', '#ce93d8'];
-const SIDE_COLORS = ['#00bcd4', '#26c6da'];
+const CATEGORY_COLORS = ['#2563EB', '#1D4ED8', '#38BDF8', '#60A5FA', '#818CF8'];
+const STATUS_COLORS = ['#22C55E', '#F59E0B', '#EF4444'];
+const SECTOR_COLORS = ['#8B5CF6', '#D946EF', '#EC4899', '#F472B6'];
+const SIDE_COLORS = ['#14B8A6', '#2DD4BF'];
 
 interface InsightsPanelProps {
   data: DashboardSummary;
-  timeRange: number;
 }
 
-// Donut Chart Component with center label
+interface MetricCardConfig {
+  label: string;
+  value: number;
+  helper?: string;
+  gradient: string;
+}
+
+interface TrendCardConfig {
+  label: string;
+  value: number;
+  tone: 'success' | 'warning' | 'error' | 'info';
+  icon: React.ReactNode;
+}
+
+const MetricCard = ({ gradient, label, value, helper }: MetricCardConfig) => (
+  <Box
+    sx={{
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 20,
+      p: { xs: 2.75, md: 3 },
+      background: gradient,
+      color: 'common.white',
+      minWidth: 220,
+      boxShadow: '0 32px 60px rgba(15, 23, 42, 0.18)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 1.5,
+    }}
+  >
+    <Typography variant="overline" sx={{ letterSpacing: '0.18em', opacity: 0.85 }}>
+      {label}
+    </Typography>
+    <Typography variant="h2" sx={{ lineHeight: 1 }}>
+      {value}
+    </Typography>
+    {helper && (
+      <Typography variant="body2" sx={{ opacity: 0.85 }}>
+        {helper}
+      </Typography>
+    )}
+  </Box>
+);
+
+const TrendCard = ({ label, value, tone, icon }: TrendCardConfig) => (
+  <Paper
+    sx={{
+      borderRadius: 18,
+      p: { xs: 2.25, md: 2.5 },
+      border: (theme) => `1px solid ${alpha(theme.palette[tone].main, 0.25)}`,
+      background: (theme) =>
+        `linear-gradient(135deg, ${alpha(theme.palette[tone].light, 0.18)} 0%, ${alpha(theme.palette[tone].main, 0.12)} 100%)`,
+      boxShadow: '0 22px 42px rgba(15, 23, 42, 0.1)',
+    }}
+  >
+    <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 1 }}>
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          backgroundColor: (theme) => alpha(theme.palette[tone].main, 0.18),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: `${tone}.main`,
+        }}
+      >
+        {icon}
+      </Box>
+      <Typography variant="subtitle2" color="text.secondary">
+        {label}
+      </Typography>
+    </Stack>
+    <Typography variant="h4" sx={{ mb: 0.5 }}>
+      {value}
+    </Typography>
+    <Typography variant="caption" color="text.secondary">
+      Compared to last week
+    </Typography>
+  </Paper>
+);
+
 const DonutChart: React.FC<{
   data: Array<{ name: string; value: number }>;
   colors: string[];
@@ -37,7 +113,15 @@ const DonutChart: React.FC<{
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <Paper sx={{ p: 1, bgcolor: 'rgba(0, 0, 0, 0.87)', color: 'white' }}>
+        <Paper
+          sx={{
+            p: 1,
+            bgcolor: 'rgba(15, 23, 42, 0.95)',
+            color: 'common.white',
+            borderRadius: 1,
+            boxShadow: 3,
+          }}
+        >
           <Typography variant="caption" display="block">
             {payload[0].name}
           </Typography>
@@ -51,28 +135,29 @@ const DonutChart: React.FC<{
   };
 
   return (
-    <Paper sx={{
-      flex: '1 1 calc(25% - 10px)',
-      minWidth: 200,
-      p: 2,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ fontSize: '0.8rem' }}>
+    <Paper
+      sx={{
+        flex: '1 1 260px',
+        minWidth: 240,
+        p: { xs: 2.5, md: 2.75 },
+        borderRadius: 18,
+        border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+        boxShadow: '0 24px 45px rgba(15, 23, 42, 0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      }}
+    >
+      <Typography
+        variant="subtitle2"
+        sx={{ textTransform: 'uppercase', letterSpacing: '0.16em', fontSize: '0.72rem', color: 'text.secondary' }}
+      >
         {title}
       </Typography>
-      <Box sx={{ position: 'relative', height: 160 }}>
+      <Box sx={{ position: 'relative', height: 180 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={50}
-              outerRadius={65}
-              paddingAngle={2}
-              dataKey="value"
-            >
+            <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={72} paddingAngle={2} dataKey="value">
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
@@ -87,33 +172,33 @@ const DonutChart: React.FC<{
             left: '50%',
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
           }}
         >
-          <Typography variant="h5" fontWeight={700} color="primary.main">
+          <Typography variant="h4" fontWeight={700} color="primary.main">
             {total}
           </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
             Total
           </Typography>
         </Box>
       </Box>
-      <Stack spacing={0.4} sx={{ mt: 1.5 }}>
+      <Stack spacing={0.6}>
         {data.map((item, index) => (
           <Stack key={item.name} direction="row" alignItems="center" spacing={1}>
             <Box
               sx={{
-                width: 10,
-                height: 10,
+                width: 12,
+                height: 12,
                 borderRadius: '50%',
                 bgcolor: colors[index % colors.length],
-                flexShrink: 0
+                flexShrink: 0,
               }}
             />
-            <Typography variant="caption" sx={{ flex: 1, fontSize: '0.7rem' }}>
+            <Typography variant="body2" sx={{ flex: 1 }}>
               {item.name}
             </Typography>
-            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+            <Typography variant="caption" fontWeight={600}>
               {item.value}
             </Typography>
           </Stack>
@@ -124,298 +209,177 @@ const DonutChart: React.FC<{
 };
 
 const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
+  const metricCards: MetricCardConfig[] = [
+    {
+      label: 'Active Projects',
+      value: data.summary.activeProjects,
+      helper: `${data.summary.totalProjects} total projects`,
+      gradient: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
+    },
+    {
+      label: 'Upcoming Filings',
+      value: data.summary.upcomingFilings30Days,
+      helper: 'Within 30 days',
+      gradient: 'linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%)',
+    },
+    {
+      label: 'Upcoming Listings',
+      value: data.summary.upcomingListings30Days,
+      helper: 'Within 30 days',
+      gradient: 'linear-gradient(135deg, #14B8A6 0%, #0F766E 100%)',
+    },
+    {
+      label: 'Active Team Members',
+      value: data.summary.activeStaff,
+      helper: `${data.summary.totalStaff} total staff`,
+      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+    },
+  ];
+
+  const trendCards: TrendCardConfig[] = [
+    {
+      label: 'New Projects',
+      value: data.sevenDayTrends.newProjects,
+      tone: 'success',
+      icon: <TrendingUpIcon fontSize="small" />, 
+    },
+    {
+      label: 'Suspended',
+      value: data.sevenDayTrends.suspended,
+      tone: 'error',
+      icon: <TrendingDownIcon fontSize="small" />, 
+    },
+    {
+      label: 'Slow-down',
+      value: data.sevenDayTrends.slowdown,
+      tone: 'warning',
+      icon: <TrendingDownIcon fontSize="small" />, 
+    },
+    {
+      label: 'Resumed',
+      value: data.sevenDayTrends.resumed,
+      tone: 'info',
+      icon: <TrendingUpIcon fontSize="small" />, 
+    },
+  ];
+
   return (
-    <Accordion defaultExpanded>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
-          Insights
+    <Section sx={{ p: { xs: 3, md: 3.5 }, display: 'grid', gap: 3.5 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: { xs: 2, md: 2.5 },
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        }}
+      >
+        {metricCards.map((card) => (
+          <MetricCard key={card.label} {...card} />
+        ))}
+      </Box>
+
+      <Stack spacing={1.75}>
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ textTransform: 'uppercase', letterSpacing: '0.16em' }}
+        >
+          Last 7 days
         </Typography>
-      </AccordionSummary>
-      <AccordionDetails sx={{ p: 2.5 }}>
-        <Stack spacing={2.5}>
-          {/* Summary Cards */}
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Paper sx={{
-              flex: '1 1 calc(25% - 10px)',
-              minWidth: 180,
-              p: 1.5,
-              bgcolor: 'primary.main',
-              color: 'white',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
-                Active Projects
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {data.summary.activeProjects}
-              </Typography>
-            </Paper>
-            <Paper sx={{
-              flex: '1 1 calc(25% - 10px)',
-              minWidth: 180,
-              p: 1.5,
-              bgcolor: 'info.main',
-              color: 'white',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
-                Upcoming Filing
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {data.summary.upcomingFilings30Days}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.15, fontSize: '0.65rem' }}>
-                in 30 days
-              </Typography>
-            </Paper>
-            <Paper sx={{
-              flex: '1 1 calc(25% - 10px)',
-              minWidth: 180,
-              p: 1.5,
-              bgcolor: 'secondary.main',
-              color: 'white',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
-                Upcoming Listing
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {data.summary.upcomingListings30Days}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.15, fontSize: '0.65rem' }}>
-                in 30 days
-              </Typography>
-            </Paper>
-            <Paper sx={{
-              flex: '1 1 calc(25% - 10px)',
-              minWidth: 180,
-              p: 1.5,
-              bgcolor: 'success.main',
-              color: 'white',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
-                Active Staff
-              </Typography>
-              <Typography variant="h5" fontWeight={700}>
-                {data.summary.activeStaff}
-              </Typography>
-            </Paper>
-          </Box>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.75,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          }}
+        >
+          {trendCards.map((card) => (
+            <TrendCard key={card.label} {...card} />
+          ))}
+        </Box>
+      </Stack>
 
-          {/* 7-Day Trends */}
-          <Box>
-            <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
-              7-Day Trends
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              {/* New Projects */}
-              <Paper sx={{
-                flex: '1 1 calc(25% - 10px)',
-                minWidth: 180,
-                p: 1.25,
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%)',
-                border: '1px solid',
-                borderColor: 'success.light',
-                '&:hover': {
-                  boxShadow: 2,
-                  transform: 'translateY(-1px)',
-                  transition: 'all 0.2s ease'
-                }
-              }}>
-                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
-                  <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
-                    New Projects
-                  </Typography>
-                </Stack>
-                <Typography variant="h5" fontWeight={800} color="success.main" sx={{ mb: 0.25 }}>
-                  {data.sevenDayTrends.newProjects}
-                </Typography>
-                <Typography variant="caption" color="success.dark" sx={{ fontSize: '0.65rem' }}>
-                  Last 7 days
-                </Typography>
-              </Paper>
-
-              {/* Suspended */}
-              <Paper sx={{
-                flex: '1 1 calc(25% - 10px)',
-                minWidth: 180,
-                p: 1.25,
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(244, 67, 54, 0.05) 100%)',
-                border: '1px solid',
-                borderColor: 'error.light',
-                '&:hover': {
-                  boxShadow: 2,
-                  transform: 'translateY(-1px)',
-                  transition: 'all 0.2s ease'
-                }
-              }}>
-                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
-                  <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
-                    Suspended
-                  </Typography>
-                </Stack>
-                <Typography variant="h5" fontWeight={800} color="error.main" sx={{ mb: 0.25 }}>
-                  {data.sevenDayTrends.suspended}
-                </Typography>
-                <Typography variant="caption" color="error.dark" sx={{ fontSize: '0.65rem' }}>
-                  Last 7 days
-                </Typography>
-              </Paper>
-
-              {/* Slow-down */}
-              <Paper sx={{
-                flex: '1 1 calc(25% - 10px)',
-                minWidth: 180,
-                p: 1.25,
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%)',
-                border: '1px solid',
-                borderColor: 'warning.light',
-                '&:hover': {
-                  boxShadow: 2,
-                  transform: 'translateY(-1px)',
-                  transition: 'all 0.2s ease'
-                }
-              }}>
-                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
-                  <TrendingDownIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
-                    Slow-down
-                  </Typography>
-                </Stack>
-                <Typography variant="h5" fontWeight={800} color="warning.main" sx={{ mb: 0.25 }}>
-                  {data.sevenDayTrends.slowdown}
-                </Typography>
-                <Typography variant="caption" color="warning.dark" sx={{ fontSize: '0.65rem' }}>
-                  Last 7 days
-                </Typography>
-              </Paper>
-
-              {/* Resumed */}
-              <Paper sx={{
-                flex: '1 1 calc(25% - 10px)',
-                minWidth: 180,
-                p: 1.25,
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%)',
-                border: '1px solid',
-                borderColor: 'info.light',
-                '&:hover': {
-                  boxShadow: 2,
-                  transform: 'translateY(-1px)',
-                  transition: 'all 0.2s ease'
-                }
-              }}>
-                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
-                  <TrendingUpIcon sx={{ fontSize: 16, color: 'info.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
-                    Resumed
-                  </Typography>
-                </Stack>
-                <Typography variant="h5" fontWeight={800} color="info.main" sx={{ mb: 0.25 }}>
-                  {data.sevenDayTrends.resumed}
-                </Typography>
-                <Typography variant="caption" color="info.dark" sx={{ fontSize: '0.65rem' }}>
-                  Last 7 days
-                </Typography>
-              </Paper>
-            </Box>
-          </Box>
-
-          {/* Projects Breakdown */}
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+      <Stack spacing={1.75}>
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ textTransform: 'uppercase', letterSpacing: '0.16em' }}
+        >
+          Portfolio breakdown
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.75,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          }}
+        >
+          <DonutChart
+            data={data.projectsByCategory
+              .map((item) => ({ name: item.category, value: item.count }))
+              .sort((a, b) => b.value - a.value)}
+            colors={CATEGORY_COLORS}
+            title="Projects by Category"
+          />
+          <DonutChart
+            data={data.projectsByStatus
+              .map((item) => ({ name: item.status, value: item.count }))
+              .sort((a, b) => b.value - a.value)}
+            colors={STATUS_COLORS}
+            title="Projects by Status"
+          />
+          {data.projectsBySector.length > 0 ? (
             <DonutChart
-              data={data.projectsByCategory
-                .map(item => ({
-                  name: item.category,
-                  value: item.count
-                }))
+              data={data.projectsBySector
+                .map((item) => ({ name: item.sector || 'Unknown', value: item.count }))
                 .sort((a, b) => b.value - a.value)}
-              colors={CATEGORY_COLORS}
-              title="Projects by Category"
+              colors={SECTOR_COLORS}
+              title="Projects by Sector"
             />
-            <DonutChart
-              data={data.projectsByStatus
-                .map(item => ({
-                  name: item.status,
-                  value: item.count
-                }))
-                .sort((a, b) => b.value - a.value)}
-              colors={STATUS_COLORS}
-              title="Projects by Status"
-            />
-            {data.projectsBySector.length > 0 ? (
-              <DonutChart
-                data={data.projectsBySector
-                  .map(item => ({
-                    name: item.sector || 'Unknown',
-                    value: item.count
-                  }))
-                  .sort((a, b) => b.value - a.value)}
-                colors={SECTOR_COLORS}
-                title="Projects by Sector"
-              />
-            ) : (
-              <Paper sx={{
-                flex: '1 1 calc(25% - 10px)',
-                minWidth: 200,
-                p: 2,
+          ) : (
+            <Paper
+              sx={{
+                flex: '1 1 260px',
+                minWidth: 220,
+                p: { xs: 2.5, md: 2.75 },
+                borderRadius: 18,
+                border: (theme) => `1px dashed ${alpha(theme.palette.divider, 0.5)}`,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  No sector data
-                </Typography>
-              </Paper>
-            )}
-            {data.projectsBySide.length > 0 ? (
-              <DonutChart
-                data={data.projectsBySide
-                  .map(item => ({
-                    name: item.side || 'Unknown',
-                    value: item.count
-                  }))
-                  .sort((a, b) => b.value - a.value)}
-                colors={SIDE_COLORS}
-                title="Projects by Side"
-              />
-            ) : (
-              <Paper sx={{
-                flex: '1 1 calc(25% - 10px)',
-                minWidth: 200,
-                p: 2,
+                justifyContent: 'center',
+                color: 'text.secondary',
+              }}
+            >
+              <Typography variant="caption">No sector data</Typography>
+            </Paper>
+          )}
+          {data.projectsBySide.length > 0 ? (
+            <DonutChart
+              data={data.projectsBySide
+                .map((item) => ({ name: item.side || 'Unknown', value: item.count }))
+                .sort((a, b) => b.value - a.value)}
+              colors={SIDE_COLORS}
+              title="Projects by Side"
+            />
+          ) : (
+            <Paper
+              sx={{
+                flex: '1 1 260px',
+                minWidth: 220,
+                p: { xs: 2.5, md: 2.75 },
+                borderRadius: 18,
+                border: (theme) => `1px dashed ${alpha(theme.palette.divider, 0.5)}`,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  No side data
-                </Typography>
-              </Paper>
-            )}
-          </Box>
-
-        </Stack>
-      </AccordionDetails>
-    </Accordion>
+                justifyContent: 'center',
+                color: 'text.secondary',
+              }}
+            >
+              <Typography variant="caption">No side data</Typography>
+            </Paper>
+          )}
+        </Box>
+      </Stack>
+    </Section>
   );
 };
 
