@@ -6,12 +6,14 @@ import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, category, search, staffId, page = '1', limit = '50' } = req.query;
+    const { status, category, side, sector, search, staffId, page = '1', limit = '50' } = req.query;
 
     const where: any = {};
 
     if (status) where.status = status;
     if (category) where.category = category;
+    if (side) where.side = side;
+    if (sector) where.sector = sector;
     if (search) {
       where.OR = [
         { name: { contains: search as string, mode: 'insensitive' } },

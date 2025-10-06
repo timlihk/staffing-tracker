@@ -87,9 +87,25 @@ export interface DashboardSummary {
     suspendedProjects: number;
     totalStaff: number;
     activeStaff: number;
+    pendingConfirmations: number;
   };
   projectsByStatus: Array<{ status: string; count: number }>;
   projectsByCategory: Array<{ category: string; count: number }>;
+  projectsBySector: Array<{ sector: string | null; count: number }>;
+  projectsBySide: Array<{ side: string | null; count: number }>;
+  staffByRole: Array<{ position: string; count: number }>;
+  topAssignedStaff: Array<{
+    staffId: number;
+    name: string;
+    position: string;
+    projectCount: number;
+  }>;
+  sevenDayTrends: {
+    newProjects: number;
+    suspended: number;
+    slowdown: number;
+    resumed: number;
+  };
   dealRadar: Array<{
     projectId: number;
     projectName: string;

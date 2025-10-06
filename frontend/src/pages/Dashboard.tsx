@@ -28,6 +28,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { Page, DashboardSkeleton, PageHeader } from '../components/ui';
+import InsightsPanel from '../components/InsightsPanel';
 import { useDashboard } from '../hooks/useDashboard';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardSummary } from '../types';
@@ -142,6 +143,7 @@ const Dashboard = () => {
         </FormControl>
       </Stack>
       <Stack spacing={2}>
+        <InsightsPanel data={data} timeRange={timeRange} />
         <DealRadarCard
           groups={dealRadarGroups}
           onSelectProject={(id) => navigate(`/projects/${id}`)}

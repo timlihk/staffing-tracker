@@ -20,6 +20,8 @@ const Projects: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sideFilter, setSideFilter] = useState('all');
+  const [sectorFilter, setSectorFilter] = useState('all');
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const navigate = useNavigate();
   const permissions = usePermissions();
@@ -40,6 +42,8 @@ const Projects: React.FC = () => {
     limit: 1000,
     ...(statusFilter !== 'all' && { status: statusFilter }),
     ...(categoryFilter !== 'all' && { category: categoryFilter }),
+    ...(sideFilter !== 'all' && { side: sideFilter }),
+    ...(sectorFilter !== 'all' && { sector: sectorFilter }),
     ...(searchTerm && { search: searchTerm }),
     ...(selectedStaff && { staffId: selectedStaff.id.toString() }),
   };
@@ -173,6 +177,32 @@ const Projects: React.FC = () => {
             <MenuItem value="US Trx">US Trx</MenuItem>
             <MenuItem value="HK Comp">HK Comp</MenuItem>
             <MenuItem value="US Comp">US Comp</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Side"
+            value={sideFilter}
+            onChange={(e) => setSideFilter(e.target.value)}
+            size="small"
+            sx={{ minWidth: 150 }}
+          >
+            <MenuItem value="all">All Sides</MenuItem>
+            <MenuItem value="Issuer">Issuer</MenuItem>
+            <MenuItem value="Underwriter">Underwriter</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Sector"
+            value={sectorFilter}
+            onChange={(e) => setSectorFilter(e.target.value)}
+            size="small"
+            sx={{ minWidth: 150 }}
+          >
+            <MenuItem value="all">All Sectors</MenuItem>
+            <MenuItem value="Healthcare">Healthcare</MenuItem>
+            <MenuItem value="TMT">TMT</MenuItem>
+            <MenuItem value="Consumer">Consumer</MenuItem>
+            <MenuItem value="Industrial">Industrial</MenuItem>
           </TextField>
           <Autocomplete
             size="small"

@@ -2,6 +2,79 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 
+// Helper functions
+const getTopAssignedStaff = async () => {
+  const staff = await prisma.staff.findMany({
+    where: { status: 'active' },
+    include: {
+      assignments: {
+        where: {
+          project: { status: { in: ['Active', 'Slow-down'] } },
+        },
+      },
+    },
+  });
+
+  return staff
+    .map((member) => ({
+      staffId: member.id,
+      name: member.name,
+      position: member.position,
+      projectCount: member.assignments.length,
+    }))
+    .filter((member) => member.projectCount > 0)
+    .sort((a, b) => b.projectCount - a.projectCount)
+    .slice(0, 5);
+};
+
+const getSevenDayTrends = async (sevenDaysAgo: Date) => {
+  const [
+    newProjects,
+    suspendedChanges,
+    slowdownChanges,
+    resumedChanges,
+  ] = await Promise.all([
+    // New projects created in last 7 days
+    prisma.project.count({
+      where: {
+        createdAt: { gte: sevenDaysAgo },
+      },
+    }),
+    // Projects that changed TO suspended in last 7 days
+    prisma.projectChangeHistory.count({
+      where: {
+        fieldName: 'status',
+        newValue: 'Suspended',
+        changedAt: { gte: sevenDaysAgo },
+      },
+    }),
+    // Projects that changed TO slow-down in last 7 days
+    prisma.projectChangeHistory.count({
+      where: {
+        fieldName: 'status',
+        newValue: 'Slow-down',
+        changedAt: { gte: sevenDaysAgo },
+      },
+    }),
+    // Projects that changed TO active (resumed) in last 7 days
+    prisma.projectChangeHistory.count({
+      where: {
+        fieldName: 'status',
+        newValue: 'Active',
+        oldValue: { in: ['Slow-down', 'Suspended'] },
+        changedAt: { gte: sevenDaysAgo },
+      },
+    }),
+  ]);
+
+  return {
+    newProjects,
+    suspended: suspendedChanges,
+    slowdown: slowdownChanges,
+    resumed: resumedChanges,
+  };
+};
+
 export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
@@ -11,6 +84,10 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     const days = parseInt(req.query.days as string) || 30;
     windowEnd.setDate(windowEnd.getDate() + days);
 
+    // Calculate 7 days ago for trends
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const [
       totalProjects,
       activeProjects,
@@ -19,11 +96,17 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       totalStaff,
       activeStaff,
       projectsByCategory,
+      projectsBySector,
+      projectsBySide,
+      staffByRole,
+      topAssignedStaff,
+      pendingConfirmations,
       upcomingMilestones,
       staffingHeatmap,
       unstaffedMilestones,
       pendingResets,
       recentActivity,
+      sevenDayTrends,
     ] = await Promise.all([
       prisma.project.count(),
       prisma.project.count({ where: { status: 'Active' } }),
@@ -35,6 +118,30 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         by: ['category'],
         _count: true,
         where: { status: 'Active' },
+      }),
+      prisma.project.groupBy({
+        by: ['sector'],
+        _count: true,
+        where: { status: 'Active', sector: { not: null } },
+      }),
+      prisma.project.groupBy({
+        by: ['side'],
+        _count: true,
+        where: { status: 'Active', side: { not: null } },
+      }),
+      prisma.staff.groupBy({
+        by: ['position'],
+        _count: true,
+        where: { status: 'active' },
+      }),
+      getTopAssignedStaff(),
+      prisma.project.count({
+        where: {
+          OR: [
+            { lastConfirmedAt: null },
+            { lastConfirmedAt: { lt: sevenDaysAgo } },
+          ],
+        },
       }),
       findUpcomingMilestones(now, windowEnd),
       buildStaffingHeatmap(now, windowEnd),
@@ -60,6 +167,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           },
         },
       }),
+      getSevenDayTrends(sevenDaysAgo),
     ]);
 
     const projectsByStatus = [
@@ -76,17 +184,32 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         suspendedProjects,
         totalStaff,
         activeStaff,
+        pendingConfirmations,
       },
       projectsByStatus,
-      projectsByCategory: projectsByCategory.map((item) => ({
+      projectsByCategory: projectsByCategory.map((item: any) => ({
         category: item.category,
         count: item._count,
       })),
+      projectsBySector: projectsBySector.map((item: any) => ({
+        sector: item.sector,
+        count: item._count,
+      })),
+      projectsBySide: projectsBySide.map((item: any) => ({
+        side: item.side,
+        count: item._count,
+      })),
+      staffByRole: staffByRole.map((item: any) => ({
+        position: item.position,
+        count: item._count,
+      })),
+      topAssignedStaff,
+      sevenDayTrends,
       dealRadar: upcomingMilestones,
       staffingHeatmap,
       actionItems: {
         unstaffedMilestones,
-        pendingResets: pendingResets.map((user) => ({
+        pendingResets: pendingResets.map((user: any) => ({
           id: user.id,
           username: user.username,
           email: user.email,
@@ -94,7 +217,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           lastLogin: user.lastLogin,
         })),
       },
-      recentActivity: recentActivity.map((activity) => ({
+      recentActivity: recentActivity.map((activity: any) => ({
         id: activity.id,
         actionType: activity.actionType,
         entityType: activity.entityType,
