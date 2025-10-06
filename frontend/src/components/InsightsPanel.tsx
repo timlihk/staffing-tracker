@@ -39,21 +39,21 @@ const MetricCard = ({ gradient, label, value, helper }: MetricCardConfig) => (
     sx={{
       position: 'relative',
       overflow: 'hidden',
-      borderRadius: 12,
-      p: { xs: 2.5, md: 3 },
+      borderRadius: 20,
+      p: { xs: 2.75, md: 3 },
       background: gradient,
       color: 'common.white',
       minWidth: 220,
-      boxShadow: '0 18px 36px rgba(15, 23, 42, 0.15)',
+      boxShadow: '0 32px 60px rgba(15, 23, 42, 0.18)',
       display: 'flex',
       flexDirection: 'column',
-      gap: 1.25,
+      gap: 1.5,
     }}
   >
-    <Typography variant="overline" sx={{ letterSpacing: '0.16em', opacity: 0.85 }}>
+    <Typography variant="overline" sx={{ letterSpacing: '0.18em', opacity: 0.85 }}>
       {label}
     </Typography>
-    <Typography variant="h3" sx={{ lineHeight: 1 }}>
+    <Typography variant="h2" sx={{ lineHeight: 1 }}>
       {value}
     </Typography>
     {helper && (
@@ -67,21 +67,21 @@ const MetricCard = ({ gradient, label, value, helper }: MetricCardConfig) => (
 const TrendCard = ({ label, value, tone, icon }: TrendCardConfig) => (
   <Paper
     sx={{
-      borderRadius: 12,
-      p: { xs: 2, md: 2.25 },
+      borderRadius: 18,
+      p: { xs: 2.25, md: 2.5 },
       border: (theme) => `1px solid ${alpha(theme.palette[tone].main, 0.25)}`,
       background: (theme) =>
-        `linear-gradient(135deg, ${alpha(theme.palette[tone].light, 0.16)} 0%, ${alpha(theme.palette[tone].main, 0.1)} 100%)`,
-      boxShadow: '0 16px 32px rgba(15, 23, 42, 0.08)',
+        `linear-gradient(135deg, ${alpha(theme.palette[tone].light, 0.18)} 0%, ${alpha(theme.palette[tone].main, 0.12)} 100%)`,
+      boxShadow: '0 22px 42px rgba(15, 23, 42, 0.1)',
     }}
   >
     <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 1 }}>
       <Box
         sx={{
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           borderRadius: '50%',
-          backgroundColor: (theme) => alpha(theme.palette[tone].main, 0.16),
+          backgroundColor: (theme) => alpha(theme.palette[tone].main, 0.18),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -116,10 +116,10 @@ const DonutChart: React.FC<{
         <Paper
           sx={{
             p: 1,
-            bgcolor: 'rgba(15, 23, 42, 0.94)',
+            bgcolor: 'rgba(15, 23, 42, 0.95)',
             color: 'common.white',
             borderRadius: 1,
-            boxShadow: 4,
+            boxShadow: 3,
           }}
         >
           <Typography variant="caption" display="block">
@@ -140,9 +140,9 @@ const DonutChart: React.FC<{
         flex: '1 1 260px',
         minWidth: 240,
         p: { xs: 2.5, md: 2.75 },
-        borderRadius: 12,
+        borderRadius: 18,
         border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-        boxShadow: '0 20px 40px rgba(15, 23, 42, 0.06)',
+        boxShadow: '0 24px 45px rgba(15, 23, 42, 0.05)',
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -157,7 +157,7 @@ const DonutChart: React.FC<{
       <Box sx={{ position: 'relative', height: 180 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={data} cx="50%" cy="50%" innerRadius={52} outerRadius={70} paddingAngle={2} dataKey="value">
+            <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={72} paddingAngle={2} dataKey="value">
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
@@ -277,11 +277,11 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
         ))}
       </Box>
 
-      <Stack spacing={1.5}>
+      <Stack spacing={1.75}>
         <Typography
           variant="subtitle2"
           color="text.secondary"
-          sx={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
+          sx={{ textTransform: 'uppercase', letterSpacing: '0.16em' }}
         >
           Last 7 days
         </Typography>
@@ -298,11 +298,11 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
         </Box>
       </Stack>
 
-      <Stack spacing={1.5}>
+      <Stack spacing={1.75}>
         <Typography
           variant="subtitle2"
           color="text.secondary"
-          sx={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
+          sx={{ textTransform: 'uppercase', letterSpacing: '0.16em' }}
         >
           Portfolio breakdown
         </Typography>
@@ -341,7 +341,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
                 flex: '1 1 260px',
                 minWidth: 220,
                 p: { xs: 2.5, md: 2.75 },
-                borderRadius: 12,
+                borderRadius: 18,
                 border: (theme) => `1px dashed ${alpha(theme.palette.divider, 0.5)}`,
                 display: 'flex',
                 alignItems: 'center',
@@ -366,7 +366,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
                 flex: '1 1 260px',
                 minWidth: 220,
                 p: { xs: 2.5, md: 2.75 },
-                borderRadius: 12,
+                borderRadius: 18,
                 border: (theme) => `1px dashed ${alpha(theme.palette.divider, 0.5)}`,
                 display: 'flex',
                 alignItems: 'center',
