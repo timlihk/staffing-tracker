@@ -722,4 +722,30 @@ The application uses Prisma for database migrations. Current migrations:
 
 ---
 
+## 💾 Database Backup Strategy
+
+Production database is protected with a comprehensive multi-tier backup system:
+
+**Automated Backups:**
+- **Hourly**: Every hour, validated and stored for 24 hours
+- **Daily**: 2 AM UTC (10 AM HKT), stored for 7 days
+- **Weekly**: Sunday 3 AM UTC (11 AM HKT), stored for 30 days
+
+**Storage Locations:**
+- **GitHub Actions Artifacts**: Fast access to recent backups (auto-retention management)
+- **Google Drive**: Long-term durable storage with unlimited retention
+  - Organized by frequency and date: `staffing-tracker-backups/[hourly|daily|weekly]/YYYY/MM/`
+
+**Validation & Testing:**
+- Every backup validated with `pg_restore --list` before storage
+- Weekly automated restore tests to verify recovery procedures
+- Comprehensive restore documentation and scripts in `BACKUP_RESTORE.md`
+
+**Recovery:**
+- Use `scripts/restore-backup.sh` for guided recovery
+- Backups available from both GitHub Actions and Google Drive
+- See `BACKUP_RESTORE.md` for detailed restore instructions
+
+---
+
 **Application is production-ready and fully deployed! 🚀**
