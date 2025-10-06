@@ -773,28 +773,30 @@ const StaffingHeatmapCard = ({
                   <Chip label={`${group.count} staff`} size="small" />
                 </Stack>
               </AccordionSummary>
-              <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
+              <AccordionDetails sx={{ pt: 0, pb: 1 }}>
                 <TableContainer>
                   <Table size="small" stickyHeader={false}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ py: 1 }}>
+                        <TableCell sx={{ py: 0.5, px: 1.5 }}>
                           <TableSortLabel
                             active={sortConfig[group.label]?.field === 'name' || !sortConfig[group.label]}
                             direction={sortConfig[group.label]?.field === 'name' ? sortConfig[group.label].order : 'asc'}
                             onClick={() => handleSort(group.label, 'name')}
                           >
-                            Name
+                            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.75rem' }}>
+                              Name
+                            </Typography>
                           </TableSortLabel>
                         </TableCell>
                         {weeks.map((week) => (
-                          <TableCell key={week} align="center" sx={{ py: 1 }}>
+                          <TableCell key={week} align="center" sx={{ py: 0.5, px: 0.75 }}>
                             <TableSortLabel
                               active={sortConfig[group.label]?.field === week}
                               direction={sortConfig[group.label]?.field === week ? sortConfig[group.label].order : 'asc'}
                               onClick={() => handleSort(group.label, week)}
                             >
-                              <Typography variant="caption" fontWeight={600}>
+                              <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
                                 {formatWeekLabel(week)}
                               </Typography>
                             </TableSortLabel>
@@ -809,12 +811,12 @@ const StaffingHeatmapCard = ({
                           hover
                           sx={{
                             cursor: 'pointer',
-                            '& .MuiTableCell-root': { py: 0.75 },
+                            '& .MuiTableCell-root': { py: 0.5 },
                           }}
                           onClick={() => onSelectStaff(row.staffId)}
                         >
-                          <TableCell sx={{ minWidth: 150 }}>
-                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                          <TableCell sx={{ minWidth: 120, px: 1.5 }}>
+                            <Typography variant="body2" fontWeight={600} color="primary.main" sx={{ fontSize: '0.8rem' }}>
                               {row.name}
                             </Typography>
                           </TableCell>
@@ -822,19 +824,19 @@ const StaffingHeatmapCard = ({
                             const match = row.weeks.find((w) => w.week === week);
                             const count = match?.count ?? 0;
                             return (
-                              <TableCell key={`${row.staffId}-${week}`} align="center">
+                              <TableCell key={`${row.staffId}-${week}`} align="center" sx={{ px: 0.75 }}>
                                 <Box
                                   sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 1,
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: 0.75,
                                     bgcolor: getHeatColor(count),
                                     color: count > 0 ? 'common.white' : 'text.secondary',
                                     fontWeight: 600,
-                                    fontSize: '0.75rem',
+                                    fontSize: '0.7rem',
                                   }}
                                 >
                                   {count > 0 ? count : ''}
