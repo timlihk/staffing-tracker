@@ -89,10 +89,13 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: ({ theme }) => ({
-            borderRadius: 12,
-            border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.5 : 0.8)}`,
+            borderRadius: 18,
+            border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.4 : 1)}`,
             backgroundImage: 'none',
-            boxShadow: 'none',
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? '0 18px 45px rgba(15, 23, 42, 0.35)'
+                : '0 22px 50px rgba(15, 23, 42, 0.08)',
           }),
         },
       },
