@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
+import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
@@ -270,11 +271,20 @@ export const getStaffChangeHistory = async (req: AuthRequest, res: Response) => 
     const { id } = req.params;
     const { limit = '100' } = req.query;
 
-    const limitNum = parseInt(limit as string);
+    const staffId = parseInt(id, 10);
+    if (Number.isNaN(staffId)) {
+      return res.status(400).json({ error: 'Invalid staff ID' });
+    }
+
+    const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 500 });
+
+    if (wasValueClamped(limit as string, limitNum, { max: 500 })) {
+      console.warn(`[STAFF_CHANGE_HISTORY] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+    }
 
     const changes = await prisma.staffChangeHistory.findMany({
       where: {
-        staffId: parseInt(id),
+        staffId,
       },
       include: {
         user: {

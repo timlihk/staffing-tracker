@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
+import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
@@ -21,15 +22,19 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
       ];
     }
     if (staffId) {
+      const parsedStaffId = parseInt(staffId as string, 10);
+      if (Number.isNaN(parsedStaffId)) {
+        return res.status(400).json({ error: 'Invalid staffId' });
+      }
       where.assignments = {
         some: {
-          staffId: parseInt(staffId as string),
+          staffId: parsedStaffId,
         },
       };
     }
 
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const pageNum = parseQueryInt(page as string, { default: 1, min: 1 });
+    const limitNum = parseQueryInt(limit as string, { default: 50, min: 1, max: 100 });
     const skip = (pageNum - 1) * limitNum;
 
     const [projects, total] = await Promise.all([
@@ -328,11 +333,20 @@ export const getProjectChangeHistory = async (req: AuthRequest, res: Response) =
     const { id } = req.params;
     const { limit = '100' } = req.query;
 
-    const limitNum = parseInt(limit as string);
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 500 });
+
+    if (wasValueClamped(limit as string, limitNum, { max: 500 })) {
+      console.warn(`[PROJECT_CHANGE_HISTORY] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+    }
 
     const changes = await prisma.projectChangeHistory.findMany({
       where: {
-        projectId: parseInt(id),
+        projectId,
       },
       include: {
         user: {
@@ -509,8 +523,7 @@ export const getProjectsNeedingAttention = async (req: AuthRequest, res: Respons
       // Check if team changed in last 7 days
       const recentTeamChanges = project.changeHistory.filter(
         (change) =>
-          change.changeType === 'assignment_added' ||
-          change.changeType === 'assignment_removed' &&
+          (change.changeType === 'assignment_added' || change.changeType === 'assignment_removed') &&
           change.changedAt > sevenDaysAgo &&
           (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
       );

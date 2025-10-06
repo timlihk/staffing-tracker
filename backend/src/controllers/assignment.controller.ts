@@ -40,8 +40,20 @@ export const getAllAssignments = async (req: AuthRequest, res: Response) => {
 
     const where: any = {};
 
-    if (projectId) where.projectId = parseInt(projectId as string);
-    if (staffId) where.staffId = parseInt(staffId as string);
+    if (projectId) {
+      const parsedProjectId = parseInt(projectId as string, 10);
+      if (Number.isNaN(parsedProjectId)) {
+        return res.status(400).json({ error: 'Invalid projectId' });
+      }
+      where.projectId = parsedProjectId;
+    }
+    if (staffId) {
+      const parsedStaffId = parseInt(staffId as string, 10);
+      if (Number.isNaN(parsedStaffId)) {
+        return res.status(400).json({ error: 'Invalid staffId' });
+      }
+      where.staffId = parsedStaffId;
+    }
 
     const assignments = await prisma.projectAssignment.findMany({
       where,
@@ -63,8 +75,13 @@ export const getAssignmentById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const assignmentId = parseInt(id, 10);
+    if (Number.isNaN(assignmentId)) {
+      return res.status(400).json({ error: 'Invalid assignment ID' });
+    }
+
     const assignment = await prisma.projectAssignment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: assignmentId },
       include: {
         project: true,
         staff: true,

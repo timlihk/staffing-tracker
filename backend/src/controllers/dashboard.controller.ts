@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 
 // Helper functions
 const getTopAssignedStaff = async () => {
@@ -308,9 +309,13 @@ export const getActivityLog = async (req: AuthRequest, res: Response) => {
   try {
     const { limit = '50', page = '1', entityType } = req.query;
 
-    const limitNum = parseInt(limit as string);
-    const pageNum = parseInt(page as string);
+    const limitNum = parseQueryInt(limit as string, { default: 50, min: 1, max: 100 });
+    const pageNum = parseQueryInt(page as string, { default: 1, min: 1 });
     const skip = (pageNum - 1) * limitNum;
+
+    if (wasValueClamped(limit as string, limitNum, { max: 100 })) {
+      console.warn(`[ACTIVITY_LOG] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+    }
 
     // Build where clause
     const where: any = {};
@@ -359,7 +364,11 @@ export const getActivityLog = async (req: AuthRequest, res: Response) => {
 export const getDetailedChangeHistory = async (req: AuthRequest, res: Response) => {
   try {
     const { limit = '100', entityType } = req.query;
-    const limitNum = parseInt(limit as string);
+    const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 500 });
+
+    if (wasValueClamped(limit as string, limitNum, { max: 500 })) {
+      console.warn(`[CHANGE_HISTORY] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+    }
 
     if (entityType === 'staff') {
       const changes = await prisma.staffChangeHistory.findMany({

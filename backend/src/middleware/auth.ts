@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JWTPayload } from '../utils/jwt';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 // Track last activity update times to avoid excessive DB writes
 const activityUpdateCache = new Map<number, number>();
