@@ -75,16 +75,13 @@ jobs:
 
       - name: Configure rclone
         env:
-          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+          RCLONE_CONFIG_BASE64: ${{ secrets.RCLONE_CONFIG }}
         run: |
           mkdir -p ~/.config/rclone
-          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
-
-          # Debug: Check if config was written
-          echo "Config file contents:"
-          cat ~/.config/rclone/rclone.conf
+          echo "$RCLONE_CONFIG_BASE64" | base64 -d > ~/.config/rclone/rclone.conf
 
           # Verify rclone can read it
+          echo "✅ Rclone configuration loaded"
           rclone config show
 
       - name: Upload to Google Drive
