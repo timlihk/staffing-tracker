@@ -1,17 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
-
-// Custom error class for application errors
-export class AppError extends Error {
-  constructor(
-    public statusCode: number,
-    public message: string,
-    public isOperational: boolean = true
-  ) {
-    super(message);
-    Object.setPrototypeOf(this, AppError.prototype);
-  }
-}
+import { AppError, isAppError } from '../utils/errors';
 
 // Error handler middleware
 export const errorHandler = (
@@ -30,7 +19,7 @@ export const errorHandler = (
   });
 
   // Handle custom AppError
-  if (err instanceof AppError) {
+  if (isAppError(err)) {
     return res.status(err.statusCode).json({
       error: err.message,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
@@ -72,7 +61,7 @@ export const errorHandler = (
   }
 
   // Default error response
-  const statusCode = 'statusCode' in err && typeof err.statusCode === 'number' ? err.statusCode : 500;
+  const statusCode = 500;
   const message = process.env.NODE_ENV === 'production'
     ? 'Internal server error'
     : err.message || 'Something went wrong';
