@@ -39,4 +39,4 @@ jobs:
         with:
           name: railway-postgres-${{ github.run_id }}
           path: ${{ steps.dump.outputs.backup_path }}
-          retention-days: 3   # Keep backups for 3 days
+          retention-days: 1   # Keep backups for 1 day
