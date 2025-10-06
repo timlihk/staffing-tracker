@@ -34,7 +34,14 @@ export const useCreateStaff = () => {
 
   return useMutation({
     mutationFn: async (data: Partial<Staff>) => {
-      const response = await api.post<Staff>('/staff', data);
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...data,
+        email: data.email === '' ? null : data.email,
+        department: data.department === '' ? null : data.department,
+        notes: data.notes === '' ? null : data.notes,
+      };
+      const response = await api.post<Staff>('/staff', cleanedData);
       return response.data;
     },
     onSuccess: () => {

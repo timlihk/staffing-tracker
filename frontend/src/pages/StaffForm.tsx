@@ -64,9 +64,12 @@ const StaffForm: React.FC = () => {
 
   const onSubmit = async (data: StaffFormData) => {
     try {
+      console.log('[STAFF FORM] onSubmit called', { isEdit, id, data });
       if (isEdit) {
+        console.log('[STAFF FORM] Calling updateStaff with id:', Number(id));
         await updateStaff.mutateAsync({ id: Number(id), data });
       } else {
+        console.log('[STAFF FORM] Calling createStaff');
         await createStaff.mutateAsync(data);
       }
       navigate('/staff');
