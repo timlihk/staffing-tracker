@@ -88,6 +88,10 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    // Calculate 30 days from now for upcoming filings/listings
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
     const [
       totalProjects,
       activeProjects,
@@ -101,6 +105,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       staffByRole,
       topAssignedStaff,
       pendingConfirmations,
+      upcomingFilings30Days,
+      upcomingListings30Days,
       upcomingMilestones,
       staffingHeatmap,
       unstaffedMilestones,
@@ -141,6 +147,16 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
             { lastConfirmedAt: null },
             { lastConfirmedAt: { lt: sevenDaysAgo } },
           ],
+        },
+      }),
+      prisma.project.count({
+        where: {
+          filingDate: { gte: now, lte: thirtyDaysFromNow },
+        },
+      }),
+      prisma.project.count({
+        where: {
+          listingDate: { gte: now, lte: thirtyDaysFromNow },
         },
       }),
       findUpcomingMilestones(now, windowEnd),
@@ -185,6 +201,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         totalStaff,
         activeStaff,
         pendingConfirmations,
+        upcomingFilings30Days,
+        upcomingListings30Days,
       },
       projectsByStatus,
       projectsByCategory: projectsByCategory.map((item: any) => ({

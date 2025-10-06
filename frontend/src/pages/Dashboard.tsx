@@ -367,9 +367,9 @@ const DealRadarCard = ({
     });
   }, [allEvents, selectedDate]);
 
-  // Get displayed events (first 10 or all)
+  // Get displayed events (first 5 or all)
   const displayedEvents = useMemo(() => {
-    return showAllEvents ? filteredEvents : filteredEvents.slice(0, 10);
+    return showAllEvents ? filteredEvents : filteredEvents.slice(0, 5);
   }, [filteredEvents, showAllEvents]);
 
   return (
@@ -588,14 +588,14 @@ const DealRadarCard = ({
                 </TableBody>
               </Table>
             </TableContainer>
-            {filteredEvents.length > 10 && (
+            {filteredEvents.length > 5 && (
               <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
                 <Button
                   variant="outlined"
                   onClick={() => setShowAllEvents(!showAllEvents)}
                   size="small"
                 >
-                  {showAllEvents ? 'Show Less' : `Show More (${filteredEvents.length - 10} more)`}
+                  {showAllEvents ? 'Show Less' : `Show More (${filteredEvents.length - 5} more)`}
                 </Button>
               </Box>
             )}

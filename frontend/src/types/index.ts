@@ -88,6 +88,8 @@ export interface DashboardSummary {
     totalStaff: number;
     activeStaff: number;
     pendingConfirmations: number;
+    upcomingFilings30Days: number;
+    upcomingListings30Days: number;
   };
   projectsByStatus: Array<{ status: string; count: number }>;
   projectsByCategory: Array<{ category: string; count: number }>;
