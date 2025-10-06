@@ -1,3 +1,5 @@
+name: Backup Railway Postgres
+
 on:
   schedule:
     - cron: '0 2 * * *'   # Daily 02:00 UTC (10:00 AM HKT)
@@ -24,7 +26,7 @@ jobs:
         run: |
           ts=$(date -u +'%Y-%m-%dT%H-%M-%SZ')
           outfile="railway-backup-${ts}.dump"
-          pg_dump "$DATABASE_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" \
             --format=custom \
             --no-owner \
             --no-privileges \
