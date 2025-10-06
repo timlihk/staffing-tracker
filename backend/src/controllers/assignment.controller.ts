@@ -290,23 +290,40 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
     }
 
     const createdAssignments = [];
+    const errors: Array<{ index: number; error: string }> = [];
 
-    for (const assignmentData of assignments) {
+    for (let i = 0; i < assignments.length; i++) {
+      const assignmentData = assignments[i];
       const {
         projectId,
         staffId,
         jurisdiction,
       } = assignmentData;
 
+      // Validate and coerce IDs
       if (!projectId || !staffId) {
-        continue; // Skip invalid entries
+        errors.push({ index: i, error: 'Missing projectId or staffId' });
+        continue;
+      }
+
+      const parsedProjectId = typeof projectId === 'number' ? projectId : parseInt(String(projectId), 10);
+      const parsedStaffId = typeof staffId === 'number' ? staffId : parseInt(String(staffId), 10);
+
+      if (Number.isNaN(parsedProjectId)) {
+        errors.push({ index: i, error: 'Invalid projectId' });
+        continue;
+      }
+
+      if (Number.isNaN(parsedStaffId)) {
+        errors.push({ index: i, error: 'Invalid staffId' });
+        continue;
       }
 
       try {
         const assignment = await prisma.projectAssignment.create({
           data: {
-            projectId,
-            staffId,
+            projectId: parsedProjectId,
+            staffId: parsedStaffId,
             jurisdiction,
           },
           include: {
@@ -318,7 +335,9 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         createdAssignments.push(assignment);
       } catch (error: any) {
         // Skip duplicates
-        if (error.code !== 'P2002') {
+        if (error.code === 'P2002') {
+          errors.push({ index: i, error: 'Duplicate assignment' });
+        } else {
           throw error;
         }
       }
@@ -337,6 +356,7 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
     res.status(201).json({
       count: createdAssignments.length,
       assignments: createdAssignments,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error('Bulk create assignments error:', error);

@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma';
+import { AppError } from '../utils/errors';
 
 export interface ProjectReportQuery {
   categories?: string;
@@ -51,11 +52,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
   if (q.staffId) {
     const parsed = parseInt(q.staffId, 10);
     if (Number.isNaN(parsed)) {
-      // Return a validation error object that the controller can handle
-      throw Object.assign(
-        new Error('Invalid staffId parameter'),
-        { statusCode: 400, userFacing: true }
-      );
+      throw AppError.badRequest('Invalid staffId parameter');
     }
     staffId = parsed;
   }
