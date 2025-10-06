@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { AppError, isAppError } from '../utils/errors';
+import { logger } from '../utils/logger';
 
 // Error handler middleware
 export const errorHandler = (
@@ -9,8 +10,9 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  // Log error for debugging
-  console.error('Error:', {
+  const requestLogger = (req as any).log ?? logger;
+
+  requestLogger.error('Unhandled error', {
     name: err.name,
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
