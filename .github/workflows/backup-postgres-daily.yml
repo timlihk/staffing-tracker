@@ -33,6 +33,41 @@ jobs:
             --file="$outfile"
           gzip "$outfile"
           echo "backup_path=${outfile}.gz" >> $GITHUB_OUTPUT
+          echo "backup_file=${outfile}" >> $GITHUB_OUTPUT
+
+      - name: Validate backup integrity
+        run: |
+          backup_file="${{ steps.dump.outputs.backup_path }}"
+
+          # Check file exists and is not empty
+          if [ ! -f "$backup_file" ]; then
+            echo "ERROR: Backup file not found"
+            exit 1
+          fi
+
+          # Check minimum size (should be at least 1KB)
+          size=$(stat -f%z "$backup_file" 2>/dev/null || stat -c%s "$backup_file")
+          if [ "$size" -lt 1024 ]; then
+            echo "ERROR: Backup file too small ($size bytes), likely corrupt"
+            exit 1
+          fi
+
+          # Verify gzip integrity
+          if ! gzip -t "$backup_file"; then
+            echo "ERROR: Gzip integrity check failed"
+            exit 1
+          fi
+
+          # Extract and validate pg_dump format
+          gunzip -c "$backup_file" > /tmp/test.dump
+          if ! /usr/lib/postgresql/17/bin/pg_restore --list /tmp/test.dump > /dev/null 2>&1; then
+            echo "ERROR: pg_restore validation failed - backup may be corrupt"
+            rm /tmp/test.dump
+            exit 1
+          fi
+          rm /tmp/test.dump
+
+          echo "✅ Backup validation passed (size: $size bytes)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

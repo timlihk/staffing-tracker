@@ -1,0 +1,107 @@
+name: Test Database Restore
+
+on:
+  # Run weekly to verify restore procedure works
+  schedule:
+    - cron: '0 4 * * 0'   # Weekly on Sunday at 04:00 UTC
+  workflow_dispatch:      # Allows manual trigger
+
+jobs:
+  test-restore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17 postgresql-17
+
+      - name: Create test database backup
+        env:
+          DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+        run: |
+          ts=$(date -u +'%Y-%m-%dT%H-%M-%SZ')
+          outfile="restore-test-${ts}.dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$DATABASE_URL" \
+            --format=custom \
+            --no-owner \
+            --no-privileges \
+            --file="$outfile"
+          echo "BACKUP_FILE=$outfile" >> $GITHUB_ENV
+
+      - name: Start local PostgreSQL
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "CREATE DATABASE restore_test;"
+          sudo -u postgres psql -c "CREATE USER testuser WITH PASSWORD 'testpass';"
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE restore_test TO testuser;"
+          echo "TEST_DATABASE_URL=postgresql://testuser:testpass@localhost/restore_test" >> $GITHUB_ENV
+
+      - name: Test restore procedure
+        run: |
+          echo "🔄 Testing restore from backup: $BACKUP_FILE"
+
+          # Attempt restore
+          /usr/lib/postgresql/17/bin/pg_restore \
+            --verbose \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-privileges \
+            --dbname="$TEST_DATABASE_URL" \
+            "$BACKUP_FILE"
+
+          restore_exit_code=$?
+
+          if [ $restore_exit_code -ne 0 ]; then
+            echo "❌ ERROR: Restore failed with exit code $restore_exit_code"
+            exit 1
+          fi
+
+      - name: Verify restored data
+        run: |
+          echo "🔍 Verifying restored database..."
+
+          # Check that we can connect
+          if ! /usr/lib/postgresql/17/bin/psql "$TEST_DATABASE_URL" -c "SELECT 1;" > /dev/null 2>&1; then
+            echo "❌ ERROR: Cannot connect to restored database"
+            exit 1
+          fi
+
+          # Check for tables
+          table_count=$(/usr/lib/postgresql/17/bin/psql "$TEST_DATABASE_URL" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';")
+          echo "Found $table_count tables in restored database"
+
+          if [ "$table_count" -lt 1 ]; then
+            echo "❌ ERROR: No tables found in restored database"
+            exit 1
+          fi
+
+          # Check for data in main tables (adjust table names as needed)
+          staff_count=$(/usr/lib/postgresql/17/bin/psql "$TEST_DATABASE_URL" -t -c "SELECT COUNT(*) FROM staff;" 2>/dev/null || echo "0")
+          projects_count=$(/usr/lib/postgresql/17/bin/psql "$TEST_DATABASE_URL" -t -c "SELECT COUNT(*) FROM projects;" 2>/dev/null || echo "0")
+
+          echo "Staff records: $staff_count"
+          echo "Project records: $projects_count"
+
+          echo "✅ Restore test passed!"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          sudo -u postgres psql -c "DROP DATABASE IF EXISTS restore_test;"
+          sudo -u postgres psql -c "DROP USER IF EXISTS testuser;"
+          rm -f "$BACKUP_FILE"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-test-failure-${{ github.run_id }}
+          path: |
+            ${{ env.BACKUP_FILE }}
+          retention-days: 7
