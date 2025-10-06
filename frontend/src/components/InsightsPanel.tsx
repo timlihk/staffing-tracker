@@ -140,15 +140,15 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               minWidth: 180,
               p: 1.5,
               bgcolor: 'primary.main',
-              color: 'white',
+              color: 'common.white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
+              <Typography variant="caption" sx={{ opacity: 0.95, mb: 0.25, fontSize: '0.7rem', color: 'inherit' }}>
                 Active Projects
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700} color="inherit">
                 {data.summary.activeProjects}
               </Typography>
             </Paper>
@@ -157,18 +157,18 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               minWidth: 180,
               p: 1.5,
               bgcolor: 'info.main',
-              color: 'white',
+              color: 'common.white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
+              <Typography variant="caption" sx={{ opacity: 0.95, mb: 0.25, fontSize: '0.7rem', color: 'inherit' }}>
                 Upcoming Filing
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700} color="inherit">
                 {data.summary.upcomingFilings30Days}
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.15, fontSize: '0.65rem' }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.15, fontSize: '0.65rem', color: 'inherit' }}>
                 in 30 days
               </Typography>
             </Paper>
@@ -177,18 +177,18 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               minWidth: 180,
               p: 1.5,
               bgcolor: 'secondary.main',
-              color: 'white',
+              color: 'common.white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
+              <Typography variant="caption" sx={{ opacity: 0.95, mb: 0.25, fontSize: '0.7rem', color: 'inherit' }}>
                 Upcoming Listing
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700} color="inherit">
                 {data.summary.upcomingListings30Days}
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.15, fontSize: '0.65rem' }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.15, fontSize: '0.65rem', color: 'inherit' }}>
                 in 30 days
               </Typography>
             </Paper>
@@ -197,15 +197,15 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               minWidth: 180,
               p: 1.5,
               bgcolor: 'success.main',
-              color: 'white',
+              color: 'common.white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
+              <Typography variant="caption" sx={{ opacity: 0.95, mb: 0.25, fontSize: '0.7rem', color: 'inherit' }}>
                 Active Staff
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700} color="inherit">
                 {data.summary.activeStaff}
               </Typography>
             </Paper>
