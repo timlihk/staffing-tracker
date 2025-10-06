@@ -1,24 +1,27 @@
-import { ReactNode, useState, useMemo } from 'react';
+import { ReactNode, useState, useMemo, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import { getTheme } from './theme';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Projects from './pages/Projects';
-import ProjectDetail from './pages/ProjectDetail';
-import ProjectForm from './pages/ProjectForm';
-import Staff from './pages/Staff';
-import StaffDetail from './pages/StaffDetail';
-import StaffForm from './pages/StaffForm';
-import ProjectReport from './pages/ProjectReport';
-import TestPage from './pages/TestPage';
-import UserManagement from './pages/UserManagement';
-import ResetPassword from './pages/ResetPassword';
-import WeeklyReview from './pages/WeeklyReview';
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Projects = lazy(() => import('./pages/Projects'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const ProjectForm = lazy(() => import('./pages/ProjectForm'));
+const Staff = lazy(() => import('./pages/Staff'));
+const StaffDetail = lazy(() => import('./pages/StaffDetail'));
+const StaffForm = lazy(() => import('./pages/StaffForm'));
+const ProjectReport = lazy(() => import('./pages/ProjectReport'));
+const TestPage = lazy(() => import('./pages/TestPage'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -27,6 +30,19 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
   }
   return <>{children}</>;
 };
+
+const LoadingScreen = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+    }}
+  >
+    <CircularProgress />
+  </Box>
+);
 
 function App() {
   const [mode, setMode] = useState<'light' | 'dark'>('light');
@@ -37,7 +53,8 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <Router>
-          <Routes>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
 
@@ -180,7 +197,8 @@ function App() {
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+            </Routes>
+          </Suspense>
         </Router>
       </AuthProvider>
     </ThemeProvider>
