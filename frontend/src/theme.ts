@@ -6,8 +6,20 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
 
   // Lovable Design Tokens
   const brand = {
-    primary: '#3B82F6',
-    secondary: '#10B981',
+    primary: '#2563EB',
+    secondary: '#14B8A6',
+    neutral: {
+      0: '#FFFFFF',
+      100: '#F8FAFC',
+      200: '#F1F5F9',
+      300: '#E2E8F0',
+      400: '#CBD5F1',
+      500: '#94A3B8',
+      600: '#64748B',
+      700: '#475569',
+      800: '#1E293B',
+      900: '#0F172A',
+    },
   };
 
   return createTheme({
@@ -15,31 +27,37 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
       mode,
       primary: { main: brand.primary },
       secondary: { main: brand.secondary },
+      success: { main: '#22C55E' },
+      warning: { main: '#F59E0B' },
+      error: { main: '#EF4444' },
+      info: { main: '#38BDF8' },
       background: {
-        default: isDark ? '#0B1220' : '#F7F8FB',
-        paper: isDark ? '#111827' : '#FFFFFF',
+        default: isDark ? brand.neutral[900] : brand.neutral[100],
+        paper: isDark ? alpha('#0F172A', 0.92) : brand.neutral[0],
       },
       text: {
-        primary: isDark ? '#E5E7EB' : '#0F172A',
-        secondary: isDark ? '#CBD5E1' : '#475569',
+        primary: isDark ? brand.neutral[100] : brand.neutral[900],
+        secondary: isDark ? alpha(brand.neutral[100], 0.72) : brand.neutral[600],
       },
-      divider: isDark ? alpha('#9CA3AF', 0.3) : '#E5E7EB',
+      divider: isDark ? alpha(brand.neutral[500], 0.2) : brand.neutral[200],
     },
     typography: {
       fontFamily:
-        '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      h1: { fontWeight: 700, letterSpacing: '-0.5px' },
-      h2: { fontWeight: 700, letterSpacing: '-0.5px' },
-      h3: { fontWeight: 600 },
-      h4: { fontWeight: 600 },
-      h5: { fontWeight: 600 },
-      h6: { fontWeight: 600 },
-      button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.1px' },
-      subtitle1: { fontWeight: 600 },
-      body1: { lineHeight: 1.6 },
-      body2: { lineHeight: 1.6 },
+        '"Inter", "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      h1: { fontWeight: 700, fontSize: '2.75rem', letterSpacing: '-0.032em', lineHeight: 1.1 },
+      h2: { fontWeight: 700, fontSize: '2.125rem', letterSpacing: '-0.02em', lineHeight: 1.2 },
+      h3: { fontWeight: 600, fontSize: '1.75rem', letterSpacing: '-0.015em', lineHeight: 1.25 },
+      h4: { fontWeight: 600, fontSize: '1.5rem', letterSpacing: '-0.01em', lineHeight: 1.3 },
+      h5: { fontWeight: 600, fontSize: '1.25rem', lineHeight: 1.4 },
+      h6: { fontWeight: 600, fontSize: '1.125rem', lineHeight: 1.4 },
+      subtitle1: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.5, color: isDark ? alpha(brand.neutral[100], 0.8) : brand.neutral[600] },
+      subtitle2: { fontWeight: 500, fontSize: '0.95rem', lineHeight: 1.45, color: isDark ? alpha(brand.neutral[100], 0.7) : brand.neutral[500] },
+      body1: { lineHeight: 1.6, fontSize: '1rem' },
+      body2: { lineHeight: 1.55, fontSize: '0.95rem', color: isDark ? alpha(brand.neutral[100], 0.72) : brand.neutral[600] },
+      button: { textTransform: 'none', fontWeight: 600, letterSpacing: '-0.01em' },
+      caption: { fontSize: '0.8rem', lineHeight: 1.4, color: isDark ? alpha(brand.neutral[100], 0.6) : brand.neutral[500] },
     },
-    shape: { borderRadius: 12 },
+    shape: { borderRadius: 16 },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
@@ -71,16 +89,30 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: ({ theme }) => ({
-            borderRadius: 12,
-            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 18,
+            border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.4 : 1)}`,
             backgroundImage: 'none',
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? '0 18px 45px rgba(15, 23, 42, 0.35)'
+                : '0 22px 50px rgba(15, 23, 42, 0.08)',
           }),
         },
       },
       MuiButton: {
         styleOverrides: {
-          root: { borderRadius: 10, paddingInline: 16, paddingBlock: 8 },
-          containedPrimary: { boxShadow: '0 6px 20px rgba(59,130,246,0.28)' },
+          root: {
+            borderRadius: 999,
+            paddingInline: 18,
+            paddingBlock: 9,
+            transition: 'all 200ms ease',
+          },
+          containedPrimary: {
+            boxShadow: '0 14px 30px rgba(37, 99, 235, 0.22)',
+            '&:hover': {
+              boxShadow: '0 18px 40px rgba(37, 99, 235, 0.28)',
+            },
+          },
         },
       },
       MuiChip: {
@@ -124,7 +156,10 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: 10,
+            borderRadius: 12,
+            paddingBlock: 10,
+            paddingInline: 14,
+            transition: 'all 200ms ease',
             '&.Mui-selected': {
               backgroundColor: alpha(brand.primary, 0.12),
               '&:hover': {

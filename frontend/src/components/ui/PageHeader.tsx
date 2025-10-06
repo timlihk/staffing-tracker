@@ -10,7 +10,7 @@ interface PageHeaderProps {
 const PageHeader = ({ title, subtitle, actions }: PageHeaderProps) => {
   const renderTitle =
     typeof title === 'string' ? (
-      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+      <Typography variant="h3" sx={{ fontWeight: 700 }}>
         {title}
       </Typography>
     ) : (
@@ -23,12 +23,12 @@ const PageHeader = ({ title, subtitle, actions }: PageHeaderProps) => {
       spacing={1.5}
       alignItems={{ xs: 'flex-start', sm: 'center' }}
       justifyContent="space-between"
-      sx={{ mb: 2 }}
+      sx={{ mb: { xs: 2.5, md: 3 } }}
     >
       <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: 'flex-start' }}>
         <Box>{renderTitle}</Box>
         {subtitle && (
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="subtitle1" color="text.secondary">
             {subtitle}
           </Typography>
         )}

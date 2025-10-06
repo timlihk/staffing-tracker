@@ -8,7 +8,7 @@ interface PageToolbarProps {
 const PageToolbar = ({ children }: PageToolbarProps) => (
   <Stack
     direction="row"
-    spacing={1.5}
+    spacing={2}
     flexWrap="wrap"
     alignItems="center"
     sx={{ rowGap: 1.5, width: '100%' }}

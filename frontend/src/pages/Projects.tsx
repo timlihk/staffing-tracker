@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Paper, Button, TextField, MenuItem, Chip, IconButton, Typography, Autocomplete } from '@mui/material';
+import { Box, Button, TextField, MenuItem, Chip, IconButton, Typography, Autocomplete } from '@mui/material';
 import { Add, Edit } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Project, Staff } from '../types';
-import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState } from '../components/ui';
+import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState, Section } from '../components/ui';
 import { useProjects } from '../hooks/useProjects';
 import { usePermissions } from '../hooks/usePermissions';
 import { useStaff } from '../hooks/useStaff';
@@ -131,9 +131,8 @@ const Projects: React.FC = () => {
     <Page>
       <PageHeader title="Projects" />
       {/* Filters */}
-      <Paper sx={{ px: 0, py: 2 }}>
-        <Box sx={{ px: 2 }}>
-          <PageToolbar>
+      <Section sx={{ p: { xs: 2.5, md: 3 } }}>
+        <PageToolbar>
           <TextField
             label="Search"
             variant="outlined"
@@ -215,12 +214,13 @@ const Projects: React.FC = () => {
             sx={{ flex: 1, minWidth: 135 }}
           />
         </PageToolbar>
-        </Box>
-      </Paper>
+      </Section>
 
       {/* Data Grid */}
       {isLoading ? (
-        <ProjectListSkeleton />
+        <Section>
+          <ProjectListSkeleton />
+        </Section>
       ) : error ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <Box sx={{ textAlign: 'center' }}>
@@ -233,16 +233,16 @@ const Projects: React.FC = () => {
           </Box>
         </Box>
       ) : projects.length === 0 ? (
-        <Paper>
+        <Section>
           <EmptyState
             title="No projects found"
             subtitle="Create your first project to get started"
             actionLabel="New Project"
             onAction={() => navigate('/projects/new')}
           />
-        </Paper>
+        </Section>
       ) : (
-        <Paper sx={{ p: 1, width: '100%', overflow: 'hidden' }}>
+        <Section sx={{ p: { xs: 0.5, md: 1.5 }, overflow: 'hidden' }}>
           <Box sx={{ width: '100%', overflow: 'auto' }}>
             <StyledDataGrid
               rows={projects}
@@ -253,26 +253,23 @@ const Projects: React.FC = () => {
               }}
               pageSizeOptions={[25, 50, 100, 200]}
               onRowClick={(params) => navigate(`/projects/${params.row.id}`)}
-              getRowClassName={(params) => params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row'}
+              getRowClassName={(params) => (params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row')}
               sx={{
                 cursor: 'pointer',
                 width: '100%',
                 '& .even-row': {
-                  bgcolor: 'grey.100',
+                  bgcolor: 'background.default',
                 },
                 '& .odd-row': {
-                  bgcolor: 'white',
+                  bgcolor: 'background.paper',
                 },
-                '& .even-row:hover': {
-                  bgcolor: 'grey.200',
-                },
-                '& .odd-row:hover': {
-                  bgcolor: 'grey.200',
+                '& .even-row:hover, & .odd-row:hover': {
+                  bgcolor: 'action.hover',
                 },
               }}
             />
           </Box>
-        </Paper>
+        </Section>
       )}
     </Page>
   );

@@ -301,7 +301,10 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
       } = assignmentData;
 
       // Validate and coerce IDs
-      if (!projectId || !staffId) {
+      const hasProjectId = projectId !== undefined && projectId !== null && projectId !== '';
+      const hasStaffId = staffId !== undefined && staffId !== null && staffId !== '';
+
+      if (!hasProjectId || !hasStaffId) {
         errors.push({ index: i, error: 'Missing projectId or staffId' });
         continue;
       }
