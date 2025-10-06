@@ -69,6 +69,36 @@ jobs:
 
           echo "✅ Backup validation passed (size: $size bytes)"
 
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+
+      - name: Configure rclone
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+
+      - name: Upload to Google Drive
+        run: |
+          backup_file="${{ steps.dump.outputs.backup_path }}"
+
+          # Create folder structure: staffing-tracker-backups/weekly/YYYY/MM/
+          year=$(date -u +'%Y')
+          month=$(date -u +'%m')
+          remote_path="staffing-tracker-backups/weekly/$year/$month/"
+
+          echo "📤 Uploading to Google Drive: $remote_path"
+          rclone copy "$backup_file" "gdrive:$remote_path" -v
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Successfully uploaded to Google Drive"
+          else
+            echo "⚠️ Failed to upload to Google Drive, but backup is still in GitHub artifacts"
+            exit 0  # Don't fail the workflow
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

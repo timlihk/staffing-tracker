@@ -9,12 +9,25 @@
 
 **Total**: ~35 backups at any given time
 
+**Storage Locations:**
+- **GitHub Artifacts**: Short-term, fast access (retention as above)
+- **Google Drive**: Long-term durable storage (kept indefinitely)
+  - Organized by: `staffing-tracker-backups/[hourly|daily|weekly]/YYYY/MM/`
+  - Provides redundancy and off-site backup
+
 ## Finding Backups
 
+**From GitHub Actions (recent backups):**
 1. Go to: https://github.com/timlihk/staffing-tracker/actions
 2. Click on any completed backup workflow (Hourly/Daily/Weekly)
 3. Scroll to "Artifacts" section
 4. Download the backup file
+
+**From Google Drive (all backups):**
+1. Open Google Drive
+2. Navigate to `staffing-tracker-backups/` folder
+3. Choose from `hourly/`, `daily/`, or `weekly/` subfolder
+4. Download the backup file you need
 
 ## How to Restore
 
@@ -101,9 +114,10 @@ A restore script is provided for convenience:
 
 ## Important Notes
 
-- **GitHub Artifacts**: Not permanent storage! Use Railway backups or external storage for long-term retention
+- **Dual Storage**: Backups are stored in both GitHub Artifacts (fast access) and Google Drive (long-term durability)
 - **Validation**: All backups are validated with `pg_restore --list` before upload
-- **Railway Backups**: Enable Railway's built-in backups as a secondary backup system
+- **Google Drive**: Provides unlimited retention and off-site backup redundancy
+- **Railway Backups**: Consider enabling Railway's built-in backups as a third backup layer
 - **Test Regularly**: Untested backups are just hopeful files
 
 ## Emergency Contact
