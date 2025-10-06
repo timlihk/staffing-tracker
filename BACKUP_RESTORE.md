@@ -2,19 +2,18 @@
 
 ## Backup Strategy
 
-**Tiered Retention:**
-- **Hourly**: Every hour, retained for 1 day (~24 backups)
-- **Daily**: Daily at 2 AM UTC (10 AM HKT), retained for 7 days (7 backups)
-
-**Total**: ~31 backups at any given time
+**Simple Hourly Backups:**
+- **Frequency**: Every hour
+- **Retention**: 3 days
+- **Total**: ~72 backups at any given time
 
 **Storage Location:**
 - **GitHub Actions Artifacts**: Validated backups with automatic retention management
 
 ## Finding Backups
 
-1. Go to: https://github.com/timlihk/staffing-tracker/actions
-2. Click on any completed backup workflow (Hourly or Daily)
+1. Go to: https://github.com/timlihk/staffing-tracker/actions/workflows/backup-postgres.yml
+2. Click on any completed backup run
 3. Scroll to "Artifacts" section
 4. Download the backup file
 
