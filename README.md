@@ -731,10 +731,8 @@ Production database is protected with a comprehensive multi-tier backup system:
 - **Daily**: 2 AM UTC (10 AM HKT), stored for 7 days
 - **Weekly**: Sunday 3 AM UTC (11 AM HKT), stored for 30 days
 
-**Storage Locations:**
-- **GitHub Actions Artifacts**: Fast access to recent backups (auto-retention management)
-- **Google Drive**: Long-term durable storage with unlimited retention
-  - Organized by frequency and date: `staffing-tracker-backups/[hourly|daily|weekly]/YYYY/MM/`
+**Storage Location:**
+- **GitHub Actions Artifacts**: Validated backups with automatic retention management (1-30 days)
 
 **Validation & Testing:**
 - Every backup validated with `pg_restore --list` before storage

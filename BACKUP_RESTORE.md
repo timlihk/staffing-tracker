@@ -9,25 +9,15 @@
 
 **Total**: ~35 backups at any given time
 
-**Storage Locations:**
-- **GitHub Artifacts**: Short-term, fast access (retention as above)
-- **Google Drive**: Long-term durable storage (kept indefinitely)
-  - Organized by: `staffing-tracker-backups/[hourly|daily|weekly]/YYYY/MM/`
-  - Provides redundancy and off-site backup
+**Storage Location:**
+- **GitHub Actions Artifacts**: Validated backups with automatic retention management
 
 ## Finding Backups
 
-**From GitHub Actions (recent backups):**
 1. Go to: https://github.com/timlihk/staffing-tracker/actions
 2. Click on any completed backup workflow (Hourly/Daily/Weekly)
 3. Scroll to "Artifacts" section
 4. Download the backup file
-
-**From Google Drive (all backups):**
-1. Open Google Drive
-2. Navigate to `staffing-tracker-backups/` folder
-3. Choose from `hourly/`, `daily/`, or `weekly/` subfolder
-4. Download the backup file you need
 
 ## How to Restore
 
@@ -114,11 +104,11 @@ A restore script is provided for convenience:
 
 ## Important Notes
 
-- **Dual Storage**: Backups are stored in both GitHub Artifacts (fast access) and Google Drive (long-term durability)
 - **Validation**: All backups are validated with `pg_restore --list` before upload
-- **Google Drive**: Provides unlimited retention and off-site backup redundancy
-- **Railway Backups**: Consider enabling Railway's built-in backups as a third backup layer
+- **Retention**: GitHub automatically manages artifact retention (1-30 days depending on backup frequency)
+- **Storage Limits**: GitHub free tier provides 500MB artifact storage - monitor usage
 - **Test Regularly**: Untested backups are just hopeful files
+- **Consider**: Adding external storage (S3, Google Drive) for long-term retention beyond GitHub limits
 
 ## Emergency Contact
 
