@@ -80,6 +80,13 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
 
+          # Debug: Check if config was written
+          echo "Config file contents:"
+          cat ~/.config/rclone/rclone.conf
+
+          # Verify rclone can read it
+          rclone config show
+
       - name: Upload to Google Drive
         run: |
           backup_file="${{ steps.dump.outputs.backup_path }}"
