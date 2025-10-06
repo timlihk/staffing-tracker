@@ -131,15 +131,16 @@ const Projects: React.FC = () => {
     <Page>
       <PageHeader title="Projects" />
       {/* Filters */}
-      <Paper sx={{ p: 2 }}>
-        <PageToolbar>
+      <Paper sx={{ px: 0, py: 2 }}>
+        <Box sx={{ px: 2 }}>
+          <PageToolbar>
           <TextField
             label="Search"
             variant="outlined"
             size="small"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            sx={{ width: { xs: '100%', sm: 300 } }}
+            sx={{ flex: 1, minWidth: 160 }}
           />
           {permissions.canCreateProject && (
             <Button
@@ -157,7 +158,7 @@ const Projects: React.FC = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             size="small"
-            sx={{ minWidth: 150 }}
+            sx={{ flex: 1, minWidth: 100 }}
           >
             <MenuItem value="all">All Status</MenuItem>
             <MenuItem value="Active">Active</MenuItem>
@@ -170,7 +171,7 @@ const Projects: React.FC = () => {
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             size="small"
-            sx={{ minWidth: 200 }}
+            sx={{ flex: 1, minWidth: 115 }}
           >
             <MenuItem value="all">All Categories</MenuItem>
             <MenuItem value="HK Trx">HK Trx</MenuItem>
@@ -184,7 +185,7 @@ const Projects: React.FC = () => {
             value={sideFilter}
             onChange={(e) => setSideFilter(e.target.value)}
             size="small"
-            sx={{ minWidth: 150 }}
+            sx={{ flex: 1, minWidth: 100 }}
           >
             <MenuItem value="all">All Sides</MenuItem>
             <MenuItem value="Issuer">Issuer</MenuItem>
@@ -196,7 +197,7 @@ const Projects: React.FC = () => {
             value={sectorFilter}
             onChange={(e) => setSectorFilter(e.target.value)}
             size="small"
-            sx={{ minWidth: 150 }}
+            sx={{ flex: 1, minWidth: 100 }}
           >
             <MenuItem value="all">All Sectors</MenuItem>
             <MenuItem value="Healthcare">Healthcare</MenuItem>
@@ -211,9 +212,10 @@ const Projects: React.FC = () => {
             onChange={(_, v) => setSelectedStaff(v)}
             getOptionLabel={(option) => option.name}
             renderInput={(params) => <TextField {...params} label="Team Member" />}
-            sx={{ minWidth: 200 }}
+            sx={{ flex: 1, minWidth: 135 }}
           />
         </PageToolbar>
+        </Box>
       </Paper>
 
       {/* Data Grid */}

@@ -240,37 +240,12 @@ const UserManagement: React.FC = () => {
       renderCell: ({ value }) => value,
     },
     {
-      field: 'online',
-      headerName: 'Status',
-      flex: 0.5,
-      headerAlign: 'center',
-      align: 'center',
-      valueGetter: (_value, row) => isUserOnline(row.lastActivity),
-      renderCell: ({ row }) => {
-        const online = isUserOnline(row.lastActivity);
-        return online ? (
-          <Chip size="small" label="Online" color="success" />
-        ) : (
-          <Chip size="small" label="Offline" variant="outlined" />
-        );
-      },
-    },
-    {
       field: 'role',
       headerName: 'Role',
       flex: 0.6,
       headerAlign: 'center',
       align: 'center',
       renderCell: ({ value }) => <Chip size="small" label={value} color={value === 'admin' ? 'error' : value === 'editor' ? 'warning' : 'default'} />,
-    },
-    {
-      field: 'mustResetPassword',
-      headerName: 'Reset Required',
-      flex: 0.7,
-      headerAlign: 'center',
-      align: 'center',
-      renderCell: ({ value }) =>
-        value ? <Chip label="Pending" color="warning" size="small" /> : <Chip label="No" size="small" />,
     },
     {
       field: 'recentActionCount',

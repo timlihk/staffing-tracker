@@ -8,10 +8,10 @@ interface PageToolbarProps {
 const PageToolbar = ({ children }: PageToolbarProps) => (
   <Stack
     direction="row"
-    spacing={2}
+    spacing={1.5}
     flexWrap="wrap"
     alignItems="center"
-    sx={{ rowGap: 1.5 }}
+    sx={{ rowGap: 1.5, width: '100%' }}
   >
     {children}
   </Stack>

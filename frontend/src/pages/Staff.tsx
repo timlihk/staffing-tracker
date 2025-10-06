@@ -111,15 +111,16 @@ const Staff: React.FC = () => {
       ) : (
         <>
           {/* Filters */}
-          <Paper sx={{ p: 2 }}>
-            <PageToolbar>
+          <Paper sx={{ px: 0, py: 2 }}>
+            <Box sx={{ px: 2 }}>
+              <PageToolbar>
               <TextField
                 label="Search"
                 variant="outlined"
                 size="small"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                sx={{ width: { xs: '100%', sm: 300 } }}
+                sx={{ flex: 1, minWidth: 160 }}
               />
               <Button
                 variant="contained"
@@ -135,7 +136,7 @@ const Staff: React.FC = () => {
                 value={positionFilter}
                 onChange={(e) => setPositionFilter(e.target.value)}
                 size="small"
-                sx={{ minWidth: 200 }}
+                sx={{ flex: 1, minWidth: 130 }}
               >
                 <MenuItem value="all">All Positions</MenuItem>
                 <MenuItem value="Partner">Partner</MenuItem>
@@ -150,13 +151,14 @@ const Staff: React.FC = () => {
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
                 size="small"
-                sx={{ minWidth: 150 }}
+                sx={{ flex: 1, minWidth: 110 }}
               >
                 <MenuItem value="all">All Departments</MenuItem>
                 <MenuItem value="US Law">US Law</MenuItem>
                 <MenuItem value="HK Law">HK Law</MenuItem>
               </TextField>
             </PageToolbar>
+            </Box>
           </Paper>
 
           {/* Data Grid */}

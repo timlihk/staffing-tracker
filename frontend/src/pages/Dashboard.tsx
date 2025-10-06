@@ -127,7 +127,7 @@ const Dashboard = () => {
 
   return (
     <Page>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
         <PageHeader title="Dashboard" />
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <Select
@@ -142,7 +142,7 @@ const Dashboard = () => {
           </Select>
         </FormControl>
       </Stack>
-      <Stack spacing={2}>
+      <Stack spacing={1.75}>
         <InsightsPanel data={data} timeRange={timeRange} />
         <DealRadarCard
           groups={dealRadarGroups}
@@ -310,10 +310,10 @@ const DealRadarCard = ({
         />
         <Stack
           direction="row"
-          spacing={0.25}
+          spacing={0.2}
           sx={{
             position: 'absolute',
-            bottom: 2,
+            bottom: 1.5,
             left: '50%',
             transform: 'translateX(-50%)',
             pointerEvents: 'none',
@@ -322,8 +322,8 @@ const DealRadarCard = ({
           {eventData.filingCount > 0 && (
             <Box
               sx={{
-                width: 5,
-                height: 5,
+                width: 4,
+                height: 4,
                 borderRadius: '50%',
                 bgcolor: isSelected ? 'common.white' : 'info.main',
               }}
@@ -332,8 +332,8 @@ const DealRadarCard = ({
           {eventData.listingCount > 0 && (
             <Box
               sx={{
-                width: 5,
-                height: 5,
+                width: 4,
+                height: 4,
                 borderRadius: '50%',
                 bgcolor: isSelected ? 'common.white' : 'secondary.main',
               }}
@@ -373,31 +373,31 @@ const DealRadarCard = ({
   }, [filteredEvents, showAllEvents]);
 
   return (
-    <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-        <Typography variant="h6" fontWeight={700}>
+    <Paper sx={{ p: 2.5, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
           Deal Radar ({getTimeRangeLabel(timeRange)})
         </Typography>
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" spacing={1.5} alignItems="center">
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'info.main' }} />
-            <Typography variant="caption">Filing</Typography>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'info.main' }} />
+            <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>Filing</Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'secondary.main' }} />
-            <Typography variant="caption">Listing</Typography>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'secondary.main' }} />
+            <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>Listing</Typography>
           </Stack>
         </Stack>
       </Stack>
     {groups.length === 0 ? (
       <Typography color="text.secondary">No upcoming filing or listing dates.</Typography>
     ) : (
-      <Stack spacing={3}>
+      <Stack spacing={2.5}>
         {/* Calendar Cards */}
         <Box
           sx={{
             display: 'flex',
-            gap: 2,
+            gap: 1.5,
             flexWrap: 'wrap',
           }}
         >
@@ -408,16 +408,16 @@ const DealRadarCard = ({
                 flex: numMonths === 1
                   ? '1 1 100%'
                   : numMonths === 2
-                  ? '1 1 calc(50% - 8px)'
+                  ? '1 1 calc(50% - 6px)'
                   : numMonths === 3
-                  ? '1 1 calc(33.333% - 11px)'
-                  : '1 1 calc(25% - 12px)',
-                minWidth: 250,
+                  ? '1 1 calc(33.333% - 8px)'
+                  : '1 1 calc(25% - 9px)',
+                minWidth: 220,
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: 2,
+                borderRadius: 1.5,
                 bgcolor: 'grey.50',
-                p: 1,
+                p: 0.75,
               }}
             >
               <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -430,12 +430,12 @@ const DealRadarCard = ({
                   }}
                   sx={{
                     width: '100%',
-                    maxHeight: 280,
+                    maxHeight: 260,
                     '& .MuiPickersCalendarHeader-root': {
-                      paddingLeft: 1,
-                      paddingRight: 1,
-                      paddingTop: 0.5,
-                      paddingBottom: 0.5,
+                      paddingLeft: 0.75,
+                      paddingRight: 0.75,
+                      paddingTop: 0.25,
+                      paddingBottom: 0.25,
                       marginTop: 0,
                       marginBottom: 0.5,
                     },
@@ -443,16 +443,22 @@ const DealRadarCard = ({
                       paddingBottom: 0.5,
                     },
                     '& .MuiPickersDay-root': {
-                      fontSize: '0.75rem',
-                      width: 32,
-                      height: 32,
-                      margin: 0.25,
+                      fontSize: '0.7rem',
+                      width: 28,
+                      height: 28,
+                      margin: 0.15,
                     },
                     '& .MuiDayCalendar-weekContainer': {
                       margin: 0,
                     },
                     '& .MuiPickersCalendarHeader-label': {
-                      fontSize: '0.875rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                    },
+                    '& .MuiDayCalendar-weekDayLabel': {
+                      fontSize: '0.65rem',
+                      width: 28,
+                      height: 28,
                     },
                   }}
                 />
@@ -714,9 +720,9 @@ const StaffingHeatmapCard = ({
   };
 
   return (
-    <Paper sx={{ p: 3, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} spacing={2}>
-        <Typography variant="h6" fontWeight={700}>
+    <Paper sx={{ p: 2.5, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5} spacing={2}>
+        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
           Staffing Heatmap
         </Typography>
         {groups.length > 0 && (

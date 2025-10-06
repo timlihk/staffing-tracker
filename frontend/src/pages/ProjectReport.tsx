@@ -20,7 +20,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
-import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import api from '../api/client';
 import { useStaff } from '../hooks/useStaff';
@@ -210,13 +209,6 @@ const ProjectReport: React.FC = () => {
       {/* Horizontal Filter Bar */}
       <Paper className="no-print" sx={{ p: 2, mb: 2 }}>
           <Stack spacing={2}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <FilterAltRoundedIcon color="primary" />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Filters
-              </Typography>
-            </Stack>
-
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-end">
               <Box sx={{ flex: 1, minWidth: 200 }}>
                 <Autocomplete
@@ -286,13 +278,6 @@ const ProjectReport: React.FC = () => {
           </Typography>
           <Divider sx={{ mt: 1 }} />
       </Box>
-
-      {/* Summary */}
-      <Paper className="no-print" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Total Projects: {totalProjects}
-          </Typography>
-      </Paper>
 
       {/* Data table - Screen version with pagination */}
       <TableContainer component={Paper} sx={{ width: '100%' }} className="no-print">

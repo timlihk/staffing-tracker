@@ -13,10 +13,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { DashboardSummary } from '../types';
 
 // Color palettes for different categories
@@ -56,24 +52,24 @@ const DonutChart: React.FC<{
 
   return (
     <Paper sx={{
-      flex: '1 1 calc(25% - 12px)',
-      minWidth: 220,
-      p: 2.5,
+      flex: '1 1 calc(25% - 10px)',
+      minWidth: 200,
+      p: 2,
       display: 'flex',
       flexDirection: 'column'
     }}>
-      <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+      <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ fontSize: '0.8rem' }}>
         {title}
       </Typography>
-      <Box sx={{ position: 'relative', height: 200 }}>
+      <Box sx={{ position: 'relative', height: 160 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={80}
+              innerRadius={50}
+              outerRadius={65}
               paddingAngle={2}
               dataKey="value"
             >
@@ -94,30 +90,30 @@ const DonutChart: React.FC<{
             pointerEvents: 'none'
           }}
         >
-          <Typography variant="h4" fontWeight={700} color="primary.main">
+          <Typography variant="h5" fontWeight={700} color="primary.main">
             {total}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
             Total
           </Typography>
         </Box>
       </Box>
-      <Stack spacing={0.5} sx={{ mt: 2 }}>
+      <Stack spacing={0.4} sx={{ mt: 1.5 }}>
         {data.map((item, index) => (
           <Stack key={item.name} direction="row" alignItems="center" spacing={1}>
             <Box
               sx={{
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 borderRadius: '50%',
                 bgcolor: colors[index % colors.length],
                 flexShrink: 0
               }}
             />
-            <Typography variant="caption" sx={{ flex: 1 }}>
+            <Typography variant="caption" sx={{ flex: 1, fontSize: '0.7rem' }}>
               {item.name}
             </Typography>
-            <Typography variant="caption" fontWeight={600}>
+            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
               {item.value}
             </Typography>
           </Stack>
@@ -131,85 +127,85 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
   return (
     <Accordion defaultExpanded>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="h6" fontWeight={700}>
+        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
           Insights
         </Typography>
       </AccordionSummary>
-      <AccordionDetails sx={{ p: 3 }}>
-        <Stack spacing={3}>
+      <AccordionDetails sx={{ p: 2.5 }}>
+        <Stack spacing={2.5}>
           {/* Summary Cards */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
             <Paper sx={{
-              flex: '1 1 calc(25% - 12px)',
-              minWidth: 200,
-              p: 3,
+              flex: '1 1 calc(25% - 10px)',
+              minWidth: 180,
+              p: 1.5,
               bgcolor: 'primary.main',
               color: 'white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
                 Active Projects
               </Typography>
-              <Typography variant="h3" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700}>
                 {data.summary.activeProjects}
               </Typography>
             </Paper>
             <Paper sx={{
-              flex: '1 1 calc(25% - 12px)',
-              minWidth: 200,
-              p: 3,
+              flex: '1 1 calc(25% - 10px)',
+              minWidth: 180,
+              p: 1.5,
               bgcolor: 'info.main',
               color: 'white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
                 Upcoming Filing
               </Typography>
-              <Typography variant="h3" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700}>
                 {data.summary.upcomingFilings30Days}
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5 }}>
+              <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.15, fontSize: '0.65rem' }}>
                 in 30 days
               </Typography>
             </Paper>
             <Paper sx={{
-              flex: '1 1 calc(25% - 12px)',
-              minWidth: 200,
-              p: 3,
+              flex: '1 1 calc(25% - 10px)',
+              minWidth: 180,
+              p: 1.5,
               bgcolor: 'secondary.main',
               color: 'white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
                 Upcoming Listing
               </Typography>
-              <Typography variant="h3" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700}>
                 {data.summary.upcomingListings30Days}
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5 }}>
+              <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.15, fontSize: '0.65rem' }}>
                 in 30 days
               </Typography>
             </Paper>
             <Paper sx={{
-              flex: '1 1 calc(25% - 12px)',
-              minWidth: 200,
-              p: 3,
+              flex: '1 1 calc(25% - 10px)',
+              minWidth: 180,
+              p: 1.5,
               bgcolor: 'success.main',
               color: 'white',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
             }}>
-              <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+              <Typography variant="caption" sx={{ opacity: 0.9, mb: 0.25, fontSize: '0.7rem' }}>
                 Active Staff
               </Typography>
-              <Typography variant="h3" fontWeight={700}>
+              <Typography variant="h5" fontWeight={700}>
                 {data.summary.activeStaff}
               </Typography>
             </Paper>
@@ -217,126 +213,126 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
 
           {/* 7-Day Trends */}
           <Box>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
               7-Day Trends
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
               {/* New Projects */}
               <Paper sx={{
-                flex: '1 1 calc(25% - 12px)',
-                minWidth: 200,
-                p: 2.5,
+                flex: '1 1 calc(25% - 10px)',
+                minWidth: 180,
+                p: 1.25,
                 position: 'relative',
                 overflow: 'hidden',
                 background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%)',
                 border: '1px solid',
                 borderColor: 'success.light',
                 '&:hover': {
-                  boxShadow: 3,
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.3s ease'
+                  boxShadow: 2,
+                  transform: 'translateY(-1px)',
+                  transition: 'all 0.2s ease'
                 }
               }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <TrendingUpIcon sx={{ fontSize: 20, color: 'success.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                  <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
                     New Projects
                   </Typography>
                 </Stack>
-                <Typography variant="h3" fontWeight={800} color="success.main" sx={{ mb: 1 }}>
+                <Typography variant="h5" fontWeight={800} color="success.main" sx={{ mb: 0.25 }}>
                   {data.sevenDayTrends.newProjects}
                 </Typography>
-                <Typography variant="caption" color="success.dark">
+                <Typography variant="caption" color="success.dark" sx={{ fontSize: '0.65rem' }}>
                   Last 7 days
                 </Typography>
               </Paper>
 
               {/* Suspended */}
               <Paper sx={{
-                flex: '1 1 calc(25% - 12px)',
-                minWidth: 200,
-                p: 2.5,
+                flex: '1 1 calc(25% - 10px)',
+                minWidth: 180,
+                p: 1.25,
                 position: 'relative',
                 overflow: 'hidden',
                 background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(244, 67, 54, 0.05) 100%)',
                 border: '1px solid',
                 borderColor: 'error.light',
                 '&:hover': {
-                  boxShadow: 3,
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.3s ease'
+                  boxShadow: 2,
+                  transform: 'translateY(-1px)',
+                  transition: 'all 0.2s ease'
                 }
               }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <TrendingDownIcon sx={{ fontSize: 20, color: 'error.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                  <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
                     Suspended
                   </Typography>
                 </Stack>
-                <Typography variant="h3" fontWeight={800} color="error.main" sx={{ mb: 1 }}>
+                <Typography variant="h5" fontWeight={800} color="error.main" sx={{ mb: 0.25 }}>
                   {data.sevenDayTrends.suspended}
                 </Typography>
-                <Typography variant="caption" color="error.dark">
+                <Typography variant="caption" color="error.dark" sx={{ fontSize: '0.65rem' }}>
                   Last 7 days
                 </Typography>
               </Paper>
 
               {/* Slow-down */}
               <Paper sx={{
-                flex: '1 1 calc(25% - 12px)',
-                minWidth: 200,
-                p: 2.5,
+                flex: '1 1 calc(25% - 10px)',
+                minWidth: 180,
+                p: 1.25,
                 position: 'relative',
                 overflow: 'hidden',
                 background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%)',
                 border: '1px solid',
                 borderColor: 'warning.light',
                 '&:hover': {
-                  boxShadow: 3,
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.3s ease'
+                  boxShadow: 2,
+                  transform: 'translateY(-1px)',
+                  transition: 'all 0.2s ease'
                 }
               }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <TrendingDownIcon sx={{ fontSize: 20, color: 'warning.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                  <TrendingDownIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
                     Slow-down
                   </Typography>
                 </Stack>
-                <Typography variant="h3" fontWeight={800} color="warning.main" sx={{ mb: 1 }}>
+                <Typography variant="h5" fontWeight={800} color="warning.main" sx={{ mb: 0.25 }}>
                   {data.sevenDayTrends.slowdown}
                 </Typography>
-                <Typography variant="caption" color="warning.dark">
+                <Typography variant="caption" color="warning.dark" sx={{ fontSize: '0.65rem' }}>
                   Last 7 days
                 </Typography>
               </Paper>
 
               {/* Resumed */}
               <Paper sx={{
-                flex: '1 1 calc(25% - 12px)',
-                minWidth: 200,
-                p: 2.5,
+                flex: '1 1 calc(25% - 10px)',
+                minWidth: 180,
+                p: 1.25,
                 position: 'relative',
                 overflow: 'hidden',
                 background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%)',
                 border: '1px solid',
                 borderColor: 'info.light',
                 '&:hover': {
-                  boxShadow: 3,
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.3s ease'
+                  boxShadow: 2,
+                  transform: 'translateY(-1px)',
+                  transition: 'all 0.2s ease'
                 }
               }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <TrendingUpIcon sx={{ fontSize: 20, color: 'info.main' }} />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                  <TrendingUpIcon sx={{ fontSize: 16, color: 'info.main' }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.3, fontSize: '0.65rem' }}>
                     Resumed
                   </Typography>
                 </Stack>
-                <Typography variant="h3" fontWeight={800} color="info.main" sx={{ mb: 1 }}>
+                <Typography variant="h5" fontWeight={800} color="info.main" sx={{ mb: 0.25 }}>
                   {data.sevenDayTrends.resumed}
                 </Typography>
-                <Typography variant="caption" color="info.dark">
+                <Typography variant="caption" color="info.dark" sx={{ fontSize: '0.65rem' }}>
                   Last 7 days
                 </Typography>
               </Paper>
@@ -344,7 +340,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
           </Box>
 
           {/* Projects Breakdown */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
             <DonutChart
               data={data.projectsByCategory
                 .map(item => ({
@@ -378,14 +374,14 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               />
             ) : (
               <Paper sx={{
-                flex: '1 1 calc(25% - 12px)',
-                minWidth: 220,
-                p: 2.5,
+                flex: '1 1 calc(25% - 10px)',
+                minWidth: 200,
+                p: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   No sector data
                 </Typography>
               </Paper>
@@ -403,14 +399,14 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
               />
             ) : (
               <Paper sx={{
-                flex: '1 1 calc(25% - 12px)',
-                minWidth: 220,
-                p: 2.5,
+                flex: '1 1 calc(25% - 10px)',
+                minWidth: 200,
+                p: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   No side data
                 </Typography>
               </Paper>
