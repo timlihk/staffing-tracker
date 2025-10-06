@@ -2,7 +2,7 @@ name: Backup Railway Postgres
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # Daily 02:00 UTC (10:00 AM HKT)
+    - cron: '0 * * * *'   # Every hour at minute 0
   workflow_dispatch:      # Allows manual trigger
 
 jobs:
