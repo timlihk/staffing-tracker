@@ -113,7 +113,7 @@ const Staff: React.FC = () => {
       ) : (
         <>
           {/* Filters */}
-          <Section>
+          <Section sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 1.5 }}>
             <PageToolbar>
               <TextField
                 label="Search"

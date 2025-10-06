@@ -131,7 +131,7 @@ const Projects: React.FC = () => {
     <Page>
       <PageHeader title="Projects" />
       {/* Filters */}
-      <Section sx={{ p: { xs: 2.5, md: 3 } }}>
+      <Section sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 1.5 }}>
         <PageToolbar>
           <TextField
             label="Search"
