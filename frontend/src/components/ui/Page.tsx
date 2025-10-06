@@ -37,7 +37,7 @@ export function Section({ children, sx }: SectionProps) {
         p: { xs: 2.5, md: 3 },
         borderRadius: 12,
         backgroundImage: 'none',
-        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
+        boxShadow: 'none',
         ...sx,
       }}
     >
