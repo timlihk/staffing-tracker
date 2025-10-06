@@ -15,6 +15,8 @@ import projectReportRoutes from './routes/project-report.routes';
 import userRoutes from './routes/user.routes';
 import emailSettingsRoutes from './routes/email-settings.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
+import { logger } from './utils/logger';
 
 // Validate configuration on startup
 validateConfig();
@@ -59,6 +61,9 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
+// Request logging
+app.use(requestLogger);
+
 // Middleware
 app.use(cors({
   origin: config.frontendUrl,
@@ -91,23 +96,23 @@ app.use(errorHandler);
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📝 API Documentation: http://localhost:${PORT}/api/health`);
+  logger.info('Server started', { port: PORT });
+  logger.info('Health endpoint available', { url: `/api/health` });
 });
 
 // Graceful shutdown handler
 const gracefulShutdown = (signal: string) => {
-  console.log(`\n${signal} received. Starting graceful shutdown...`);
+  logger.warn('Shutdown signal received', { signal });
 
   server.close(() => {
-    console.log('✓ HTTP server closed');
-    console.log('✓ Graceful shutdown complete');
+    logger.info('HTTP server closed');
+    logger.info('Graceful shutdown complete');
     process.exit(0);
   });
 
   // Force shutdown after 10 seconds
   setTimeout(() => {
-    console.error('⚠️  Forced shutdown after timeout');
+    logger.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 };

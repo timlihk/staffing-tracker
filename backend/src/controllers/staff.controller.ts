@@ -3,16 +3,24 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
+import { StaffWhereInput, ControllerError } from '../types/prisma';
+import { Prisma } from '@prisma/client';
 
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { position, department, status, search } = req.query;
 
-    const where: any = {};
+    const where: StaffWhereInput = {};
 
-    if (position) where.position = position;
-    if (department) where.department = department;
-    if (status) where.status = status;
+    if (position && typeof position === 'string') {
+      where.position = position;
+    }
+    if (department && typeof department === 'string') {
+      where.department = department;
+    }
+    if (status && typeof status === 'string') {
+      where.status = status;
+    }
     if (search) {
       where.OR = [
         { name: { contains: search as string, mode: 'insensitive' } },
@@ -139,7 +147,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     }
 
     // Build update data
-    const updateData: any = {};
+    const updateData: Prisma.StaffUpdateInput = {};
     if (name) updateData.name = name;
     if (email !== undefined) updateData.email = email === '' ? null : email;
     if (role) updateData.position = role;
@@ -173,11 +181,11 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     });
 
     res.json(staff);
-  } catch (error: any) {
+  } catch (error: ControllerError) {
     console.error('Update staff error:', error);
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       // Unique constraint violation
-      const field = error.meta?.target?.[0] || 'field';
+      const field = (error as any).meta?.target?.[0] || 'field';
       return res.status(400).json({ error: `This ${field} is already in use by another staff member` });
     }
     res.status(500).json({ error: 'Internal server error' });
@@ -258,12 +266,12 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    const projectsByCategory = staff.assignments?.reduce((acc: any, assignment) => {
+    const projectsByCategory = staff.assignments?.reduce((acc: Record<string, number>, assignment) => {
       const category = assignment.project.category;
       if (!acc[category]) acc[category] = 0;
       acc[category]++;
       return acc;
-    }, {}) || {};
+    }, {} as Record<string, number>) || {};
 
     res.json({
       staff: {
