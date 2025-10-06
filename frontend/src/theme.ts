@@ -57,7 +57,7 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
       button: { textTransform: 'none', fontWeight: 600, letterSpacing: '-0.01em' },
       caption: { fontSize: '0.8rem', lineHeight: 1.4, color: isDark ? alpha(brand.neutral[100], 0.6) : brand.neutral[500] },
     },
-    shape: { borderRadius: 16 },
+    shape: { borderRadius: 8 },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
@@ -89,13 +89,12 @@ export const getTheme = (mode: 'light' | 'dark' = 'light') => {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: ({ theme }) => ({
-            borderRadius: 18,
-            border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.4 : 1)}`,
+            borderRadius: theme.shape.borderRadius,
+            border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'dark' ? 0.5 : 0.6)}`,
             backgroundImage: 'none',
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? '0 18px 45px rgba(15, 23, 42, 0.35)'
-                : '0 22px 50px rgba(15, 23, 42, 0.08)',
+            boxShadow: theme.palette.mode === 'dark'
+              ? '0 4px 12px rgba(15, 23, 42, 0.35)'
+              : '0 6px 14px rgba(15, 23, 42, 0.08)',
           }),
         },
       },

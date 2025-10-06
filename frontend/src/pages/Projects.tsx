@@ -131,7 +131,7 @@ const Projects: React.FC = () => {
     <Page>
       <PageHeader title="Projects" />
       {/* Filters */}
-      <Section sx={{ p: { xs: 2.5, md: 3 } }}>
+      <Section sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 1.5 }}>
         <PageToolbar>
           <TextField
             label="Search"
@@ -242,7 +242,7 @@ const Projects: React.FC = () => {
           />
         </Section>
       ) : (
-        <Section sx={{ p: { xs: 0.5, md: 1.5 }, overflow: 'hidden' }}>
+        <Section sx={{ p: { xs: 0.5, md: 1 }, overflow: 'hidden', borderRadius: 1.5 }}>
           <Box sx={{ width: '100%', overflow: 'auto' }}>
             <StyledDataGrid
               rows={projects}
@@ -257,10 +257,7 @@ const Projects: React.FC = () => {
               sx={{
                 cursor: 'pointer',
                 width: '100%',
-                '& .even-row': {
-                  bgcolor: 'background.default',
-                },
-                '& .odd-row': {
+                '& .even-row, & .odd-row': {
                   bgcolor: 'background.paper',
                 },
                 '& .even-row:hover, & .odd-row:hover': {

@@ -35,9 +35,8 @@ export function Section({ children, sx }: SectionProps) {
     <Paper
       sx={{
         p: { xs: 2.5, md: 3 },
-        borderRadius: 18,
+        borderRadius: (theme) => theme.shape.borderRadius,
         backgroundImage: 'none',
-        boxShadow: '0 20px 45px rgba(15, 23, 42, 0.04)',
         ...sx,
       }}
     >
