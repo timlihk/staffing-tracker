@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import config, { validateConfig } from './config';
+import prisma from './utils/prisma';
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import staffRoutes from './routes/staff.routes';
@@ -101,18 +102,24 @@ const server = app.listen(PORT, () => {
 });
 
 // Graceful shutdown handler
-const gracefulShutdown = (signal: string) => {
+const gracefulShutdown = async (signal: string) => {
   logger.warn('Shutdown signal received', { signal });
 
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed');
+
+    // Disconnect Prisma to prevent connection reset errors
+    await prisma.$disconnect();
+    logger.info('Database connections closed');
+
     logger.info('Graceful shutdown complete');
     process.exit(0);
   });
 
   // Force shutdown after 10 seconds
-  setTimeout(() => {
+  setTimeout(async () => {
     logger.error('Forced shutdown after timeout');
+    await prisma.$disconnect().catch(() => {});
     process.exit(1);
   }, 10000);
 };
