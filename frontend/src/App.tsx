@@ -23,6 +23,8 @@ const TestPage = lazy(() => import('./pages/TestPage'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
+const BillingMatters = lazy(() => import('./pages/BillingMatters'));
+const BillingMatterDetail = lazy(() => import('./pages/BillingMatterDetail'));
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -187,6 +189,30 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Billing */}
+            <Route
+              path="/billing"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BillingMatters />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BillingMatterDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin */}
             <Route
               path="/users"
               element={

@@ -18,7 +18,12 @@
     "db:backup": "ts-node scripts/backup-database.ts",
     "send:reminders": "node dist/scripts/send-project-reminders.js",
     "send:reminders:dev": "ts-node src/scripts/send-project-reminders.ts",
-    "preview:emails": "ts-node src/scripts/preview-emails.ts"
+    "preview:emails": "ts-node src/scripts/preview-emails.ts",
+    "billing:import": "ts-node src/scripts/import-billing-data.ts",
+    "billing:parse": "ts-node src/scripts/parse-billing-source-data.ts",
+    "billing:map-attorneys": "ts-node src/scripts/auto-map-bc-attorneys.ts",
+    "billing:parse-fees": "ts-node src/scripts/parse-fee-arrangements.ts",
+    "billing:parse-completion": "ts-node src/scripts/parse-fee-with-strikethrough.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +34,7 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
+    "csv-parser": "^3.2.0",
     "dayjs": "^1.11.18",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
@@ -38,6 +44,7 @@
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
     "resend": "^6.1.2",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   },
   "devDependencies": {

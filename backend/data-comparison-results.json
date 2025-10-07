@@ -1,0 +1,1738 @@
+{
+  "missing_in_db": [],
+  "inconsistencies": [
+    {
+      "project_name": "Salus",
+      "cm_no": "50284-00001",
+      "project_id": 3,
+      "issues": [
+        "Client: JSON='Yunkang Health Industry  Investment Co. Ltd.' vs DB='Yunkang Health Industry Investment Co. Ltd.'",
+        "Agreed Fee: JSON=$1,350,000.00 vs DB=$2,750,000.00",
+        "Billing: JSON=$2,500,000.00 vs DB=$0.00",
+        "Collection: JSON=$2,500,000.00 vs DB=$0.00",
+        "UBT: JSON=$82,650.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Salus-1",
+      "cm_no": "50284-00002",
+      "project_id": 4,
+      "issues": [
+        "Client: JSON='Yunkang Health Industry  Investment Co. Ltd.' vs DB='Yunkang Health Industry Investment Co. Ltd.'",
+        "Agreed Fee: JSON=$450,000.00 vs DB=$0.00",
+        "Billing: JSON=$850,000.00 vs DB=$0.00",
+        "Collection: JSON=$850,000.00 vs DB=$0.00",
+        "UBT: JSON=$89,392.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Renaissance",
+      "cm_no": "50334-00001",
+      "project_id": 5,
+      "issues": [
+        "Agreed Fee: JSON=$350,000.00 vs DB=$700,000.00",
+        "Billing: JSON=$2,045,000.00 vs DB=$0.00",
+        "Collection: JSON=$2,045,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$139,233.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Sparkling",
+      "cm_no": "15322-00024",
+      "project_id": 8,
+      "issues": [
+        "Client: JSON='China  International Capital Corporation Hong Kong Securities Limited' vs DB='China International Capital Corporation Hong Kong Securities Limited'",
+        "Agreed Fee: JSON=$1,200,000.00 vs DB=$960,000.00",
+        "Billing: JSON=$1,730,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,730,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$3,383.00 vs DB=$0.00",
+        "UBT: JSON=$73,950.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Angel",
+      "cm_no": "50502-00001",
+      "project_id": 10,
+      "issues": [
+        "Agreed Fee: JSON=$1,800,000.00 vs DB=$555,000.00",
+        "Billing: JSON=$405,000.00 vs DB=$0.00",
+        "Collection: JSON=$405,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$5,613.50 vs DB=$0.00",
+        "UBT: JSON=$47,850.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Salus2021",
+      "cm_no": "50540-00001",
+      "project_id": 11,
+      "issues": [
+        "Agreed Fee: JSON=$1,650,000.00 vs DB=$2,820,000.00",
+        "Billing: JSON=$2,220,000.00 vs DB=$0.00",
+        "Collection: JSON=$2,220,000.00 vs DB=$0.00",
+        "UBT: JSON=$6,783.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Bravo",
+      "cm_no": "51251-00001",
+      "project_id": 12,
+      "issues": [
+        "Agreed Fee: JSON=$1,850,000.00 vs DB=$3,957,025.00",
+        "Billing: JSON=$1,480,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,480,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$90,865.50 vs DB=$0.00",
+        "UBT: JSON=$6,717.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Skyline - USIPO",
+      "cm_no": "51545-00001",
+      "project_id": 14,
+      "issues": [
+        "Agreed Fee: JSON=$1,150,000.00 vs DB=$920,000.00",
+        "Billing: JSON=$230,000.00 vs DB=$0.00",
+        "Collection: JSON=$230,000.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Cardinal",
+      "cm_no": "51530-00001",
+      "project_id": 16,
+      "issues": [
+        "Agreed Fee: JSON=$1,880,000.00 vs DB=$1,504,000.00",
+        "Billing: JSON=$876,000.00 vs DB=$0.00",
+        "Collection: JSON=$876,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$19,081.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Ascending [GZLP]",
+      "cm_no": "51547-00001",
+      "project_id": 20,
+      "issues": [
+        "Agreed Fee: JSON=$1,850,000.00 vs DB=$0.00",
+        "UBT: JSON=$440,073.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Magic 2021",
+      "cm_no": "52019-00001",
+      "project_id": 21,
+      "issues": [
+        "Client: JSON='Cubic  City Service Apartment Group Holdings Ltd.' vs DB='Cubic City Service Apartment Group Holdings Ltd.'",
+        "Agreed Fee: JSON=$1,900,000.00 vs DB=$1,142,022.00",
+        "Billing: JSON=$1,340,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,340,000.00 vs DB=$0.00",
+        "UBT: JSON=$1,139,450.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Magic 2021 - RMB",
+      "cm_no": "52019-00002",
+      "project_id": 23,
+      "issues": [
+        "Client: JSON='Cubic  City Service Apartment Group Holdings Ltd.' vs DB='Cubic City Service Apartment Group Holdings Ltd.'",
+        "Billing: JSON=$614,797.14 vs DB=$0.00",
+        "Collection: JSON=$614,797.15 vs DB=$0.00",
+        "UBT: JSON=$9,708.35 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Kumquat -  supplemental",
+      "cm_no": "55953-00001",
+      "project_id": 24,
+      "issues": [
+        "Client: JSON='YUFANG  Holdings Limited' vs DB='YUFANG Holdings Limited'",
+        "Agreed Fee: JSON=$1,700,000.00 vs DB=$902,024.00",
+        "Billing: JSON=$500,000.00 vs DB=$0.00",
+        "Collection: JSON=$500,000.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Sunlight 3",
+      "cm_no": "54228-00004",
+      "project_id": 25,
+      "issues": [
+        "Client: JSON='iMotion Automotive Technology  (Suzhou) Co., Ltd. \u77e5\u884c\u6c7d\u8f66\u79d1\u6280(\u82cf\u5dde)\u6709\u9650\u516c\u53f8' vs DB='iMotion Automotive Technology (Suzhou) Co., Ltd. \n\u77e5\u884c\u6c7d\u8f66\u79d1\u6280(\u82cf\u5dde)\u6709\u9650\u516c\u53f8'",
+        "UBT: JSON=$940.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Sunlight 2025",
+      "cm_no": "54228-00005",
+      "project_id": 26,
+      "issues": [
+        "Client: JSON='iMotion Automotive Technology  (Suzhou) Co., Ltd. \u77e5\u884c\u6c7d\u8f66\u79d1\u6280(\u82cf\u5dde)\u6709\u9650\u516c\u53f8' vs DB='iMotion Automotive Technology (Suzhou) Co., Ltd. \n\u77e5\u884c\u6c7d\u8f66\u79d1\u6280(\u82cf\u5dde)\u6709\u9650\u516c\u53f8'",
+        "Billing: JSON=$55,000.00 vs DB=$0.00",
+        "Collection: JSON=$55,000.00 vs DB=$0.00",
+        "UBT: JSON=$40,240.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Safeguard",
+      "cm_no": "54814-00001",
+      "project_id": 27,
+      "issues": [
+        "Client: JSON='HH  Cowell Holdings Inc.' vs DB='HH Cowell Holdings Inc.'",
+        "Agreed Fee: JSON=$1,650,000.00 vs DB=$0.00",
+        "UBT: JSON=$802,560.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Innovator",
+      "cm_no": "55483-00001",
+      "project_id": 28,
+      "issues": [
+        "Client: JSON='ORXES  Therapeutics (Cayman) Ltd.' vs DB='ORXES Therapeutics (Cayman) Ltd.'",
+        "Agreed Fee: JSON=$1,800,000.00 vs DB=$0.00",
+        "Billing: JSON=$360,000.00 vs DB=$0.00",
+        "Collection: JSON=$350,532.80 vs DB=$0.00",
+        "UBT: JSON=$164,658.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Innovator - US",
+      "cm_no": "55483-00002",
+      "project_id": 29,
+      "issues": [
+        "Client: JSON='ORXES  Therapeutics (Cayman) Ltd.' vs DB='ORXES Therapeutics (Cayman) Ltd.'",
+        "Agreed Fee: JSON=$1,100,000.00 vs DB=$0.00",
+        "Billing: JSON=$550,000.00 vs DB=$0.00",
+        "Collection: JSON=$550,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$334,325.50 vs DB=$0.00",
+        "UBT: JSON=$15,250.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Athena",
+      "cm_no": "55839-00001",
+      "project_id": 30,
+      "issues": [
+        "Client: JSON='Axera  Semiconductor Co. Ltd.' vs DB='Axera Semiconductor Co. Ltd.'",
+        "Agreed Fee: JSON=$1,700,000.00 vs DB=$4,050.00",
+        "Billing: JSON=$1,033,235.30 vs DB=$0.00",
+        "Collection: JSON=$531,910.82 vs DB=$0.00",
+        "UBT: JSON=$357,616.37 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "A",
+      "cm_no": "55839-00002",
+      "project_id": 31,
+      "issues": [
+        "Client: JSON='Axera  Semiconductor Co. Ltd.' vs DB='Axera Semiconductor Co. Ltd.'",
+        "UBT: JSON=$52,113.99 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Elite",
+      "cm_no": "51140-00003",
+      "project_id": 32,
+      "issues": [
+        "Client: JSON='Elpiscience Biopharmaceuticals Co.  Ltd.' vs DB='Elpiscience Biopharmaceuticals Co. Ltd.'",
+        "Agreed Fee: JSON=$1,700,000.00 vs DB=$1,360,000.00",
+        "Billing: JSON=$1,145,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,145,000.00 vs DB=$0.00",
+        "UBT: JSON=$440,356.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Kylin",
+      "cm_no": "56077-00001",
+      "project_id": 33,
+      "issues": [
+        "Client: JSON='OUR  United Corp.' vs DB='OUR United Corp.'",
+        "Agreed Fee: JSON=$1,600,000.00 vs DB=$564,048.00",
+        "Billing: JSON=$376,855.56 vs DB=$0.00",
+        "Collection: JSON=$376,855.56 vs DB=$0.00",
+        "UBT: JSON=$93,219.64 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Kylin - USD",
+      "cm_no": "56077-00002",
+      "project_id": 34,
+      "issues": [
+        "Client: JSON='OUR  United Corp.' vs DB='OUR United Corp.'",
+        "Billing: JSON=$680,000.00 vs DB=$0.00",
+        "Collection: JSON=$530,000.00 vs DB=$0.00",
+        "UBT: JSON=$548,702.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Fortune",
+      "cm_no": "56202-00001",
+      "project_id": 35,
+      "issues": [
+        "Client: JSON='Guangzhou  Biosyngen Biopharmaceutical Co. Ltd.' vs DB='Guangzhou Biosyngen Biopharmaceutical Co. Ltd.'",
+        "Billing: JSON=$300,000.00 vs DB=$0.00",
+        "Collection: JSON=$300,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$101,024.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Audi",
+      "cm_no": "56527-00001",
+      "project_id": 36,
+      "issues": [
+        "Client: JSON='Xuanzhu Biopharmaceutical  Technology Co., Ltd.' vs DB='Xuanzhu Biopharmaceutical Technology Co., Ltd.'",
+        "Agreed Fee: JSON=$1,550,000.00 vs DB=$0.00",
+        "Billing: JSON=$1,025,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,025,000.00 vs DB=$0.00",
+        "UBT: JSON=$458,763.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Renascent",
+      "cm_no": "56599-00001",
+      "project_id": 37,
+      "issues": [
+        "Client: JSON='Sichuan  Neautus Traditional Chinese Medicine Co., Ltd.' vs DB='Sichuan Neautus Traditional Chinese Medicine Co., Ltd.'",
+        "Attorney: JSON='Samantha Peng, Ashlee Wu, Sierra Tao and Chuanwen  Wang' vs DB='Samantha Peng, Ashlee Wu, Sierra Tao and Chuanwen Wang'",
+        "UBT: JSON=$12,583.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Renascent - RMB",
+      "cm_no": "56599-00002",
+      "project_id": 38,
+      "issues": [
+        "Client: JSON='Sichuan  Neautus Traditional Chinese Medicine Co., Ltd.' vs DB='Sichuan Neautus Traditional Chinese Medicine Co., Ltd.'",
+        "Attorney: JSON='Samantha Peng, Ashlee Wu, Sierra Tao  and Chuanwen Wang' vs DB='Samantha Peng, Ashlee Wu, Sierra Tao and Chuanwen Wang'",
+        "Billing: JSON=$716,418.03 vs DB=$0.00",
+        "Collection: JSON=$716,418.04 vs DB=$0.00",
+        "UBT: JSON=$254,764.78 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Seed - USIPO",
+      "cm_no": "15322-00044",
+      "project_id": 39,
+      "issues": [
+        "Client: JSON='(CICC)  Willbe Inc.' vs DB='(CICC) Willbe Inc.'",
+        "UBT: JSON=$228,934.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Seed - RMB",
+      "cm_no": "15322-00045",
+      "project_id": 40,
+      "issues": [
+        "Client: JSON='(CICC)  Willbe Inc.' vs DB='(CICC) Willbe Inc.'",
+        "UBT: JSON=$18,808.03 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Biofrontier",
+      "cm_no": "14121-00106",
+      "project_id": 41,
+      "issues": [
+        "Client: JSON='Sichuan  Biokin Pharmaceuticals Co., Ltd. \u56db\u5ddd\u767e\u5229\u5929\u6052\u836f\u4e1a\u80a1\u4efd\u6709\u9650\u516c\u53f8 (GS)' vs DB='Sichuan Biokin Pharmaceuticals Co., Ltd. \u56db\u5ddd\u767e\u5229\u5929\u6052\u836f\u4e1a\u80a1\u4efd\u6709\u9650\u516c\u53f8 (GS)'",
+        "Agreed Fee: JSON=$1,100,000.00 vs DB=$0.00",
+        "Billing: JSON=$935,000.00 vs DB=$0.00",
+        "Collection: JSON=$935,000.00 vs DB=$0.00",
+        "UBT: JSON=$87,735.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Diamond",
+      "cm_no": "56929-00001",
+      "project_id": 42,
+      "issues": [
+        "Client: JSON='Duality  Biotherapeutics Inc.' vs DB='Duality Biotherapeutics Inc.'",
+        "Agreed Fee: JSON=$1,950,000.00 vs DB=$1,972,812.00"
+      ]
+    },
+    {
+      "project_name": "Diamond - RMB",
+      "cm_no": "56929-00002",
+      "project_id": 43,
+      "issues": [
+        "Client: JSON='Duality  Biotherapeutics Inc.' vs DB='Duality Biotherapeutics Inc.'",
+        "Billing: JSON=$2,133,122.23 vs DB=$0.00",
+        "Collection: JSON=$2,133,122.19 vs DB=$0.00",
+        "UBT: JSON=$132,839.92 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "DQH",
+      "cm_no": "57284-00001",
+      "project_id": 44,
+      "issues": [
+        "Client: JSON='Ningbo  Aux Electric Co. Ltd.' vs DB='Ningbo Aux Electric Co. Ltd.'",
+        "Agreed Fee: JSON=$1,450,000.00 vs DB=$1,784,050.00",
+        "Billing: JSON=$2,050,000.00 vs DB=$0.00",
+        "Collection: JSON=$797,500.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "DQH - RMB",
+      "cm_no": "57284-00002",
+      "project_id": 46,
+      "issues": [
+        "Client: JSON='Ningbo  Aux Electric Co. Ltd.' vs DB='Ningbo Aux Electric Co. Ltd.'"
+      ]
+    },
+    {
+      "project_name": "Sailing",
+      "cm_no": "57272-00001",
+      "project_id": 47,
+      "issues": [
+        "Attorney: JSON='Samantha Peng, George Zheng and  Jiawei Zhao' vs DB='Samantha Peng, George Zheng and Jiawei Zhao'",
+        "Agreed Fee: JSON=$1,500,000.00 vs DB=$902,025.00",
+        "Billing: JSON=$900,000.00 vs DB=$0.00",
+        "Collection: JSON=$900,000.00 vs DB=$0.00",
+        "UBT: JSON=$786,980.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project K - USIPO",
+      "cm_no": "57334-00001",
+      "project_id": 48,
+      "issues": [
+        "Client: JSON='Kilcoy  Global Foods Ltd.' vs DB='Kilcoy Global Foods Ltd.'",
+        "Agreed Fee: JSON=$100,000.00 vs DB=$400,000.00",
+        "Billing: JSON=$500,000.00 vs DB=$0.00",
+        "Collection: JSON=$500,000.00 vs DB=$0.00",
+        "UBT: JSON=$418,657.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Star",
+      "cm_no": "57391-00001",
+      "project_id": 49,
+      "issues": [
+        "Client: JSON='Shandong  Huge Dental Material Co. Ltd.' vs DB='Shandong Huge Dental Material Co. Ltd.'",
+        "Billing: JSON=$991,000.00 vs DB=$0.00",
+        "Collection: JSON=$781,000.00 vs DB=$0.00",
+        "UBT: JSON=$348,148.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Nature",
+      "cm_no": "57745-00001",
+      "project_id": 50,
+      "issues": [
+        "Client: JSON='Pelliot Outdoor Sports Group  Co. Ltd.' vs DB='Pelliot Outdoor Sports Group Co. Ltd.'",
+        "UBT: JSON=$234,650.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Nature - RMB",
+      "cm_no": "57745-00002",
+      "project_id": 51,
+      "issues": [
+        "Client: JSON='Pelliot Outdoor Sports Group  Co. Ltd.' vs DB='Pelliot Outdoor Sports Group Co. Ltd.'",
+        "Attorney: JSON='Ashlee Wu and Chuanwen  Wang' vs DB='Ashlee Wu and Chuanwen Wang'",
+        "Billing: JSON=$667,283.86 vs DB=$0.00",
+        "Collection: JSON=$667,283.87 vs DB=$0.00",
+        "UBT: JSON=$28,446.45 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1216",
+      "cm_no": "18074-00006",
+      "project_id": 52,
+      "issues": [
+        "Client: JSON='Bao  Pharmaceuticals \u4e0a\u6d77\u5b9d\u6d4e\u836f\u4e1a\u80a1\u4efd\u6709\u9650\u516c\u53f8  (CLSA)' vs DB='Bao Pharmaceuticals \u4e0a\u6d77\u5b9d\u6d4e\u836f\u4e1a\u80a1\u4efd\u6709\u9650\u516c\u53f8 (CLSA)'",
+        "Agreed Fee: JSON=$1,130,000.00 vs DB=$2,260,000.00",
+        "Billing: JSON=$565,000.00 vs DB=$0.00",
+        "Collection: JSON=$565,000.00 vs DB=$0.00",
+        "UBT: JSON=$288,053.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Goldfish",
+      "cm_no": "54944-00001",
+      "project_id": 53,
+      "issues": [
+        "Agreed Fee: JSON=$1,000,000.00 vs DB=$900,000.00",
+        "Billing: JSON=$1,573,944.03 vs DB=$0.00",
+        "Collection: JSON=$1,573,944.03 vs DB=$0.00",
+        "UBT: JSON=$860.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Apollo 2022",
+      "cm_no": "54281-00001",
+      "project_id": 54,
+      "issues": [
+        "Client: JSON='Jinxin Technology Holding  Company' vs DB='Jinxin Technology Holding Company'",
+        "Agreed Fee: JSON=$1,200,000.00 vs DB=$720,000.00",
+        "Billing: JSON=$1,199,399.28 vs DB=$0.00",
+        "Collection: JSON=$1,199,399.28 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Feather Sound",
+      "cm_no": "49824-00005",
+      "project_id": 55,
+      "issues": [
+        "Billing: JSON=$4,533,569.00 vs DB=$0.00",
+        "Collection: JSON=$4,228,569.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "iChoice",
+      "cm_no": "58220-00001",
+      "project_id": 56,
+      "issues": [
+        "Client: JSON='Choice  Technology Inc.' vs DB='Choice Technology Inc.'",
+        "Agreed Fee: JSON=$1,400,000.00 vs DB=$0.00",
+        "Billing: JSON=$910,000.00 vs DB=$0.00",
+        "Collection: JSON=$280,000.00 vs DB=$0.00",
+        "UBT: JSON=$74,835.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Transcendence",
+      "cm_no": "38482-00067",
+      "project_id": 57,
+      "issues": [
+        "Client: JSON='Deutsche  Bank AG' vs DB='Deutsche Bank AG'",
+        "Agreed Fee: JSON=$700,000.00 vs DB=$0.00",
+        "Billing: JSON=$315,000.00 vs DB=$0.00",
+        "Collection: JSON=$315,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$3,901.25 vs DB=$0.00",
+        "UBT: JSON=$1,218.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Bright 8",
+      "cm_no": "58215-00001",
+      "project_id": 58,
+      "issues": [
+        "Client: JSON='Contemporary  Amperex Technology Co. Ltd' vs DB='Contemporary Amperex Technology Co. Ltd'",
+        "Billing: JSON=$1,380,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,380,000.00 vs DB=$0.00",
+        "UBT: JSON=$840,593.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project CR",
+      "cm_no": "58492-00001",
+      "project_id": 59,
+      "issues": [
+        "UBT: JSON=$73,655.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Galaxy \u51ef\u4e50\u58eb",
+      "cm_no": "58431-00001",
+      "project_id": 60,
+      "issues": [
+        "Client: JSON='Zhejiang  Galaxis Technology Group Co. Ltd.' vs DB='Zhejiang Galaxis Technology Group Co. Ltd.'",
+        "Attorney: JSON='Qingyu Wu, George Zheng  & Jiawei Zhao' vs DB='Qingyu Wu, George Zheng & Jiawei Zhao'",
+        "Agreed Fee: JSON=$1,280,000.00 vs DB=$0.00",
+        "Billing: JSON=$768,000.00 vs DB=$0.00",
+        "Collection: JSON=$256,000.00 vs DB=$0.00",
+        "UBT: JSON=$208,145.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Joy [52 Toys]",
+      "cm_no": "49050-00003",
+      "project_id": 61,
+      "issues": [
+        "Client: JSON='Beijing  Lezitiancheng Cultural Development Co. Ltd.  (Huatai)' vs DB='Beijing Lezitiancheng Cultural Development Co. Ltd. (Huatai)'",
+        "Attorney: JSON='Justin Zhou, Ryan Choi & Rock  Liu' vs DB='Justin Zhou, Ryan Choi & Rock Liu'",
+        "Agreed Fee: JSON=$950,000.00 vs DB=$0.00",
+        "Billing: JSON=$475,000.00 vs DB=$0.00",
+        "Collection: JSON=$475,000.00 vs DB=$0.00",
+        "UBT: JSON=$177,494.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Myth",
+      "cm_no": "18074-00008",
+      "project_id": 62,
+      "issues": [
+        "Attorney: JSON='Qingyu Wu, Ryan Choi  & George Zheng' vs DB='Qingyu Wu, Ryan Choi & George Zheng'",
+        "Agreed Fee: JSON=$900,000.00 vs DB=$0.00",
+        "UBT: JSON=$189,818.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Myth - RMB",
+      "cm_no": "18074-00011",
+      "project_id": 63,
+      "issues": [
+        "Billing: JSON=$505,257.28 vs DB=$0.00",
+        "Collection: JSON=$505,257.27 vs DB=$0.00",
+        "UBT: JSON=$218,703.54 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "ERU",
+      "cm_no": "49050-00004",
+      "project_id": 64,
+      "issues": [
+        "Client: JSON='Shanghai  Tianshu Zhixin  Semiconductor Co Ltd' vs DB='Shanghai Tianshu Zhixin Semiconductor Co Ltd'",
+        "Attorney: JSON='Qingyu Wu, Ryan Choi  & Jiawei Zhao' vs DB='Qingyu Wu, Ryan Choi & Jiawei Zhao'",
+        "Billing: JSON=$755,000.00 vs DB=$0.00",
+        "Collection: JSON=$755,000.00 vs DB=$0.00",
+        "UBT: JSON=$203,774.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Hercules",
+      "cm_no": "15322-00052",
+      "project_id": 65,
+      "issues": [
+        "Client: JSON='Will  Semiconductor Co., Ltd. (CICC)' vs DB='Will Semiconductor Co., Ltd. (CICC)'",
+        "Billing: JSON=$552,500.00 vs DB=$0.00",
+        "Collection: JSON=$552,500.00 vs DB=$0.00",
+        "UBT: JSON=$46,376.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "BST0369",
+      "cm_no": "58745-00001",
+      "project_id": 66,
+      "issues": [
+        "Client: JSON='Shanghai  Huilun Pharmaceutical Co. Ltd' vs DB='Shanghai Huilun Pharmaceutical Co. Ltd'",
+        "Agreed Fee: JSON=$1,300,000.00 vs DB=$0.00",
+        "UBT: JSON=$203,779.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "BST0369 - RMB",
+      "cm_no": "58745-00002",
+      "project_id": 67,
+      "issues": [
+        "Client: JSON='Shanghai  Huilun Pharmaceutical Co. Ltd' vs DB='Shanghai Huilun Pharmaceutical Co. Ltd'",
+        "Billing: JSON=$129,074.84 vs DB=$0.00",
+        "Collection: JSON=$129,074.84 vs DB=$0.00",
+        "UBT: JSON=$157,780.10 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "AIFly - RMB",
+      "cm_no": "58780-00002",
+      "project_id": 68,
+      "issues": [
+        "Client: JSON='Yonyou Network Technology Co.,  Ltd.' vs DB='Yonyou Network Technology Co., Ltd.'",
+        "Attorney: JSON='Qingyu Wu, Ryan Choi  & Chuanwen Wang' vs DB='Qingyu Wu, Ryan Choi & Chuanwen Wang'",
+        "Billing: JSON=$1,034,583.15 vs DB=$0.00",
+        "Collection: JSON=$371,164.94 vs DB=$0.00",
+        "UBT: JSON=$228,823.81 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Harmony 2025",
+      "cm_no": "15322-00054",
+      "project_id": 69,
+      "issues": [
+        "Client: JSON='Ringpai Pet Hospital Management  Co., Ltd.' vs DB='Ringpai Pet Hospital Management Co., Ltd.'",
+        "Agreed Fee: JSON=$1,050,000.00 vs DB=$0.00",
+        "Billing: JSON=$260,509.09 vs DB=$0.00",
+        "Collection: JSON=$260,509.09 vs DB=$0.00",
+        "Billing Credit: JSON=$10,394.93 vs DB=$0.00",
+        "UBT: JSON=$670.81 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Leap",
+      "cm_no": "58791-00001",
+      "project_id": 70,
+      "issues": [
+        "Client: JSON='Shanghai  Longcheer Technology Co. Ltd.' vs DB='Shanghai Longcheer Technology Co. Ltd.'",
+        "Agreed Fee: JSON=$1,300,000.00 vs DB=$0.00",
+        "UBT: JSON=$260,409.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Leap -  RMB",
+      "cm_no": "58791-00002",
+      "project_id": 71,
+      "issues": [
+        "Client: JSON='Shanghai  Longcheer Technology Co. Ltd.' vs DB='Shanghai Longcheer Technology Co. Ltd.'",
+        "Billing: JSON=$646,302.87 vs DB=$0.00",
+        "Collection: JSON=$646,302.87 vs DB=$0.00",
+        "UBT: JSON=$63,342.12 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "AI",
+      "cm_no": "18074-00009",
+      "project_id": 72,
+      "issues": [
+        "Client: JSON='AVATR  Technology Chongqing Co., Ltd. (CLSA)' vs DB='AVATR Technology Chongqing Co., Ltd. (CLSA)'",
+        "Attorney: JSON='Qingyu Wu, George Zheng  & Chuanwen Wang' vs DB='Qingyu Wu, George Zheng & Chuanwen Wang'",
+        "Agreed Fee: JSON=$1,100,000.00 vs DB=$0.00",
+        "UBT: JSON=$13,743.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "AI -  RMB",
+      "cm_no": "18074-00010",
+      "project_id": 73,
+      "issues": [
+        "Client: JSON='AVATR  Technology Chongqing Co., Ltd. (CLSA)' vs DB='AVATR Technology Chongqing Co., Ltd. (CLSA)'",
+        "Attorney: JSON='Qingyu Wu, George Zheng & Chuanwen  Wang' vs DB='Qingyu Wu, George Zheng & Chuanwen Wang'",
+        "Billing: JSON=$327,279.96 vs DB=$0.00",
+        "Collection: JSON=$327,279.96 vs DB=$0.00",
+        "Billing Credit: JSON=$58,038.33 vs DB=$0.00",
+        "UBT: JSON=$677.02 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "A-Bio",
+      "cm_no": "58894-00001",
+      "project_id": 74,
+      "issues": [
+        "Client: JSON='Atom  Therapeutics Co. Ltd.' vs DB='Atom Therapeutics Co. Ltd.'",
+        "Agreed Fee: JSON=$1,350,000.00 vs DB=$0.00",
+        "Billing: JSON=$675,000.00 vs DB=$0.00",
+        "Collection: JSON=$135,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$13,221.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Gaga",
+      "cm_no": "13205-00036",
+      "project_id": 75,
+      "issues": [
+        "Client: JSON='Citigroup  Global Markets Asia Limited' vs DB='Citigroup Global Markets Asia Limited'",
+        "UBT: JSON=$187,308.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Aurora  - RMB",
+      "cm_no": "59071-00002",
+      "project_id": 77,
+      "issues": [
+        "Client: JSON='Tanboer  Group Co. Ltd.' vs DB='Tanboer Group Co. Ltd.'",
+        "Agreed Fee: JSON=$1,280,000.00 vs DB=$0.00",
+        "Billing: JSON=$127,578.70 vs DB=$0.00",
+        "Collection: JSON=$127,578.71 vs DB=$0.00",
+        "UBT: JSON=$402,809.63 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Paradigm",
+      "cm_no": "50801-00001",
+      "project_id": 78,
+      "issues": [
+        "Client: JSON='Shanghai  ArkBio Sciences Co., Ltd.' vs DB='Shanghai ArkBio Sciences Co., Ltd.'",
+        "Billing: JSON=$2,405,000.00 vs DB=$0.00",
+        "Collection: JSON=$2,045,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$426,121.00 vs DB=$0.00",
+        "UBT: JSON=$10,987.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "KOI",
+      "cm_no": "59188-00001",
+      "project_id": 79,
+      "issues": [
+        "Agreed Fee: JSON=$1,550,000.00 vs DB=$0.00",
+        "Billing: JSON=$310,000.00 vs DB=$0.00",
+        "UBT: JSON=$262,002.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "DH",
+      "cm_no": "59189-00001",
+      "project_id": 80,
+      "issues": [
+        "Agreed Fee: JSON=$1,300,000.00 vs DB=$0.00",
+        "Billing: JSON=$260,000.00 vs DB=$0.00",
+        "Collection: JSON=$260,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$4.00 vs DB=$0.00",
+        "UBT: JSON=$354,246.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Dragonite",
+      "cm_no": "59192-00001",
+      "project_id": 81,
+      "issues": [
+        "Client: JSON='Shenzhen Huanchuang Interactive  Technology Co. Ltd.' vs DB='Shenzhen Huanchuang Interactive Technology Co. Ltd.'",
+        "Agreed Fee: JSON=$1,350,000.00 vs DB=$0.00",
+        "Billing: JSON=$270,000.00 vs DB=$0.00",
+        "Collection: JSON=$270,000.00 vs DB=$0.00",
+        "UBT: JSON=$343,065.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "MetaZ",
+      "cm_no": "59202-00001",
+      "project_id": 82,
+      "issues": [
+        "Client: JSON='Milian  Technology Inc.' vs DB='Milian Technology Inc.'",
+        "Attorney: JSON='Ryan Choi and Qingyu  Wu' vs DB='Ryan Choi and Qingyu Wu'",
+        "Agreed Fee: JSON=$1,400,000.00 vs DB=$200,000.00",
+        "Billing: JSON=$278,889.62 vs DB=$0.00",
+        "Collection: JSON=$278,889.62 vs DB=$0.00",
+        "Billing Credit: JSON=$21.42 vs DB=$0.00",
+        "UBT: JSON=$559,271.44 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Galaxy  (SiEngine)",
+      "cm_no": "59205-00001",
+      "project_id": 83,
+      "issues": [
+        "Attorney: JSON='Qingyu Wu, George Zheng,  Jiustin Zhou, Jiawei Zhao' vs DB='Qingyu Wu, George Zheng, Jiustin Zhou, Jiawei Zhao'",
+        "UBT: JSON=$57,112.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Galaxy  - RMB",
+      "cm_no": "59205-00002",
+      "project_id": 84,
+      "issues": [
+        "Attorney: JSON='Qingyu Wu, George Zheng,  Jiustin Zhou, Jiawei Zhao' vs DB='Qingyu Wu, George Zheng, Jiustin Zhou, Jiawei Zhao'",
+        "Agreed Fee: JSON=$9,576,000.00 vs DB=$0.00",
+        "Billing: JSON=$132,969.78 vs DB=$0.00",
+        "UBT: JSON=$116,687.45 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "HHL",
+      "cm_no": "59251-00001",
+      "project_id": 85,
+      "issues": [
+        "Client: JSON='CSI  Solar Co., Ltd.' vs DB='CSI Solar Co., Ltd.'",
+        "Agreed Fee: JSON=$10,450,000.00 vs DB=$0.00",
+        "Billing: JSON=$133,123.70 vs DB=$0.00",
+        "UBT: JSON=$35,981.60 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "ZX (Zixun)",
+      "cm_no": "59269-00001",
+      "project_id": 86,
+      "issues": [
+        "Client: JSON='Fujian  Zixun Information Technology Co., Ltd.' vs DB='Fujian Zixun Information Technology Co., Ltd.'",
+        "Agreed Fee: JSON=$1,480,000.00 vs DB=$0.00",
+        "Billing: JSON=$148,000.00 vs DB=$0.00",
+        "Collection: JSON=$148,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$142,825.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Nova",
+      "cm_no": "14121-00114",
+      "project_id": 87,
+      "issues": [
+        "Client: JSON='Nanjing  Impact Therapeutics Co., Ltd. (GS)' vs DB='Nanjing Impact Therapeutics Co., Ltd. (GS)'",
+        "Agreed Fee: JSON=$1,100,000.00 vs DB=$0.00",
+        "UBT: JSON=$157,986.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Nova -  RMB",
+      "cm_no": "14121-00117",
+      "project_id": 88,
+      "issues": [
+        "Client: JSON='Nanjing  Impact Therapeutics Co., Ltd. (GS)' vs DB='Nanjing Impact Therapeutics Co., Ltd. (GS)'",
+        "Billing: JSON=$272,801.74 vs DB=$0.00",
+        "Collection: JSON=$272,801.74 vs DB=$0.00",
+        "Billing Credit: JSON=$27,599.19 vs DB=$0.00",
+        "UBT: JSON=$4,753.80 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Orioles",
+      "cm_no": "14121-00116",
+      "project_id": 89,
+      "issues": [
+        "Client: JSON='OncoC4  Inc. (GS)' vs DB='OncoC4 Inc. (GS)'",
+        "Agreed Fee: JSON=$1,600,000.00 vs DB=$0.00",
+        "Billing: JSON=$400,000.00 vs DB=$0.00",
+        "Collection: JSON=$400,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$22,585.50 vs DB=$0.00",
+        "UBT: JSON=$18,060.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Seabiscuit",
+      "cm_no": "15322-00055",
+      "project_id": 90,
+      "issues": [
+        "Agreed Fee: JSON=$1,250,000.00 vs DB=$0.00",
+        "Billing: JSON=$312,500.00 vs DB=$0.00",
+        "Collection: JSON=$312,500.00 vs DB=$0.00",
+        "Billing Credit: JSON=$128,288.50 vs DB=$0.00",
+        "UBT: JSON=$22,831.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Haiyan",
+      "cm_no": "15322-00056",
+      "project_id": 91,
+      "issues": [
+        "UBT: JSON=$27,332.81 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "YM",
+      "cm_no": "59307-00002",
+      "project_id": 92,
+      "issues": [
+        "Client: JSON='Yangtze  Memory Technologies Co. Ltd.' vs DB='Yangtze Memory Technologies Co. Ltd.'"
+      ]
+    },
+    {
+      "project_name": "Keystone",
+      "cm_no": "49050-00005",
+      "project_id": 93,
+      "issues": [
+        "UBT: JSON=$161,811.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Lumina",
+      "cm_no": "59379-00001",
+      "project_id": 94,
+      "issues": [
+        "Client: JSON='Guangzhou  Ocusun Ophthalmic Biotech' vs DB='Guangzhou Ocusun Ophthalmic Biotech'",
+        "Billing: JSON=$40,000.00 vs DB=$0.00",
+        "Collection: JSON=$40,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$25,705.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Neuron",
+      "cm_no": "59429-00001",
+      "project_id": 95,
+      "issues": [
+        "Client: JSON='Nucarf Logistics Technology  Inc.' vs DB='Nucarf Logistics Technology Inc.'",
+        "Agreed Fee: JSON=$1,500,000.00 vs DB=$0.00",
+        "Billing: JSON=$375,000.00 vs DB=$0.00",
+        "Collection: JSON=$375,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$299,583.50 vs DB=$0.00",
+        "UBT: JSON=$1,465.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Rise",
+      "cm_no": "15322-00058",
+      "project_id": 96,
+      "issues": [
+        "Client: JSON='Suzhou  Sanegene Bio Inc.' vs DB='Suzhou Sanegene Bio Inc.'",
+        "UBT: JSON=$81,622.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Mission  2026",
+      "cm_no": "59489-00001",
+      "project_id": 97,
+      "issues": [
+        "Client: JSON='GeneQuantum Healthcare (Suzhou)  Co., Ltd' vs DB='GeneQuantum Healthcare (Suzhou) Co., Ltd'",
+        "UBT: JSON=$49,148.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project  TUP",
+      "cm_no": "14121-00118",
+      "project_id": 98,
+      "issues": [
+        "Client: JSON='Goldman  Sachs (Asia) LLC' vs DB='Goldman Sachs (Asia) LLC'"
+      ]
+    },
+    {
+      "project_name": "Alex",
+      "cm_no": "50297-00005",
+      "project_id": 99,
+      "issues": [
+        "Agreed Fee: JSON=$88,000.00 vs DB=$0.00",
+        "Billing: JSON=$88,000.00 vs DB=$0.00",
+        "Collection: JSON=$88,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$18,897.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "NeuroGen",
+      "cm_no": "59409-00001",
+      "project_id": 100,
+      "issues": [
+        "UBT: JSON=$80,850.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "ION",
+      "cm_no": "54188-00002",
+      "project_id": 101,
+      "issues": [
+        "Agreed Fee: JSON=$1,500,000.00 vs DB=$0.00",
+        "Billing: JSON=$300,000.00 vs DB=$0.00",
+        "Collection: JSON=$300,000.00 vs DB=$0.00",
+        "UBT: JSON=$89,787.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Creek",
+      "cm_no": "13205-00037",
+      "project_id": 102,
+      "issues": [
+        "Client: JSON='Citigroup Global  Markets Asia Limited' vs DB='Citigroup Global Markets Asia Limited'",
+        "UBT: JSON=$8,724.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Zenith",
+      "cm_no": "59604-00001",
+      "project_id": 103,
+      "issues": [
+        "Client: JSON='Nanjing Zenshine  Pharmaceuticals Co. Ltd.' vs DB='Nanjing Zenshine Pharmaceuticals Co. Ltd.'",
+        "Agreed Fee: JSON=$1,500,000.00 vs DB=$0.00",
+        "UBT: JSON=$10,508.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1477",
+      "cm_no": "50315-00001",
+      "project_id": 105,
+      "issues": [
+        "Billing: JSON=$1,143,925.00 vs DB=$0.00",
+        "Collection: JSON=$1,063,925.00 vs DB=$0.00",
+        "UBT: JSON=$164,427.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1477  II (ALIM)",
+      "cm_no": "50315-00002",
+      "project_id": 106,
+      "issues": [
+        "Agreed Fee: JSON=$350,000.00 vs DB=$2,071.00",
+        "Billing: JSON=$350,000.00 vs DB=$0.00",
+        "Collection: JSON=$350,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$2,115.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1477  III (RSU)",
+      "cm_no": "50315-00003",
+      "project_id": 107,
+      "issues": [
+        "Agreed Fee: JSON=$140,000.00 vs DB=$122,021.00",
+        "Billing: JSON=$190,000.00 vs DB=$0.00",
+        "Collection: JSON=$190,000.00 vs DB=$0.00",
+        "UBT: JSON=$50,617.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6862",
+      "cm_no": "50294-00001",
+      "project_id": 108,
+      "issues": [
+        "Client: JSON='Haidilao  International Holdings Limited' vs DB='Haidilao International Holdings Limited'",
+        "Agreed Fee: JSON=$230,000.00 vs DB=$372,050.00",
+        "Billing: JSON=$1,695,879.50 vs DB=$0.00",
+        "Collection: JSON=$1,695,879.50 vs DB=$0.00",
+        "Billing Credit: JSON=$37,734.50 vs DB=$0.00",
+        "UBT: JSON=$15,016.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "718-2",
+      "cm_no": "50294-00002",
+      "project_id": 109,
+      "issues": [
+        "Client: JSON='Haidilao  International Holdings Limited' vs DB='Haidilao International Holdings Limited'",
+        "Agreed Fee: JSON=$1,800,000.00 vs DB=$0.00",
+        "Billing: JSON=$1,800,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,800,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$348,129.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "FCB",
+      "cm_no": "50294-00003",
+      "project_id": 110,
+      "issues": [
+        "Client: JSON='Haidilao  International Holdings Limited' vs DB='Haidilao International Holdings Limited'",
+        "Agreed Fee: JSON=$300,000.00 vs DB=$0.00",
+        "Billing: JSON=$150,000.00 vs DB=$0.00",
+        "Collection: JSON=$150,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$1,092.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "FCB2024",
+      "cm_no": "50294-00005",
+      "project_id": 111,
+      "issues": [
+        "Client: JSON='Haidilao  International Holdings Limited' vs DB='Haidilao International Holdings Limited'",
+        "Agreed Fee: JSON=$220,000.00 vs DB=$0.00",
+        "Billing: JSON=$120,000.00 vs DB=$0.00",
+        "Collection: JSON=$120,000.00 vs DB=$0.00",
+        "UBT: JSON=$11,892.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9966",
+      "cm_no": "50298-00001",
+      "project_id": 112,
+      "issues": [
+        "Billing: JSON=$1,002,368.50 vs DB=$0.00",
+        "Collection: JSON=$923,968.50 vs DB=$0.00",
+        "UBT: JSON=$58,435.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1672",
+      "cm_no": "50297-00001",
+      "project_id": 113,
+      "issues": [
+        "Agreed Fee: JSON=$190,000.00 vs DB=$4,051.00",
+        "Billing: JSON=$966,527.50 vs DB=$0.00",
+        "Collection: JSON=$966,527.50 vs DB=$0.00",
+        "UBT: JSON=$80,124.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6185",
+      "cm_no": "50389-00001",
+      "project_id": 114,
+      "issues": [
+        "Client: JSON='CanSino  Biologics Inc.' vs DB='CanSino Biologics Inc.'",
+        "Billing: JSON=$1,117,165.00 vs DB=$0.00",
+        "Collection: JSON=$1,117,165.00 vs DB=$0.00",
+        "UBT: JSON=$197,471.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "2170",
+      "cm_no": "50247-00002",
+      "project_id": 115,
+      "issues": [
+        "Client: JSON='Suzhou  Basecare Medical Corporation Limited' vs DB='Suzhou Basecare Medical Corporation Limited'",
+        "Billing: JSON=$849,629.00 vs DB=$0.00",
+        "Collection: JSON=$772,739.00 vs DB=$0.00",
+        "UBT: JSON=$121,005.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "2160",
+      "cm_no": "50543-00001",
+      "project_id": 116,
+      "issues": [
+        "Client: JSON='MicroPort CardioFlow  Medtech Corporation' vs DB='MicroPort CardioFlow Medtech Corporation'",
+        "Billing: JSON=$1,062,000.00 vs DB=$0.00",
+        "Collection: JSON=$977,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$27,430.50 vs DB=$0.00",
+        "UBT: JSON=$1,305.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6622  (Annual retainer)",
+      "cm_no": "50314-00003",
+      "project_id": 117,
+      "issues": [
+        "Agreed Fee: JSON=$200,000.00 vs DB=$0.00",
+        "Billing: JSON=$700,000.00 vs DB=$0.00",
+        "Collection: JSON=$700,000.00 vs DB=$0.00",
+        "UBT: JSON=$250,013.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "2197",
+      "cm_no": "50323-00004",
+      "project_id": 118,
+      "issues": [
+        "Client: JSON='Clover  Biopharmaceuticals' vs DB='Clover Biopharmaceuticals'",
+        "Agreed Fee: JSON=$200,000.00 vs DB=$100.00",
+        "Billing: JSON=$573,000.00 vs DB=$0.00",
+        "Collection: JSON=$573,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$92,816.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "BTree",
+      "cm_no": "52215-00001",
+      "project_id": 119,
+      "issues": [
+        "Billing: JSON=$100,087.50 vs DB=$0.00",
+        "Collection: JSON=$100,087.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1579 -  RMB matter",
+      "cm_no": "53344-00001",
+      "project_id": 120,
+      "issues": [
+        "Client: JSON='Yihai International Holding  Ltd. \u9824\u6d77\u570b\u969b\u63a7\u80a1\u6709\u9650\u516c\u53f8' vs DB='Yihai International Holding Ltd. \u9824\u6d77\u570b\u969b\u63a7\u80a1\u6709\u9650\u516c\u53f8'",
+        "Billing: JSON=$835,337.69 vs DB=$0.00",
+        "Collection: JSON=$835,337.67 vs DB=$0.00",
+        "UBT: JSON=$200,901.12 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "1579 -  USD matter",
+      "cm_no": "53344-00002",
+      "project_id": 121,
+      "issues": [
+        "Client: JSON='Yihai International Holding  Ltd. \u9824\u6d77\u570b\u969b\u63a7\u80a1\u6709\u9650\u516c\u53f8' vs DB='Yihai International Holding Ltd. \u9824\u6d77\u570b\u969b\u63a7\u80a1\u6709\u9650\u516c\u53f8'"
+      ]
+    },
+    {
+      "project_name": "G2",
+      "cm_no": "44512-00011",
+      "project_id": 122,
+      "issues": [
+        "Client: JSON='Long  Hill Capital Management' vs DB='Long Hill Capital Management'",
+        "Billing: JSON=$17,447.25 vs DB=$0.00",
+        "Collection: JSON=$17,447.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9658",
+      "cm_no": "54404-00001",
+      "project_id": 123,
+      "issues": [
+        "Client: JSON='Super  Hi International Holding Ltd.' vs DB='Super Hi International Holding Ltd.'",
+        "Agreed Fee: JSON=$675,000.00 vs DB=$140,000.00",
+        "Billing: JSON=$675,000.00 vs DB=$0.00",
+        "Collection: JSON=$675,000.00 vs DB=$0.00",
+        "UBT: JSON=$245,376.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "718-3",
+      "cm_no": "54404-00002",
+      "project_id": 124,
+      "issues": [
+        "Client: JSON='Super  Hi International Holding Ltd.' vs DB='Super Hi International Holding Ltd.'",
+        "Agreed Fee: JSON=$1,200,000.00 vs DB=$2.00",
+        "Billing: JSON=$1,200,000.00 vs DB=$0.00",
+        "Collection: JSON=$1,200,000.00 vs DB=$0.00",
+        "UBT: JSON=$27,952.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "US  Compliance Advice",
+      "cm_no": "54404-00003",
+      "project_id": 125,
+      "issues": [
+        "Client: JSON='Super  Hi International Holding Ltd.' vs DB='Super Hi International Holding Ltd.'",
+        "Agreed Fee: JSON=$450,000.00 vs DB=$0.00",
+        "Billing: JSON=$337,500.00 vs DB=$0.00",
+        "Collection: JSON=$337,500.00 vs DB=$0.00",
+        "Billing Credit: JSON=$129,766.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9866 -  Disclosure",
+      "cm_no": "54264-00003",
+      "project_id": 126,
+      "issues": [
+        "Client: JSON='NIO  Inc.' vs DB='NIO Inc.'",
+        "Billing: JSON=$481,406.37 vs DB=$0.00",
+        "Collection: JSON=$481,406.37 vs DB=$0.00",
+        "UBT: JSON=$14,568.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9866 -  Ad Hoc Advice",
+      "cm_no": "54264-00004",
+      "project_id": 127,
+      "issues": [
+        "Client: JSON='NIO  Inc.' vs DB='NIO Inc.'",
+        "Billing: JSON=$662,682.82 vs DB=$0.00",
+        "Collection: JSON=$662,682.82 vs DB=$0.00",
+        "UBT: JSON=$132,528.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "13G  filings",
+      "cm_no": "47453-00002",
+      "project_id": 128,
+      "issues": [
+        "Client: JSON='Xiaomi  Corporation' vs DB='Xiaomi Corporation'",
+        "Billing: JSON=$24,052.45 vs DB=$0.00",
+        "Collection: JSON=$24,052.45 vs DB=$0.00",
+        "UBT: JSON=$2,362.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9860-RMB",
+      "cm_no": "49169-00008",
+      "project_id": 129,
+      "issues": [
+        "Agreed Fee: JSON=$225,000.00 vs DB=$0.00",
+        "Billing: JSON=$532,394.35 vs DB=$0.00",
+        "Collection: JSON=$532,394.35 vs DB=$0.00",
+        "UBT: JSON=$129,326.95 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Asclepius",
+      "cm_no": "44512-00012",
+      "project_id": 130,
+      "issues": [
+        "Client: JSON='Long  Hill Capital Management' vs DB='Long Hill Capital Management'",
+        "Agreed Fee: JSON=$40,000.00 vs DB=$0.00",
+        "Billing: JSON=$11,327.25 vs DB=$0.00",
+        "Collection: JSON=$11,327.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6990",
+      "cm_no": "52000-00002",
+      "project_id": 131,
+      "issues": [
+        "Client: JSON='Sichuan  Kelun-Biotech Biopharmaceutical Co. Ltd.' vs DB='Sichuan Kelun-Biotech Biopharmaceutical Co. Ltd.'",
+        "UBT: JSON=$89,336.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "ESOP",
+      "cm_no": "52000-00003",
+      "project_id": 132,
+      "issues": [
+        "Client: JSON='Sichuan  Kelun-Biotech Biopharmaceutical Co. Ltd.' vs DB='Sichuan Kelun-Biotech Biopharmaceutical Co. Ltd.'",
+        "Billing: JSON=$8,000.00 vs DB=$0.00",
+        "Collection: JSON=$8,000.00 vs DB=$0.00",
+        "UBT: JSON=$12,976.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project  W",
+      "cm_no": "51512-00001",
+      "project_id": 133,
+      "issues": [
+        "Client: JSON='ZX  Data Limited' vs DB='ZX Data Limited'",
+        "Agreed Fee: JSON=$1,900,000.00 vs DB=$0.00",
+        "Billing: JSON=$3,940,000.00 vs DB=$0.00",
+        "Collection: JSON=$3,939,999.65 vs DB=$0.00",
+        "Billing Credit: JSON=$473,507.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9890",
+      "cm_no": "51512-00002",
+      "project_id": 134,
+      "issues": [
+        "Client: JSON='ZX  Data Ltd.' vs DB='ZX Data Ltd.'",
+        "Agreed Fee: JSON=$900,000.00 vs DB=$16.00",
+        "Billing: JSON=$750,000.00 vs DB=$0.00",
+        "Collection: JSON=$600,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$81.25 vs DB=$0.00",
+        "UBT: JSON=$7,162.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "W 2024",
+      "cm_no": "51512-00003",
+      "project_id": 135,
+      "issues": [
+        "Client: JSON='ZX  Data Ltd.' vs DB='ZX Data Ltd.'"
+      ]
+    },
+    {
+      "project_name": "W2",
+      "cm_no": "51512-00004",
+      "project_id": 136,
+      "issues": [
+        "Client: JSON='ZX  Data Ltd.' vs DB='ZX Data Ltd.'"
+      ]
+    },
+    {
+      "project_name": "9690",
+      "cm_no": "55916-00001",
+      "project_id": 137,
+      "issues": [
+        "Client: JSON='TUHU  Car Inc.' vs DB='TUHU Car Inc.'",
+        "Agreed Fee: JSON=$340,000.00 vs DB=$8,100.00",
+        "Billing: JSON=$300,000.00 vs DB=$0.00",
+        "Collection: JSON=$260,000.00 vs DB=$0.00",
+        "UBT: JSON=$123,363.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6639",
+      "cm_no": "42606-00007",
+      "project_id": 138,
+      "issues": [
+        "Agreed Fee: JSON=$800,000.00 vs DB=$79,858.00",
+        "Billing: JSON=$839,929.00 vs DB=$0.00",
+        "Collection: JSON=$739,929.00 vs DB=$0.00",
+        "UBT: JSON=$47,177.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "HK  Listing Compliance Advice",
+      "cm_no": "47619-00012",
+      "project_id": 139,
+      "issues": [
+        "Client: JSON='Noah  Holdings Limited' vs DB='Noah Holdings Limited'",
+        "Agreed Fee: JSON=$500,000.00 vs DB=$0.00",
+        "Billing: JSON=$943,523.00 vs DB=$0.00",
+        "Collection: JSON=$943,523.00 vs DB=$0.00",
+        "UBT: JSON=$139,262.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Edge",
+      "cm_no": "50334-00005",
+      "project_id": 140,
+      "issues": [
+        "Billing: JSON=$1,757,756.50 vs DB=$0.00",
+        "Collection: JSON=$1,757,756.50 vs DB=$0.00",
+        "UBT: JSON=$587,849.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project  QH",
+      "cm_no": "56214-00001",
+      "project_id": 141,
+      "issues": [
+        "Billing: JSON=$687.50 vs DB=$0.00",
+        "Collection: JSON=$687.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Forland",
+      "cm_no": "56437-00001",
+      "project_id": 142,
+      "issues": [
+        "Client: JSON='J&T  Global Express Ltd.' vs DB='J&T Global Express Ltd.'"
+      ]
+    },
+    {
+      "project_name": "Forland  - USD",
+      "cm_no": "56437-00003",
+      "project_id": 143,
+      "issues": [
+        "Client: JSON='J&T  Global Express Ltd.' vs DB='J&T Global Express Ltd.'",
+        "Billing: JSON=$44,445.00 vs DB=$0.00",
+        "Collection: JSON=$44,445.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Swiss  Listing Compliance Advice",
+      "cm_no": "53128-00002",
+      "project_id": 144,
+      "issues": [
+        "Client: JSON='Will  Semiconductor Co. Ltd. Shanghai' vs DB='Will Semiconductor Co. Ltd. Shanghai'",
+        "Agreed Fee: JSON=$64,000.00 vs DB=$0.00",
+        "UBT: JSON=$23,068.75 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "General  Corp. Advice",
+      "cm_no": "54188-00001",
+      "project_id": 145,
+      "issues": [
+        "Billing: JSON=$438,133.75 vs DB=$0.00",
+        "Collection: JSON=$438,133.72 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "ZKH US",
+      "cm_no": "56853-00001",
+      "project_id": 146,
+      "issues": [
+        "Client: JSON='ZKH  Group Ltd.' vs DB='ZKH Group Ltd.'",
+        "Billing: JSON=$111,250.35 vs DB=$0.00",
+        "Collection: JSON=$111,250.35 vs DB=$0.00",
+        "UBT: JSON=$9,351.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Inno",
+      "cm_no": "57029-00001",
+      "project_id": 147,
+      "issues": [
+        "Agreed Fee: JSON=$70,000.00 vs DB=$0.00",
+        "Billing: JSON=$97,206.50 vs DB=$0.00",
+        "Collection: JSON=$97,206.50 vs DB=$0.00",
+        "UBT: JSON=$1,204.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6086 -  USD",
+      "cm_no": "50548-00004",
+      "project_id": 148,
+      "issues": [
+        "Agreed Fee: JSON=$210,000.00 vs DB=$8.00",
+        "Billing: JSON=$315,000.00 vs DB=$0.00",
+        "Collection: JSON=$210,000.00 vs DB=$0.00",
+        "Billing Credit: JSON=$115.50 vs DB=$0.00",
+        "UBT: JSON=$56,885.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project  S - Phase I",
+      "cm_no": "57380-00001",
+      "project_id": 149,
+      "issues": [
+        "Client: JSON='Shanghai  Henlius Biotech Inc.' vs DB='Shanghai Henlius Biotech Inc.'",
+        "Billing: JSON=$30,081.50 vs DB=$0.00",
+        "Collection: JSON=$30,081.50 vs DB=$0.00",
+        "UBT: JSON=$6,549.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Project  S - Phase II",
+      "cm_no": "57380-00002",
+      "project_id": 150,
+      "issues": [
+        "Client: JSON='Shanghai  Henlius Biotech Inc.' vs DB='Shanghai Henlius Biotech Inc.'",
+        "Billing: JSON=$10,104.00 vs DB=$0.00",
+        "Collection: JSON=$10,104.00 vs DB=$0.00",
+        "UBT: JSON=$23,782.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Sparkling-Q",
+      "cm_no": "25809-00002",
+      "project_id": 151,
+      "issues": [
+        "Client: JSON='China  Securities (International) Corporate Finance Company Limited' vs DB='China Securities (International) Corporate Finance Company Limited'",
+        "Billing: JSON=$151,288.00 vs DB=$0.00",
+        "Collection: JSON=$151,288.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Zest  II",
+      "cm_no": "51811-00003",
+      "project_id": 152,
+      "issues": [
+        "Client: JSON='ZG  Group' vs DB='ZG Group'",
+        "Agreed Fee: JSON=$800,000.00 vs DB=$7.00",
+        "Billing: JSON=$1,520,669.99 vs DB=$0.00",
+        "Collection: JSON=$1,520,669.99 vs DB=$0.00",
+        "Billing Credit: JSON=$457,397.99 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "SEC  Compliance Advice",
+      "cm_no": "51365-00001",
+      "project_id": 153,
+      "issues": [
+        "Client: JSON='Canaan  Inc.' vs DB='Canaan Inc.'",
+        "Billing: JSON=$2,387,017.86 vs DB=$0.00",
+        "Collection: JSON=$2,387,017.86 vs DB=$0.00",
+        "UBT: JSON=$8,927.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "SEC  Compliance Advice",
+      "cm_no": "13286-00001",
+      "project_id": 154,
+      "issues": [
+        "Client: JSON='Canadian  Solar Inc.' vs DB='Canadian Solar Inc.'",
+        "Billing: JSON=$5,239,727.63 vs DB=$0.00",
+        "Collection: JSON=$5,220,409.19 vs DB=$0.00",
+        "UBT: JSON=$146,140.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "General  Corporate Advice",
+      "cm_no": "58004-00001",
+      "project_id": 155,
+      "issues": [
+        "Client: JSON='Access  City International Ltd.' vs DB='Access City International Ltd.'",
+        "UBT: JSON=$56,666.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Mars",
+      "cm_no": "58004-00002",
+      "project_id": 156,
+      "issues": [
+        "Client: JSON='Access  City International Ltd.' vs DB='Access City International Ltd.'",
+        "UBT: JSON=$726.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Apex",
+      "cm_no": "50297-00004",
+      "project_id": 157,
+      "issues": [
+        "Billing: JSON=$160,301.40 vs DB=$0.00",
+        "UBT: JSON=$230,973.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Glory",
+      "cm_no": "24800-00248",
+      "project_id": 158,
+      "issues": [
+        "Client: JSON='Ares  Management Corporation' vs DB='Ares Management Corporation'",
+        "UBT: JSON=$7,795.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "ARS",
+      "cm_no": "24800-00258",
+      "project_id": 159,
+      "issues": [
+        "Client: JSON='Ares  Management Corporation' vs DB='Ares Management Corporation'",
+        "UBT: JSON=$11,611.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Dawn -  USD",
+      "cm_no": "24800-00266",
+      "project_id": 160,
+      "issues": [
+        "Client: JSON='Ares  Management Corporation' vs DB='Ares Management Corporation'",
+        "UBT: JSON=$11,961.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "6821",
+      "cm_no": "58630-00001",
+      "project_id": 161,
+      "issues": [
+        "Client: JSON='Asymchem  Laboratories (Tianjin) Co. Ltd.' vs DB='Asymchem Laboratories (Tianjin) Co. Ltd.'",
+        "UBT: JSON=$361,597.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Avalon",
+      "cm_no": "13185-00048",
+      "project_id": 162,
+      "issues": [
+        "Client: JSON='Morgan  Stanley Asia Limited' vs DB='Morgan Stanley Asia Limited'",
+        "Billing: JSON=$46,582.50 vs DB=$0.00",
+        "Collection: JSON=$46,582.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9606",
+      "cm_no": "56929-00003",
+      "project_id": 163,
+      "issues": [
+        "Client: JSON='Duality  Biotherapeutics Inc.' vs DB='Duality Biotherapeutics Inc.'",
+        "Agreed Fee: JSON=$190,000.00 vs DB=$97,025.00",
+        "UBT: JSON=$24,080.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "9606 -  RMB",
+      "cm_no": "56929-00004",
+      "project_id": 164,
+      "issues": [
+        "Client: JSON='Duality  Biotherapeutics Inc.' vs DB='Duality Biotherapeutics Inc.'",
+        "Billing: JSON=$93,661.28 vs DB=$0.00",
+        "UBT: JSON=$51,231.06 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Dual  Primary Conversion",
+      "cm_no": "54264-00005",
+      "project_id": 165,
+      "issues": [
+        "Client: JSON='NIO  Inc.' vs DB='NIO Inc.'",
+        "UBT: JSON=$46,021.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "General  Corporate Advice",
+      "cm_no": "58868-00001",
+      "project_id": 166,
+      "issues": [
+        "Client: JSON='Trip.com  Group Limited' vs DB='Trip.com Group Limited'",
+        "Billing: JSON=$6,018.85 vs DB=$0.00",
+        "Collection: JSON=$6,018.85 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Cross-over  Financing",
+      "cm_no": "51547-00003",
+      "project_id": 167,
+      "issues": [
+        "UBT: JSON=$421,935.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "TBD  (re: Jacobio pharmaceuticals Co. Ltd.)",
+      "cm_no": "14121-00112",
+      "project_id": 168,
+      "issues": [
+        "Client: JSON='Goldman  Sachs (Asia) LLC' vs DB='Goldman Sachs (Asia) LLC'",
+        "UBT: JSON=$5,860.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Combo  (General Corporate)",
+      "cm_no": "56527-00002",
+      "project_id": 169,
+      "issues": [
+        "Client: JSON='Xuanzhu Biopharmaceutical  Technology Co. Ltd.' vs DB='Xuanzhu Biopharmaceutical Technology Co. Ltd.'",
+        "UBT: JSON=$1,361.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "SPG",
+      "cm_no": "14121-00113",
+      "project_id": 170,
+      "issues": [
+        "Client: JSON='Goldman  Sachs (Asia) LLC' vs DB='Goldman Sachs (Asia) LLC'",
+        "UBT: JSON=$28,587.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Pinnacle",
+      "cm_no": "14121-00115",
+      "project_id": 171,
+      "issues": [
+        "Client: JSON='Goldman  Sachs (Asia) LLC' vs DB='Goldman Sachs (Asia) LLC'",
+        "Billing: JSON=$35,000.00 vs DB=$0.00",
+        "Collection: JSON=$17,500.00 vs DB=$0.00",
+        "UBT: JSON=$301.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Sunrise",
+      "cm_no": "50543-00002",
+      "project_id": 172,
+      "issues": [
+        "Client: JSON='MicroPort CardioFlow  Medtech Corp.' vs DB='MicroPort CardioFlow Medtech Corp.'",
+        "UBT: JSON=$236,861.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "US  Compliance Advice",
+      "cm_no": "54188-00003",
+      "project_id": 173,
+      "issues": [
+        "UBT: JSON=$43,672.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "2580",
+      "cm_no": "57284-00003",
+      "project_id": 174,
+      "issues": [
+        "Client: JSON='Ningbo  Aux Electric Co. Ltd.' vs DB='Ningbo Aux Electric Co. Ltd.'",
+        "UBT: JSON=$26,770.00 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Serino",
+      "cm_no": "50334-00007",
+      "project_id": 175,
+      "issues": [
+        "UBT: JSON=$579,831.25 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "Client  v. Micron Technology Inc. II",
+      "cm_no": "59307-00003",
+      "project_id": 176,
+      "issues": [
+        "Client: JSON='Yangtze  Memory Technologies Co. Ltd.' vs DB='Yangtze Memory Technologies Co. Ltd.'",
+        "Billing: JSON=$413,720.00 vs DB=$0.00",
+        "UBT: JSON=$133,506.50 vs DB=$0.00"
+      ]
+    },
+    {
+      "project_name": "2410",
+      "cm_no": "59624-00001",
+      "project_id": 178,
+      "issues": [
+        "Client: JSON='TYK  Medicines Inc.' vs DB='TYK Medicines Inc.'",
+        "Agreed Fee: JSON=$30,000.00 vs DB=$15,000.00"
+      ]
+    }
+  ],
+  "can_import": []
+}

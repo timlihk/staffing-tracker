@@ -31,6 +31,7 @@ import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDelete
 import { useStaff } from '../hooks/useStaff';
 import { useAuth } from '../context/AuthContext';
 import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSettings';
+import { useBillingSettings, useUpdateBillingSettings } from '../hooks/useBilling';
 import type { ManagedUser, Staff } from '../types';
 import { createUserSchema, type CreateUserFormData } from '../lib/validations';
 import { toast } from '../lib/toast';
@@ -67,11 +68,13 @@ const UserManagement: React.FC = () => {
   const { data: users = [], isLoading, refetch: refetchUsers } = useUsers();
   const { data: staff = [], isLoading: staffLoading } = useStaff();
   const { data: emailSettings, isLoading: emailSettingsLoading } = useEmailSettings();
+  const { data: billingSettings, isLoading: billingSettingsLoading } = useBillingSettings();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const resetUserPassword = useResetUserPassword();
   const deleteUser = useDeleteUser();
   const updateEmailSettings = useUpdateEmailSettings();
+  const updateBillingSettings = useUpdateBillingSettings();
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
@@ -432,6 +435,7 @@ const UserManagement: React.FC = () => {
           <Tab label="User Change Log" />
           <Tab label="Activity Log" />
           <Tab label="Email Settings" />
+          <Tab label="Billing Settings" />
         </Tabs>
       </Paper>
 
@@ -762,6 +766,89 @@ const UserManagement: React.FC = () => {
                 <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
                   <Typography variant="body2" color="info.dark">
                     <strong>Note:</strong> When a project is updated, only staff members assigned to that project with positions that have notifications enabled will receive email updates.
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+          )}
+        </Paper>
+      )}
+
+      {activeTab === 4 && (
+        <Paper sx={{ p: 3 }}>
+          {billingSettingsLoading ? (
+            <Box display="flex" justifyContent="center" py={6}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Stack spacing={3}>
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Billing Module Settings
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Configure access to the billing and collection module.
+                </Typography>
+              </Box>
+
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Stack>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Enable Billing Module
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Master toggle to enable or disable the billing module for all users
+                    </Typography>
+                  </Stack>
+                  <Switch
+                    checked={billingSettings?.billing_module_enabled ?? false}
+                    onChange={async (e) => {
+                      try {
+                        await updateBillingSettings.mutateAsync({
+                          billing_module_enabled: e.target.checked,
+                        });
+                        toast.success('Settings updated', 'Billing module settings have been saved.');
+                      } catch (error: any) {
+                        toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                      }
+                    }}
+                  />
+                </Box>
+
+                <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    Access Level
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Control who can access the billing module
+                  </Typography>
+
+                  <TextField
+                    select
+                    fullWidth
+                    label="Access Level"
+                    value={billingSettings?.access_level ?? 'admin_only'}
+                    onChange={async (e) => {
+                      try {
+                        await updateBillingSettings.mutateAsync({
+                          access_level: e.target.value as 'admin_only' | 'admin_and_bc_attorney',
+                        });
+                        toast.success('Settings updated', 'Billing access level has been saved.');
+                      } catch (error: any) {
+                        toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                      }
+                    }}
+                    disabled={!billingSettings?.billing_module_enabled}
+                  >
+                    <MenuItem value="admin_only">Admin Only</MenuItem>
+                    <MenuItem value="admin_and_bc_attorney">Admin and B&C Attorneys</MenuItem>
+                  </TextField>
+                </Box>
+
+                <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
+                  <Typography variant="body2" color="info.dark">
+                    <strong>Note:</strong> When set to "Admin and B&C Attorneys", B&C attorneys will only see billing projects they are assigned to. Admins always have full access to all billing data.
                   </Typography>
                 </Box>
               </Stack>
