@@ -12,15 +12,17 @@ export async function getProjectReportJson(req: AuthRequest, res: Response) {
       statuses: req.query.statuses as string | undefined,
       priorities: req.query.priorities as string | undefined,
       staffId: req.query.staffId as string | undefined,
+      page: req.query.page as string | undefined,
+      limit: req.query.limit as string | undefined,
     };
 
-    const rows = await getProjectReport(query);
+    const result = await getProjectReport(query);
 
     res.json({
-      data: rows,
+      data: result.data,
       meta: {
         filters: query,
-        totalProjects: rows.length,
+        pagination: result.pagination,
       },
     });
   } catch (error: ControllerError) {
@@ -39,10 +41,13 @@ export async function getProjectReportExcel(req: AuthRequest, res: Response) {
       statuses: req.query.statuses as string | undefined,
       priorities: req.query.priorities as string | undefined,
       staffId: req.query.staffId as string | undefined,
+      // For Excel export, don't use pagination to get all data
+      page: undefined,
+      limit: undefined,
     };
 
-    const rows = await getProjectReport(query);
-    const wb = await buildProjectReportWorkbook(rows, query);
+    const result = await getProjectReport(query);
+    const wb = await buildProjectReportWorkbook(result.data, query);
 
     res.setHeader(
       'Content-Type',

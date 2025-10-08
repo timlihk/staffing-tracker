@@ -9,7 +9,6 @@ import {
   Chip,
   Button,
   CircularProgress,
-  Divider,
   Table,
   TableBody,
   TableCell,
@@ -32,7 +31,7 @@ import {
   ChangeCircle,
 } from '@mui/icons-material';
 import api from '../api/client';
-import { Staff, ChangeHistory } from '../types';
+import { Staff, ChangeHistory, Project } from '../types';
 import { Page, Section, PageHeader } from '../components/ui';
 import { usePermissions } from '../hooks/usePermissions';
 
@@ -112,7 +111,7 @@ const StaffDetail: React.FC = () => {
       acc[projectId].jurisdictions.push(assignment.jurisdiction);
     }
     return acc;
-  }, {} as Record<number, { project: any; projectId: number; jurisdictions: string[] }>);
+  }, {} as Record<number, { project: Project | null | undefined; projectId: number; jurisdictions: string[] }>);
 
   const groupedList = Object.values(groupedAssignments);
 

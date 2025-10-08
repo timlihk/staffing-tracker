@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import {
   Container,
   Paper,
@@ -11,7 +12,7 @@ import {
   Box,
   CircularProgress,
 } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { loginSchema, type LoginFormData } from '../lib/validations';
 import { toast } from '../lib/toast';
 
@@ -47,11 +48,11 @@ const Login: React.FC = () => {
 
       toast.success('Login successful', 'Welcome back!');
       navigate('/');
-    } catch (err: any) {
-      toast.error(
-        'Login failed',
-        err.response?.data?.error || 'Please check your credentials and try again.'
-      );
+    } catch (error: unknown) {
+      const description = isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error || 'Please check your credentials and try again.'
+        : 'Please check your credentials and try again.';
+      toast.error('Login failed', description);
     }
   };
 

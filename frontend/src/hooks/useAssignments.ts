@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import api from '../api/client';
 import { toast } from '../lib/toast';
 import type { ProjectAssignment } from '../types';
@@ -43,8 +44,8 @@ export const useCreateAssignment = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Team member added', 'The staff member was assigned to the project.');
     },
-    onError: (error: any) => {
-      toast.error('Failed to add team member', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to add team member', extractErrorMessage(error, 'Please try again'));
     },
   });
 };
@@ -64,8 +65,8 @@ export const useUpdateAssignment = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Team member updated', 'Assignment details were updated successfully.');
     },
-    onError: (error: any) => {
-      toast.error('Failed to update team member', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to update team member', extractErrorMessage(error, 'Please try again'));
     },
   });
 };
@@ -85,8 +86,15 @@ export const useDeleteAssignment = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Team member removed', 'The staff member was removed from the project.');
     },
-    onError: (error: any) => {
-      toast.error('Failed to remove team member', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to remove team member', extractErrorMessage(error, 'Please try again'));
     },
   });
+};
+
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  if (isAxiosError<{ error?: string }>(error)) {
+    return error.response?.data?.error ?? fallback;
+  }
+  return fallback;
 };

@@ -94,6 +94,11 @@ model Project {
   @@index([priority])
   @@index([timetable])
   @@index([lastConfirmedAt])
+  @@index([updatedAt(sort: Desc)])
+  @@index([category, status])
+  @@index([status, category])
+  @@index([side])
+  @@index([sector])
   @@map("projects")
 }
 
@@ -132,6 +137,7 @@ model ProjectChangeHistory {
 
   @@index([projectId])
   @@index([changedAt(sort: Desc)])
+  @@index([projectId, changedAt(sort: Desc)]) // Composite index for optimized change history queries
   @@map("project_change_history")
 }
 

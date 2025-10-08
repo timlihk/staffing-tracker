@@ -72,10 +72,7 @@ test.describe('Dashboard', () => {
   });
 
   test('should refresh dashboard data', async ({ page }) => {
-    // Get initial timestamp or data
-    const initialContent = await page.locator('body').textContent();
-
-    // Wait a moment
+    // Wait a moment to let data update before reload
     await page.waitForTimeout(2000);
 
     // Reload page
@@ -94,12 +91,18 @@ test.describe('Dashboard', () => {
     await page.reload();
 
     // Look for loading indicators (skeleton, spinner, etc.)
-    const loadingIndicator = page.locator('[class*="skeleton"]')
+    const loadingIndicator = page
+      .locator('[class*="skeleton"]')
       .or(page.locator('[class*="loading"]'))
       .or(page.locator('[class*="spinner"]'))
       .or(page.locator('[role="progressbar"]'));
 
     // Loading indicator might appear briefly
+    const indicatorCount = await loadingIndicator.count();
+    if (indicatorCount > 0) {
+      await expect(loadingIndicator.first()).toBeVisible({ timeout: 5000 });
+    }
+
     // We'll just check that the page eventually loads successfully
     await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 10000 });
   });

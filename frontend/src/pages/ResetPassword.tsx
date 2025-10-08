@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import {
   Container,
   Paper,
@@ -46,11 +47,11 @@ const ResetPassword: React.FC = () => {
       toast.success('Password updated', 'You can now sign in with your new password.');
       reset();
       navigate('/login');
-    } catch (error: any) {
-      toast.error(
-        'Password reset failed',
-        error.response?.data?.error || 'Please try again or request a new reset link.'
-      );
+    } catch (error: unknown) {
+      const description = isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error || 'Please try again or request a new reset link.'
+        : 'Please try again or request a new reset link.';
+      toast.error('Password reset failed', description);
     }
   };
 

@@ -36,7 +36,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import api from '../api/client';
 import { Project, ChangeHistory, ProjectAssignment, Staff } from '../types';
-import { Page, Section, PageHeader } from '../components/ui';
+import { Page, PageHeader } from '../components/ui';
 import { useStaff } from '../hooks/useStaff';
 import { usePermissions } from '../hooks/usePermissions';
 import { useConfirmProject } from '../hooks/useProjects';

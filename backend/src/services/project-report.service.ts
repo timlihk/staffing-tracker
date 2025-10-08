@@ -1,11 +1,14 @@
-import prisma from '../utils/prisma';
+import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AppError } from '../utils/errors';
+import { parseQueryInt } from '../utils/queryParsing';
 
 export interface ProjectReportQuery {
   categories?: string;
   statuses?: string;
   priorities?: string;
   staffId?: string;
+  page?: string;
+  limit?: string;
 }
 
 export interface ProjectReportRow {
@@ -43,7 +46,15 @@ export interface ProjectReportRow {
 const csvToArray = (v?: string) =>
   v ? v.split(',').map(s => s.trim()).filter(Boolean) : undefined;
 
-export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectReportRow[]> {
+export async function getProjectReport(q: ProjectReportQuery): Promise<{
+  data: ProjectReportRow[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}> {
   const categories = csvToArray(q.categories);
   const statuses = csvToArray(q.statuses);
   const priorities = csvToArray(q.priorities);
@@ -55,6 +66,31 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
       throw AppError.badRequest('Invalid staffId parameter');
     }
     staffId = parsed;
+  }
+
+  // Add pagination with reasonable defaults
+  const pageNum = parseQueryInt(q.page || '1', { default: 1, min: 1 });
+  const limitNum = parseQueryInt(q.limit || '50', { default: 50, min: 1, max: 200 });
+  const skip = (pageNum - 1) * limitNum;
+
+  // Generate cache key based on query parameters including pagination
+  const cacheKey = CACHE_KEYS.PROJECT_REPORT(
+    `categories=${categories}&statuses=${statuses}&priorities=${priorities}&staffId=${staffId}&page=${pageNum}&limit=${limitNum}`
+  );
+
+  // Try to get from cache first
+  const cached = getCached(cacheKey);
+  if (cached && typeof cached === 'object' && 'data' in cached && 'pagination' in cached) {
+    console.log('[Project Report] Cache hit');
+    return cached as {
+      data: ProjectReportRow[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    };
   }
 
   // Build where filter for projects
@@ -74,27 +110,43 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
 
   console.log('[Project Report] Filter WHERE:', JSON.stringify(where, null, 2));
 
-  // Fetch all projects with their assignments
-  const projects = await prisma.project.findMany({
-    where,
-    include: {
-      assignments: {
-        include: {
-          staff: {
-            select: {
-              name: true,
-              position: true,
+  // Fetch projects with their assignments - optimized with selective fields and pagination
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        status: true,
+        priority: true,
+        filingDate: true,
+        listingDate: true,
+        bcAttorney: true,
+        timetable: true,
+        notes: true,
+        assignments: {
+          select: {
+            jurisdiction: true,
+            staff: {
+              select: {
+                name: true,
+                position: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: [
-      { name: 'asc' },
-    ],
-  });
+      orderBy: [
+        { name: 'asc' },
+      ],
+      skip,
+      take: limitNum,
+    }),
+    prisma.project.count({ where }),
+  ]);
 
-  console.log(`[Project Report] Found ${projects.length} projects`);
+  console.log(`[Project Report] Found ${projects.length} projects (page ${pageNum} of ${Math.ceil(total / limitNum)})`);
 
   // Transform to report rows
   const rows: ProjectReportRow[] = projects.map(project => {
@@ -144,5 +196,18 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<ProjectRe
     };
   });
 
-  return rows;
+  const response = {
+    data: rows,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    },
+  };
+
+  // Cache the response
+  setCached(cacheKey, response);
+
+  return response;
 }

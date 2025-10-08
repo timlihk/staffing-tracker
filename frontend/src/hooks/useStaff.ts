@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import api from '../api/client';
 import type { Staff } from '../types';
 import { toast } from '../lib/toast';
@@ -49,8 +50,8 @@ export const useCreateStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Staff member created', 'The staff member has been created successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to create staff member', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to create staff member', extractStaffError(error, 'Please try again'));
     },
   });
 };
@@ -69,8 +70,8 @@ export const useUpdateStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Staff member updated', 'The staff member has been updated successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to update staff member', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to update staff member', extractStaffError(error, 'Please try again'));
     },
   });
 };
@@ -87,8 +88,15 @@ export const useDeleteStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Staff member deleted', 'The staff member has been deleted successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to delete staff member', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to delete staff member', extractStaffError(error, 'Please try again'));
     },
   });
+};
+
+const extractStaffError = (error: unknown, fallback: string): string => {
+  if (isAxiosError<{ error?: string }>(error)) {
+    return error.response?.data?.error ?? fallback;
+  }
+  return fallback;
 };

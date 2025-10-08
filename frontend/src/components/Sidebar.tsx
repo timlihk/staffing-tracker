@@ -14,8 +14,8 @@ import {
   Divider,
   IconButton,
 } from '@mui/material';
-import { Dashboard, FolderOpen, People, BarChart, ManageAccounts, Logout, Menu } from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
+import { Dashboard, FolderOpen, People, BarChart, ManageAccounts, Logout, Menu, AttachMoney } from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 
 interface SidebarProps {
   drawerWidth: number;
@@ -37,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
     { text: 'Projects', icon: <FolderOpen />, path: '/projects' },
     { text: 'Staff', icon: <People />, path: '/staff' },
     { text: 'Project Report', icon: <BarChart />, path: '/project-report' },
+    { text: 'Billing', icon: <AttachMoney />, path: '/billing' },
   ];
 
   if (user?.role === 'admin') {

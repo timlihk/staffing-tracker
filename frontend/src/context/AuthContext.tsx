@@ -1,31 +1,22 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import apiClient from '../api/client';
-import type { User, LoginRequest, LoginResponse } from '../types';
+import type { LoginRequest, LoginResponse } from '../types';
 import { toast } from '../lib/toast';
+import { AuthContext, type AuthContextValue } from './AuthContextData';
 
 const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
 
-interface LoginResult {
+type PasswordResetError = {
   requiresPasswordReset: boolean;
   resetToken?: string;
-  username?: string;
-  message?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (credentials: LoginRequest) => Promise<LoginResult>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+  error?: string;
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthContextValue['user']>(null);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
@@ -40,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  const login = async (credentials: LoginRequest): Promise<LoginResult> => {
+  const login: AuthContextValue['login'] = async (credentials: LoginRequest) => {
     try {
       const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
       const { token, user } = response.data;
@@ -50,8 +41,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(user);
 
       return { requiresPasswordReset: false };
-    } catch (error: any) {
-      if (error.response?.status === 403 && error.response.data?.requiresPasswordReset) {
+    } catch (error: unknown) {
+      if (
+        isAxiosError<PasswordResetError>(error) &&
+        error.response?.status === 403 &&
+        error.response.data?.requiresPasswordReset
+      ) {
         return {
           requiresPasswordReset: true,
           resetToken: error.response.data.resetToken,
@@ -112,12 +107,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
 };

@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import prisma from '../utils/prisma';
+import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { StaffWhereInput, ControllerError } from '../types/prisma';
@@ -9,6 +9,17 @@ import { Prisma } from '@prisma/client';
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { position, department, status, search } = req.query;
+
+    // Generate cache key based on query parameters
+    const cacheKey = CACHE_KEYS.STAFF_LIST(
+      `position=${position}&department=${department}&status=${status}&search=${search}`
+    );
+
+    // Try to get from cache first
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
 
     const where: StaffWhereInput = {};
 
@@ -30,9 +41,17 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
 
     const staff = await prisma.staff.findMany({
       where,
-      include: {
+      // Optimized with selective fields for list view
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        position: true,
+        department: true,
+        status: true,
         assignments: {
-          include: {
+          select: {
+            id: true,
             project: {
               select: {
                 id: true,
@@ -46,6 +65,9 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
       },
       orderBy: { name: 'asc' },
     });
+
+    // Cache the response
+    setCached(cacheKey, staff);
 
     res.json(staff);
   } catch (error) {
@@ -63,12 +85,42 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
 
+    // Try to get from cache first
+    const cacheKey = CACHE_KEYS.STAFF_DETAIL(staffId);
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const staff = await prisma.staff.findUnique({
       where: { id: staffId },
-      include: {
+      // Optimized with selective fields for detail view
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        position: true,
+        department: true,
+        status: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
         assignments: {
-          include: {
-            project: true,
+          select: {
+            id: true,
+            jurisdiction: true,
+            createdAt: true,
+            project: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                category: true,
+                priority: true,
+                filingDate: true,
+                listingDate: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -78,6 +130,9 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
     if (!staff) {
       return res.status(404).json({ error: 'Staff member not found' });
     }
+
+    // Cache the staff member
+    setCached(cacheKey, staff);
 
     res.json(staff);
   } catch (error) {
@@ -117,6 +172,9 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
         description: `Created staff member: ${staff.name}`,
       },
     });
+
+    // Invalidate cache for staff lists
+    invalidateCache('staff:list');
 
     res.status(201).json(staff);
   } catch (error) {
@@ -180,6 +238,10 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Invalidate cache for this staff member and staff lists
+    invalidateCache(`staff:detail:${staffId}`);
+    invalidateCache('staff:list');
+
     res.json(staff);
   } catch (error: ControllerError) {
     console.error('Update staff error:', error);
@@ -223,6 +285,10 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
         description: `Deleted staff member: ${staff.name}`,
       },
     });
+
+    // Invalidate cache for this staff member and staff lists
+    invalidateCache(`staff:detail:${staffId}`);
+    invalidateCache('staff:list');
 
     res.json({ message: 'Staff member deleted successfully' });
   } catch (error) {

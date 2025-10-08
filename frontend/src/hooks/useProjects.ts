@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import api from '../api/client';
 import type { Project } from '../types';
 import { toast } from '../lib/toast';
@@ -54,8 +55,8 @@ export const useCreateProject = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Project created', 'The project has been created successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to create project', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to create project', extractProjectError(error, 'Please try again'));
     },
   });
 };
@@ -74,8 +75,8 @@ export const useUpdateProject = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Project updated', 'The project has been updated successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to update project', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to update project', extractProjectError(error, 'Please try again'));
     },
   });
 };
@@ -92,8 +93,8 @@ export const useDeleteProject = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Project deleted', 'The project has been deleted successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to delete project', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to delete project', extractProjectError(error, 'Please try again'));
     },
   });
 };
@@ -112,10 +113,17 @@ export const useConfirmProject = () => {
       queryClient.invalidateQueries({ queryKey: ['projects-needing-attention'] });
       toast.success('Project confirmed', 'Project details have been confirmed');
     },
-    onError: (error: any) => {
-      toast.error('Failed to confirm project', error.response?.data?.error || 'Please try again');
+    onError: (error: unknown) => {
+      toast.error('Failed to confirm project', extractProjectError(error, 'Please try again'));
     },
   });
+};
+
+const extractProjectError = (error: unknown, fallback: string): string => {
+  if (isAxiosError<{ error?: string }>(error)) {
+    return error.response?.data?.error ?? fallback;
+  }
+  return fallback;
 };
 
 interface ProjectsNeedingAttentionResponse {
