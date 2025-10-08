@@ -36,7 +36,14 @@ import {
   Typography,
 } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material/Select';
-import { Add as AddIcon, ArrowBack as ArrowBackIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  ArrowBack as ArrowBackIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  CheckCircle as CheckCircleIcon,
+  AccessTime as AccessTimeIcon
+} from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
 import {
   useBillingProjectSummary,
@@ -47,6 +54,7 @@ import {
   useCreateMilestone,
   useDeleteMilestone,
 } from '../hooks/useBilling';
+import { formatCurrency, formatCurrencyWhole } from '../lib/currency';
 import type {
   BillingProjectSummaryResponse,
   BillingProjectCM,
@@ -302,10 +310,6 @@ function CmSummaryCard({
     engagementSummary?.total_agreed_fee_currency ??
     (project.agreed_fee_usd ? 'USD' : project.agreed_fee_cny ? 'CNY' : undefined);
 
-  const billingValueUsd = detail?.billing_usd ?? project.billing_usd;
-  const billingValueCny = detail?.billing_cny ?? project.billing_cny;
-  const collectedValueUsd = detail?.collection_usd ?? project.collection_usd;
-  const collectedValueCny = detail?.collection_cny ?? project.collection_cny;
 
   return (
     <Paper sx={cardSx}>
@@ -323,7 +327,7 @@ function CmSummaryCard({
           <InfoField label="C/M Number" value={cm?.cm_no || '—'} loading={loading && !cm} />
           <InfoField label="Opened" value={formatDate(cm?.open_date)} loading={loading} />
           <InfoField label="Closed" value={formatDate(cm?.closed_date)} loading={loading} />
-          <InfoField label="Long Stop Date" value={formatDate(longStopDate)} loading={loading} />
+          <InfoField label="Long Stop Date" value={formatDateYmd(longStopDate)} loading={loading} />
           <InfoField
             label="Agreed Fee"
             value={formatCurrency(agreedFeeValue ?? null, agreedFeeCurrency ?? null)}
@@ -331,17 +335,23 @@ function CmSummaryCard({
           />
           <InfoField
             label="Billing To Date"
-            value={formatCurrencyPair(billingValueUsd, billingValueCny)}
+            value={formatCurrencyWholeWithFallback(
+              detail?.billing_usd ?? project.billing_usd,
+              detail?.billing_cny ?? project.billing_cny
+            )}
             loading={loading}
           />
           <InfoField
             label="Collected"
-            value={formatCurrencyPair(collectedValueUsd, collectedValueCny)}
+            value={formatCurrencyWholeWithFallback(
+              detail?.collection_usd ?? project.collection_usd,
+              detail?.collection_cny ?? project.collection_cny
+            )}
             loading={loading}
           />
           <InfoField
             label="UBT"
-            value={formatCurrencyPair(
+            value={formatCurrencyWholeWithFallback(
               detail?.ubt_usd ?? project.ubt_usd,
               detail?.ubt_cny ?? project.ubt_cny
             )}
@@ -349,7 +359,7 @@ function CmSummaryCard({
           />
           <InfoField
             label="Billing Credits"
-            value={formatCurrencyPair(
+            value={formatCurrencyWholeWithFallback(
               detail?.billing_credit_usd ?? project.billing_credit_usd,
               detail?.billing_credit_cny ?? project.billing_credit_cny
             )}
@@ -579,7 +589,7 @@ function FeeMilestonesCard({
             justifyContent="space-between"
           >
             <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
-              <Typography variant="h6">Fee milestones</Typography>
+            <Typography variant="h6">Fee Milestones</Typography>
             </Stack>
 
             {engagements.length > 1 && (
@@ -659,13 +669,19 @@ function FeeMilestonesCard({
               <InfoField label="Engagement" value={currentEngagementLabel} />
               <InfoField label="Start Date" value={formatDate(detail.start_date)} />
               <InfoField label="Target Completion" value={formatDate(detail.end_date)} />
-              <InfoField label="Long Stop Date" value={formatDate(detail.feeArrangement?.lsd_date)} />
+              <InfoField label="Long Stop Date" value={formatDateYmd(detail.feeArrangement?.lsd_date)} />
               <InfoField
                 label="Agreed Fee"
                 value={formatCurrency(detail.total_agreed_fee_value, detail.total_agreed_fee_currency)}
               />
-              <InfoField label="Billing To Date" value={formatCurrencyPair(detail.billing_usd, detail.billing_cny)} />
-              <InfoField label="Collected" value={formatCurrencyPair(detail.collection_usd, detail.collection_cny)} />
+              <InfoField
+                label="Billing To Date"
+                value={formatCurrencyWholeWithFallback(detail.billing_usd, detail.billing_cny)}
+              />
+              <InfoField
+                label="Collected"
+                value={formatCurrencyWholeWithFallback(detail.collection_usd, detail.collection_cny)}
+              />
             </Grid>
 
               <Divider />
@@ -699,18 +715,16 @@ function FeeMilestonesCard({
                       <TableHead>
                         <TableRow>
                           <TableCell>Milestone</TableCell>
-                          <TableCell>Amount</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell>Billed Date</TableCell>
-                          <TableCell>Collected Date</TableCell>
+                          <TableCell align="right">Amount</TableCell>
+                          <TableCell align="center">Status</TableCell>
+                          <TableCell align="center">Billed Date</TableCell>
+                          <TableCell align="center">Collected Date</TableCell>
                           <TableCell>Notes</TableCell>
                           <TableCell align="right">Actions</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {sortedMilestones.map((milestone) => {
-                          const statusLabel = milestone.completed ? 'Complete' : 'In progress';
-                          const statusColor: 'default' | 'success' = milestone.completed ? 'success' : 'default';
                           return (
                             <TableRow key={milestone.milestone_id} hover>
                               <TableCell>
@@ -725,12 +739,16 @@ function FeeMilestonesCard({
                                   )}
                                 </Stack>
                               </TableCell>
-                              <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatMilestoneValue(milestone)}</TableCell>
-                              <TableCell>
-                                <Chip label={statusLabel} color={statusColor} size="small" />
+                              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatMilestoneValue(milestone)}</TableCell>
+                                  <TableCell align="center">
+                                {milestone.completed ? (
+                                  <CheckCircleIcon fontSize="small" color="success" />
+                                ) : (
+                                  <AccessTimeIcon fontSize="small" color="disabled" />
+                                )}
                               </TableCell>
-                              <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateYmd(milestone.invoice_sent_date)}</TableCell>
-                              <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateYmd(milestone.payment_received_date)}</TableCell>
+                              <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>{formatDateYmd(milestone.invoice_sent_date)}</TableCell>
+                              <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>{formatDateYmd(milestone.payment_received_date)}</TableCell>
                               <TableCell>
                                 <Typography variant="body2" color="text.secondary">
                                   {milestone.notes || '—'}
@@ -964,37 +982,6 @@ function formatDate(value: string | null | undefined) {
     : dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function formatCurrency(value: number | null | undefined, currency: string | undefined | null) {
-  if (value == null || Number.isNaN(value)) return '—';
-  const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : '';
-  return `${symbol}${Number(value).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
-function formatCurrencyWhole(value: number | null | undefined, currency: string | undefined | null) {
-  if (value == null || Number.isNaN(value)) return '—';
-  const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : '';
-  return `${symbol}${Number(value).toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })}`;
-}
-
-function formatCurrencyPair(
-  usd: number | null | undefined,
-  cny: number | null | undefined
-) {
-  if (usd != null && !Number.isNaN(usd)) {
-    return formatCurrency(usd, 'USD');
-  }
-  if (cny != null && !Number.isNaN(cny)) {
-    return formatCurrency(cny, 'CNY');
-  }
-  return '—';
-}
-
 type Milestone = EngagementDetailResponse['milestones'][number];
 
 type MilestoneFormState = {
@@ -1051,6 +1038,19 @@ function formatDateYmd(value: string | null | undefined) {
   const month = String(dt.getMonth() + 1).padStart(2, '0');
   const day = String(dt.getDate()).padStart(2, '0');
   return `${year}/${month}/${day}`;
+}
+
+function formatCurrencyWholeWithFallback(
+  usd: number | null | undefined,
+  cny: number | null | undefined
+) {
+  if (usd != null && !Number.isNaN(usd)) {
+    return formatCurrencyWhole(usd, 'USD');
+  }
+  if (cny != null && !Number.isNaN(cny)) {
+    return formatCurrencyWhole(cny, 'CNY');
+  }
+  return '—';
 }
 
 function buildMilestoneLabel(milestone: Milestone) {

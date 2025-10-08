@@ -16,13 +16,10 @@ import {
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useBillingProjects } from '../hooks/useBilling';
+import { formatCurrencyWhole } from '../lib/currency';
 import { Page } from '../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 
-const formatMoney = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '0.00';
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
 
 export default function BillingMatters() {
   const navigate = useNavigate();
@@ -65,21 +62,21 @@ export default function BillingMatters() {
         headerName: 'Fee (USD)',
         width: 120,
         type: 'number',
-        valueFormatter: (value) => value ? `$${formatMoney(value)}` : '-',
+        valueFormatter: ({ value }) => formatCurrencyWhole(value, 'USD'),
       },
       {
         field: 'billing_usd',
         headerName: 'Billed (USD)',
         width: 120,
         type: 'number',
-        valueFormatter: (value) => `$${formatMoney(value)}`,
+        valueFormatter: ({ value }) => formatCurrencyWhole(value, 'USD'),
       },
       {
         field: 'collection_usd',
         headerName: 'Collected (USD)',
         width: 130,
         type: 'number',
-        valueFormatter: (value) => `$${formatMoney(value)}`,
+        valueFormatter: ({ value }) => formatCurrencyWhole(value, 'USD'),
       },
       {
         field: 'billing_credit_usd',
@@ -87,13 +84,14 @@ export default function BillingMatters() {
         width: 120,
         type: 'number',
         renderCell: (params: GridRenderCellParams) => {
-          const value = params.value || 0;
+          const numeric = Number(params.value) || 0;
+          const label = numeric ? formatCurrencyWhole(numeric, 'USD') : '—';
           return (
             <Chip
-              label={`$${formatMoney(value)}`}
+              label={label}
               size="small"
-              color={value > 0 ? 'success' : 'default'}
-              variant={value > 0 ? 'filled' : 'outlined'}
+              color={numeric > 0 ? 'success' : 'default'}
+              variant={numeric > 0 ? 'filled' : 'outlined'}
             />
           );
         },
@@ -104,13 +102,14 @@ export default function BillingMatters() {
         width: 120,
         type: 'number',
         renderCell: (params: GridRenderCellParams) => {
-          const value = params.value || 0;
+          const numeric = Number(params.value) || 0;
+          const label = numeric ? formatCurrencyWhole(numeric, 'USD') : '—';
           return (
             <Chip
-              label={`$${formatMoney(value)}`}
+              label={label}
               size="small"
-              color={value > 0 ? 'warning' : 'default'}
-              variant={value > 0 ? 'filled' : 'outlined'}
+              color={numeric > 0 ? 'warning' : 'default'}
+              variant={numeric > 0 ? 'filled' : 'outlined'}
             />
           );
         },
@@ -121,11 +120,11 @@ export default function BillingMatters() {
         width: 130,
         type: 'number',
         renderCell: (params: GridRenderCellParams) => {
-          const value = params.value || 0;
-          if (value === 0) return <Typography variant="body2">-</Typography>;
+          const numeric = Number(params.value) || 0;
+          if (numeric === 0) return <Typography variant="body2">-</Typography>;
           return (
             <Chip
-              label={`$${formatMoney(value)}`}
+              label={formatCurrencyWhole(numeric, 'USD')}
               size="small"
               color="info"
               variant="filled"
@@ -138,7 +137,7 @@ export default function BillingMatters() {
         headerName: 'Fee (CNY)',
         width: 120,
         type: 'number',
-        valueFormatter: (value) => value ? `¥${formatMoney(value)}` : '-',
+        valueFormatter: ({ value }) => value ? formatCurrencyWhole(value, 'CNY') : '-',
       },
       {
         field: 'ubt_cny',
@@ -146,11 +145,11 @@ export default function BillingMatters() {
         width: 120,
         type: 'number',
         renderCell: (params: GridRenderCellParams) => {
-          const value = params.value || 0;
-          if (value === 0) return <Typography variant="body2">-</Typography>;
+          const numeric = Number(params.value) || 0;
+          if (numeric === 0) return <Typography variant="body2">-</Typography>;
           return (
             <Chip
-              label={`¥${formatMoney(value)}`}
+              label={formatCurrencyWhole(numeric, 'CNY')}
               size="small"
               color="warning"
               variant="filled"
