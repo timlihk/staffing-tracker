@@ -241,7 +241,6 @@ export default function BillingMatterDetail() {
             project={project}
             cm={selectedCm}
             engagementSummary={selectedEngagementSummary}
-            engagementCount={engagementSummaries.length}
             detail={selectedEngagement}
             loading={summaryLoading || engagementsLoading}
           />
@@ -278,14 +277,12 @@ function CmSummaryCard({
   project,
   cm,
   engagementSummary,
-  engagementCount,
   detail,
   loading,
 }: {
   project: BillingProjectSummaryResponse['project'];
   cm: BillingProjectCM | null;
   engagementSummary: CMEngagementSummary | null;
-  engagementCount: number;
   detail: EngagementDetailResponse | null;
   loading: boolean;
 }) {
@@ -323,24 +320,17 @@ function CmSummaryCard({
         <Divider />
 
         <Grid container spacing={2.5}>
-          <InfoField label="C/M number" value={cm?.cm_no || '—'} loading={loading && !cm} />
-          <InfoField label="Client" value={project.client_name || '—'} loading={loading && !project.client_name} />
-          <InfoField label="Project lead" value={project.attorney_in_charge || project.bc_attorney_name || '—'} loading={loading} />
+          <InfoField label="C/M Number" value={cm?.cm_no || '—'} loading={loading && !cm} />
           <InfoField label="Opened" value={formatDate(cm?.open_date)} loading={loading} />
           <InfoField label="Closed" value={formatDate(cm?.closed_date)} loading={loading} />
+          <InfoField label="Long Stop Date" value={formatDate(longStopDate)} loading={loading} />
           <InfoField
-            label="Engagements"
-            value={cm?.engagement_count ?? engagementCount}
-            loading={loading && !cm}
-          />
-          <InfoField label="Long stop date" value={formatDate(longStopDate)} loading={loading} />
-          <InfoField
-            label="Agreed fee"
+            label="Agreed Fee"
             value={formatCurrency(agreedFeeValue ?? null, agreedFeeCurrency ?? null)}
             loading={loading}
           />
           <InfoField
-            label="Billing to date"
+            label="Billing To Date"
             value={formatCurrencyPair(billingValueUsd, billingValueCny)}
             loading={loading}
           />
@@ -358,7 +348,7 @@ function CmSummaryCard({
             loading={loading}
           />
           <InfoField
-            label="Billing credits"
+            label="Billing Credits"
             value={formatCurrencyPair(
               detail?.billing_credit_usd ?? project.billing_credit_usd,
               detail?.billing_credit_cny ?? project.billing_credit_cny
@@ -630,9 +620,9 @@ function FeeMilestonesCard({
                   alignItems="center"
                   spacing={1.5}
                 >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Milestone reference text
-                  </Typography>
+              <Typography variant="subtitle2" color="text.secondary">
+                Milestone Reference Text
+              </Typography>
                   <Button
                     size="small"
                     variant="outlined"
@@ -666,17 +656,17 @@ function FeeMilestonesCard({
               </Stack>
 
               <Grid container spacing={2.5}>
-                <InfoField label="Engagement" value={currentEngagementLabel} />
-                <InfoField label="Start date" value={formatDate(detail.start_date)} />
-                <InfoField label="Target completion" value={formatDate(detail.end_date)} />
-                <InfoField label="Long stop date" value={formatDate(detail.feeArrangement?.lsd_date)} />
-                <InfoField
-                  label="Agreed fee"
-                  value={formatCurrency(detail.total_agreed_fee_value, detail.total_agreed_fee_currency)}
-                />
-                <InfoField label="Billing to date" value={formatCurrencyPair(detail.billing_usd, detail.billing_cny)} />
-                <InfoField label="Collected" value={formatCurrencyPair(detail.collection_usd, detail.collection_cny)} />
-              </Grid>
+              <InfoField label="Engagement" value={currentEngagementLabel} />
+              <InfoField label="Start Date" value={formatDate(detail.start_date)} />
+              <InfoField label="Target Completion" value={formatDate(detail.end_date)} />
+              <InfoField label="Long Stop Date" value={formatDate(detail.feeArrangement?.lsd_date)} />
+              <InfoField
+                label="Agreed Fee"
+                value={formatCurrency(detail.total_agreed_fee_value, detail.total_agreed_fee_currency)}
+              />
+              <InfoField label="Billing To Date" value={formatCurrencyPair(detail.billing_usd, detail.billing_cny)} />
+              <InfoField label="Collected" value={formatCurrencyPair(detail.collection_usd, detail.collection_cny)} />
+            </Grid>
 
               <Divider />
 
