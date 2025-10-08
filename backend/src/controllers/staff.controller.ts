@@ -108,7 +108,6 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
         assignments: {
           select: {
             id: true,
-            projectId: true,
             jurisdiction: true,
             createdAt: true,
             project: {
