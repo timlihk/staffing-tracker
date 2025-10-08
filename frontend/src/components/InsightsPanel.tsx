@@ -1,16 +1,7 @@
 import React from 'react';
-import {
-  Paper,
-  Typography,
-  Box,
-  Stack,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-} from '@mui/material';
+import { Paper, Typography, Box, Stack, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, type TooltipProps } from 'recharts';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { DashboardSummary } from '../types';
@@ -34,15 +25,16 @@ const DonutChart: React.FC<{
 }> = ({ data, colors, title }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
+      const value = Number(payload[0].value ?? 0);
       return (
         <Paper sx={{ p: 1, bgcolor: 'rgba(0, 0, 0, 0.87)', color: 'white' }}>
           <Typography variant="caption" display="block">
             {payload[0].name}
           </Typography>
           <Typography variant="caption" fontWeight={600}>
-            {payload[0].value} ({((payload[0].value / total) * 100).toFixed(1)}%)
+            {value} ({total ? ((value / total) * 100).toFixed(1) : '0.0'}%)
           </Typography>
         </Paper>
       );

@@ -5,7 +5,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { getTheme } from './theme';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -59,7 +60,7 @@ const SuspenseFallback = () => {
 };
 
 function App() {
-  const [mode, setMode] = useState<'light' | 'dark'>('light');
+  const mode: 'light' | 'dark' = 'light';
   const theme = useMemo(() => getTheme(mode), [mode]);
 
   return (

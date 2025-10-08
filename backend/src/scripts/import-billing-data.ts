@@ -61,7 +61,7 @@ async function readCSV<T>(filePath: string): Promise<T[]> {
 
     fs.createReadStream(filePath)
       .pipe(csv())
-      .on('data', (data) => results.push(data))
+      .on('data', (row: T) => results.push(row))
       .on('end', () => resolve(results))
       .on('error', reject);
   });

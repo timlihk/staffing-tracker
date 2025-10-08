@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -13,7 +13,7 @@ import {
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { GridColDef } from '@mui/x-data-grid';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
@@ -118,11 +118,19 @@ const Reports: React.FC = () => {
 
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [totals, setTotals] = useState({
-    rows: 0,
-    projects: 0,
-    staff: 0,
-  });
+  const totals = useMemo(() => {
+    const uniqueProjects = new Set<string>();
+    const uniqueStaff = new Set<string>();
+    rows.forEach((row) => {
+      uniqueProjects.add(row.projectName);
+      uniqueStaff.add(row.staffName);
+    });
+    return {
+      rows: rows.length,
+      projects: uniqueProjects.size,
+      staff: uniqueStaff.size,
+    };
+  }, [rows]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);

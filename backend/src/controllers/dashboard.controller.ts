@@ -1,17 +1,24 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import prisma from '../utils/prisma';
+import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { ActivityLogWhereInput } from '../types/prisma';
 
 // Helper functions
 const getTopAssignedStaff = async () => {
+  // Optimized query with selective fields and count aggregation
   const staff = await prisma.staff.findMany({
     where: { status: 'active' },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      position: true,
       assignments: {
         where: {
           project: { status: { in: ['Active', 'Slow-down'] } },
+        },
+        select: {
+          id: true, // Just need existence for counting
         },
       },
     },
@@ -93,6 +100,17 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     // Calculate 30 days from now for upcoming filings/listings
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    // Generate cache key based on query parameters
+    const cacheKey = CACHE_KEYS.DASHBOARD_SUMMARY(
+      `days=${days}&userId=${req.user?.userId}`
+    );
+
+    // Try to get from cache first
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
 
     const [
       totalProjects,
@@ -194,7 +212,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       { status: 'Suspended', count: suspendedProjects },
     ];
 
-    res.json({
+    const response = {
       summary: {
         totalProjects,
         activeProjects,
@@ -245,7 +263,12 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         username: activity.user?.username || 'System',
         createdAt: activity.createdAt,
       })),
-    });
+    };
+
+    // Cache the response
+    setCached(cacheKey, response);
+
+    res.json(response);
   } catch (error) {
     console.error('Get dashboard summary error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -256,12 +279,17 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
   try {
     const staff = await prisma.staff.findMany({
       where: { status: 'active' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        position: true,
+        department: true,
         assignments: {
           where: {
             project: { status: { in: ['Active', 'Slow-down'] } },
           },
-          include: {
+          select: {
+            jurisdiction: true,
             project: {
               select: {
                 id: true,
@@ -603,7 +631,8 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
           status: 'active',
         },
       },
-      include: {
+      select: {
+        staffId: true,
         staff: {
           select: {
             id: true,

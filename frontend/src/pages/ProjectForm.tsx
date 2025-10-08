@@ -9,7 +9,6 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
   MenuItem,
   CircularProgress,
   Stack,
@@ -23,6 +22,7 @@ import { projectSchema, type ProjectFormData } from '../lib/validations';
 import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProjects';
 import { useStaff } from '../hooks/useStaff';
 import api from '../api/client';
+import type { Staff } from '../types';
 
 interface TeamMember {
   staffId: number;
@@ -43,7 +43,7 @@ const ProjectForm: React.FC = () => {
   const updateProject = useUpdateProject();
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [jurisdiction, setJurisdiction] = useState('HK Law');
 
   const {

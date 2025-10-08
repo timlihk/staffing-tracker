@@ -92,7 +92,14 @@ function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
 
 router.get('/projects', authenticate, checkBillingAccess, billingController.getBillingProjects);
 router.get('/projects/:id', authenticate, checkBillingAccess, billingController.getBillingProjectDetail);
+router.get('/projects/:id/engagement/:engagementId', authenticate, checkBillingAccess, billingController.getEngagementDetail);
+router.get('/projects/:id/cm/:cmId/engagements', authenticate, checkBillingAccess, billingController.getCMEngagements);
+router.get('/projects/:id/activity', authenticate, checkBillingAccess, billingController.getBillingProjectActivity);
 router.patch('/projects/:id/financials', authenticate, adminOnly, billingController.updateFinancials);
+router.patch('/engagements/:engagementId/fee-arrangement', authenticate, adminOnly, billingController.updateFeeArrangement);
+router.post('/engagements/:engagementId/milestones', authenticate, adminOnly, billingController.createMilestone);
+router.patch('/milestones', authenticate, adminOnly, billingController.updateMilestones);
+router.delete('/milestones/:milestoneId', authenticate, adminOnly, billingController.deleteMilestone);
 
 // ============================================================================
 // Project Mapping

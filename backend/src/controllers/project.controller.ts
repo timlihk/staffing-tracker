@@ -1,101 +1,181 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import prisma from '../utils/prisma';
+import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import type { Prisma } from '@prisma/client';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
-  const { status, category, side, sector, search, staffId, page = '1', limit = '50' } = req.query;
+  try {
+    const { status, category, side, sector, search, staffId, page = '1', limit = '50' } = req.query;
 
-  const where: Prisma.ProjectWhereInput = {};
+    // Generate cache key based on query parameters
+    const cacheKey = CACHE_KEYS.PROJECTS_LIST(
+      `status=${status}&category=${category}&side=${side}&sector=${sector}&search=${search}&staffId=${staffId}&page=${page}&limit=${limit}`
+    );
 
-  if (typeof status === 'string' && status.trim()) {
-    where.status = status;
-  }
-
-  if (typeof category === 'string' && category.trim()) {
-    where.category = category;
-  }
-
-  if (typeof side === 'string' && side.trim()) {
-    where.side = side;
-  }
-
-  if (typeof sector === 'string' && sector.trim()) {
-    where.sector = sector;
-  }
-
-  if (typeof search === 'string' && search.trim()) {
-    where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { notes: { contains: search, mode: 'insensitive' } },
-    ];
-  }
-
-  if (typeof staffId === 'string' && staffId.trim()) {
-    const parsedStaffId = parseInt(staffId, 10);
-    if (Number.isNaN(parsedStaffId)) {
-      return res.status(400).json({ error: 'Invalid staffId' });
+    // Try to get from cache first
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
     }
-    where.assignments = {
-      some: { staffId: parsedStaffId },
-    };
-  }
 
-  const pageNum = parseQueryInt(page as string, { default: 1, min: 1 });
-  const limitNum = parseQueryInt(limit as string, { default: 50, min: 1, max: 100 });
-  const skip = (pageNum - 1) * limitNum;
+    const where: Prisma.ProjectWhereInput = {};
 
-  const [projects, total] = await Promise.all([
-    prisma.project.findMany({
-      where,
-      include: {
-        assignments: {
-          include: { staff: true },
+    if (typeof status === 'string' && status.trim()) {
+      where.status = status;
+    }
+
+    if (typeof category === 'string' && category.trim()) {
+      where.category = category;
+    }
+
+    if (typeof side === 'string' && side.trim()) {
+      where.side = side;
+    }
+
+    if (typeof sector === 'string' && sector.trim()) {
+      where.sector = sector;
+    }
+
+    if (typeof search === 'string' && search.trim()) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (typeof staffId === 'string' && staffId.trim()) {
+      const parsedStaffId = parseInt(staffId, 10);
+      if (Number.isNaN(parsedStaffId)) {
+        return res.status(400).json({ error: 'Invalid staffId' });
+      }
+      where.assignments = {
+        some: { staffId: parsedStaffId },
+      };
+    }
+
+    const pageNum = parseQueryInt(page as string, { default: 1, min: 1 });
+    const limitNum = parseQueryInt(limit as string, { default: 25, min: 1, max: 100 }); // Reduced default from 50 to 25 for faster initial load
+    const skip = (pageNum - 1) * limitNum;
+
+    // Further optimize by using select instead of include for better performance
+    // Remove assignments field as it's not used in the project list view
+    const [projects, total] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        // Use select instead of include for better performance
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          status: true,
+          priority: true,
+          elStatus: true,
+          timetable: true,
+          side: true,
+          sector: true,
+          lastConfirmedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          // Removed unused fields: filingDate, listingDate, bcAttorney, notes, assignments
+          // This significantly reduces query complexity and data transfer
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-      skip,
-      take: limitNum,
-    }),
-    prisma.project.count({ where }),
-  ]);
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+      prisma.project.count({ where }),
+    ]);
 
-  res.json({
-    data: projects,
-    pagination: {
-      page: pageNum,
-      limit: limitNum,
-      total,
-      totalPages: Math.ceil(total / limitNum),
-    },
-  });
+    const response = {
+      data: projects,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+
+    // Cache the response
+    setCached(cacheKey, response);
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get all projects error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 export const getProjectById = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  const projectId = parseInt(id, 10);
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: 'Invalid project ID' });
-  }
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: {
-      assignments: {
-        include: { staff: true },
+    // Try to get from cache first
+    const cacheKey = CACHE_KEYS.PROJECT_DETAIL(projectId);
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      // Use select instead of include for better performance
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        status: true,
+        priority: true,
+        elStatus: true,
+        timetable: true,
+        filingDate: true,
+        listingDate: true,
+        bcAttorney: true,
+        side: true,
+        sector: true,
+        notes: true,
+        lastConfirmedAt: true,
+        lastConfirmedBy: true,
+        createdAt: true,
+        updatedAt: true,
+        assignments: {
+          select: {
+            id: true,
+            jurisdiction: true,
+            createdAt: true,
+            staff: {
+              select: {
+                id: true,
+                name: true,
+                position: true,
+                // Removed email and department as they're not used in project detail view
+              }
+            },
+          },
+        },
       },
-    },
-  });
+    });
 
-  if (!project) {
-    return res.status(404).json({ error: 'Project not found' });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Cache the project
+    setCached(cacheKey, project);
+
+    res.json(project);
+  } catch (error) {
+    console.error('Get project by ID error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  res.json(project);
 };
 
 export const createProject = async (req: AuthRequest, res: Response) => {
@@ -133,9 +213,35 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       sector,
       notes,
     },
-    include: {
+    // Optimized with selective fields for performance
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      status: true,
+      priority: true,
+      elStatus: true,
+      timetable: true,
+      filingDate: true,
+      listingDate: true,
+      bcAttorney: true,
+      side: true,
+      sector: true,
+      notes: true,
+      createdAt: true,
+      updatedAt: true,
       assignments: {
-        include: { staff: true },
+        select: {
+          id: true,
+          jurisdiction: true,
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            },
+          },
+        },
       },
     },
   });
@@ -149,6 +255,10 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       description: `Created project: ${project.name}`,
     },
   });
+
+  // Invalidate cache for project lists and dashboard
+  invalidateCache('projects:list');
+  invalidateCache('dashboard:summary');
 
   req.log?.info('Project created', { projectId: project.id, name: project.name });
 
@@ -211,9 +321,35 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   const project = await prisma.project.update({
     where: { id: projectId },
     data: updateData,
-    include: {
+    // Optimized with selective fields for performance
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      status: true,
+      priority: true,
+      elStatus: true,
+      timetable: true,
+      filingDate: true,
+      listingDate: true,
+      bcAttorney: true,
+      side: true,
+      sector: true,
+      notes: true,
+      createdAt: true,
+      updatedAt: true,
       assignments: {
-        include: { staff: true },
+        select: {
+          id: true,
+          jurisdiction: true,
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            },
+          },
+        },
       },
     },
   });
@@ -266,6 +402,11 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Invalidate cache for this project, project lists, and dashboard
+  invalidateCache(`project:detail:${projectId}`);
+  invalidateCache('projects:list');
+  invalidateCache('dashboard:summary');
+
   req.log?.info('Project updated', { projectId: project.id, changes: changes.length });
 
   res.json(project);
@@ -299,6 +440,11 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
     },
   });
 
+  // Invalidate cache for this project, project lists, and dashboard
+  invalidateCache(`project:detail:${projectId}`);
+  invalidateCache('projects:list');
+  invalidateCache('dashboard:summary');
+
   req.log?.warn('Project deleted', { projectId, name: project.name });
 
   res.json({ message: 'Project deleted successfully' });
@@ -314,39 +460,48 @@ export const getProjectCategories = async (_req: AuthRequest, res: Response) => 
 };
 
 export const getProjectChangeHistory = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const { limit = '100' } = req.query;
+  try {
+    const { id } = req.params;
+    const { limit = '50' } = req.query; // Reduced default from 100 to 50
 
-  const projectId = parseInt(id, 10);
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: 'Invalid project ID' });
-  }
+    const projectId = parseInt(id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
 
-  const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 500 });
+    const limitNum = parseQueryInt(limit as string, { default: 50, min: 1, max: 100 }); // Reduced max from 500 to 100
 
-  if (wasValueClamped(limit as string, limitNum, { max: 500 })) {
-    req.log?.warn('Project change history limit clamped', {
-      userId: req.user?.userId,
-      requested: limit,
-      used: limitNum,
-    });
-  }
+    // Generate cache key for change history
+    const cacheKey = CACHE_KEYS.PROJECT_CHANGE_HISTORY(projectId, limitNum);
 
-  const changes = await prisma.projectChangeHistory.findMany({
-    where: {
-      projectId,
-    },
-    include: {
-      user: {
-        select: { username: true },
+    // Try to get from cache first
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    if (wasValueClamped(limit as string, limitNum, { max: 100 })) {
+      req.log?.warn('Project change history limit clamped', {
+        userId: req.user?.userId,
+        requested: limit,
+        used: limitNum,
+      });
+    }
+
+    const changes = await prisma.projectChangeHistory.findMany({
+      where: {
+        projectId,
       },
-    },
-    orderBy: { changedAt: 'desc' },
-    take: limitNum,
-  });
+      include: {
+        user: {
+          select: { username: true },
+        },
+      },
+      orderBy: { changedAt: 'desc' },
+      take: limitNum,
+    });
 
-  res.json(
-    changes.map((change) => ({
+    const response = changes.map((change) => ({
       id: change.id,
       fieldName: change.fieldName,
       oldValue: change.oldValue,
@@ -354,8 +509,16 @@ export const getProjectChangeHistory = async (req: AuthRequest, res: Response) =
       changeType: change.changeType,
       username: change.user?.username || 'System',
       changedAt: change.changedAt,
-    }))
-  );
+    }));
+
+    // Cache the response
+    setCached(cacheKey, response);
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get project change history error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 export const confirmProject = async (req: AuthRequest, res: Response) => {
@@ -410,9 +573,25 @@ export const getProjectsNeedingAttention = async (req: AuthRequest, res: Respons
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Generate cache key for this user's attention projects
+  const cacheKey = CACHE_KEYS.DASHBOARD_SUMMARY(`attention:${userId}`);
+
+  // Try to get from cache first
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { staff: true },
+    select: {
+      id: true,
+      staff: {
+        select: {
+          id: true,
+        },
+      },
+    },
   });
 
   const sevenDaysAgo = new Date();
@@ -428,21 +607,48 @@ export const getProjectsNeedingAttention = async (req: AuthRequest, res: Respons
     };
   }
 
+  // Optimized query with minimal fields needed for attention analysis
   const projects = await prisma.project.findMany({
     where: projectFilter,
-    include: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      status: true,
+      priority: true,
+      bcAttorney: true,
+      filingDate: true,
+      listingDate: true,
+      lastConfirmedAt: true,
+      updatedAt: true,
       assignments: {
-        include: { staff: true },
-      },
-      changeHistory: {
-        orderBy: { changedAt: 'desc' },
-        take: 10,
-      },
-      confirmedBy: {
         select: {
           id: true,
-          username: true,
+          staff: {
+            select: {
+              id: true,
+            },
+          },
         },
+      },
+      // Only load recent status changes for attention analysis
+      changeHistory: {
+        where: {
+          OR: [
+            { fieldName: 'status' },
+            { changeType: { in: ['assignment_added', 'assignment_removed'] } },
+          ],
+          changedAt: { gte: sevenDaysAgo },
+        },
+        select: {
+          fieldName: true,
+          oldValue: true,
+          newValue: true,
+          changeType: true,
+          changedAt: true,
+        },
+        orderBy: { changedAt: 'desc' },
+        take: 5, // Limit to most recent 5 relevant changes
       },
     },
     orderBy: { updatedAt: 'desc' },

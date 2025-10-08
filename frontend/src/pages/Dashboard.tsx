@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Grid,
   Typography,
   Box,
   Paper,
@@ -20,7 +19,6 @@ import {
   Select,
   MenuItem,
   FormControl,
-  Badge,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -117,14 +115,6 @@ const Dashboard = () => {
     );
   }
 
-  const getTimeRangeLabel = (days: number) => {
-    if (days === 30) return 'Next 30 Days';
-    if (days === 60) return 'Next 2 Months';
-    if (days === 90) return 'Next 3 Months';
-    if (days === 120) return 'Next 4 Months';
-    return `Next ${days} Days`;
-  };
-
   return (
     <Page>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
@@ -155,7 +145,6 @@ const Dashboard = () => {
           weeks={heatmapWeeks}
           groups={groupHeatmapByRole(data.staffingHeatmap)}
           onSelectStaff={(id) => navigate(`/staff/${id}`)}
-          timeRange={timeRange}
         />
       </Stack>
     </Page>
@@ -401,7 +390,7 @@ const DealRadarCard = ({
             flexWrap: 'wrap',
           }}
         >
-          {months.map((month, index) => (
+          {months.map((month) => (
             <Box
               key={`${month.getFullYear()}-${month.getMonth()}`}
               sx={{
@@ -613,50 +602,14 @@ const DealRadarCard = ({
   );
 };
 
-const StaffingHeatmapLegend = ({ weeks }: { weeks: string[] }) => (
-  <Paper sx={{ p: 2.25, display: 'grid', gap: 1.25 }}>
-    <Typography variant="subtitle1" fontWeight={700}>
-      Staffing Load – Legend
-    </Typography>
-    <Stack spacing={0.75}>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(0), borderRadius: 1 }} />
-        <Typography variant="body2">No milestones</Typography>
-      </Stack>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(1), borderRadius: 1 }} />
-        <Typography variant="body2">1 milestone</Typography>
-      </Stack>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(3), borderRadius: 1 }} />
-        <Typography variant="body2">2–3 milestones</Typography>
-      </Stack>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Box sx={{ width: 18, height: 18, bgcolor: getHeatColor(5), borderRadius: 1 }} />
-        <Typography variant="body2">4+ milestones (consider relief)</Typography>
-      </Stack>
-    </Stack>
-    <Typography variant="caption" color="text.secondary">
-      Weeks shown:{' '}
-      {weeks.length === 0
-        ? '—'
-        : weeks
-            .map((week) => formatWeekLabel(week))
-            .join(' • ')}
-    </Typography>
-  </Paper>
-);
-
 const StaffingHeatmapCard = ({
   weeks,
   groups,
   onSelectStaff,
-  timeRange,
 }: {
   weeks: string[];
   groups: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }>;
   onSelectStaff: (id: number) => void;
-  timeRange: number;
 }) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<Record<string, { field: 'name' | string; order: 'asc' | 'desc' }>>({});

@@ -1,7 +1,7 @@
 # Billing Module - Implementation Progress
 
-**Last Updated:** October 7, 2025 (16:30)
-**Status:** Phase 5 Complete - Additional Financial Data Imported
+**Last Updated:** October 7, 2025 (22:26)
+**Status:** Phase 6 Complete - Milestone Update Functionality Fully Operational
 
 ---
 
@@ -157,6 +157,42 @@
   - Shows import summary statistics
   - Reminds users to verify critical financial data
 
+### Phase 6: Milestone Update Functionality ✅
+
+- [x] Fixed milestone update display issue (Oct 7, 2025 22:26)
+  - **Problem**: Milestone updates saved to database but not showing in UI table
+  - **Root Cause**: React Query cache management conflict with optimistic updates
+  - **Solution Implemented**:
+    - Simplified cache invalidation in `useUpdateMilestones` hook
+    - Removed complex optimistic updates causing cache conflicts
+    - Added `removeQueries` to force fresh data fetch
+    - Set `gcTime: 0` for billing project query to prevent stale cache
+    - Added cache-control headers in backend responses
+    - Added small delay after save to ensure DB commit completion
+
+- [x] Enhanced milestone editing UI
+  - Functional milestone edit dialog with proper data flow
+  - Checkbox for completion status
+  - Date pickers for invoice sent and payment received dates
+  - Notes field for additional information
+  - Real-time state management with proper React hooks
+
+- [x] Backend API improvements
+  - Added cache-control headers to milestone update endpoint
+  - Ensured fresh data on every request to prevent stale reads
+  - Proper logging for debugging milestone updates
+
+- [x] Data flow verification
+  - API endpoint: `PATCH /api/billing/milestones`
+  - Proper data transformation from UI to API format
+  - Confirmed database updates are executing correctly
+  - Verified data retrieval includes all milestone fields
+
+- [x] Files Modified for the Fix:
+  - `frontend/src/hooks/useBilling.ts` - Simplified cache management (lines 107-125)
+  - `frontend/src/pages/BillingMatterDetail.tsx` - Added delay after save (lines 333-339)
+  - `backend/src/controllers/billing.controller.ts` - Added cache headers (lines 399-402)
+
 ---
 
 ## Current Status
@@ -193,14 +229,22 @@
    - Collection payments - imported (107 records, $80.8M)
    - Finance comments - imported (250 detailed records)
 
+5. **Milestone Update Functionality**
+   - Full CRUD operations for milestone tracking
+   - Completion status with checkbox interface
+   - Invoice sent and payment received date tracking
+   - Notes field for additional documentation
+   - Real-time updates with proper cache management
+   - All changes persist to database correctly
+
 ### ⚠️ Partially Working Features
 
-1. **Milestone Completion Tracking**
+1. **Milestone Completion Detection (Excel Import)**
    - Database structure ready
-   - Parser attempted strikethrough detection
-   - **Issue**: `xlsx` library cannot reliably read Excel strikethrough formatting
-   - **Current Status**: 0 milestones marked as completed
-   - **Workaround Needed**: Manual UI or Python-based parser
+   - Manual UI update functionality working ✅
+   - **Remaining Issue**: Excel strikethrough not auto-detected
+   - **Current Status**: Manual updates working, auto-detection pending
+   - **Workaround Available**: Use UI to manually mark completed milestones
 
 2. **Data Reconciliation**
    - Successfully imported billing and collection data from JSON
@@ -220,11 +264,12 @@
   - Fuzzy matching for project name variations
   - Data verification completed
 
-- [ ] **Milestone Completion UI**
-  - Add checkboxes in Billing Detail page to mark milestones complete
-  - Update backend API to handle milestone completion
-  - Show completion status in milestones tab
-  - Track completion date and source
+- [x] **Milestone Completion UI** ✅ (Completed Oct 7, 2025)
+  - Added checkboxes in Billing Detail page to mark milestones complete
+  - Updated backend API to handle milestone completion
+  - Shows completion status in milestones tab
+  - Tracks invoice sent and payment received dates
+  - Fixed cache management issue for real-time updates
 
 - [ ] **Strikethrough Detection**
   - Option 1: Create Python script using `openpyxl` library
@@ -314,6 +359,21 @@
 **Note**: Excel "Fees (US$)" column needs to be populated
 **Current**: Agreed fees calculated from parsed milestones
 **Future**: Cross-validate with Excel column when available
+
+### 5. Engagement Detail Fallback ✅ (Completed)
+**Issue**: Billing Matter detail page showed milestone counts but the milestone table stayed empty when the engagement detail endpoint did not respond.
+**Root Cause**: The frontend only called the `view=summary` variant of `GET /billing/projects/:id`, which omits embedded engagement + milestone data. Without that fallback the UI relied solely on the additional engagement detail fetch.
+**Resolution**:
+- Updated the client to request the `view=full` payload for the detail page, ensuring each C/M includes its engagements and milestones.
+- Normalised embedded engagement IDs so the first valid engagement auto-selects and feeds the milestones card even if lazy-loaded requests fail.
+**Result**: Milestone tables now render immediately for each C/M (e.g., project 1216) without requiring manual engagement selection or extra retries.
+
+### 6. Milestone Management UX ✅ (Completed)
+**What changed**:
+- Simplified the C/M tabs and summary card (removed milestone tallies, trimmed copy, added UBT & Billing Credits, and streamlined status chips).
+- Added inline editing for milestone reference text plus CRUD controls (add/edit/remove) for individual milestones, all wired to the existing billing APIs.
+- Refreshed the milestones table with action icons while keeping the detail panel responsive to engagement selection.
+**Result**: Users can maintain milestones directly from the billing detail page without leaving the flow or relying on backend scripts.
 
 ---
 
@@ -552,15 +612,28 @@
 
 ---
 
-**Document Version:** 1.1
-**Last Updated:** October 7, 2025 (16:30)
+**Document Version:** 1.2
+**Last Updated:** October 7, 2025 (22:26)
 **Status:** Living Document - Update as progress is made
 
 ---
 
-## Recent Updates (v1.1 - Oct 7, 2025 16:30)
+## Recent Updates (v1.2 - Oct 7, 2025 22:26)
 
 ### What Changed
+- ✅ **Fixed Milestone Update Display Issue**
+  - Resolved React Query cache management conflict
+  - Milestone updates now immediately reflected in UI
+  - Added proper cache invalidation and fresh data fetching
+  - Implemented cache-control headers to prevent stale reads
+
+- ✅ **Enhanced Milestone Management**
+  - Full CRUD operations working for milestones
+  - Completion checkbox with real-time updates
+  - Invoice sent and payment received date tracking
+  - Notes field for additional documentation
+
+### Previous Updates (v1.1 - Oct 7, 2025 16:30)
 - ✅ Completed Phase 5: Enhanced Data Import
 - ✅ Imported $85.5M billing and $80.8M collection data from JSON
 - ✅ Imported 250 detailed finance comments with transaction history
@@ -570,7 +643,7 @@
 - ✅ Verified sample data matches source JSON
 
 ### Impact
-- All financial data now available in database
+- Milestone tracking now fully operational
+- All financial data available with real-time updates
 - Complete transaction history visible
-- Finance comments provide audit trail
 - Ready for production use with manual verification recommended

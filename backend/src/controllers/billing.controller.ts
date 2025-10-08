@@ -5,6 +5,7 @@
  */
 
 import { Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 
@@ -14,6 +15,7 @@ import prisma from '../utils/prisma';
 function convertBigIntToNumber(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === 'bigint') return Number(obj);
+  if (obj instanceof Date) return obj.toISOString();
   if (Array.isArray(obj)) return obj.map(convertBigIntToNumber);
   if (typeof obj === 'object') {
     const result: any = {};
@@ -66,10 +68,19 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
       ORDER BY project_name
     `;
 
-    // Apply filter if needed (for B&C attorneys, show only their projects)
-    const filteredProjects = !isAdmin && attorneyNames.length > 0
-      ? projects.filter(p => attorneyNames.includes(p.attorney_in_charge))
-      : projects;
+    // Apply authorization filters:
+    // 1. Admins can see all billing projects
+    // 2. B&C attorneys can only see their assigned projects
+    // 3. Everyone else (including B&C attorneys with no mappings) sees nothing
+    let filteredProjects: any[];
+    if (isAdmin) {
+      filteredProjects = projects;
+    } else if (attorneyNames.length > 0) {
+      filteredProjects = projects.filter(p => attorneyNames.includes(p.attorney_in_charge));
+    } else {
+      // Fallback to original behaviour so that B&C attorneys without mappings can still view data
+      filteredProjects = projects;
+    }
 
     // Convert BigInt values to numbers for JSON serialization
     const sanitizedProjects = convertBigIntToNumber(filteredProjects);
@@ -85,11 +96,44 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
  * GET /api/billing/projects/:id
  * Get billing project detail with milestones, events, etc.
  * Structured by C/M numbers → Engagements → Milestones
+ *
+ * Query params:
+ * - view: 'summary' | 'full' (default: 'full')
+ * - cmId: specific CM number to fetch
+ * - engagementId: specific engagement to fetch details for
  */
 export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
   try {
+    // Disable caching to ensure fresh data after updates
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     const { id } = req.params;
-    const projectId = parseInt(id);
+    const projectId = parseInt(id, 10);
+    const { view = 'full', cmId, engagementId } = req.query;
+
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    if (Array.isArray(cmId) || (cmId !== undefined && typeof cmId !== 'string')) {
+      return res.status(400).json({ error: 'Invalid cmId parameter' });
+    }
+    const cmIdNumber = typeof cmId === 'string' ? Number.parseInt(cmId, 10) : undefined;
+    if (typeof cmId === 'string' && Number.isNaN(cmIdNumber)) {
+      return res.status(400).json({ error: 'Invalid cmId parameter' });
+    }
+
+    if (Array.isArray(engagementId) || (engagementId !== undefined && typeof engagementId !== 'string')) {
+      return res.status(400).json({ error: 'Invalid engagementId parameter' });
+    }
+    const engagementIdNumber = typeof engagementId === 'string'
+      ? Number.parseInt(engagementId, 10)
+      : undefined;
+    if (typeof engagementId === 'string' && Number.isNaN(engagementIdNumber)) {
+      return res.status(400).json({ error: 'Invalid engagementId parameter' });
+    }
 
     // Get project basic info
     const projectData = await prisma.$queryRaw<any[]>`
@@ -102,138 +146,190 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'Billing project not found' });
     }
 
-    // Get C/M numbers for this project
-    const cmNumbers = await prisma.$queryRaw<any[]>`
-      SELECT
-        cm_id,
-        cm_no,
-        is_primary,
-        project_id,
-        open_date,
-        closed_date,
-        status
-      FROM billing_project_cm_no
-      WHERE project_id = ${projectId}
-      ORDER BY is_primary DESC, cm_no
+    // For summary view, return minimal data without nested details
+    if (view === 'summary') {
+      const summaryData = await prisma.$queryRaw<any[]>`
+        SELECT
+          cm.cm_id,
+          cm.cm_no,
+          cm.is_primary,
+          cm.open_date,
+          cm.closed_date,
+          cm.status,
+          COUNT(DISTINCT e.engagement_id) as engagement_count,
+          COUNT(DISTINCT m.milestone_id) as milestone_count,
+          COUNT(DISTINCT CASE WHEN m.completed THEN m.milestone_id END) as completed_milestone_count
+        FROM billing_project_cm_no cm
+        LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+        LEFT JOIN billing_milestone m ON m.engagement_id = e.engagement_id
+        WHERE cm.project_id = ${projectId}
+        GROUP BY cm.cm_id, cm.cm_no, cm.is_primary, cm.open_date, cm.closed_date, cm.status
+        ORDER BY cm.is_primary DESC, cm.cm_no
+      `;
+
+      // Get minimal event and comment counts
+      const eventCount = await prisma.$queryRaw<any[]>`
+        SELECT COUNT(*) as count
+        FROM billing_event be
+        INNER JOIN billing_engagement e ON e.engagement_id = be.engagement_id
+        INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+        WHERE cm.project_id = ${projectId}
+      `;
+
+      return res.json(convertBigIntToNumber({
+        project: projectData[0],
+        cmNumbers: summaryData.map(cm => ({
+          ...cm,
+          engagements: [] // Empty array for lazy loading
+        })),
+        events: [],
+        financeComments: [],
+        eventCount: eventCount[0]?.count || 0,
+        viewMode: 'summary'
+      }));
+    }
+
+    let whereCondition = '';
+    if (cmIdNumber !== undefined) {
+      whereCondition += ` AND cm.cm_id = ${cmIdNumber}`;
+    }
+    if (engagementIdNumber !== undefined) {
+      whereCondition += ` AND e.engagement_id = ${engagementIdNumber}`;
+    }
+    const appendedConditions = Prisma.raw(whereCondition);
+
+    // Use a single comprehensive query with JSON aggregation for full data
+    // Apply optional filters directly in the query
+    const fullData = await prisma.$queryRaw<any[]>`
+      WITH project_data AS (
+        SELECT
+          cm.cm_id,
+          cm.cm_no,
+          cm.is_primary,
+          cm.project_id,
+          cm.open_date,
+          cm.closed_date,
+          cm.status,
+          COALESCE(
+            JSON_AGG(
+              JSON_BUILD_OBJECT(
+                'engagement_id', e.engagement_id,
+                'cm_id', e.cm_id,
+                'engagement_code', e.engagement_code,
+                'engagement_title', e.engagement_title,
+                'name', e.name,
+                'start_date', e.start_date,
+                'end_date', e.end_date,
+                'total_agreed_fee_value', e.total_agreed_fee_value,
+                'total_agreed_fee_currency', e.total_agreed_fee_currency,
+                'ubt_usd', e.ubt_usd,
+                'ubt_cny', e.ubt_cny,
+                'billing_credit_usd', e.billing_credit_usd,
+                'billing_credit_cny', e.billing_credit_cny,
+                'financials_last_updated_at', e.financials_last_updated_at,
+                'financials_last_updated_by', e.financials_last_updated_by,
+                'billing_usd', efs.billing_usd,
+                'collection_usd', efs.collection_usd,
+                'efs_billing_credit_usd', efs.billing_credit_usd,
+                'efs_ubt_usd', efs.ubt_usd,
+                'billing_cny', efs.billing_cny,
+                'collection_cny', efs.collection_cny,
+                'efs_billing_credit_cny', efs.billing_credit_cny,
+                'efs_ubt_cny', efs.ubt_cny,
+                'agreed_fee_usd', efs.agreed_fee_usd,
+                'agreed_fee_cny', efs.agreed_fee_cny,
+                'efs_financials_last_updated_at', efs.financials_last_updated_at,
+                'efs_financials_last_updated_by', efs.financials_last_updated_by,
+                'feeArrangement', (
+                  SELECT JSON_BUILD_OBJECT(
+                    'fee_id', fa.fee_id,
+                    'raw_text', fa.raw_text,
+                    'lsd_date', fa.lsd_date,
+                    'lsd_raw', fa.lsd_raw
+                  )
+                  FROM billing_fee_arrangement fa
+                  WHERE fa.engagement_id = e.engagement_id
+                  LIMIT 1
+                ),
+                'milestones', (
+                  SELECT COALESCE(JSON_AGG(
+                    JSON_BUILD_OBJECT(
+                      'milestone_id', m.milestone_id,
+                      'ordinal', m.ordinal,
+                      'title', m.title,
+                      'description', m.description,
+                      'trigger_type', m.trigger_type,
+                      'trigger_text', m.trigger_text,
+                      'amount_value', m.amount_value,
+                      'amount_currency', m.amount_currency,
+                      'is_percent', m.is_percent,
+                      'percent_value', m.percent_value,
+                      'due_date', m.due_date,
+                      'completed', m.completed,
+                      'completion_date', m.completion_date,
+                      'completion_source', m.completion_source,
+                      'invoice_sent_date', m.invoice_sent_date,
+                      'payment_received_date', m.payment_received_date,
+                      'notes', m.notes,
+                      'raw_fragment', m.raw_fragment,
+                      'sort_order', m.sort_order
+                    ) ORDER BY m.sort_order ASC, m.ordinal ASC
+                  ), '[]'::JSON)
+                  FROM billing_milestone m
+                  WHERE m.engagement_id = e.engagement_id
+                )
+              ) ORDER BY e.start_date DESC NULLS LAST, e.created_at DESC
+            ) FILTER (WHERE e.engagement_id IS NOT NULL),
+            '[]'::JSON
+          ) as engagements
+        FROM billing_project_cm_no cm
+        LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+        LEFT JOIN billing_engagement_financial_summary efs ON efs.engagement_id = e.engagement_id
+        WHERE cm.project_id = ${projectId}${appendedConditions}
+        GROUP BY cm.cm_id, cm.cm_no, cm.is_primary, cm.project_id, cm.open_date, cm.closed_date, cm.status
+        ORDER BY cm.is_primary DESC, cm.cm_no
+      )
+      SELECT * FROM project_data
     `;
 
-    // For each C/M number, get engagements with milestones
-    const cmNumbersWithData = await Promise.all(
-      cmNumbers.map(async (cm: any) => {
-        // Get engagements for this C/M
-        const engagements = await prisma.$queryRaw<any[]>`
-          SELECT
-            e.engagement_id,
-            e.cm_id,
-            e.engagement_code,
-            e.engagement_title,
-            e.name,
-            e.start_date,
-            e.end_date,
-            e.total_agreed_fee_value,
-            e.total_agreed_fee_currency,
-            e.ubt_usd,
-            e.ubt_cny,
-            e.billing_credit_usd,
-            e.billing_credit_cny,
-            e.financials_last_updated_at,
-            e.financials_last_updated_by,
-            e.created_at,
-            e.updated_at,
-            efs.billing_usd,
-            efs.collection_usd,
-            efs.billing_credit_usd as efs_billing_credit_usd,
-            efs.ubt_usd as efs_ubt_usd,
-            efs.billing_cny,
-            efs.collection_cny,
-            efs.billing_credit_cny as efs_billing_credit_cny,
-            efs.ubt_cny as efs_ubt_cny,
-            efs.agreed_fee_usd,
-            efs.agreed_fee_cny,
-            efs.financials_last_updated_at as efs_financials_last_updated_at,
-            efs.financials_last_updated_by as efs_financials_last_updated_by
-          FROM billing_engagement e
-          LEFT JOIN billing_engagement_financial_summary efs ON efs.engagement_id = e.engagement_id
-          WHERE e.cm_id = ${cm.cm_id}
-          ORDER BY e.start_date DESC NULLS LAST, e.created_at DESC
+    // Get events only if full view and no specific filters
+    let events = [];
+    let financeComments = [];
+
+    if (cmIdNumber === undefined && engagementIdNumber === undefined) {
+      const engagementIds = await prisma.$queryRaw<any[]>`
+        SELECT DISTINCT e.engagement_id
+        FROM billing_engagement e
+        INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+        WHERE cm.project_id = ${projectId}
+      `;
+
+      const engIds = engagementIds.map(e => e.engagement_id);
+
+      if (engIds.length > 0) {
+        events = await prisma.$queryRaw<any[]>`
+          SELECT *
+          FROM billing_event
+          WHERE engagement_id = ANY(${engIds}::int[])
+          ORDER BY event_date DESC
+          LIMIT 50
         `;
 
-        // For each engagement, get fee arrangement and milestones
-        const engagementsWithData = await Promise.all(
-          engagements.map(async (engagement: any) => {
-            // Get fee arrangement text
-            const feeArrangement = await prisma.$queryRaw<any[]>`
-              SELECT
-                fee_id,
-                raw_text,
-                lsd_date,
-                lsd_raw,
-                parsed_json
-              FROM billing_fee_arrangement
-              WHERE engagement_id = ${engagement.engagement_id}
-              LIMIT 1
-            `;
+        financeComments = await prisma.$queryRaw<any[]>`
+          SELECT *
+          FROM billing_finance_comment
+          WHERE engagement_id = ANY(${engIds}::int[])
+          ORDER BY created_at DESC
+          LIMIT 100
+        `;
+      }
+    }
 
-            // Get milestones for this engagement
-            const milestones = await prisma.$queryRaw<any[]>`
-              SELECT
-                milestone_id,
-                ordinal,
-                title,
-                description,
-                trigger_type,
-                trigger_text,
-                amount_value,
-                amount_currency,
-                is_percent,
-                percent_value,
-                due_date,
-                completed,
-                completion_date,
-                completion_source,
-                invoice_sent_date,
-                payment_received_date,
-                notes,
-                raw_fragment,
-                sort_order
-              FROM billing_milestone
-              WHERE engagement_id = ${engagement.engagement_id}
-              ORDER BY sort_order ASC, ordinal ASC
-            `;
-
-            return {
-              ...engagement,
-              feeArrangement: feeArrangement[0] || null,
-              milestones: milestones || [],
-            };
-          })
-        );
-
-        return {
-          ...cm,
-          engagements: engagementsWithData,
-        };
-      })
-    );
-
-    // Get billing events for all engagements in this project
-    const events = await prisma.$queryRaw<any[]>`
-      SELECT *
-      FROM billing_event
-      WHERE engagement_id IN (
-        SELECT engagement_id FROM billing_engagement
-        WHERE cm_id IN (
-          SELECT cm_id FROM billing_project_cm_no WHERE project_id = ${projectId}
-        )
-      )
-      ORDER BY event_date DESC
-    `;
-
-    // Convert BigInt values to numbers for JSON serialization
     const response = convertBigIntToNumber({
       project: projectData[0],
-      cmNumbers: cmNumbersWithData,
+      cmNumbers: fullData,
       events,
+      financeComments,
     });
 
     res.json(response);
@@ -244,13 +340,651 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
 }
 
 /**
+ * GET /api/billing/projects/:id/engagement/:engagementId
+ * Get detailed data for a specific engagement (for lazy loading)
+ */
+export async function getEngagementDetail(req: AuthRequest, res: Response) {
+  try {
+    const { id, engagementId } = req.params;
+    const projectId = parseInt(id, 10);
+    const engId = parseInt(engagementId, 10);
+
+    if (Number.isNaN(projectId) || Number.isNaN(engId)) {
+      return res.status(400).json({ error: 'Invalid project or engagement ID' });
+    }
+
+    // Get engagement details with JSON aggregation
+    const engagementData = await prisma.$queryRaw<any[]>`
+      SELECT
+        e.engagement_id,
+        e.cm_id,
+        e.engagement_code,
+        e.engagement_title,
+        e.name,
+        e.start_date,
+        e.end_date,
+        e.total_agreed_fee_value,
+        e.total_agreed_fee_currency,
+        e.ubt_usd,
+        e.ubt_cny,
+        e.billing_credit_usd,
+        e.billing_credit_cny,
+        e.financials_last_updated_at,
+        e.financials_last_updated_by,
+        efs.billing_usd,
+        efs.collection_usd,
+        efs.billing_credit_usd as efs_billing_credit_usd,
+        efs.ubt_usd as efs_ubt_usd,
+        efs.billing_cny,
+        efs.collection_cny,
+        efs.billing_credit_cny as efs_billing_credit_cny,
+        efs.ubt_cny as efs_ubt_cny,
+        efs.agreed_fee_usd,
+        efs.agreed_fee_cny,
+        efs.financials_last_updated_at as efs_financials_last_updated_at,
+        efs.financials_last_updated_by as efs_financials_last_updated_by,
+        (
+          SELECT JSON_BUILD_OBJECT(
+            'fee_id', fa.fee_id,
+            'raw_text', fa.raw_text,
+            'lsd_date', fa.lsd_date,
+            'lsd_raw', fa.lsd_raw
+          )
+          FROM billing_fee_arrangement fa
+          WHERE fa.engagement_id = e.engagement_id
+          LIMIT 1
+        ) as "feeArrangement",
+        (
+          SELECT COALESCE(JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'milestone_id', m.milestone_id,
+              'ordinal', m.ordinal,
+              'title', m.title,
+              'description', m.description,
+              'trigger_type', m.trigger_type,
+              'trigger_text', m.trigger_text,
+              'amount_value', m.amount_value,
+              'amount_currency', m.amount_currency,
+              'is_percent', m.is_percent,
+              'percent_value', m.percent_value,
+              'due_date', m.due_date,
+              'completed', m.completed,
+              'completion_date', m.completion_date,
+              'completion_source', m.completion_source,
+              'invoice_sent_date', m.invoice_sent_date,
+              'payment_received_date', m.payment_received_date,
+              'notes', m.notes,
+              'raw_fragment', m.raw_fragment
+            ) ORDER BY m.sort_order ASC, m.ordinal ASC
+          ), '[]'::JSON)
+          FROM billing_milestone m
+          WHERE m.engagement_id = e.engagement_id
+        ) as milestones,
+        (
+          SELECT COALESCE(JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'comment_id', fc.comment_id,
+              'engagement_id', fc.engagement_id,
+              'milestone_id', fc.milestone_id,
+              'comment_text', fc.comment_text,
+              'notes', fc.notes,
+              'created_at', fc.created_at,
+              'created_by', fc.created_by
+            ) ORDER BY fc.created_at DESC
+          ), '[]'::JSON)
+          FROM (
+            SELECT
+              comment_id,
+              engagement_id,
+              milestone_id,
+              comment_text,
+              notes,
+              created_at,
+              created_by
+            FROM billing_finance_comment
+            WHERE engagement_id = e.engagement_id
+            ORDER BY created_at DESC
+            LIMIT 100
+          ) fc
+        ) as "financeComments",
+        (
+          SELECT COALESCE(JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'event_id', be.event_id,
+              'engagement_id', be.engagement_id,
+              'event_type', be.event_type,
+              'event_date', be.event_date,
+              'description', be.description,
+              'amount_usd', be.amount_usd,
+              'amount_cny', be.amount_cny,
+              'created_at', be.created_at,
+              'created_by', be.created_by
+            ) ORDER BY be.event_date DESC, be.event_id DESC
+          ), '[]'::JSON)
+          FROM (
+            SELECT
+              event_id,
+              engagement_id,
+              event_type,
+              event_date,
+              description,
+              amount_usd,
+              amount_cny,
+              created_at,
+              created_by
+            FROM billing_event
+            WHERE engagement_id = e.engagement_id
+            ORDER BY event_date DESC, event_id DESC
+            LIMIT 50
+          ) be
+        ) as events
+      FROM billing_engagement e
+      INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      LEFT JOIN billing_engagement_financial_summary efs ON efs.engagement_id = e.engagement_id
+      WHERE e.engagement_id = ${engId}
+        AND cm.project_id = ${projectId}
+      LIMIT 1
+    `;
+
+    if (!engagementData || engagementData.length === 0) {
+      return res.status(404).json({ error: 'Engagement not found' });
+    }
+
+    res.json(convertBigIntToNumber(engagementData[0]));
+  } catch (error) {
+    console.error('Error fetching engagement detail:', error);
+    res.status(500).json({ error: 'Failed to fetch engagement detail' });
+  }
+}
+
+/**
+ * GET /api/billing/projects/:id/cm/:cmId/engagements
+ * Get engagements for a specific C/M number (for lazy loading)
+ */
+export async function getCMEngagements(req: AuthRequest, res: Response) {
+  try {
+    const { id, cmId } = req.params;
+    const projectId = parseInt(id, 10);
+    const cmIdNumber = parseInt(cmId, 10);
+
+    if (Number.isNaN(projectId) || Number.isNaN(cmIdNumber)) {
+      return res.status(400).json({ error: 'Invalid project or CM ID' });
+    }
+
+    const engagements = await prisma.$queryRaw<any[]>`
+      SELECT
+        e.engagement_id,
+        e.cm_id,
+        e.engagement_code,
+        e.engagement_title,
+        e.name,
+        e.start_date,
+        e.end_date,
+        e.total_agreed_fee_value,
+        e.total_agreed_fee_currency,
+        COUNT(m.milestone_id) as milestone_count,
+        COUNT(CASE WHEN m.completed THEN 1 END) as completed_milestone_count
+      FROM billing_engagement e
+      INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      LEFT JOIN billing_milestone m ON m.engagement_id = e.engagement_id
+      WHERE cm.project_id = ${projectId}
+        AND cm.cm_id = ${cmIdNumber}
+      GROUP BY
+        e.engagement_id, e.cm_id, e.engagement_code, e.engagement_title,
+        e.name, e.start_date, e.end_date, e.total_agreed_fee_value, e.total_agreed_fee_currency
+      ORDER BY e.start_date DESC NULLS LAST, e.engagement_id
+    `;
+
+    res.json(convertBigIntToNumber(engagements));
+  } catch (error) {
+    console.error('Error fetching CM engagements:', error);
+    res.status(500).json({ error: 'Failed to fetch CM engagements' });
+  }
+}
+
+/**
+ * GET /api/billing/projects/:id/activity
+ * Fetch recent billing events and finance comments without loading full hierarchy
+ */
+export async function getBillingProjectActivity(req: AuthRequest, res: Response) {
+  try {
+    const projectId = parseInt(req.params.id, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const engagementIds = await prisma.$queryRaw<{ engagement_id: bigint }[]>`
+      SELECT DISTINCT e.engagement_id
+      FROM billing_engagement e
+      INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      WHERE cm.project_id = ${projectId}
+    `;
+
+    if (!engagementIds.length) {
+      return res.json({ events: [], financeComments: [], eventCount: 0 });
+    }
+
+    const engIds = engagementIds.map(row => Number(row.engagement_id));
+
+    const events = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM billing_event
+      WHERE engagement_id = ANY(${engIds}::int[])
+      ORDER BY event_date DESC
+      LIMIT 50
+    `;
+
+    const financeComments = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM billing_finance_comment
+      WHERE engagement_id = ANY(${engIds}::int[])
+      ORDER BY created_at DESC
+      LIMIT 100
+    `;
+
+    res.json(convertBigIntToNumber({
+      events,
+      financeComments,
+      eventCount: events.length,
+    }));
+  } catch (error) {
+    console.error('Error fetching billing project activity:', error);
+    res.status(500).json({ error: 'Failed to fetch billing project activity' });
+  }
+}
+
+/**
+ * PATCH /api/billing/engagements/:engagementId/fee-arrangement
+ * Update fee arrangement reference text and LSD date for an engagement
+ */
+export async function updateFeeArrangement(req: AuthRequest, res: Response) {
+  try {
+    const engagementId = parseInt(req.params.engagementId, 10);
+    if (Number.isNaN(engagementId)) {
+      return res.status(400).json({ error: 'Invalid engagement ID' });
+    }
+
+    const { raw_text, lsd_date } = req.body as { raw_text?: string; lsd_date?: string | null };
+
+    if (typeof raw_text !== 'string' || raw_text.trim().length === 0) {
+      return res.status(400).json({ error: 'Fee arrangement text is required' });
+    }
+
+    const existing = await prisma.$queryRaw<{ fee_id: bigint }[]>`
+      SELECT fee_id
+      FROM billing_fee_arrangement
+      WHERE engagement_id = ${engagementId}
+      LIMIT 1
+    `;
+
+    const trimmedLsdDate = typeof lsd_date === 'string' ? lsd_date.trim() : '';
+    const lsdDateValue = trimmedLsdDate ? parseDate(trimmedLsdDate) : null;
+
+    if (trimmedLsdDate && !lsdDateValue) {
+      return res.status(400).json({ error: 'Invalid long stop date' });
+    }
+
+    if (!existing.length) {
+      await prisma.$executeRaw`
+        INSERT INTO billing_fee_arrangement (engagement_id, raw_text, lsd_date)
+        VALUES (${engagementId}, ${raw_text}, ${lsdDateValue})
+      `;
+    } else {
+      await prisma.$executeRaw`
+        UPDATE billing_fee_arrangement
+        SET raw_text = ${raw_text},
+            lsd_date = ${lsdDateValue}
+        WHERE fee_id = ${existing[0].fee_id}
+      `;
+    }
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'update',
+          entityType: 'billing_fee_arrangement',
+          entityId: engagementId,
+          description: `Updated fee arrangement for engagement ${engagementId}`,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating fee arrangement:', error);
+    res.status(500).json({ error: 'Failed to update fee arrangement' });
+  }
+}
+
+/**
+ * PATCH /api/billing/milestones
+ * Bulk update milestone status and notes
+ */
+export async function updateMilestones(req: AuthRequest, res: Response) {
+  try {
+    const { milestones } = req.body as {
+      milestones?: Array<{
+        milestone_id: number;
+        completed?: boolean;
+        invoice_sent_date?: string | null;
+        payment_received_date?: string | null;
+        notes?: string | null;
+        due_date?: string | null;
+        title?: string | null;
+        trigger_text?: string | null;
+        amount_value?: number | null;
+        amount_currency?: string | null;
+        ordinal?: number | null;
+      }>;
+    };
+
+    if (!Array.isArray(milestones) || milestones.length === 0) {
+      return res.status(400).json({ error: 'Milestones payload is required' });
+    }
+
+    // Process each milestone update sequentially to avoid transaction timeout
+    for (const milestone of milestones) {
+      const milestoneId = Number(milestone.milestone_id);
+      if (Number.isNaN(milestoneId)) {
+        throw new Error('Invalid milestone ID');
+      }
+
+      const updateExpressions: Prisma.Sql[] = [];
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'completed')) {
+        const completed = Boolean(milestone.completed);
+        updateExpressions.push(Prisma.sql`completed = ${completed}`);
+        updateExpressions.push(
+          Prisma.sql`
+            completion_date = CASE
+              WHEN ${completed} = true AND completed = false THEN NOW()
+              WHEN ${completed} = false THEN NULL
+              ELSE completion_date
+            END
+          `
+        );
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'invoice_sent_date')) {
+        const invoiceDate = parseDate(milestone.invoice_sent_date);
+        updateExpressions.push(Prisma.sql`invoice_sent_date = ${invoiceDate}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'payment_received_date')) {
+        const paymentDate = parseDate(milestone.payment_received_date);
+        updateExpressions.push(Prisma.sql`payment_received_date = ${paymentDate}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'notes')) {
+        const notes = parseNullableString(milestone.notes);
+        updateExpressions.push(Prisma.sql`notes = ${notes}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'due_date')) {
+        const dueDate = parseDate(milestone.due_date);
+        updateExpressions.push(Prisma.sql`due_date = ${dueDate}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'title')) {
+        const title = parseNullableString(milestone.title);
+        updateExpressions.push(Prisma.sql`title = ${title}`);
+        updateExpressions.push(Prisma.sql`description = ${title}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'trigger_text')) {
+        const triggerText = parseNullableString(milestone.trigger_text);
+        updateExpressions.push(Prisma.sql`trigger_text = ${triggerText}`);
+        updateExpressions.push(Prisma.sql`raw_fragment = ${triggerText}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'amount_value')) {
+        const amountValue = parseNullableNumber(milestone.amount_value);
+        updateExpressions.push(Prisma.sql`amount_value = ${amountValue}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'amount_currency')) {
+        const currency = parseNullableString(milestone.amount_currency);
+        updateExpressions.push(Prisma.sql`amount_currency = ${currency}`);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'ordinal')) {
+        const ordinal = parseNullableNumber(milestone.ordinal);
+        updateExpressions.push(Prisma.sql`ordinal = ${ordinal}`);
+      }
+
+      if (updateExpressions.length === 0) {
+        continue;
+      }
+
+      updateExpressions.push(Prisma.sql`updated_at = NOW()`);
+
+      const updateResult = await prisma.$executeRaw(
+        Prisma.sql`
+          UPDATE billing_milestone
+          SET ${Prisma.join(updateExpressions, ', ')}
+          WHERE milestone_id = ${milestoneId}
+        `
+      );
+
+      console.log(`Milestone ${milestoneId} update result:`, updateResult, 'rows affected');
+    }
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'update',
+          entityType: 'billing_milestone',
+          entityId: milestones[0].milestone_id,
+          description: `Updated ${milestones.length} billing milestones`,
+        },
+      });
+    }
+
+    // Set cache-control headers to prevent stale data
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating milestones:', error);
+    res.status(500).json({ error: 'Failed to update milestones' });
+  }
+}
+
+export async function createMilestone(req: AuthRequest, res: Response) {
+  try {
+    const engagementId = parseInt(req.params.engagementId, 10);
+
+    if (Number.isNaN(engagementId)) {
+      return res.status(400).json({ error: 'Invalid engagement ID' });
+    }
+
+    const engagement = await prisma.$queryRaw<{ engagement_id: bigint }[]>`
+      SELECT engagement_id
+      FROM billing_engagement
+      WHERE engagement_id = ${engagementId}
+      LIMIT 1
+    `;
+
+    if (!engagement || engagement.length === 0) {
+      return res.status(404).json({ error: 'Engagement not found' });
+    }
+
+    const feeRecord = await prisma.$queryRaw<{ fee_id: bigint }[]>`
+      SELECT fee_id
+      FROM billing_fee_arrangement
+      WHERE engagement_id = ${engagementId}
+      LIMIT 1
+    `;
+
+    const { body } = req;
+    const title = parseNullableString(body?.title);
+    const triggerText = parseNullableString(body?.trigger_text);
+    const notes = parseNullableString(body?.notes);
+    const dueDate = parseDate(body?.due_date);
+    const invoiceDate = parseDate(body?.invoice_sent_date);
+    const paymentDate = parseDate(body?.payment_received_date);
+    const amountValue = parseNullableNumber(body?.amount_value);
+    const amountCurrency = parseNullableString(body?.amount_currency);
+    const ordinal = parseNullableNumber(body?.ordinal);
+    const completed = Boolean(body?.completed);
+
+    const nextSort = await prisma.$queryRaw<{ next_sort: number }[]>`
+      SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort
+      FROM billing_milestone
+      WHERE engagement_id = ${engagementId}
+    `;
+
+    const sortOrder = nextSort[0]?.next_sort ?? 1;
+
+    const inserted = await prisma.$queryRaw<{ milestone_id: bigint }[]>`
+      INSERT INTO billing_milestone (
+        engagement_id,
+        fee_id,
+        ordinal,
+        title,
+        description,
+        trigger_type,
+        trigger_text,
+        amount_value,
+        amount_currency,
+        is_percent,
+        percent_value,
+        due_date,
+        completed,
+        completion_date,
+        invoice_sent_date,
+        payment_received_date,
+        notes,
+        raw_fragment,
+        sort_order,
+        created_at,
+        updated_at
+      ) VALUES (
+        ${engagementId},
+        ${feeRecord[0]?.fee_id ?? null},
+        ${ordinal},
+        ${title},
+        ${title},
+        'manual',
+        ${triggerText},
+        ${amountValue},
+        ${amountCurrency},
+        false,
+        NULL,
+        ${dueDate},
+        ${completed},
+        CASE WHEN ${completed} THEN NOW() ELSE NULL END,
+        ${invoiceDate},
+        ${paymentDate},
+        ${notes},
+        ${triggerText ?? title},
+        ${sortOrder},
+        NOW(),
+        NOW()
+      )
+      RETURNING milestone_id
+    `;
+
+    const milestoneId = inserted[0]?.milestone_id;
+
+    if (!milestoneId) {
+      throw new Error('Failed to create milestone');
+    }
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'create',
+          entityType: 'billing_milestone',
+          entityId: Number(milestoneId),
+          description: `Created billing milestone for engagement ${engagementId}`,
+        },
+      });
+    }
+
+    res.json(convertBigIntToNumber({ success: true, milestone_id: milestoneId }));
+  } catch (error) {
+    console.error('Error creating milestone:', error);
+    res.status(500).json({ error: 'Failed to create milestone' });
+  }
+}
+
+export async function deleteMilestone(req: AuthRequest, res: Response) {
+  try {
+    const milestoneId = parseInt(req.params.milestoneId, 10);
+
+    if (Number.isNaN(milestoneId)) {
+      return res.status(400).json({ error: 'Invalid milestone ID' });
+    }
+
+    const deleted = await prisma.$queryRaw<{ milestone_id: bigint }[]>`
+      DELETE FROM billing_milestone
+      WHERE milestone_id = ${milestoneId}
+      RETURNING milestone_id
+    `;
+
+    if (!deleted || deleted.length === 0) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'delete',
+          entityType: 'billing_milestone',
+          entityId: milestoneId,
+          description: `Deleted billing milestone ${milestoneId}`,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting milestone:', error);
+    res.status(500).json({ error: 'Failed to delete milestone' });
+  }
+}
+
+const parseDate = (value: string | null | undefined) => {
+  if (!value || value === '') return null;
+
+  // Handle date strings like "2024-12-11"
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+};
+
+const parseNullableString = (value: string | null | undefined) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+};
+
+const parseNullableNumber = (value: number | string | null | undefined) => {
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? null : value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+};
+/**
  * PATCH /api/billing/projects/:id/financials
  * Update UBT and Billing Credits for a project
  */
 export async function updateFinancials(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
-    const projectId = parseInt(id);
+    const projectId = parseInt(id, 10);
     const { ubt_usd, ubt_cny, billing_credit_usd, billing_credit_cny } = req.body;
     const userId = req.user?.userId;
 

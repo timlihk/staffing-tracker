@@ -10,21 +10,20 @@ import {
   Chip,
   Alert,
   AlertTitle,
-  Divider,
   Card,
   CardContent,
   CardActions,
   Grid,
 } from '@mui/material';
-import {
-  CheckCircleOutline,
-  WarningAmber,
-  Visibility,
-  CheckCircle,
-  Edit,
-} from '@mui/icons-material';
+import { CheckCircleOutline, WarningAmber, Visibility, Edit } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
 import { useProjectsNeedingAttention, useConfirmProject } from '../hooks/useProjects';
+import type { Project } from '../types';
+
+type AttentionProject = Project & {
+  attentionReasons: string[];
+  urgencyScore: number;
+};
 
 const WeeklyReview: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +40,8 @@ const WeeklyReview: React.FC = () => {
     );
   }
 
-  const { needsAttention = [], allGood = [], summary } = data || {};
+  const needsAttention: AttentionProject[] = data?.needsAttention ?? [];
+  const summary = data?.summary;
 
   const handleConfirm = async (projectId: number, attentionReasons: string[]) => {
     // Check if project has missing data issues
@@ -175,7 +175,7 @@ const WeeklyReview: React.FC = () => {
           </Stack>
 
           <Stack spacing={2}>
-            {needsAttention.map((project: any) => (
+            {needsAttention.map((project) => (
               <Card key={project.id} variant="outlined" sx={{ borderColor: 'warning.main', borderWidth: 2 }}>
                 <CardContent>
                   <Stack spacing={2}>

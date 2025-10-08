@@ -83,7 +83,6 @@ const ProjectReport: React.FC = () => {
 
   const [rows, setRows] = useState<ProjectReportRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [totalProjects, setTotalProjects] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(100);
   const [orderBy, setOrderBy] = useState<'projectName' | 'filingDate' | 'listingDate'>('projectName');
@@ -106,7 +105,6 @@ const ProjectReport: React.FC = () => {
         id: r.projectId,
       }));
       setRows(withIds);
-      setTotalProjects(res.data?.meta?.totalProjects || 0);
     } catch (error) {
       console.error('Failed to fetch project report:', error);
     } finally {

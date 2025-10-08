@@ -40,7 +40,7 @@ describe('Dashboard', () => {
       data: undefined,
       isLoading: true,
       error: null,
-    } as any);
+    } as unknown as ReturnType<typeof useDashboardHook.useDashboard>);
 
     render(<Dashboard />, { wrapper });
 
@@ -53,7 +53,7 @@ describe('Dashboard', () => {
       data: undefined,
       isLoading: false,
       error: new Error('Failed to fetch'),
-    } as any);
+    } as unknown as ReturnType<typeof useDashboardHook.useDashboard>);
 
     render(<Dashboard />, { wrapper });
 
@@ -150,7 +150,7 @@ describe('Dashboard', () => {
       data: mockData,
       isLoading: false,
       error: null,
-    } as any);
+    } as unknown as ReturnType<typeof useDashboardHook.useDashboard>);
 
     render(<Dashboard />, { wrapper });
 
@@ -182,7 +182,7 @@ describe('Dashboard', () => {
       data: mockData,
       isLoading: false,
       error: null,
-    } as any);
+    } as unknown as ReturnType<typeof useDashboardHook.useDashboard>);
 
     render(<Dashboard />, { wrapper });
 
@@ -196,7 +196,7 @@ describe('Dashboard', () => {
       data: null,
       isLoading: false,
       error: null,
-    } as any);
+    } as unknown as ReturnType<typeof useDashboardHook.useDashboard>);
 
     render(<Dashboard />, { wrapper });
 

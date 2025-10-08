@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import {
   Box,
   Button,
@@ -29,7 +30,7 @@ import apiClient from '../api/client';
 import { Page, PageHeader } from '../components/ui';
 import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDeleteUser } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSettings';
 import { useBillingSettings, useUpdateBillingSettings } from '../hooks/useBilling';
 import type { ManagedUser, Staff } from '../types';
@@ -45,6 +46,13 @@ const Roles: Array<{ label: string; value: 'admin' | 'editor' | 'viewer' }> = [
 const formatDateTime = (value: string | null) => {
   if (!value) return '—';
   return new Date(value).toLocaleString();
+};
+
+const extractUserError = (error: unknown, fallback: string): string => {
+  if (isAxiosError<{ error?: string }>(error)) {
+    return error.response?.data?.error ?? fallback;
+  }
+  return fallback;
 };
 
 interface PasswordDialogState {
@@ -130,25 +138,6 @@ const UserManagement: React.FC = () => {
     },
     staleTime: 30000, // 30 seconds
   });
-
-  // Admin-only access control
-  if (user?.role !== 'admin') {
-    return (
-      <Page>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h5" color="error" gutterBottom>
-            Access Denied
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Only administrators can access user management.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/dashboard')}>
-            Return to Dashboard
-          </Button>
-        </Paper>
-      </Page>
-    );
-  }
 
   const staffOptions = useMemo(() => staff.map((member: Staff) => ({ label: member.name, value: member.id })), [staff]);
 
@@ -298,8 +287,8 @@ const UserManagement: React.FC = () => {
                 const result = await resetUserPassword.mutateAsync(row.id);
                 setPasswordDialog({ username: row.username, tempPassword: result.tempPassword });
                 toast.success('Password reset', 'Provide the new password to the user.');
-              } catch (error: any) {
-                toast.error('Reset failed', error.response?.data?.error || 'Unable to reset password.');
+              } catch (error: unknown) {
+                toast.error('Reset failed', extractUserError(error, 'Unable to reset password.'));
               }
             }}
             title="Reset password"
@@ -314,8 +303,8 @@ const UserManagement: React.FC = () => {
                 try {
                   await deleteUser.mutateAsync(row.id);
                   toast.success('User deleted', `User "${row.username}" has been successfully deleted.`);
-                } catch (error: any) {
-                  toast.error('Delete failed', error.response?.data?.error || 'Unable to delete user.');
+                } catch (error: unknown) {
+                  toast.error('Delete failed', extractUserError(error, 'Unable to delete user.'));
                 }
               }
             }}
@@ -329,6 +318,7 @@ const UserManagement: React.FC = () => {
   ];
 
   const onlineUsers = useMemo(() => users.filter(user => isUserOnline(user.lastActivity)), [users]);
+  const isAdmin = user?.role === 'admin';
   const userCountLabel = `${users.length} user${users.length === 1 ? '' : 's'}`;
   const onlineCountLabel = `${onlineUsers.length} online`;
 
@@ -417,6 +407,24 @@ const UserManagement: React.FC = () => {
       align: 'left',
     },
   ];
+
+  if (!isAdmin) {
+    return (
+      <Page>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            Access Denied
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Only administrators can access user management.
+          </Typography>
+          <Button variant="contained" onClick={() => navigate('/dashboard')}>
+            Return to Dashboard
+          </Button>
+        </Paper>
+      </Page>
+    );
+  }
 
   return (
     <Page>
@@ -625,8 +633,8 @@ const UserManagement: React.FC = () => {
                           emailNotificationsEnabled: e.target.checked,
                         });
                         toast.success('Settings updated', 'Email notification settings have been saved.');
-                      } catch (error: any) {
-                        toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                      } catch (error: unknown) {
+                        toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                       }
                     }}
                   />
@@ -652,8 +660,8 @@ const UserManagement: React.FC = () => {
                                 notifyPartner: e.target.checked,
                               });
                               toast.success('Settings updated', 'Partner notification preference saved.');
-                            } catch (error: any) {
-                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            } catch (error: unknown) {
+                              toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                             }
                           }}
                           disabled={!emailSettings?.emailNotificationsEnabled}
@@ -672,8 +680,8 @@ const UserManagement: React.FC = () => {
                                 notifyAssociate: e.target.checked,
                               });
                               toast.success('Settings updated', 'Associate notification preference saved.');
-                            } catch (error: any) {
-                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            } catch (error: unknown) {
+                              toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                             }
                           }}
                           disabled={!emailSettings?.emailNotificationsEnabled}
@@ -692,8 +700,8 @@ const UserManagement: React.FC = () => {
                                 notifyJuniorFlic: e.target.checked,
                               });
                               toast.success('Settings updated', 'Junior FLIC notification preference saved.');
-                            } catch (error: any) {
-                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            } catch (error: unknown) {
+                              toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                             }
                           }}
                           disabled={!emailSettings?.emailNotificationsEnabled}
@@ -712,8 +720,8 @@ const UserManagement: React.FC = () => {
                                 notifySeniorFlic: e.target.checked,
                               });
                               toast.success('Settings updated', 'Senior FLIC notification preference saved.');
-                            } catch (error: any) {
-                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            } catch (error: unknown) {
+                              toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                             }
                           }}
                           disabled={!emailSettings?.emailNotificationsEnabled}
@@ -732,8 +740,8 @@ const UserManagement: React.FC = () => {
                                 notifyIntern: e.target.checked,
                               });
                               toast.success('Settings updated', 'Intern notification preference saved.');
-                            } catch (error: any) {
-                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            } catch (error: unknown) {
+                              toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                             }
                           }}
                           disabled={!emailSettings?.emailNotificationsEnabled}
@@ -752,8 +760,8 @@ const UserManagement: React.FC = () => {
                                 notifyBCWorkingAttorney: e.target.checked,
                               });
                               toast.success('Settings updated', 'B&C Working Attorney notification preference saved.');
-                            } catch (error: any) {
-                              toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                            } catch (error: unknown) {
+                              toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                             }
                           }}
                           disabled={!emailSettings?.emailNotificationsEnabled}
@@ -809,8 +817,8 @@ const UserManagement: React.FC = () => {
                           billing_module_enabled: e.target.checked,
                         });
                         toast.success('Settings updated', 'Billing module settings have been saved.');
-                      } catch (error: any) {
-                        toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                      } catch (error: unknown) {
+                        toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                       }
                     }}
                   />
@@ -835,8 +843,8 @@ const UserManagement: React.FC = () => {
                           access_level: e.target.value as 'admin_only' | 'admin_and_bc_attorney',
                         });
                         toast.success('Settings updated', 'Billing access level has been saved.');
-                      } catch (error: any) {
-                        toast.error('Update failed', error.response?.data?.error || 'Failed to update settings.');
+                      } catch (error: unknown) {
+                        toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
                       }
                     }}
                     disabled={!billingSettings?.billing_module_enabled}
@@ -868,8 +876,8 @@ const UserManagement: React.FC = () => {
             setPasswordDialog({ username: result.user.username, tempPassword: result.tempPassword });
             setCreateOpen(false);
             toast.success('User created', 'Share the temporary password securely.');
-          } catch (error: any) {
-            toast.error('Create user failed', error.response?.data?.error || 'Please try again.');
+          } catch (error: unknown) {
+            toast.error('Create user failed', extractUserError(error, 'Please try again.'));
           }
         }}
       />
@@ -893,8 +901,8 @@ const UserManagement: React.FC = () => {
               await updateUser.mutateAsync({ id: editingUser.id, data: { role: values.role, staffId: values.staffId ?? null } });
               toast.success('User updated', 'Changes saved successfully.');
               setEditingUser(null);
-            } catch (error: any) {
-              toast.error('Update failed', error.response?.data?.error || 'Please try again.');
+            } catch (error: unknown) {
+              toast.error('Update failed', extractUserError(error, 'Please try again.'));
             }
           }}
         />
