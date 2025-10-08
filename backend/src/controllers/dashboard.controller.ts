@@ -171,12 +171,18 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       }),
       prisma.project.count({
         where: {
-          filingDate: { gte: now, lte: thirtyDaysFromNow },
+          filingDate: {
+            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            lte: new Date(thirtyDaysFromNow.getFullYear(), thirtyDaysFromNow.getMonth(), thirtyDaysFromNow.getDate())
+          },
         },
       }),
       prisma.project.count({
         where: {
-          listingDate: { gte: now, lte: thirtyDaysFromNow },
+          listingDate: {
+            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            lte: new Date(thirtyDaysFromNow.getFullYear(), thirtyDaysFromNow.getMonth(), thirtyDaysFromNow.getDate())
+          },
         },
       }),
       findUpcomingMilestones(now, windowEnd),
@@ -635,8 +641,8 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
       where: {
         project: {
           OR: [
-            { filingDate: { gte: start, lte: end } },
-            { listingDate: { gte: start, lte: end } },
+            { filingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
+            { listingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
           ],
         },
         staff: {
@@ -765,8 +771,8 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
     where: {
       status: { in: ['Active', 'Slow-down'] },
       OR: [
-        { filingDate: { gte: start, lte: end } },
-        { listingDate: { gte: start, lte: end } },
+        { filingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
+        { listingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
       ],
     },
     select: {

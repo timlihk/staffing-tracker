@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,25 +7,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Core Models
-
 model User {
-  id                Int       @id @default(autoincrement())
-  username          String    @unique
-  email             String    @unique
-  passwordHash      String    @map("password_hash")
-  role              String    @default("viewer") // admin, editor, viewer
-  mustResetPassword Boolean   @default(false) @map("must_reset_password")
-  staffId           Int?      @map("staff_id")
-  staff             Staff?    @relation(fields: [staffId], references: [id])
-  lastLogin         DateTime? @map("last_login")
-  lastActivity      DateTime? @map("last_activity") // Tracks user activity for online status
-  createdAt         DateTime  @default(now()) @map("created_at")
-
-  activityLogs         ActivityLog[]
-  projectChanges       ProjectChangeHistory[] @relation("ProjectChanges")
-  staffChanges         StaffChangeHistory[]   @relation("StaffChanges")
-  projectConfirmations Project[]              @relation("ProjectConfirmations")
+  id                                                             Int                             @id @default(autoincrement())
+  username                                                       String                          @unique
+  email                                                          String                          @unique
+  passwordHash                                                   String                          @map("password_hash")
+  role                                                           String                          @default("viewer")
+  staffId                                                        Int?                            @map("staff_id")
+  lastLogin                                                      DateTime?                       @map("last_login")
+  createdAt                                                      DateTime                        @default(now()) @map("created_at")
+  mustResetPassword                                              Boolean                         @default(false) @map("must_reset_password")
+  lastActivity                                                   DateTime?                       @map("last_activity")
+  activityLogs                                                   ActivityLog[]
+  billing_access_settings                                        billing_access_settings[]
+  billing_bc_attorney_staff_map                                  billing_bc_attorney_staff_map[]
+  billing_milestone_billing_milestone_invoice_sent_byTousers     billing_milestone[]             @relation("billing_milestone_invoice_sent_byTousers")
+  billing_milestone_billing_milestone_payment_received_byTousers billing_milestone[]             @relation("billing_milestone_payment_received_byTousers")
+  billing_staffing_project_link                                  billing_staffing_project_link[]
+  projectChanges                                                 ProjectChangeHistory[]          @relation("ProjectChanges")
+  projectConfirmations                                           Project[]                       @relation("ProjectConfirmations")
+  staffChanges                                                   StaffChangeHistory[]            @relation("StaffChanges")
+  staff                                                          Staff?                          @relation(fields: [staffId], references: [id])
 
   @@index([role])
   @@index([lastActivity])
@@ -39,19 +35,19 @@ model User {
 }
 
 model Staff {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String?  @unique
-  position   String // Partner, Associate, Senior FLIC, Junior FLIC, Intern, B&C Working Attorney
-  department String? // US Law, HK Law, B&C
-  status     String   @default("active") // active, inactive, leaving
-  notes      String?  @db.Text
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  assignments   ProjectAssignment[]
-  users         User[]
-  changeHistory StaffChangeHistory[] @relation("StaffChangeHistory")
+  id                            Int                             @id @default(autoincrement())
+  name                          String
+  email                         String?                         @unique
+  position                      String
+  department                    String?
+  status                        String                          @default("active")
+  notes                         String?
+  createdAt                     DateTime                        @default(now()) @map("created_at")
+  updatedAt                     DateTime                        @updatedAt @map("updated_at")
+  billing_bc_attorney_staff_map billing_bc_attorney_staff_map[]
+  assignments                   ProjectAssignment[]
+  changeHistory                 StaffChangeHistory[]            @relation("StaffChangeHistory")
+  users                         User[]
 
   @@index([position])
   @@index([status])
@@ -59,46 +55,34 @@ model Staff {
   @@map("staff")
 }
 
-enum Timetable {
-  PRE_A1
-  A1
-  HEARING
-  LISTING
-}
-
 model Project {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique // Project name (formerly projectCode)
-  category    String // HK Trx, US Trx, HK Comp, US Comp, Others
-  status      String // Active, Slow-down, Suspended
-  priority    String? // High, Medium, Low
-  elStatus    String?    @map("el_status") // EL Status field
-  timetable   Timetable? // Pre-A1, A1, Hearing, Listing
-  bcAttorney  String?    @map("bc_attorney") // B&C Attorney assigned to project
-  filingDate  DateTime?  @map("filing_date")
-  listingDate DateTime?  @map("listing_date")
-  side             String?   // Issuer or Underwriter (only for HK Trx and US Trx)
-  sector           String?   // Healthcare, TMT, Consumer, Industrial
-  notes            String?   @db.Text
-  lastConfirmedAt  DateTime? @map("last_confirmed_at") // When project details were last confirmed
-  lastConfirmedBy  Int?      @map("last_confirmed_by") // User who confirmed
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-
-  assignments   ProjectAssignment[]
-  changeHistory ProjectChangeHistory[] @relation("ProjectChangeHistory")
-  confirmedBy   User?                  @relation("ProjectConfirmations", fields: [lastConfirmedBy], references: [id])
+  id                            Int                             @id @default(autoincrement())
+  name                          String                          @unique
+  category                      String
+  status                        String
+  priority                      String?
+  notes                         String?
+  createdAt                     DateTime                        @default(now()) @map("created_at")
+  updatedAt                     DateTime                        @updatedAt @map("updated_at")
+  elStatus                      String?                         @map("el_status")
+  bcAttorney                    String?                         @map("bc_attorney")
+  timetable                     Timetable?
+  filingDate                    DateTime?                       @map("filing_date")
+  listingDate                   DateTime?                       @map("listing_date")
+  sector                        String?
+  side                          String?
+  lastConfirmedAt               DateTime?                       @map("last_confirmed_at")
+  lastConfirmedBy               Int?                            @map("last_confirmed_by")
+  billing_staffing_project_link billing_staffing_project_link[]
+  assignments                   ProjectAssignment[]
+  changeHistory                 ProjectChangeHistory[]          @relation("ProjectChangeHistory")
+  confirmedBy                   User?                           @relation("ProjectConfirmations", fields: [lastConfirmedBy], references: [id])
 
   @@index([status])
   @@index([category])
   @@index([priority])
   @@index([timetable])
   @@index([lastConfirmedAt])
-  @@index([updatedAt(sort: Desc)])
-  @@index([category, status])
-  @@index([status, category])
-  @@index([side])
-  @@index([sector])
   @@map("projects")
 }
 
@@ -106,15 +90,14 @@ model ProjectAssignment {
   id           Int       @id @default(autoincrement())
   projectId    Int       @map("project_id")
   staffId      Int       @map("staff_id")
-  jurisdiction String? // US Law, HK Law, B&C
+  jurisdiction String?
   startDate    DateTime? @map("start_date")
   endDate      DateTime? @map("end_date")
-  notes        String?   @db.Text
+  notes        String?
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  staff        Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, staffId, jurisdiction])
   @@index([projectId])
@@ -125,34 +108,32 @@ model ProjectAssignment {
 model ProjectChangeHistory {
   id         Int      @id @default(autoincrement())
   projectId  Int      @map("project_id")
-  fieldName  String   @map("field_name") // name, priority, status, startDate, targetFilingDate, category, notes, etc.
-  oldValue   String?  @map("old_value") @db.Text
-  newValue   String?  @map("new_value") @db.Text
-  changeType String   @map("change_type") // update, assignment_added, assignment_removed
+  fieldName  String   @map("field_name")
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  changeType String   @map("change_type")
   changedBy  Int?     @map("changed_by")
   changedAt  DateTime @default(now()) @map("changed_at")
-
-  project Project @relation("ProjectChangeHistory", fields: [projectId], references: [id], onDelete: Cascade)
-  user    User?   @relation("ProjectChanges", fields: [changedBy], references: [id])
+  user       User?    @relation("ProjectChanges", fields: [changedBy], references: [id])
+  project    Project  @relation("ProjectChangeHistory", fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([changedAt(sort: Desc)])
-  @@index([projectId, changedAt(sort: Desc)]) // Composite index for optimized change history queries
+  @@index([projectId, changedAt(sort: Desc)])
   @@map("project_change_history")
 }
 
 model StaffChangeHistory {
   id         Int      @id @default(autoincrement())
   staffId    Int      @map("staff_id")
-  fieldName  String   @map("field_name") // name, position, department, status, email, notes
-  oldValue   String?  @map("old_value") @db.Text
-  newValue   String?  @map("new_value") @db.Text
-  changeType String   @map("change_type") // update, assignment_added, assignment_removed
+  fieldName  String   @map("field_name")
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  changeType String   @map("change_type")
   changedBy  Int?     @map("changed_by")
   changedAt  DateTime @default(now()) @map("changed_at")
-
-  staff Staff @relation("StaffChangeHistory", fields: [staffId], references: [id], onDelete: Cascade)
-  user  User? @relation("StaffChanges", fields: [changedBy], references: [id])
+  user       User?    @relation("StaffChanges", fields: [changedBy], references: [id])
+  staff      Staff    @relation("StaffChangeHistory", fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@index([changedAt(sort: Desc)])
@@ -162,13 +143,12 @@ model StaffChangeHistory {
 model ActivityLog {
   id          Int      @id @default(autoincrement())
   userId      Int?     @map("user_id")
-  actionType  String   @map("action_type") // create, update, delete, assign, status_change
-  entityType  String   @map("entity_type") // project, staff, assignment
+  actionType  String   @map("action_type")
+  entityType  String   @map("entity_type")
   entityId    Int?     @map("entity_id")
-  description String?  @db.Text
+  description String?
   createdAt   DateTime @default(now()) @map("created_at")
-
-  user User? @relation(fields: [userId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([createdAt(sort: Desc)])
@@ -179,19 +159,306 @@ model ActivityLog {
 }
 
 model EmailSettings {
-  id                         Int      @id @default(autoincrement())
-  emailNotificationsEnabled  Boolean  @default(true) @map("email_notifications_enabled") // Global toggle for project update emails
-
-  // Position-specific toggles for receiving project update emails
-  notifyPartner              Boolean  @default(true) @map("notify_partner")
-  notifyAssociate            Boolean  @default(true) @map("notify_associate")
-  notifyJuniorFlic           Boolean  @default(true) @map("notify_junior_flic")
-  notifySeniorFlic           Boolean  @default(true) @map("notify_senior_flic")
-  notifyIntern               Boolean  @default(true) @map("notify_intern")
-  notifyBCWorkingAttorney    Boolean  @default(true) @map("notify_bc_working_attorney")
-
-  updatedAt                  DateTime @updatedAt @map("updated_at")
-  updatedBy                  Int?     @map("updated_by")
+  id                        Int      @id @default(autoincrement())
+  emailNotificationsEnabled Boolean  @default(true) @map("email_notifications_enabled")
+  notifyPartner             Boolean  @default(true) @map("notify_partner")
+  notifyAssociate           Boolean  @default(true) @map("notify_associate")
+  notifyJuniorFlic          Boolean  @default(true) @map("notify_junior_flic")
+  notifySeniorFlic          Boolean  @default(true) @map("notify_senior_flic")
+  notifyIntern              Boolean  @default(true) @map("notify_intern")
+  notifyBCWorkingAttorney   Boolean  @default(true) @map("notify_bc_working_attorney")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  updatedBy                 Int?     @map("updated_by")
 
   @@map("email_settings")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_access_settings {
+  id                     Int       @id @default(autoincrement())
+  billing_module_enabled Boolean?  @default(false)
+  access_level           String?   @default("admin_only")
+  updated_by             Int?
+  updated_at             DateTime? @default(now()) @db.Timestamptz(6)
+  users                  User?     @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model billing_bc_attorney_staff_map {
+  map_id                Int       @id @default(autoincrement())
+  billing_attorney_name String    @unique
+  staff_id              Int?
+  match_confidence      Decimal?  @db.Decimal(3, 2)
+  is_auto_mapped        Boolean?  @default(false)
+  manually_confirmed_by Int?
+  confirmed_at          DateTime? @db.Timestamptz(6)
+  notes                 String?
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  users                 User?     @relation(fields: [manually_confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  staff                 Staff?    @relation(fields: [staff_id], references: [id], onUpdate: NoAction)
+
+  @@index([billing_attorney_name], map: "idx_billing_bc_name")
+  @@index([staff_id], map: "idx_billing_bc_staff")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model billing_engagement {
+  engagement_id              BigInt                    @id @default(autoincrement())
+  project_id                 BigInt
+  cm_id                      BigInt
+  engagement_code            String?
+  engagement_title           String?
+  start_date                 DateTime?                 @db.Date
+  end_date                   DateTime?                 @db.Date
+  ubt_usd                    Decimal?                  @default(0) @db.Decimal(18, 2)
+  ubt_cny                    Decimal?                  @default(0) @db.Decimal(18, 2)
+  billing_credit_usd         Decimal?                  @default(0) @db.Decimal(18, 2)
+  billing_credit_cny         Decimal?                  @default(0) @db.Decimal(18, 2)
+  financials_last_updated_at DateTime?                 @db.Timestamptz(6)
+  financials_last_updated_by Int?
+  created_at                 DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                  @default(now()) @db.Timestamptz(6)
+  bonus_usd                  Decimal?                  @default(0) @db.Decimal(18, 2)
+  bonus_cny                  Decimal?                  @default(0) @db.Decimal(18, 2)
+  total_agreed_fee_value     Decimal?                  @db.Decimal(18, 2)
+  total_agreed_fee_currency  String?                   @default("USD")
+  name                       String?
+  billing_project_cm_no      billing_project_cm_no     @relation(fields: [cm_id], references: [cm_id], onDelete: NoAction, onUpdate: NoAction)
+  billing_project            billing_project           @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction)
+  billing_event              billing_event[]
+  billing_fee_arrangement    billing_fee_arrangement[]
+  billing_finance_comment    billing_finance_comment[]
+  billing_invoice            billing_invoice[]
+  billing_milestone          billing_milestone[]
+
+  @@unique([cm_id, engagement_code], map: "billing_engagement_cm_engagement_unique")
+  @@index([cm_id], map: "idx_billing_engagement_cm")
+  @@index([project_id], map: "idx_billing_engagement_project")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_event {
+  event_id                        BigInt                           @id @default(autoincrement())
+  engagement_id                   BigInt
+  invoice_id                      BigInt?
+  milestone_id                    BigInt?
+  source_id                       BigInt?
+  event_type                      String
+  event_date                      DateTime                         @db.Date
+  amount_value                    Decimal?                         @db.Decimal(18, 2)
+  amount_currency                 String?
+  source                          String?
+  notes                           String?
+  created_at                      DateTime                         @default(now()) @db.Timestamptz(6)
+  billing_engagement              billing_engagement               @relation(fields: [engagement_id], references: [engagement_id], onDelete: Cascade, onUpdate: NoAction)
+  billing_invoice                 billing_invoice?                 @relation(fields: [invoice_id], references: [invoice_id], onDelete: NoAction, onUpdate: NoAction)
+  billing_milestone               billing_milestone?               @relation(fields: [milestone_id], references: [milestone_id], onDelete: NoAction, onUpdate: NoAction)
+  billing_source_transactions_raw billing_source_transactions_raw? @relation(fields: [source_id], references: [source_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([engagement_id, event_date], map: "idx_billing_event_engagement_date")
+  @@index([event_type], map: "idx_billing_event_type")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model billing_fee_arrangement {
+  fee_id                          BigInt                           @id @default(autoincrement())
+  engagement_id                   BigInt
+  source_id                       BigInt?
+  raw_text                        String
+  original_markup_html            String?
+  parsed_json                     Json?
+  lsd_date                        DateTime?                        @db.Date
+  lsd_raw                         String?
+  parser_version                  String?
+  parsed_at                       DateTime?                        @db.Timestamptz(6)
+  created_at                      DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime                         @default(now()) @db.Timestamptz(6)
+  bonus_description               String?
+  bonus_amount_usd                Decimal?                         @db.Decimal(18, 2)
+  bonus_amount_cny                Decimal?                         @db.Decimal(18, 2)
+  billing_engagement              billing_engagement               @relation(fields: [engagement_id], references: [engagement_id], onDelete: Cascade, onUpdate: NoAction)
+  billing_source_transactions_raw billing_source_transactions_raw? @relation(fields: [source_id], references: [source_id], onDelete: NoAction, onUpdate: NoAction)
+  billing_milestone               billing_milestone[]
+
+  @@index([engagement_id], map: "idx_billing_fee_engagement")
+  @@index([lsd_date], map: "idx_billing_fee_lsd")
+}
+
+model billing_finance_comment {
+  comment_id                      BigInt                           @id @default(autoincrement())
+  engagement_id                   BigInt
+  source_id                       BigInt?
+  comment_raw                     String
+  fingerprint_hash                String
+  markup_html_raw                 String?
+  extracted_json                  Json?
+  parsed_at                       DateTime?                        @db.Timestamptz(6)
+  created_at                      DateTime                         @default(now()) @db.Timestamptz(6)
+  billing_engagement              billing_engagement               @relation(fields: [engagement_id], references: [engagement_id], onDelete: Cascade, onUpdate: NoAction)
+  billing_source_transactions_raw billing_source_transactions_raw? @relation(fields: [source_id], references: [source_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([engagement_id, fingerprint_hash])
+  @@index([engagement_id], map: "idx_billing_finance_engagement")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_invoice {
+  invoice_id         BigInt             @id @default(autoincrement())
+  engagement_id      BigInt
+  milestone_id       BigInt?
+  invoice_no         String?
+  amount_value       Decimal            @db.Decimal(18, 2)
+  amount_currency    String             @default("USD")
+  issued_date        DateTime?          @db.Date
+  due_date           DateTime?          @db.Date
+  paid_date          DateTime?          @db.Date
+  status             String?            @default("draft")
+  notes              String?
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime           @default(now()) @db.Timestamptz(6)
+  billing_event      billing_event[]
+  billing_engagement billing_engagement @relation(fields: [engagement_id], references: [engagement_id], onDelete: Cascade, onUpdate: NoAction)
+  billing_milestone  billing_milestone? @relation(fields: [milestone_id], references: [milestone_id], onDelete: NoAction, onUpdate: NoAction)
+  billing_payment    billing_payment[]
+
+  @@unique([engagement_id, invoice_no])
+  @@index([engagement_id, issued_date, paid_date], map: "idx_billing_invoice_dates")
+  @@index([engagement_id], map: "idx_billing_invoice_engagement")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model billing_milestone {
+  milestone_id                                       BigInt                   @id @default(autoincrement())
+  fee_id                                             BigInt?
+  ordinal                                            String
+  title                                              String?
+  description                                        String?
+  trigger_type                                       String?
+  trigger_text                                       String?
+  amount_value                                       Decimal?                 @db.Decimal(18, 2)
+  amount_currency                                    String?
+  is_percent                                         Boolean                  @default(false)
+  percent_value                                      Decimal?                 @db.Decimal(6, 2)
+  due_date                                           DateTime?                @db.Date
+  due_days_relative                                  Int?
+  completed                                          Boolean                  @default(false)
+  completion_source                                  String?
+  completion_date                                    DateTime?                @db.Date
+  raw_fragment                                       String
+  sort_order                                         Int?
+  created_at                                         DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at                                         DateTime                 @default(now()) @db.Timestamptz(6)
+  engagement_id                                      BigInt
+  invoice_sent_date                                  DateTime?                @db.Date
+  payment_received_date                              DateTime?                @db.Date
+  invoice_sent_by                                    Int?
+  payment_received_by                                Int?
+  notes                                              String?
+  billing_event                                      billing_event[]
+  billing_invoice                                    billing_invoice[]
+  billing_engagement                                 billing_engagement       @relation(fields: [engagement_id], references: [engagement_id], onDelete: Cascade, onUpdate: NoAction)
+  billing_fee_arrangement                            billing_fee_arrangement? @relation(fields: [fee_id], references: [fee_id], onDelete: Cascade, onUpdate: NoAction)
+  users_billing_milestone_invoice_sent_byTousers     User?                    @relation("billing_milestone_invoice_sent_byTousers", fields: [invoice_sent_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_billing_milestone_payment_received_byTousers User?                    @relation("billing_milestone_payment_received_byTousers", fields: [payment_received_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([engagement_id, ordinal], map: "billing_milestone_engagement_ordinal_unique")
+  @@index([invoice_sent_date, payment_received_date], map: "idx_billing_milestone_billing_status")
+  @@index([completed], map: "idx_billing_milestone_completed")
+  @@index([engagement_id], map: "idx_billing_milestone_engagement")
+  @@index([engagement_id, sort_order], map: "idx_billing_milestone_engagement_sort")
+  @@index([fee_id, sort_order], map: "idx_billing_milestone_fee_sort")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model billing_payment {
+  payment_id           BigInt          @id @default(autoincrement())
+  invoice_id           BigInt
+  paid_amount_value    Decimal         @db.Decimal(18, 2)
+  paid_amount_currency String          @default("USD")
+  paid_date            DateTime?       @db.Date
+  method               String?
+  receipt_ref          String?
+  created_at           DateTime        @default(now()) @db.Timestamptz(6)
+  billing_invoice      billing_invoice @relation(fields: [invoice_id], references: [invoice_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([paid_date], map: "idx_billing_payment_date")
+  @@index([invoice_id], map: "idx_billing_payment_invoice")
+}
+
+model billing_project {
+  project_id                    BigInt                          @id @default(autoincrement())
+  project_name                  String
+  client_name                   String?
+  attorney_in_charge            String?
+  sca                           String?
+  base_currency                 String                          @default("USD")
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  billing_engagement            billing_engagement[]
+  billing_project_cm_no         billing_project_cm_no[]
+  billing_staffing_project_link billing_staffing_project_link[]
+
+  @@index([attorney_in_charge], map: "idx_billing_project_attorney")
+  @@index([project_name], map: "idx_billing_project_name")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model billing_project_cm_no {
+  cm_id              BigInt               @id @default(autoincrement())
+  project_id         BigInt
+  cm_no              String
+  is_primary         Boolean              @default(false)
+  open_date          DateTime?            @db.Date
+  closed_date        DateTime?            @db.Date
+  status             String?              @default("active")
+  billing_engagement billing_engagement[]
+  billing_project    billing_project      @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([project_id, cm_no])
+  @@index([cm_no], map: "idx_billing_cm_no")
+  @@index([project_id], map: "idx_billing_cm_project")
+  @@index([status], map: "idx_billing_cm_status")
+}
+
+model billing_source_transactions_raw {
+  source_id               BigInt                    @id @default(autoincrement())
+  import_batch_id         String?
+  source_row_num          Int?
+  full_row_text           String
+  project_name_raw        String?
+  cm_no_raw               String?
+  fee_arrangement_raw     String?
+  finance_comment_raw     String?
+  remarks_raw             String?
+  row_hash                String                    @unique
+  loaded_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  billing_event           billing_event[]
+  billing_fee_arrangement billing_fee_arrangement[]
+  billing_finance_comment billing_finance_comment[]
+
+  @@index([import_batch_id], map: "idx_billing_source_batch")
+}
+
+model billing_staffing_project_link {
+  link_id             Int              @id @default(autoincrement())
+  billing_project_id  BigInt?
+  staffing_project_id Int?
+  linked_by           Int?
+  linked_at           DateTime?        @default(now()) @db.Timestamptz(6)
+  auto_match_score    Decimal?         @db.Decimal(3, 2)
+  notes               String?
+  billing_project     billing_project? @relation(fields: [billing_project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction)
+  users               User?            @relation(fields: [linked_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projects            Project?         @relation(fields: [staffing_project_id], references: [id], onUpdate: NoAction)
+
+  @@unique([billing_project_id, staffing_project_id])
+  @@index([billing_project_id], map: "idx_billing_project_link")
+  @@index([staffing_project_id], map: "idx_staffing_project_link")
+}
+
+enum Timetable {
+  PRE_A1
+  A1
+  HEARING
+  LISTING
 }
