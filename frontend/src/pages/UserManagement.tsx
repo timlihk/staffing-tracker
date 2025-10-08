@@ -826,32 +826,55 @@ const UserManagement: React.FC = () => {
 
                 <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
                   <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Access Level
+                    Access Control
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Control who can access the billing module
+                    Control which user roles can access the billing module
                   </Typography>
 
-                  <TextField
-                    select
-                    fullWidth
-                    label="Access Level"
-                    value={billingSettings?.access_level ?? 'admin_only'}
-                    onChange={async (e) => {
-                      try {
-                        await updateBillingSettings.mutateAsync({
-                          access_level: e.target.value as 'admin_only' | 'admin_and_bc_attorney',
-                        });
-                        toast.success('Settings updated', 'Billing access level has been saved.');
-                      } catch (error: unknown) {
-                        toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                      }
-                    }}
-                    disabled={!billingSettings?.billing_module_enabled}
-                  >
-                    <MenuItem value="admin_only">Admin Only</MenuItem>
-                    <MenuItem value="admin_and_bc_attorney">Admin and B&C Attorneys</MenuItem>
-                  </TextField>
+                  <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Stack>
+                        <Typography variant="body1" fontWeight={600}>
+                          Admin Access
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Allow administrators to access billing
+                        </Typography>
+                      </Stack>
+                      <Switch
+                        checked={true}
+                        disabled
+                        color="primary"
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Stack>
+                        <Typography variant="body1" fontWeight={600}>
+                          B&C Attorney Access
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Allow B&C attorneys to access billing
+                        </Typography>
+                      </Stack>
+                      <Switch
+                        checked={billingSettings?.access_level === 'admin_and_bc_attorney'}
+                        onChange={async (e) => {
+                          try {
+                            await updateBillingSettings.mutateAsync({
+                              access_level: e.target.checked ? 'admin_and_bc_attorney' : 'admin_only',
+                            });
+                            toast.success('Settings updated', 'Billing access level has been saved.');
+                          } catch (error: unknown) {
+                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
+                          }
+                        }}
+                        disabled={!billingSettings?.billing_module_enabled}
+                        color="primary"
+                      />
+                    </Box>
+                  </Stack>
                 </Box>
 
                 <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
