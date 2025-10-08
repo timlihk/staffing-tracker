@@ -171,12 +171,18 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       }),
       prisma.project.count({
         where: {
-          filingDate: { gte: now, lte: thirtyDaysFromNow },
+          filingDate: {
+            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            lte: new Date(thirtyDaysFromNow.getFullYear(), thirtyDaysFromNow.getMonth(), thirtyDaysFromNow.getDate())
+          },
         },
       }),
       prisma.project.count({
         where: {
-          listingDate: { gte: now, lte: thirtyDaysFromNow },
+          listingDate: {
+            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            lte: new Date(thirtyDaysFromNow.getFullYear(), thirtyDaysFromNow.getMonth(), thirtyDaysFromNow.getDate())
+          },
         },
       }),
       findUpcomingMilestones(now, windowEnd),
@@ -503,11 +509,15 @@ export const getDetailedChangeHistory = async (req: AuthRequest, res: Response) 
   }
 };
 const findUpcomingMilestones = async (start: Date, end: Date) => {
+  // Create date-only versions for comparison (remove time component)
+  const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
   const projects = await prisma.project.findMany({
     where: {
       OR: [
-        { filingDate: { gte: start, lte: end } },
-        { listingDate: { gte: start, lte: end } },
+        { filingDate: { gte: startDateOnly, lte: endDateOnly } },
+        { listingDate: { gte: startDateOnly, lte: endDateOnly } },
       ],
     },
     select: {
@@ -564,34 +574,42 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
       });
       const teamMembers = Array.from(uniqueStaffMap.values());
 
-      if (project.filingDate && project.filingDate >= start && project.filingDate <= end) {
-        events.push({
-          projectId: project.id,
-          projectName: project.name,
-          category: project.category,
-          status: project.status,
-          priority: project.priority,
-          side: project.side,
-          type: 'Filing',
-          date: project.filingDate,
-          partner: leadPartner,
-          teamMembers,
-        });
+      if (project.filingDate) {
+        // Use date-only comparison for consistency with the database query
+        const filingDateOnly = new Date(project.filingDate.getFullYear(), project.filingDate.getMonth(), project.filingDate.getDate());
+        if (filingDateOnly >= startDateOnly && filingDateOnly <= endDateOnly) {
+          events.push({
+            projectId: project.id,
+            projectName: project.name,
+            category: project.category,
+            status: project.status,
+            priority: project.priority,
+            side: project.side,
+            type: 'Filing',
+            date: project.filingDate,
+            partner: leadPartner,
+            teamMembers,
+          });
+        }
       }
 
-      if (project.listingDate && project.listingDate >= start && project.listingDate <= end) {
-        events.push({
-          projectId: project.id,
-          projectName: project.name,
-          category: project.category,
-          status: project.status,
-          priority: project.priority,
-          side: project.side,
-          type: 'Listing',
-          date: project.listingDate,
-          partner: leadPartner,
-          teamMembers,
-        });
+      if (project.listingDate) {
+        // Use date-only comparison for consistency with the database query
+        const listingDateOnly = new Date(project.listingDate.getFullYear(), project.listingDate.getMonth(), project.listingDate.getDate());
+        if (listingDateOnly >= startDateOnly && listingDateOnly <= endDateOnly) {
+          events.push({
+            projectId: project.id,
+            projectName: project.name,
+            category: project.category,
+            status: project.status,
+            priority: project.priority,
+            side: project.side,
+            type: 'Listing',
+            date: project.listingDate,
+            partner: leadPartner,
+            teamMembers,
+          });
+        }
       }
 
       return events;
@@ -623,8 +641,8 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
       where: {
         project: {
           OR: [
-            { filingDate: { gte: start, lte: end } },
-            { listingDate: { gte: start, lte: end } },
+            { filingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
+            { listingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
           ],
         },
         staff: {
@@ -753,8 +771,8 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
     where: {
       status: { in: ['Active', 'Slow-down'] },
       OR: [
-        { filingDate: { gte: start, lte: end } },
-        { listingDate: { gte: start, lte: end } },
+        { filingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
+        { listingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
       ],
     },
     select: {
