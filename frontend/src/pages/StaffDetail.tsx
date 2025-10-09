@@ -99,7 +99,9 @@ const StaffDetail: React.FC = () => {
 
   // Group assignments by project
   const groupedAssignments = assignments.reduce((acc, assignment) => {
-    const projectId = assignment.projectId;
+    const projectId = assignment.projectId ?? assignment.project?.id;
+    if (!projectId) return acc;
+
     if (!acc[projectId]) {
       acc[projectId] = {
         project: assignment.project,
