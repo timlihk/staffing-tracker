@@ -14,7 +14,17 @@ import {
   Divider,
   IconButton,
 } from '@mui/material';
-import { Dashboard, FolderOpen, People, BarChart, ManageAccounts, Logout, Menu, AttachMoney } from '@mui/icons-material';
+import {
+  Dashboard,
+  FolderOpen,
+  People,
+  BarChart,
+  ManageAccounts,
+  Logout,
+  Menu,
+  AttachMoney,
+  AccountCircle,
+} from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 
 interface SidebarProps {
@@ -170,15 +180,46 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
 
       <Box sx={{ px: collapsed ? 1 : 2, pb: 3 }}>
         {!collapsed && <Divider sx={{ mb: 2 }} />}
-        {user && !collapsed && (
-          <Box sx={{ mb: 1.5 }}>
-            <Typography variant="subtitle2" fontWeight={600} noWrap>
-              {user.staff?.name ?? user.username}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" textTransform="capitalize">
-              {user.role}
-            </Typography>
-          </Box>
+        {!collapsed && user && (
+          <ListItemButton
+            disableRipple
+            component="div"
+            sx={{
+              mb: 1.5,
+              borderRadius: 2,
+              py: 0.75,
+              cursor: 'default',
+              color: 'text.primary',
+              alignItems: 'flex-start',
+              '&:hover': { bgcolor: 'transparent' },
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 40,
+                color: 'primary.main',
+                display: 'flex',
+                justifyContent: 'center',
+                pt: 0.25,
+              }}
+            >
+              <AccountCircle fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary={user.staff?.name ?? user.username}
+              secondary={user.role}
+              primaryTypographyProps={{
+                variant: 'subtitle2',
+                fontWeight: 600,
+                noWrap: true,
+              }}
+              secondaryTypographyProps={{
+                variant: 'caption',
+                color: 'text.secondary',
+                sx: { textTransform: 'capitalize' },
+              }}
+            />
+          </ListItemButton>
         )}
         <ListItemButton
           onClick={() => {

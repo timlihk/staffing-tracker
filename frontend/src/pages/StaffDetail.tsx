@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSmartBack } from '../hooks/useSmartBack';
 import {
@@ -9,18 +9,13 @@ import {
   Chip,
   Button,
   CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
   Stack,
-  TableSortLabel,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -29,11 +24,20 @@ import {
   Update,
   Delete as DeleteIcon,
   ChangeCircle,
+  CheckCircle,
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Staff, ChangeHistory, Project } from '../types';
-import { Page, Section, PageHeader } from '../components/ui';
+import { Page, Section, PageHeader, StyledDataGrid } from '../components/ui';
+import { GridColDef } from '@mui/x-data-grid';
 import { usePermissions } from '../hooks/usePermissions';
+import { useConfirmProject } from '../hooks/useProjects';
+
+const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
+  Active: 'success',
+  'Slow-down': 'warning',
+  Suspended: 'error',
+};
 
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
@@ -55,14 +59,17 @@ const StaffDetail: React.FC = () => {
   const navigate = useNavigate();
   const goBack = useSmartBack('/staff');
   const permissions = usePermissions();
+  const confirmProject = useConfirmProject();
   const [staff, setStaff] = useState<Staff | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orderBy, setOrderBy] = useState<'projectName' | 'filingDate' | 'listingDate'>('projectName');
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const loadStaff = useCallback(
+    async (showSpinner = false) => {
+      if (!id) return;
+      if (showSpinner) {
+        setLoading(true);
+      }
       try {
         const [staffResponse, changeHistoryResponse] = await Promise.all([
           api.get(`/staff/${id}`),
@@ -73,29 +80,19 @@ const StaffDetail: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch staff:', error);
       } finally {
-        setLoading(false);
+        if (showSpinner) {
+          setLoading(false);
+        }
       }
-    };
-
-    fetchData();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!staff) {
-    return <Typography>Staff member not found</Typography>;
-  }
-
-  const assignments = staff.assignments ?? [];
-  const activeProjects = assignments.filter(
-    (a) => a.project?.status === 'Active' || a.project?.status === 'Slow-down'
+    },
+    [id]
   );
+
+  useEffect(() => {
+    loadStaff(true).catch((error) => console.error('Failed to initialize staff detail:', error));
+  }, [loadStaff]);
+
+  const assignments = useMemo(() => staff?.assignments ?? [], [staff]);
 
   // Group assignments by project
   const groupedAssignments = assignments.reduce((acc, assignment) => {
@@ -117,36 +114,207 @@ const StaffDetail: React.FC = () => {
 
   const groupedList = Object.values(groupedAssignments);
 
-  const getSortableValue = (item: typeof groupedList[number], field: 'projectName' | 'filingDate' | 'listingDate') => {
-    if (field === 'projectName') {
-      return item.project?.name || '';
-    }
-    if (field === 'filingDate') {
-      return item.project?.filingDate || '';
-    }
-    return item.project?.listingDate || '';
+  type ProjectRow = {
+    id: number;
+    projectId: number;
+    name: string;
+    status: string;
+    category: string;
+    side: string;
+    sector: string;
+    priority: string;
+    elStatus: string;
+    timetable: string;
+    lastConfirmedAt: string | null | undefined;
+    updatedAt: string | null | undefined;
+    confirmedByName: string | null;
+    jurisdictions: string[];
   };
 
-  const sortedAssignments = [...groupedList].sort((a, b) => {
-    const valueA = getSortableValue(a, orderBy);
-    const valueB = getSortableValue(b, orderBy);
+  const projectRows: ProjectRow[] = useMemo(() => {
+    return groupedList
+      .map((item) => {
+        if (!item.project) return null;
+        return {
+          id: item.projectId,
+          projectId: item.projectId,
+          name: item.project.name ?? '—',
+          status: item.project.status ?? '—',
+          category: item.project.category ?? '—',
+          side: item.project.side ?? '—',
+          sector: item.project.sector ?? '—',
+          priority: item.project.priority ?? '—',
+          elStatus: item.project.elStatus ?? '—',
+          timetable: item.project.timetable ?? '—',
+          lastConfirmedAt: item.project.lastConfirmedAt ?? null,
+          updatedAt: item.project.updatedAt ?? null,
+          confirmedByName: item.project.confirmedBy?.staff?.name || item.project.confirmedBy?.username || null,
+          jurisdictions: item.jurisdictions ?? [],
+        } as ProjectRow;
+      })
+      .filter((row): row is ProjectRow => row !== null);
+  }, [groupedList]);
 
-    if (!valueA && !valueB) return 0;
-    if (!valueA) return order === 'asc' ? -1 : 1;
-    if (!valueB) return order === 'asc' ? 1 : -1;
+  const handleConfirmProject = useCallback(
+    async (projectId: number) => {
+      try {
+        await confirmProject.mutateAsync(projectId);
+        await loadStaff();
+      } catch (error) {
+        console.error('Failed to confirm project from staff detail:', error);
+      }
+    },
+    [confirmProject, loadStaff]
+  );
 
-    const comparison = valueA.localeCompare(valueB);
-    return order === 'asc' ? comparison : -comparison;
-  });
+  const projectColumns = useMemo<GridColDef<ProjectRow>[]>(
+    () => [
+      {
+        field: 'name',
+        headerName: 'Project Code',
+        flex: 1,
+        minWidth: 200,
+        renderCell: (params) => (
+          <Box
+            sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
+            onClick={() => navigate(`/projects/${params.row.projectId}`)}
+          >
+            {params.row.name}
+          </Box>
+        ),
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        flex: 0.5,
+        minWidth: 120,
+        renderCell: (params) => (
+          <Chip
+            label={params.row.status}
+            color={STATUS_COLORS[params.row.status] || 'default'}
+            size="small"
+          />
+        ),
+      },
+      { field: 'category', headerName: 'Category', flex: 0.5, minWidth: 110 },
+      { field: 'side', headerName: 'Side', flex: 0.4, minWidth: 100 },
+      { field: 'sector', headerName: 'Sector', flex: 0.5, minWidth: 120 },
+      { field: 'priority', headerName: 'Priority', flex: 0.4, minWidth: 100 },
+      { field: 'elStatus', headerName: 'EL Status', flex: 0.5, minWidth: 110 },
+      { field: 'timetable', headerName: 'Timetable', flex: 0.5, minWidth: 110 },
+      {
+        field: 'lastConfirmedAt',
+        headerName: 'Last Confirmed',
+        flex: 0.8,
+        minWidth: 170,
+        renderCell: (params) => {
+          const lastActivity = params.row.lastConfirmedAt ?? params.row.updatedAt ?? null;
+          const isOverdue = !lastActivity
+            ? true
+            : Date.now() - new Date(lastActivity).getTime() > 7 * 24 * 60 * 60 * 1000;
+          let label = '—';
+          if (lastActivity) {
+            const daysAgo = Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24));
+            label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
+          }
+          return (
+            <Stack direction="row" spacing={1} alignItems="center">
+              {isOverdue && (
+                <Box
+                  component="span"
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: 'error.main',
+                  }}
+                />
+              )}
+              <Box>
+                <Typography variant="body2" fontWeight={500}>
+                  {label}
+                </Typography>
+                {params.row.confirmedByName && (
+                  <Typography variant="caption" color="text.secondary">
+                    {params.row.confirmedByName}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+          );
+        },
+      },
+      {
+        field: 'jurisdictions',
+        headerName: 'Jurisdictions',
+        flex: 0.6,
+        minWidth: 140,
+        valueGetter: (params) => (params.row?.jurisdictions ?? []).join(', '),
+        renderCell: (params) => (
+          <Typography variant="body2">
+            {(params.row?.jurisdictions ?? []).length > 0
+              ? (params.row?.jurisdictions ?? []).join(', ')
+              : '—'}
+          </Typography>
+        ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        width: 110,
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        renderCell: (params) => (
+          <Box onClick={(e) => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Tooltip title="Confirm project">
+              <span>
+                <IconButton
+                  size="small"
+                  color="success"
+                  disabled={!permissions.canEditProject || confirmProject.isPending}
+                  onClick={() => handleConfirmProject(params.row.projectId)}
+                >
+                  <CheckCircle fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            {permissions.canEditProject && (
+              <Tooltip title="Edit project">
+                <IconButton
+                  size="small"
+                  onClick={() => navigate(`/projects/${params.row.projectId}/edit`)}
+                >
+                  <Edit fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        ),
+      },
+    ],
+    [navigate, permissions.canEditProject, confirmProject.isPending, handleConfirmProject]
+  );
 
-  const handleSort = (field: 'projectName' | 'filingDate' | 'listingDate') => {
-    if (orderBy === field) {
-      setOrder(order === 'asc' ? 'desc' : 'asc');
-    } else {
-      setOrderBy(field);
-      setOrder('asc');
-    }
-  };
+  const activeProjects = useMemo(
+    () =>
+      assignments.filter(
+        (a) => a.project?.status === 'Active' || a.project?.status === 'Slow-down'
+      ),
+    [assignments]
+  );
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!staff) {
+    return <Typography>Staff member not found</Typography>;
+  }
 
   return (
     <Page>
@@ -216,85 +384,23 @@ const StaffDetail: React.FC = () => {
         {/* Projects Table and Change History */}
         <Box>
           <Stack spacing={3}>
-            <Section title="Project Assignments">
-              {sortedAssignments.length > 0 ? (
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === 'projectName'}
-                            direction={orderBy === 'projectName' ? order : 'asc'}
-                            onClick={() => handleSort('projectName')}
-                          >
-                            Project Name
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === 'filingDate'}
-                            direction={orderBy === 'filingDate' ? order : 'asc'}
-                            onClick={() => handleSort('filingDate')}
-                          >
-                            Filing Date
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>
-                          <TableSortLabel
-                            active={orderBy === 'listingDate'}
-                            direction={orderBy === 'listingDate' ? order : 'asc'}
-                            onClick={() => handleSort('listingDate')}
-                          >
-                            Listing Date
-                          </TableSortLabel>
-                        </TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Category</TableCell>
-                        <TableCell>Jurisdiction</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {sortedAssignments.map((item) => (
-                        <TableRow
-                          key={item.projectId}
-                          hover
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => navigate(`/projects/${item.projectId}`)}
-                        >
-                          <TableCell>
-                            <Typography variant="body2">{item.project?.name}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            {item.project?.filingDate
-                              ? item.project.filingDate.slice(0, 10)
-                              : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {item.project?.listingDate
-                              ? item.project.listingDate.slice(0, 10)
-                              : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={item.project?.status}
-                              color={
-                                item.project?.status === 'Active'
-                                  ? 'success'
-                                  : item.project?.status === 'Slow-down'
-                                    ? 'warning'
-                                    : 'error'
-                              }
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>{item.project?.category}</TableCell>
-                          <TableCell>{item.jurisdictions.length > 0 ? item.jurisdictions.join(', ') : '-'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+            <Section title="Project Assignments" sx={{ p: { xs: 0.5, md: 1 }, overflow: 'hidden', borderRadius: 1.5 }}>
+              {projectRows.length > 0 ? (
+                <Box sx={{ width: '100%', overflow: 'auto' }}>
+                  <StyledDataGrid
+                    rows={projectRows}
+                    columns={projectColumns}
+                    autoHeight
+                    disableRowSelectionOnClick
+                    pageSizeOptions={[5, 10, 25]}
+                    initialState={{
+                      pagination: { paginationModel: { pageSize: 10 } },
+                      sorting: { sortModel: [{ field: 'name', sort: 'asc' }] },
+                    }}
+                    onRowClick={(params) => navigate(`/projects/${params.row.projectId}`)}
+                    loading={loading}
+                  />
+                </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
                   No project assignments

@@ -87,6 +87,7 @@ const getSevenDayTrends = async (sevenDaysAgo: Date) => {
 export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
   try {
     const now = new Date();
+    const windowStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const windowEnd = new Date();
 
     // Allow customizable time window (default 30 days, min 1, max 365)
@@ -185,7 +186,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           },
         },
       }),
-      findUpcomingMilestones(now, windowEnd),
+      findUpcomingMilestones(windowStart, windowEnd),
       buildStaffingHeatmap(now, windowEnd),
       findUnstaffedMilestones(now, windowEnd),
       prisma.user.findMany({

@@ -38,7 +38,14 @@ export interface Project {
   notes?: string;
   lastConfirmedAt?: string;
   lastConfirmedBy?: number;
-  confirmedBy?: { id: number; username: string };
+  confirmedBy?: {
+    id: number;
+    username: string;
+    staff?: {
+      id: number;
+      name: string;
+    } | null;
+  };
   assignments?: ProjectAssignment[];
   createdAt: string;
   updatedAt: string;

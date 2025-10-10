@@ -118,8 +118,27 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
                 status: true,
                 category: true,
                 priority: true,
+                elStatus: true,
+                timetable: true,
                 filingDate: true,
                 listingDate: true,
+                side: true,
+                sector: true,
+                updatedAt: true,
+                lastConfirmedAt: true,
+                lastConfirmedBy: true,
+                confirmedBy: {
+                  select: {
+                    id: true,
+                    username: true,
+                    staff: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

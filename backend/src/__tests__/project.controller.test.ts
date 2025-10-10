@@ -345,6 +345,12 @@ describe('Project Controller', () => {
         ...existingProject,
         ...updatedData,
         assignments: [],
+        lastConfirmedAt: new Date(),
+        confirmedBy: {
+          id: 1,
+          username: 'testuser',
+          staff: { id: 1, name: 'Test Staff' },
+        },
       };
 
       (prisma.project.findUnique as jest.Mock).mockResolvedValue(existingProject);
@@ -363,6 +369,16 @@ describe('Project Controller', () => {
         name: 'Updated Name',
         status: 'Slow-down',
       });
+      expect(prisma.project.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lastConfirmedAt: expect.any(Date),
+            confirmedBy: {
+              connect: { id: 1 },
+            },
+          }),
+        })
+      );
     });
 
     it('should return 404 when updating non-existent project', async () => {
@@ -391,6 +407,12 @@ describe('Project Controller', () => {
         ...existingProject,
         ...updatedData,
         assignments: [],
+        lastConfirmedAt: new Date(),
+        confirmedBy: {
+          id: 1,
+          username: 'testuser',
+          staff: { id: 1, name: 'Test Staff' },
+        },
       };
 
       const mockAssignments = [
