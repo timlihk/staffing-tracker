@@ -310,6 +310,14 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   if (sector !== undefined) updateData.sector = sector;
   if (notes !== undefined) updateData.notes = notes;
 
+  const confirmationTimestamp = new Date();
+  updateData.lastConfirmedAt = confirmationTimestamp;
+  if (req.user?.userId) {
+    updateData.confirmedBy = {
+      connect: { id: req.user.userId }
+    };
+  }
+
   await trackFieldChanges({
     entityId: projectId,
     entityType: 'project',
@@ -336,6 +344,20 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       side: true,
       sector: true,
       notes: true,
+      lastConfirmedAt: true,
+      lastConfirmedBy: true,
+      confirmedBy: {
+        select: {
+          id: true,
+          username: true,
+          staff: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       createdAt: true,
       updatedAt: true,
       assignments: {
@@ -546,13 +568,21 @@ export const confirmProject = async (req: AuthRequest, res: Response) => {
     where: { id: projectId },
     data: {
       lastConfirmedAt: new Date(),
-      lastConfirmedBy: userId,
+      confirmedBy: {
+        connect: { id: userId },
+      },
     },
     include: {
       confirmedBy: {
         select: {
           id: true,
           username: true,
+          staff: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
     },
@@ -676,7 +706,7 @@ export const getProjectsNeedingAttention = async (req: AuthRequest, res: Respons
     }
 
     const changedSinceConfirmed = project.lastConfirmedAt
-      ? project.updatedAt > project.lastConfirmedAt
+      ? project.updatedAt.getTime() - project.lastConfirmedAt.getTime() > 1000
       : true;
 
     if (changedSinceConfirmed && project.lastConfirmedAt) {

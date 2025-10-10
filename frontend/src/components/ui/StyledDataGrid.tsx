@@ -13,23 +13,26 @@ export default function StyledDataGrid(props: DataGridProps) {
           position: 'sticky',
           top: 0,
           zIndex: 1,
-          background: theme.palette.primary.dark,
-          color: theme.palette.common.white,
+          background: theme.palette.background.paper,
+          color: theme.palette.text.primary,
           borderBottom: `1px solid ${theme.palette.divider}`,
           fontWeight: 700,
         },
         [`& .${gridClasses.columnHeaderTitle}`]: {
-          color: theme.palette.common.white,
+          color: theme.palette.text.primary,
           fontWeight: 700,
         },
         [`& .${gridClasses.iconButtonContainer}`]: {
-          color: theme.palette.common.white,
+          color: theme.palette.text.secondary,
         },
         [`& .${gridClasses.menuIcon}`]: {
-          color: theme.palette.common.white,
+          color: theme.palette.text.secondary,
         },
         [`& .${gridClasses.sortIcon}`]: {
-          color: theme.palette.common.white,
+          color: theme.palette.text.secondary,
+        },
+        [`& .${gridClasses.cell}`]: {
+          color: theme.palette.text.primary,
         },
         [`& .${gridClasses.row}.even`]: {
           backgroundColor: theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.04)' : theme.palette.grey[100],

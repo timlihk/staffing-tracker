@@ -286,7 +286,13 @@ const DealRadarCard = ({
           {...other}
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedDate(selectedDate === dateKey ? null : dateKey);
+            setSelectedDate((prev) => {
+              if (prev === dateKey) {
+                return null;
+              }
+              setShowAllEvents(true);
+              return dateKey;
+            });
           }}
           sx={{
             cursor: 'pointer',
