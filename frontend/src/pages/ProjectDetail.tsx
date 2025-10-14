@@ -37,7 +37,7 @@ import {
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import api from '../api/client';
-import { Project, ChangeHistory, ProjectAssignment, Staff } from '../types';
+import { Project, ChangeHistory, ProjectAssignment, ProjectBcAttorney, Staff } from '../types';
 import { Page, PageHeader } from '../components/ui';
 import { useStaff } from '../hooks/useStaff';
 import { usePermissions } from '../hooks/usePermissions';
@@ -274,40 +274,77 @@ const ProjectDetail: React.FC = () => {
 
   const handleToggleBcAttorney = async (assignment: ProjectAssignment, isBcAttorney: boolean) => {
     if (!project) return;
+
+    const previousBcAttorneys = (project.bcAttorneys ?? []).map((bcAttorney) => ({
+      ...bcAttorney,
+      staff: bcAttorney.staff ? { ...bcAttorney.staff } : undefined,
+    }));
+
     try {
       if (isBcAttorney) {
-        const newBcAttorney = await addBcAttorney.mutateAsync({
+        const optimisticBcAttorney: ProjectBcAttorney = {
+          id: -Date.now(), // Temporary ID to help replace the optimistic record
           projectId: project.id,
           staffId: assignment.staffId,
-        });
-        // Update local state optimistically
+          createdAt: new Date().toISOString(),
+          staff: assignment.staff
+            ? {
+                ...assignment.staff,
+              }
+            : undefined,
+        };
+
         setProject((prev) =>
           prev
             ? {
                 ...prev,
-                bcAttorneys: [...(prev.bcAttorneys ?? []), newBcAttorney],
+                bcAttorneys: [...(prev.bcAttorneys ?? []), optimisticBcAttorney],
+              }
+            : prev
+        );
+
+        const newBcAttorney = await addBcAttorney.mutateAsync({
+          projectId: project.id,
+          staffId: assignment.staffId,
+        });
+
+        setProject((prev) =>
+          prev
+            ? {
+                ...prev,
+                bcAttorneys: (prev.bcAttorneys ?? []).map((bcAttorney) =>
+                  bcAttorney.id === optimisticBcAttorney.id ? newBcAttorney : bcAttorney
+                ),
               }
             : prev
         );
       } else {
-        await removeBcAttorney.mutateAsync({
-          projectId: project.id,
-          staffId: assignment.staffId,
-        });
-        // Update local state optimistically
         setProject((prev) =>
           prev
             ? {
                 ...prev,
                 bcAttorneys: (prev.bcAttorneys ?? []).filter(
-                  (ba) => ba.staffId !== assignment.staffId
+                  (bcAttorney) => bcAttorney.staffId !== assignment.staffId
                 ),
               }
             : prev
         );
+
+        await removeBcAttorney.mutateAsync({
+          projectId: project.id,
+          staffId: assignment.staffId,
+        });
       }
     } catch (error: any) {
       console.error('Failed to toggle B&C attorney', error);
+      setProject((prev) =>
+        prev
+          ? {
+              ...prev,
+              bcAttorneys: previousBcAttorneys,
+            }
+          : prev
+      );
       // The hooks already handle error toasts, so we don't need to show another one here
     }
   };

@@ -13,7 +13,6 @@ export const useAddBcAttorney = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project', variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('B&C Attorney added', 'The B&C attorney has been added successfully');
     },
     onError: (error: unknown) => {
@@ -32,7 +31,6 @@ export const useRemoveBcAttorney = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project', variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('B&C Attorney removed', 'The B&C attorney has been removed successfully');
     },
     onError: (error: unknown) => {
