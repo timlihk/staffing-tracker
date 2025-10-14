@@ -23,6 +23,8 @@ import {
   TextField,
   MenuItem,
   Tooltip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -45,6 +47,10 @@ import {
   useUpdateAssignment,
   useDeleteAssignment,
 } from '../hooks/useAssignments';
+import {
+  useAddBcAttorney,
+  useRemoveBcAttorney,
+} from '../hooks/useBcAttorneys';
 
 interface TeamMemberFormValues {
   staffId: number | '';

@@ -46,6 +46,7 @@ model Staff {
   updatedAt                     DateTime                        @updatedAt @map("updated_at")
   billing_bc_attorney_staff_map billing_bc_attorney_staff_map[]
   assignments                   ProjectAssignment[]
+  bcAttorneys                   ProjectBcAttorney[]
   changeHistory                 StaffChangeHistory[]            @relation("StaffChangeHistory")
   users                         User[]
 
@@ -75,6 +76,7 @@ model Project {
   lastConfirmedBy               Int?                            @map("last_confirmed_by")
   billing_staffing_project_link billing_staffing_project_link[]
   assignments                   ProjectAssignment[]
+  bcAttorneys                   ProjectBcAttorney[]
   changeHistory                 ProjectChangeHistory[]          @relation("ProjectChangeHistory")
   confirmedBy                   User?                           @relation("ProjectConfirmations", fields: [lastConfirmedBy], references: [id])
 
@@ -103,6 +105,20 @@ model ProjectAssignment {
   @@index([projectId])
   @@index([staffId])
   @@map("project_assignments")
+}
+
+model ProjectBcAttorney {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  staffId   Int      @map("staff_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, staffId])
+  @@index([projectId])
+  @@index([staffId])
+  @@map("project_bc_attorneys")
 }
 
 model ProjectChangeHistory {
