@@ -12,4 +12,9 @@ router.post('/register', authenticate, authorize('admin'), validate(registerSche
 router.get('/me', authenticate, asyncHandler(authController.me));
 router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(authController.resetPassword));
 
+// Refresh token endpoints
+router.post('/refresh', asyncHandler(authController.refresh));
+router.post('/logout', asyncHandler(authController.logout));
+router.post('/logout-all', authenticate, asyncHandler(authController.logoutAll));
+
 export default router;

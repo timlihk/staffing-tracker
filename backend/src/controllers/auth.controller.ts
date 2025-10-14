@@ -1,10 +1,19 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
-import { generateToken, generatePasswordResetToken, verifyPasswordResetToken } from '../utils/jwt';
+import {
+  generateToken,
+  generatePasswordResetToken,
+  verifyPasswordResetToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+  revokeRefreshToken,
+  revokeAllRefreshTokens
+} from '../utils/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { ControllerError } from '../types/prisma';
 import { logger } from '../utils/logger';
+import config from '../config';
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -59,14 +68,27 @@ export const login = async (req: Request, res: Response) => {
       },
     });
 
-    const token = generateToken({
+    // Generate access token (short-lived)
+    const accessToken = generateToken({
       userId: user.id,
       username: user.username,
       role: user.role,
     });
 
+    // Generate refresh token (long-lived) and store in database
+    const refreshToken = await generateRefreshToken(user.id);
+
+    // Set refresh token as HttpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: config.isProduction, // Only send over HTTPS in production
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/api/auth/refresh', // Only send to refresh endpoint
+    });
+
     res.json({
-      token,
+      token: accessToken, // Keep 'token' for backward compatibility with frontend
       user: {
         id: user.id,
         username: user.username,
@@ -239,6 +261,124 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (error && typeof error === 'object' && 'message' in error && error.message === 'Invalid password reset token') {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Refresh access token using refresh token from HttpOnly cookie
+ */
+export const refresh = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'No refresh token provided' });
+    }
+
+    // Verify refresh token
+    const payload = await verifyRefreshToken(refreshToken);
+
+    // Get user data
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: { staff: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate new access token
+    const accessToken = generateToken({
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+    });
+
+    // Optionally rotate refresh token for added security
+    // await revokeRefreshToken(refreshToken);
+    // const newRefreshToken = await generateRefreshToken(user.id);
+    // res.cookie('refreshToken', newRefreshToken, {
+    //   httpOnly: true,
+    //   secure: config.isProduction,
+    //   sameSite: 'strict',
+    //   maxAge: 30 * 24 * 60 * 60 * 1000,
+    //   path: '/api/auth/refresh',
+    // });
+
+    res.json({
+      token: accessToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        mustResetPassword: user.mustResetPassword,
+        staff: user.staff,
+      },
+    });
+  } catch (error) {
+    logger.error('Refresh token error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
+};
+
+/**
+ * Logout - revoke refresh token
+ */
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: config.isProduction,
+      sameSite: 'strict',
+      path: '/api/auth/refresh',
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Logout error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
+ * Logout from all devices - revoke all refresh tokens for user
+ */
+export const logoutAll = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    await revokeAllRefreshTokens(req.user.userId);
+
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: config.isProduction,
+      sameSite: 'strict',
+      path: '/api/auth/refresh',
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Logout all error', {
+      error: error instanceof Error ? error.message : String(error),
+      userId: req.user?.userId,
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 };

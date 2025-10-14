@@ -27,6 +27,7 @@ model User {
   projectChanges                                                 ProjectChangeHistory[]          @relation("ProjectChanges")
   projectConfirmations                                           Project[]                       @relation("ProjectConfirmations")
   staffChanges                                                   StaffChangeHistory[]            @relation("StaffChanges")
+  refreshTokens                                                  RefreshToken[]
   staff                                                          Staff?                          @relation(fields: [staffId], references: [id])
 
   @@index([role])
@@ -477,4 +478,17 @@ enum Timetable {
   A1
   HEARING
   LISTING
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
