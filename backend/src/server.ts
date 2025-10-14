@@ -76,8 +76,25 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Staffing Tracker API is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Verify database connectivity
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      message: 'Staffing Tracker API is running',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Health check failed - database unavailable', { error });
+    res.status(503).json({
+      status: 'error',
+      message: 'Database unavailable',
+      database: 'disconnected',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.use('/api/auth', authLimiter, authRoutes);
@@ -85,6 +102,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+// Reports - Both routers share /api/reports prefix but have different sub-paths
+// reportsRoutes: /staffing, /staffing.xlsx
+// projectReportRoutes: /project-report, /project-report/excel
 app.use('/api/reports', reportsRoutes);
 app.use('/api/reports', projectReportRoutes);
 app.use('/api/users', userRoutes);

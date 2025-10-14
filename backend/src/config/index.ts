@@ -30,7 +30,42 @@ export const config = {
   // Database
   database: {
     url: getEnvVar('DATABASE_URL'),
-    // Connection pool settings (for production)
+
+    /**
+     * Connection Pool Settings
+     *
+     * IMPORTANT: These values are critical for production performance and stability.
+     * Review and adjust based on your deployment environment and load testing results.
+     *
+     * Current Configuration:
+     * - poolMin: 2 connections (idle pool size)
+     * - poolMax: 10 connections (maximum concurrent connections)
+     * - connectionTimeout: 20000ms (20 seconds to acquire connection)
+     *
+     * Sizing Guidelines:
+     * Formula: pool_size >= (concurrent_requests × avg_query_time_ms) / 1000
+     *
+     * Example calculations:
+     * - 50 concurrent users, 200ms avg query time: ~10 connections needed
+     * - 100 concurrent users, 500ms avg query time: ~50 connections needed
+     *
+     * Considerations:
+     * 1. Database max_connections limit (PostgreSQL default: 100)
+     * 2. Multiple application instances share the database connection limit
+     * 3. Each Railway/Heroku dyno should use: max_connections / number_of_instances
+     * 4. Monitor connection pool exhaustion in production logs
+     *
+     * Recommended Actions:
+     * 1. Load test to determine actual concurrent request patterns
+     * 2. Monitor p95/p99 query times in production
+     * 3. Adjust pool size if seeing "Connection pool timeout" errors
+     * 4. Consider connection pooling service (PgBouncer) for >3 app instances
+     *
+     * Environment Variables:
+     * - DB_POOL_MIN: Minimum idle connections (default: 2)
+     * - DB_POOL_MAX: Maximum total connections (default: 10)
+     * - DB_CONNECTION_TIMEOUT: Max wait time for connection in ms (default: 20000)
+     */
     poolMin: parseInt(getOptionalEnvVar('DB_POOL_MIN', '2') || '2', 10),
     poolMax: parseInt(getOptionalEnvVar('DB_POOL_MAX', '10') || '10', 10),
     connectionTimeout: parseInt(getOptionalEnvVar('DB_CONNECTION_TIMEOUT', '20000') || '20000', 10),

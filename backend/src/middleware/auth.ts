@@ -1,10 +1,36 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JWTPayload } from '../utils/jwt';
 import prisma from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 // Track last activity update times to avoid excessive DB writes
 const activityUpdateCache = new Map<number, number>();
 const ACTIVITY_UPDATE_INTERVAL = 60 * 1000; // Update activity every 1 minute max
+const MAX_CACHE_ENTRIES = 10000; // Prevent unbounded memory growth
+const CACHE_ENTRY_TTL = 24 * 60 * 60 * 1000; // 24 hours - remove stale entries
+
+// Periodic cleanup to prevent memory leaks
+const cleanupInterval = setInterval(() => {
+  const now = Date.now();
+  let cleanedCount = 0;
+
+  for (const [userId, timestamp] of activityUpdateCache.entries()) {
+    if (now - timestamp > CACHE_ENTRY_TTL) {
+      activityUpdateCache.delete(userId);
+      cleanedCount++;
+    }
+  }
+
+  if (cleanedCount > 0) {
+    logger.info('Activity cache cleanup completed', {
+      entriesRemoved: cleanedCount,
+      currentSize: activityUpdateCache.size
+    });
+  }
+}, 60 * 60 * 1000); // Clean up hourly
+
+// Prevent the cleanup interval from keeping the process alive
+cleanupInterval.unref();
 
 export interface AuthRequest extends Request {
   user?: JWTPayload;
@@ -29,12 +55,27 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     const lastUpdate = activityUpdateCache.get(userId) || 0;
 
     if (now - lastUpdate > ACTIVITY_UPDATE_INTERVAL) {
+      // Enforce max cache size - remove oldest entry if limit exceeded
+      if (activityUpdateCache.size >= MAX_CACHE_ENTRIES) {
+        const oldestEntry = activityUpdateCache.keys().next().value;
+        if (oldestEntry !== undefined) {
+          activityUpdateCache.delete(oldestEntry);
+          logger.warn('Activity cache size limit reached, removing oldest entry', {
+            cacheSize: activityUpdateCache.size,
+            maxSize: MAX_CACHE_ENTRIES
+          });
+        }
+      }
+
       // Update asynchronously, don't wait for it
       prisma.user.update({
         where: { id: userId },
         data: { lastActivity: new Date() },
       }).catch((err) => {
-        console.error('[Auth] Failed to update user activity:', err);
+        logger.error('Failed to update user activity', {
+          error: err instanceof Error ? err.message : String(err),
+          userId
+        });
       });
 
       activityUpdateCache.set(userId, now);

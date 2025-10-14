@@ -4,6 +4,7 @@ import prisma from '../utils/prisma';
 import { generateToken, generatePasswordResetToken, verifyPasswordResetToken } from '../utils/jwt';
 import { AuthRequest } from '../middleware/auth';
 import { ControllerError } from '../types/prisma';
+import { logger } from '../utils/logger';
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -76,7 +77,10 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error', {
+      error: error instanceof Error ? error.message : String(error),
+      username: req.body?.username
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -144,7 +148,10 @@ export const register = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Register error:', error);
+    logger.error('Register error', {
+      error: error instanceof Error ? error.message : String(error),
+      username: req.body?.username
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -174,7 +181,10 @@ export const me = async (req: AuthRequest, res: Response) => {
       lastLogin: user.lastLogin,
     });
   } catch (error) {
-    console.error('Me error:', error);
+    logger.error('Me endpoint error', {
+      error: error instanceof Error ? error.message : String(error),
+      userId: req.user?.userId
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -223,7 +233,9 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error: ControllerError) {
-    console.error('Reset password error:', error);
+    logger.error('Reset password error', {
+      error: error instanceof Error ? error.message : String(error)
+    });
     if (error && typeof error === 'object' && 'message' in error && error.message === 'Invalid password reset token') {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }

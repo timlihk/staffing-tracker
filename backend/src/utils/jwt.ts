@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -13,9 +13,9 @@ export interface JWTPayload {
 }
 
 export const generateToken = (payload: JWTPayload): string => {
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  // @ts-ignore - Type mismatch with jsonwebtoken@9.0.2 types
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as string | number;
+  const options: SignOptions = { expiresIn };
+  return jwt.sign(payload, JWT_SECRET, options);
 };
 
 export const verifyToken = (token: string): JWTPayload => {
@@ -31,8 +31,8 @@ export interface PasswordResetPayload {
 
 export const generatePasswordResetToken = (userId: number): string => {
   const payload: PasswordResetPayload = { userId, purpose: 'password_reset' };
-  // @ts-ignore - jsonwebtoken types
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: PASSWORD_RESET_EXPIRES_IN });
+  const options: SignOptions = { expiresIn: PASSWORD_RESET_EXPIRES_IN as string | number };
+  return jwt.sign(payload, JWT_SECRET, options);
 };
 
 export const verifyPasswordResetToken = (token: string): PasswordResetPayload => {
