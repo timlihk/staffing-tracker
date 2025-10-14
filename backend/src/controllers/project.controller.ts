@@ -149,6 +149,7 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
         assignments: {
           select: {
             id: true,
+            staffId: true,
             jurisdiction: true,
             createdAt: true,
             staff: {
@@ -157,6 +158,19 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
                 name: true,
                 position: true,
                 // Removed email and department as they're not used in project detail view
+              }
+            },
+          },
+        },
+        bcAttorneys: {
+          select: {
+            id: true,
+            staffId: true,
+            staff: {
+              select: {
+                id: true,
+                name: true,
+                position: true,
               }
             },
           },
