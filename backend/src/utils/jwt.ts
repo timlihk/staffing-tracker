@@ -1,4 +1,4 @@
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -13,9 +13,8 @@ export interface JWTPayload {
 }
 
 export const generateToken = (payload: JWTPayload): string => {
-  const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as string | number;
-  const options: SignOptions = { expiresIn };
-  return jwt.sign(payload, JWT_SECRET, options);
+  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  return jwt.sign(payload, JWT_SECRET, { expiresIn } as any);
 };
 
 export const verifyToken = (token: string): JWTPayload => {
@@ -31,8 +30,7 @@ export interface PasswordResetPayload {
 
 export const generatePasswordResetToken = (userId: number): string => {
   const payload: PasswordResetPayload = { userId, purpose: 'password_reset' };
-  const options: SignOptions = { expiresIn: PASSWORD_RESET_EXPIRES_IN as string | number };
-  return jwt.sign(payload, JWT_SECRET, options);
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: PASSWORD_RESET_EXPIRES_IN } as any);
 };
 
 export const verifyPasswordResetToken = (token: string): PasswordResetPayload => {
