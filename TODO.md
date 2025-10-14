@@ -103,6 +103,36 @@
 
 ---
 
+## 🎨 Lovable UI/UX Roadmap
+
+- [ ] Establish Lovable theme tokens in `frontend/src/theme.ts`
+  - [ ] Define color palette (primary, secondary, neutrals, semantic roles)
+  - [ ] Set typography pairings and scale
+  - [ ] Create spacing/elevation token map and apply to Page/PageHeader
+- [ ] Redesign Dashboard with Lovable layout
+  - [ ] Replace gradient hero with structured metric band
+  - [ ] Normalize analytics cards and deal radar presentation
+  - [ ] Ensure responsive behavior across desktop/tablet
+- [ ] Reframe Project Detail page
+  - [ ] Introduce summary header card with primary actions
+  - [ ] Segment content into Overview, Team, Timeline, History
+  - [ ] Move change history into collapsible or side panel component
+- [ ] Build shared table design system
+  - [ ] Create reusable `DataTable` wrapper with unified styling
+  - [ ] Standardize header/row typography, states, and empty/error views
+  - [ ] Apply to Projects, Billing, Reports tables
+- [ ] Layer micro-interactions and feedback
+  - [ ] Add motion primitives for toggles, modals, and skeleton transitions
+  - [ ] Provide inline success microcopy for async actions (e.g., team updates)
+- [ ] Accessibility & responsive audit
+  - [ ] Validate color contrast and focus states against WCAG 2.1 AA
+  - [ ] Improve tablet/mobile layouts (sticky headers, collapsible sections)
+- [ ] Document mini design system
+  - [ ] Capture tokens and components in Storybook or MDX docs
+  - [ ] Include usage guidelines for future contributions
+
+---
+
 ## ✅ Completed
 
 ### Initial Development
