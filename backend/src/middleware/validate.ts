@@ -15,8 +15,11 @@ export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' 
       const data = req[source];
       const validated = schema.parse(data);
 
-      // Replace the original data with validated/sanitized data
-      req[source] = validated;
+      // Only replace body data (query and params are read-only in Express)
+      if (source === 'body') {
+        req.body = validated;
+      }
+      // For query and params, validation is performed but original data is preserved
 
       next();
     } catch (error) {
