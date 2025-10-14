@@ -61,6 +61,59 @@ The script will:
 - Your Railway `DATABASE_URL` (from Railway dashboard or `.env`)
 - Your Supabase **Direct Connection** URL
 
+### Step 3.5: Validate Migration Data ⚠️
+
+**CRITICAL:** Before switching your application, verify the migrated data:
+
+#### Quick Validation Queries
+
+Connect to your Supabase database and run these checks:
+
+```bash
+# Connect to Supabase
+psql "postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require"
+```
+
+Run validation queries:
+```sql
+-- Check table counts match Railway
+SELECT
+  (SELECT COUNT(*) FROM projects) as projects,
+  (SELECT COUNT(*) FROM staff) as staff,
+  (SELECT COUNT(*) FROM users) as users,
+  (SELECT COUNT(*) FROM project_assignments) as assignments,
+  (SELECT COUNT(*) FROM project_bc_attorneys) as bc_attorneys,
+  (SELECT COUNT(*) FROM activity_log) as activity_logs;
+
+-- Verify recent data migrated
+SELECT name, created_at FROM projects ORDER BY created_at DESC LIMIT 5;
+SELECT name, created_at FROM staff ORDER BY created_at DESC LIMIT 5;
+
+-- Check for any NULL values that shouldn't exist
+SELECT COUNT(*) FROM projects WHERE name IS NULL;
+SELECT COUNT(*) FROM staff WHERE name IS NULL;
+SELECT COUNT(*) FROM users WHERE username IS NULL;
+```
+
+**Expected Results:**
+- Row counts should match your Railway database (±1-2 for race conditions)
+- Recent records should be present
+- No unexpected NULL values
+- Dates and timestamps should be preserved
+
+⚠️ **If validation fails:** Do NOT proceed. Restore from backup or re-run migration.
+
+#### Recommended: Dry Run First
+
+If you're nervous about production migration, consider:
+
+1. **Create a test Supabase project** first
+2. Run the migration script against the test project
+3. Validate the data thoroughly
+4. **Once confident**, repeat with your production Supabase project
+
+This rehearsal catches issues before production cutover.
+
 ### Step 4: Update Local Environment Files
 
 #### Backend .env
@@ -117,11 +170,72 @@ For both `backend` and `reminder-worker` services on Railway:
 
 **Repeat for `reminder-worker` service**
 
-### Step 7: Verify Deployment
+### Step 7: Verify Production Deployment
 
-1. Check Railway deployment logs for both services
-2. Test the production app
-3. Verify database operations are working
+#### Check Deployment Logs
+
+1. Railway → **backend** service → **Deployments** tab
+2. Look for successful startup:
+   ```
+   ✅ Configuration validated successfully
+   Server started on port 3000
+   ```
+3. Watch for any database connection errors (should see none)
+4. Repeat for **reminder-worker** service
+
+#### Run Production Smoke Tests
+
+Test these critical operations in your production app:
+
+**Authentication & Authorization:**
+- [ ] Log in successfully
+- [ ] Admin can access admin pages
+- [ ] Non-admin cannot access admin pages
+
+**Core CRUD Operations:**
+- [ ] Load dashboard (verify metrics display)
+- [ ] View project list
+- [ ] Open a project detail page
+- [ ] Edit a project and save changes
+- [ ] View staff list
+- [ ] Open a staff detail page
+- [ ] Create a new project assignment
+
+**Performance Verification:**
+- [ ] Dashboard loads in <2 seconds
+- [ ] Project detail loads in <1 second
+- [ ] B&C attorney toggle responds in <500ms
+- [ ] Search/filtering feels snappy
+
+**Data Integrity:**
+- [ ] Recent projects show up correctly
+- [ ] Staff assignments are intact
+- [ ] Change history is preserved
+- [ ] Activity logs are present
+
+#### Post-Migration Validation Queries (Production)
+
+Connect to production Supabase and verify:
+
+```sql
+-- Confirm data matches pre-migration counts
+SELECT
+  (SELECT COUNT(*) FROM projects) as projects,
+  (SELECT COUNT(*) FROM staff) as staff,
+  (SELECT COUNT(*) FROM project_assignments) as assignments;
+
+-- Verify recent activity (should see new entries after cutover)
+SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 5;
+
+-- Check for connection pool health
+SELECT count(*) FROM pg_stat_activity WHERE datname = 'postgres';
+```
+
+**If anything fails:**
+1. Check Railway logs for errors
+2. Verify connection string format
+3. Check Supabase metrics dashboard
+4. Rollback if critical issues found (see Rollback Plan below)
 
 ## Performance Comparison
 
@@ -192,13 +306,40 @@ Use **Connection Pooling** for:
 
 ## Post-Migration Checklist
 
-- [ ] Local development works
+**Migration & Validation:**
+- [ ] Migration script completed successfully
+- [ ] Validation queries confirm data integrity
+- [ ] Row counts match between Railway and Supabase
+- [ ] Recent records are present in Supabase
+- [ ] No unexpected NULL values in critical fields
+
+**Local Testing:**
+- [ ] Local development works with Supabase
+- [ ] Backend connects successfully
+- [ ] Can create/read/update/delete data locally
+- [ ] Performance improvement is noticeable
+
+**Production Deployment:**
 - [ ] Backend deployed and tested on Railway
 - [ ] Reminder-worker deployed and tested on Railway
-- [ ] Database operations are faster
-- [ ] All features working correctly
-- [ ] Railway database kept as backup for 1-2 weeks
-- [ ] Monitor Supabase usage in dashboard
+- [ ] Production smoke tests all pass (see Step 7)
+- [ ] Login/logout works
+- [ ] Admin features accessible
+- [ ] CRUD operations function correctly
+
+**Performance & Monitoring:**
+- [ ] Database operations are 5-10x faster
+- [ ] Dashboard loads in <2 seconds
+- [ ] Project detail loads in <1 second
+- [ ] B&C attorney toggle responds in <500ms
+- [ ] Monitor Supabase dashboard for usage/errors
+- [ ] Check connection pool metrics
+
+**Safety & Rollback:**
+- [ ] Railway database kept running as backup for 1-2 weeks
+- [ ] Backup SQL file stored safely
+- [ ] Rollback plan tested and understood
+- [ ] Team notified of migration completion
 
 ## Support
 
