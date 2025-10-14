@@ -47,14 +47,16 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/railway_backup_${TIMESTAMP}.sql"
 
 # Dump Railway database
+BACKUP_LOG="${BACKUP_FILE}.log"
 echo "   Backing up Railway database to $BACKUP_FILE..."
+echo "   Logs will be written to $BACKUP_LOG"
 pg_dump "$RAILWAY_URL" \
   --no-owner \
   --no-privileges \
   --clean \
   --if-exists \
   --verbose \
-  > "$BACKUP_FILE" 2>&1
+  > "$BACKUP_FILE" 2> "$BACKUP_LOG"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Backup created successfully${NC}"
