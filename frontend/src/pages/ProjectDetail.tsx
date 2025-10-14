@@ -101,6 +101,8 @@ const ProjectDetail: React.FC = () => {
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
   const confirmProject = useConfirmProject();
+  const addBcAttorney = useAddBcAttorney();
+  const removeBcAttorney = useRemoveBcAttorney();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -267,6 +269,28 @@ const ProjectDetail: React.FC = () => {
       console.error('Failed to save assignment', error);
     } finally {
       setSavingAssignment(false);
+    }
+  };
+
+  const handleToggleBcAttorney = async (assignment: ProjectAssignment, isBcAttorney: boolean) => {
+    if (!project) return;
+    try {
+      if (isBcAttorney) {
+        await addBcAttorney.mutateAsync({
+          projectId: project.id,
+          staffId: assignment.staffId,
+        });
+      } else {
+        await removeBcAttorney.mutateAsync({
+          projectId: project.id,
+          staffId: assignment.staffId,
+        });
+      }
+      // Refetch project data to get updated B&C attorneys
+      const projectResponse = await api.get(`/projects/${id}`);
+      setProject(projectResponse.data);
+    } catch (error) {
+      console.error('Failed to toggle B&C attorney', error);
     }
   };
 
@@ -460,6 +484,7 @@ const ProjectDetail: React.FC = () => {
                       <TableCell>Role</TableCell>
                       <TableCell>Name</TableCell>
                       <TableCell>Jurisdiction</TableCell>
+                      <TableCell>B&C Attorney</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
