@@ -33,15 +33,17 @@ This guide walks you through migrating your PostgreSQL database from Railway to 
 
 **Copy both URLs - you'll need them!**
 
-#### Direct Connection (Session Mode)
+#### Direct Connection (Session Mode - for development & migrations)
 ```
-postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require
 ```
 
 #### Connection Pooling (Transaction Mode - for production)
 ```
-postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.net:6543/postgres?sslmode=require&pgbouncer=true
 ```
+
+**Note:** Replace `[YOUR-PASSWORD]`, `[PROJECT-REF]`, and `[REGION]` with your actual values from the Supabase dashboard.
 
 ### Step 3: Run Migration Script
 
@@ -73,7 +75,7 @@ Update `.env`:
 # DATABASE_URL="postgresql://...railway.app:15782/railway"
 
 # NEW Supabase (use Direct Connection for local dev)
-DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require"
 ```
 
 #### Reminder Worker (if separate)
@@ -109,7 +111,7 @@ For both `backend` and `reminder-worker` services on Railway:
 5. Update `DATABASE_URL`:
    ```
    # Use Connection Pooling URL for production
-   DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.net:6543/postgres?sslmode=require&pgbouncer=true
    ```
 6. Click "Deploy" or the service will auto-redeploy
 
