@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Box, Paper, SxProps, Theme } from '@mui/material';
+import { Box, Paper, SxProps, Theme, Typography } from '@mui/material';
 
 interface PageProps {
   title?: ReactNode;
@@ -27,10 +27,12 @@ export function Page({ children }: PageProps) {
 
 interface SectionProps {
   children: ReactNode;
+  title?: ReactNode;
+  actions?: ReactNode;
   sx?: SxProps<Theme>;
 }
 
-export function Section({ children, sx }: SectionProps) {
+export function Section({ children, title, actions, sx }: SectionProps) {
   return (
     <Paper
       sx={{
@@ -40,6 +42,26 @@ export function Section({ children, sx }: SectionProps) {
         ...sx,
       }}
     >
+      {(title || actions) && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 2,
+            gap: 2,
+          }}
+        >
+          {typeof title === 'string' ? (
+            <Typography variant="h6" fontWeight={700}>
+              {title}
+            </Typography>
+          ) : (
+            title
+          )}
+          {actions}
+        </Box>
+      )}
       {children}
     </Paper>
   );

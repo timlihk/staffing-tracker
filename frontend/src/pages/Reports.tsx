@@ -13,7 +13,7 @@ import {
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { GridColDef } from '@mui/x-data-grid';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
@@ -76,13 +76,13 @@ const columns: GridColDef<ReportRow>[] = [
     field: 'filingDate',
     headerName: 'Filing Date',
     width: 130,
-    valueGetter: (value, row) => (row.filingDate ? row.filingDate.slice(0, 10) : ''),
+    valueGetter: (_value, row) => (row.filingDate ? row.filingDate.slice(0, 10) : ''),
   },
   {
     field: 'listingDate',
     headerName: 'Listing Date',
     width: 130,
-    valueGetter: (value, row) => (row.listingDate ? row.listingDate.slice(0, 10) : ''),
+    valueGetter: (_value, row) => (row.listingDate ? row.listingDate.slice(0, 10) : ''),
   },
   { field: 'staffName', headerName: 'Staff', width: 180 },
   { field: 'staffRole', headerName: 'Staff Role', width: 130 },
@@ -93,13 +93,13 @@ const columns: GridColDef<ReportRow>[] = [
     field: 'startDate',
     headerName: 'Start',
     width: 110,
-    valueGetter: (value, row) => (row.startDate ? row.startDate.slice(0, 10) : ''),
+    valueGetter: (_value, row) => (row.startDate ? row.startDate.slice(0, 10) : ''),
   },
   {
     field: 'endDate',
     headerName: 'End',
     width: 110,
-    valueGetter: (value, row) => (row.endDate ? row.endDate.slice(0, 10) : ''),
+    valueGetter: (_value, row) => (row.endDate ? row.endDate.slice(0, 10) : ''),
   },
 ];
 
@@ -288,9 +288,9 @@ const Reports: React.FC = () => {
                 )}
               />
 
-              <DatePicker label="From" value={dateFrom} onChange={setDateFrom} />
+              <DatePicker label="From" value={dateFrom} onChange={(value) => setDateFrom(value ? dayjs(value) : null)} />
 
-              <DatePicker label="To" value={dateTo} onChange={setDateTo} />
+              <DatePicker label="To" value={dateTo} onChange={(value) => setDateTo(value ? dayjs(value) : null)} />
 
               <Divider />
 

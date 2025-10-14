@@ -8,30 +8,45 @@ import {
   useUpdateStaff,
   useDeleteStaff,
 } from '../hooks/useStaff';
-import apiClient from '../api/client';
-import * as toast from '../lib/toast';
 import type { ReactNode } from 'react';
 
 // Mock the apiClient module
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+const mockPut = vi.fn();
+const mockDelete = vi.fn();
+
 vi.mock('../api/client', () => ({
   default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+    get: mockGet,
+    post: mockPost,
+    put: mockPut,
+    delete: mockDelete,
   },
 }));
 
 // Mock toast
+const mockToastSuccess = vi.fn();
+const mockToastError = vi.fn();
+
 vi.mock('../lib/toast', () => ({
   toast: {
-    success: vi.fn(),
-    error: vi.fn(),
+    success: mockToastSuccess,
+    error: mockToastError,
   },
 }));
 
-const mockApiClient = vi.mocked(apiClient);
-const mockToast = vi.mocked(toast.toast);
+const mockApiClient = {
+  get: mockGet,
+  post: mockPost,
+  put: mockPut,
+  delete: mockDelete,
+};
+
+const mockToast = {
+  success: mockToastSuccess,
+  error: mockToastError,
+};
 
 describe('useStaff Hook', () => {
   let queryClient: QueryClient;

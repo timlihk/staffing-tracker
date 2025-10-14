@@ -7,6 +7,7 @@ import { toast } from '../lib/toast';
 interface StaffParams {
   role?: string;
   department?: string;
+  status?: string;
 }
 
 export const useStaff = (params: StaffParams = {}) => {

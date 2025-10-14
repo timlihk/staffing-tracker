@@ -249,7 +249,7 @@ const StaffDetail: React.FC = () => {
         headerName: 'Jurisdictions',
         flex: 0.6,
         minWidth: 140,
-        valueGetter: (params) => (params.row?.jurisdictions ?? []).join(', '),
+        valueGetter: (_value, row) => (row.jurisdictions ?? []).join(', '),
         renderCell: (params) => (
           <Typography variant="body2">
             {(params.row?.jurisdictions ?? []).length > 0
@@ -348,31 +348,31 @@ const StaffDetail: React.FC = () => {
         {/* Staff Information */}
         <Paper sx={{ p: 2 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Position
               </Typography>
               <Typography>{staff.position}</Typography>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Department
               </Typography>
               <Typography>{staff.department || '-'}</Typography>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Email
               </Typography>
               <Typography>{staff.email || '-'}</Typography>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Active Projects
               </Typography>
               <Typography variant="h6">{activeProjects.length}</Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Notes
               </Typography>

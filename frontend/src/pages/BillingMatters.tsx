@@ -55,7 +55,7 @@ export default function BillingMatters() {
         field: 'bc_attorney_name',
         headerName: 'B&C Attorney',
         width: 150,
-        valueGetter: (value, row) => row.bc_attorney_name || row.attorney_in_charge || '-',
+        valueGetter: (_value, row) => row.bc_attorney_name || row.attorney_in_charge || '-',
       },
       {
         field: 'agreed_fee_usd',

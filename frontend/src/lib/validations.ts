@@ -15,7 +15,7 @@ export const projectSchema = z.object({
   status: z.string().min(1, 'Status is required'),
   priority: z.string().optional(),
   elStatus: z.string().optional(),
-  timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING']).optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
+  timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING']).optional(),
   bcAttorney: z.string().optional(),
   filingDate: z.string().optional(),
   listingDate: z.string().optional(),
@@ -32,7 +32,7 @@ export const staffSchema = z.object({
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   role: z.string().min(1, 'Role is required'),
   department: z.string().optional(),
-  status: z.string().default('active'),
+  status: z.string().min(1, 'Status is required'),
   notes: z.string().optional(),
 });
 

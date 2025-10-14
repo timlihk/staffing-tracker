@@ -107,7 +107,7 @@ export const useConfirmProject = () => {
       const response = await api.post<{ message: string; project: Project }>(`/projects/${id}/confirm`);
       return response.data;
     },
-    onSuccess: (data, id) => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['projects-needing-attention'] });

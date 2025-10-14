@@ -22,7 +22,7 @@ import { projectSchema, type ProjectFormData } from '../lib/validations';
 import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProjects';
 import { useStaff } from '../hooks/useStaff';
 import api from '../api/client';
-import type { Staff } from '../types';
+import type { Project, Staff } from '../types';
 
 interface TeamMember {
   staffId: number;
@@ -110,18 +110,26 @@ const ProjectForm: React.FC = () => {
       console.log('Form submit - isEdit:', isEdit, 'id:', id);
       console.log('Form data:', data);
 
-      // Convert empty strings to null for optional fields
-      const cleanedData = {
-        ...data,
-        timetable: data.timetable === '' ? undefined : data.timetable,
-        bcAttorney: data.bcAttorney === '' ? null : data.bcAttorney,
-        elStatus: data.elStatus === '' ? null : data.elStatus,
-        filingDate: data.filingDate === '' ? null : data.filingDate,
-        listingDate: data.listingDate === '' ? null : data.listingDate,
-        side: data.side === '' ? null : data.side,
-        sector: data.sector === '' ? null : data.sector,
-        notes: data.notes === '' ? null : data.notes,
-      };
+      const cleanedData: Partial<Project> = { ...data };
+
+      const normalize = (value?: string | null) =>
+        value && value.trim().length > 0 ? value.trim() : undefined;
+
+      cleanedData.timetable =
+        typeof cleanedData.timetable === 'string' && cleanedData.timetable.trim() === ''
+          ? undefined
+          : cleanedData.timetable;
+      cleanedData.bcAttorney = normalize(cleanedData.bcAttorney);
+      cleanedData.elStatus = normalize(cleanedData.elStatus);
+      cleanedData.filingDate = normalize(cleanedData.filingDate);
+      cleanedData.listingDate = normalize(cleanedData.listingDate);
+      cleanedData.side = normalize(cleanedData.side);
+      cleanedData.sector = normalize(cleanedData.sector);
+      cleanedData.notes = normalize(cleanedData.notes);
+
+      if (cleanedData.priority && cleanedData.priority.trim() === '') {
+        cleanedData.priority = undefined;
+      }
 
       console.log('Cleaned data:', cleanedData);
 

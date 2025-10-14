@@ -17,6 +17,13 @@ interface InsightsPanelProps {
   timeRange: number;
 }
 
+type DonutTooltipProps = TooltipProps<number, string> & {
+  payload?: Array<{
+    name?: string;
+    value?: number;
+  }>;
+};
+
 // Donut Chart Component with center label
 const DonutChart: React.FC<{
   data: Array<{ name: string; value: number }>;
@@ -25,7 +32,7 @@ const DonutChart: React.FC<{
 }> = ({ data, colors, title }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
-  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+  const CustomTooltip = ({ active, payload }: DonutTooltipProps) => {
     if (active && payload && payload.length) {
       const value = Number(payload[0].value ?? 0);
       return (
@@ -65,7 +72,7 @@ const DonutChart: React.FC<{
               paddingAngle={2}
               dataKey="value"
             >
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
             </Pie>

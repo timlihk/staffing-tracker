@@ -165,7 +165,9 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
         bcAttorneys: {
           select: {
             id: true,
+            projectId: true,
             staffId: true,
+            createdAt: true,
             staff: {
               select: {
                 id: true,

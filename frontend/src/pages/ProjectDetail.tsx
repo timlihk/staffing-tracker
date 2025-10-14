@@ -289,8 +289,9 @@ const ProjectDetail: React.FC = () => {
       // Refetch project data to get updated B&C attorneys
       const projectResponse = await api.get(`/projects/${id}`);
       setProject(projectResponse.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to toggle B&C attorney', error);
+      // The hooks already handle error toasts, so we don't need to show another one here
     }
   };
 
@@ -504,7 +505,7 @@ const ProjectDetail: React.FC = () => {
                               <Switch
                                 checked={project?.bcAttorneys?.some(bcAttorney => bcAttorney.staff?.id === assignment.staffId) || false}
                                 onChange={(e) => handleToggleBcAttorney(assignment, e.target.checked)}
-                                disabled={addBcAttorney.isPending || removeBcAttorney.isPending}
+                                disabled={addBcAttorney.isPending || removeBcAttorney.isPending || !permissions.canEditAssignment}
                                 size="small"
                               />
                             }
@@ -744,7 +745,7 @@ const TeamMemberDialog = ({
               }}
             >
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                Position: {selectedStaff.role}
+                Position: {selectedStaff.position}
               </Typography>
             </Box>
           )}

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as projectController from '../controllers/project.controller';
+import * as bcAttorneyController from '../controllers/bcAttorney.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 
@@ -14,5 +15,9 @@ router.post('/', authenticate, authorize('admin', 'editor'), asyncHandler(projec
 router.post('/:id/confirm', authenticate, asyncHandler(projectController.confirmProject));
 router.put('/:id', authenticate, authorize('admin', 'editor'), asyncHandler(projectController.updateProject));
 router.delete('/:id', authenticate, authorize('admin'), asyncHandler(projectController.deleteProject));
+
+// B&C Attorney routes
+router.post('/:id/bc-attorneys', authenticate, authorize('admin', 'editor'), asyncHandler(bcAttorneyController.addBcAttorney));
+router.delete('/:id/bc-attorneys/:staffId', authenticate, authorize('admin', 'editor'), asyncHandler(bcAttorneyController.removeBcAttorney));
 
 export default router;

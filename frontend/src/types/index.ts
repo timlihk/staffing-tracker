@@ -47,8 +47,17 @@ export interface Project {
     } | null;
   };
   assignments?: ProjectAssignment[];
+  bcAttorneys?: ProjectBcAttorney[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectBcAttorney {
+  id: number;
+  projectId: number;
+  staffId: number;
+  staff?: Staff;
+  createdAt: string;
 }
 
 export interface ProjectAssignment {

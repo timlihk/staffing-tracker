@@ -2,18 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSettings';
-import apiClient from '../api/client';
 import type { ReactNode } from 'react';
 
 // Mock the apiClient module
+const mockGet = vi.fn();
+const mockPatch = vi.fn();
+
 vi.mock('../api/client', () => ({
   default: {
-    get: vi.fn(),
-    patch: vi.fn(),
+    get: mockGet,
+    patch: mockPatch,
   },
 }));
 
-const mockApiClient = vi.mocked(apiClient);
+const mockApiClient = {
+  get: mockGet,
+  patch: mockPatch,
+};
 
 describe('useEmailSettings Hook', () => {
   let queryClient: QueryClient;

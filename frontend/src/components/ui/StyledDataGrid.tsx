@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { DataGrid, DataGridProps, gridClasses } from '@mui/x-data-grid';
 
 export default function StyledDataGrid(props: DataGridProps) {

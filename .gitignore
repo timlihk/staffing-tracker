@@ -40,3 +40,9 @@ backups/
 *.sql
 SUPABASE_MIGRATION_GUIDE.md
 migrate.sql
+
+# Test and debug files
+test-*.js
+check-*.js
+Billing/
+scripts/*.py

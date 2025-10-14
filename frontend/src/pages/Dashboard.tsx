@@ -24,7 +24,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
+import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+import type { PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { Page, DashboardSkeleton, PageHeader } from '../components/ui';
 import InsightsPanel from '../components/InsightsPanel';
 import { useDashboard } from '../hooks/useDashboard';
@@ -262,12 +263,13 @@ const DealRadarCard = ({
     return map;
   }, [groups]);
 
-  const CustomDay = (props: PickersDayProps<Date>) => {
+  const CustomDay = (props: PickersDayProps) => {
     const { day, outsideCurrentMonth, ...other } = props;
     // Format date in local timezone to avoid UTC conversion issues
-    const year = day.getFullYear();
-    const month = String(day.getMonth() + 1).padStart(2, '0');
-    const dayOfMonth = String(day.getDate()).padStart(2, '0');
+    const dayDate = day as Date;
+    const year = dayDate.getFullYear();
+    const month = String(dayDate.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(dayDate.getDate()).padStart(2, '0');
     const dateKey = `${year}-${month}-${dayOfMonth}`;
     const eventData = eventsByDate.get(dateKey);
 

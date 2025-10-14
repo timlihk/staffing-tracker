@@ -215,12 +215,12 @@ export const getEngagementDetail = async (
 // Update financials (UBT and Billing Credits)
 export const updateFinancials = async (
   projectId: number,
-  data: {
+  data: Partial<{
     ubt_usd: number;
     ubt_cny: number;
     billing_credit_usd: number;
     billing_credit_cny: number;
-  }
+  }>
 ) => {
   const response = await apiClient.patch(`/billing/projects/${projectId}/financials`, data);
   return response.data;

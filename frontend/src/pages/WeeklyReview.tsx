@@ -13,7 +13,6 @@ import {
   Card,
   CardContent,
   CardActions,
-  Grid,
 } from '@mui/material';
 import { CheckCircleOutline, WarningAmber, Visibility, Edit } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
@@ -67,97 +66,98 @@ const WeeklyReview: React.FC = () => {
       />
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, bgcolor: 'primary.50', border: 1, borderColor: 'primary.200' }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  bgcolor: 'primary.100',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography variant="h5" fontWeight={800} color="primary.dark">
-                  {summary?.totalProjects || 0}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Total Projects
-                </Typography>
-                <Typography variant="h6" fontWeight={700}>
-                  Assigned to You
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        </Grid>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: 3,
+          mb: 4,
+        }}
+      >
+        <Paper sx={{ p: 3, bgcolor: 'primary.50', border: 1, borderColor: 'primary.200' }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                bgcolor: 'primary.100',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Typography variant="h5" fontWeight={800} color="primary.dark">
+                {summary?.totalProjects || 0}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Total Projects
+              </Typography>
+              <Typography variant="h6" fontWeight={700}>
+                Assigned to You
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
 
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, bgcolor: 'warning.50', border: 1, borderColor: 'warning.200' }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  bgcolor: 'warning.100',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography variant="h5" fontWeight={800} color="warning.dark">
-                  {summary?.needingAttention || 0}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Need Attention
-                </Typography>
-                <Typography variant="h6" fontWeight={700}>
-                  Require Review
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        </Grid>
+        <Paper sx={{ p: 3, bgcolor: 'warning.50', border: 1, borderColor: 'warning.200' }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                bgcolor: 'warning.100',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Typography variant="h5" fontWeight={800} color="warning.dark">
+                {summary?.needingAttention || 0}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Need Attention
+              </Typography>
+              <Typography variant="h6" fontWeight={700}>
+                Require Review
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
 
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, bgcolor: 'success.50', border: 1, borderColor: 'success.200' }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  bgcolor: 'success.100',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography variant="h5" fontWeight={800} color="success.dark">
-                  {summary?.allGood || 0}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  All Good
-                </Typography>
-                <Typography variant="h6" fontWeight={700}>
-                  Up to Date
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
+        <Paper sx={{ p: 3, bgcolor: 'success.50', border: 1, borderColor: 'success.200' }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                bgcolor: 'success.100',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Typography variant="h5" fontWeight={800} color="success.dark">
+                {summary?.allGood || 0}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                All Good
+              </Typography>
+              <Typography variant="h6" fontWeight={700}>
+                Up to Date
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+      </Box>
 
       {/* Projects Needing Attention */}
       {needsAttention.length > 0 && (

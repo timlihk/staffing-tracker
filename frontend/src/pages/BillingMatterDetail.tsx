@@ -14,7 +14,6 @@ import {
   Divider,
   FormControl,
   FormControlLabel,
-  Grid,
   IconButton,
   InputLabel,
   LinearProgress,
@@ -323,7 +322,17 @@ function CmSummaryCard({
 
         <Divider />
 
-        <Grid container spacing={2.5}>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2.5,
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              lg: 'repeat(4, minmax(0, 1fr))',
+            },
+          }}
+        >
           <InfoField label="C/M Number" value={cm?.cm_no || '—'} loading={loading && !cm} />
           <InfoField label="Opened" value={formatDate(cm?.open_date)} loading={loading} />
           <InfoField label="Closed" value={formatDate(cm?.closed_date)} loading={loading} />
@@ -365,7 +374,7 @@ function CmSummaryCard({
             )}
             loading={loading}
           />
-        </Grid>
+        </Box>
       </Stack>
     </Paper>
   );
@@ -665,24 +674,34 @@ function FeeMilestonesCard({
                 </Box>
               </Stack>
 
-              <Grid container spacing={2.5}>
-              <InfoField label="Engagement" value={currentEngagementLabel} />
-              <InfoField label="Start Date" value={formatDate(detail.start_date)} />
-              <InfoField label="Target Completion" value={formatDate(detail.end_date)} />
-              <InfoField label="Long Stop Date" value={formatDateYmd(detail.feeArrangement?.lsd_date)} />
-              <InfoField
-                label="Agreed Fee"
-                value={formatCurrency(detail.total_agreed_fee_value, detail.total_agreed_fee_currency)}
-              />
-              <InfoField
-                label="Billing To Date"
-                value={formatCurrencyWholeWithFallback(detail.billing_usd, detail.billing_cny)}
-              />
-              <InfoField
-                label="Collected"
-                value={formatCurrencyWholeWithFallback(detail.collection_usd, detail.collection_cny)}
-              />
-            </Grid>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 2.5,
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                    lg: 'repeat(4, minmax(0, 1fr))',
+                  },
+                }}
+              >
+                <InfoField label="Engagement" value={currentEngagementLabel} />
+                <InfoField label="Start Date" value={formatDate(detail.start_date)} />
+                <InfoField label="Target Completion" value={formatDate(detail.end_date)} />
+                <InfoField label="Long Stop Date" value={formatDateYmd(detail.feeArrangement?.lsd_date)} />
+                <InfoField
+                  label="Agreed Fee"
+                  value={formatCurrency(detail.total_agreed_fee_value, detail.total_agreed_fee_currency)}
+                />
+                <InfoField
+                  label="Billing To Date"
+                  value={formatCurrencyWholeWithFallback(detail.billing_usd, detail.billing_cny)}
+                />
+                <InfoField
+                  label="Collected"
+                  value={formatCurrencyWholeWithFallback(detail.collection_usd, detail.collection_cny)}
+                />
+              </Box>
 
               <Divider />
 
@@ -959,7 +978,7 @@ type InfoFieldProps = {
 
 function InfoField({ label, value, loading }: InfoFieldProps) {
   return (
-    <Grid item xs={12} sm={6} md={3} lg={3}>
+    <Box>
       <Typography variant="subtitle2" color="text.secondary">
         {label}
       </Typography>
@@ -970,7 +989,7 @@ function InfoField({ label, value, loading }: InfoFieldProps) {
           {value ?? '—'}
         </Typography>
       )}
-    </Grid>
+    </Box>
   );
 }
 

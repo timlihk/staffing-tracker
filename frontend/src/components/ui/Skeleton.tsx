@@ -1,5 +1,4 @@
-import React from 'react';
-import { Box, Skeleton as MuiSkeleton, Paper, Grid } from '@mui/material';
+import { Box, Skeleton as MuiSkeleton, Paper } from '@mui/material';
 
 export const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({ rows = 5, columns = 6 }) => {
   return (
@@ -28,23 +27,28 @@ export const DashboardCardSkeleton: React.FC = () => {
 export const DashboardSkeleton: React.FC = () => {
   return (
     <Box>
-      <Grid container spacing={3} mb={4}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' },
+        gap: 3,
+        mb: 4
+      }}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <Grid item xs={12} md={3} key={i}>
-            <DashboardCardSkeleton />
-          </Grid>
+          <DashboardCardSkeleton key={i} />
         ))}
-      </Grid>
-      <Grid container spacing={3}>
+      </Box>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+        gap: 3
+      }}>
         {Array.from({ length: 2 }).map((_, i) => (
-          <Grid item xs={12} md={6} key={i}>
-            <Paper sx={{ p: 3 }}>
-              <MuiSkeleton variant="text" width="50%" height={32} sx={{ mb: 2 }} animation="wave" />
-              <TableSkeleton rows={6} columns={3} />
-            </Paper>
-          </Grid>
+          <Paper sx={{ p: 3 }} key={i}>
+            <MuiSkeleton variant="text" width="50%" height={32} sx={{ mb: 2 }} animation="wave" />
+            <TableSkeleton rows={6} columns={3} />
+          </Paper>
         ))}
-      </Grid>
+      </Box>
     </Box>
   );
 };
@@ -52,22 +56,26 @@ export const DashboardSkeleton: React.FC = () => {
 export const FormSkeleton: React.FC = () => {
   return (
     <Paper sx={{ p: 3 }}>
-      <Grid container spacing={2}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+        gap: 2
+      }}>
         {Array.from({ length: 6 }).map((_, i) => (
-          <Grid item xs={12} md={6} key={i}>
+          <Box key={i}>
             <MuiSkeleton variant="rectangular" height={56} animation="wave" />
-          </Grid>
+          </Box>
         ))}
-        <Grid item xs={12}>
+        <Box sx={{ gridColumn: { xs: '1 / -1', md: '1 / -1' } }}>
           <MuiSkeleton variant="rectangular" height={120} animation="wave" />
-        </Grid>
-        <Grid item xs={12}>
+        </Box>
+        <Box sx={{ gridColumn: { xs: '1 / -1', md: '1 / -1' } }}>
           <Box display="flex" gap={2}>
             <MuiSkeleton variant="rectangular" width={120} height={42} animation="wave" />
             <MuiSkeleton variant="rectangular" width={100} height={42} animation="wave" />
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Paper>
   );
 };
