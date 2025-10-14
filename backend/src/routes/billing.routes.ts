@@ -8,6 +8,20 @@ import express, { Response, NextFunction } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import * as billingController from '../controllers/billing.controller';
 import prisma from '../utils/prisma';
+import { validate } from '../middleware/validate';
+import {
+  updateFinancialsSchema,
+  updateFeeArrangementSchema,
+  createMilestoneSchema,
+  updateMilestonesSchema,
+  linkProjectsSchema,
+  mapBCAttorneySchema,
+  updateBillingAccessSettingsSchema,
+  billingIdParamSchema,
+  engagementIdParamSchema,
+  milestoneIdParamSchema,
+  linkIdParamSchema,
+} from '../schemas/billing.schema';
 
 const router = express.Router();
 
@@ -91,36 +105,36 @@ function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
 // ============================================================================
 
 router.get('/projects', authenticate, checkBillingAccess, billingController.getBillingProjects);
-router.get('/projects/:id', authenticate, checkBillingAccess, billingController.getBillingProjectDetail);
-router.get('/projects/:id/engagement/:engagementId', authenticate, checkBillingAccess, billingController.getEngagementDetail);
-router.get('/projects/:id/cm/:cmId/engagements', authenticate, checkBillingAccess, billingController.getCMEngagements);
-router.get('/projects/:id/activity', authenticate, checkBillingAccess, billingController.getBillingProjectActivity);
-router.patch('/projects/:id/financials', authenticate, adminOnly, billingController.updateFinancials);
-router.patch('/engagements/:engagementId/fee-arrangement', authenticate, adminOnly, billingController.updateFeeArrangement);
-router.post('/engagements/:engagementId/milestones', authenticate, adminOnly, billingController.createMilestone);
-router.patch('/milestones', authenticate, adminOnly, billingController.updateMilestones);
-router.delete('/milestones/:milestoneId', authenticate, adminOnly, billingController.deleteMilestone);
+router.get('/projects/:id', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectDetail);
+router.get('/projects/:id/engagement/:engagementId', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), validate(engagementIdParamSchema, 'params'), billingController.getEngagementDetail);
+router.get('/projects/:id/cm/:cmId/engagements', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getCMEngagements);
+router.get('/projects/:id/activity', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectActivity);
+router.patch('/projects/:id/financials', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), validate(updateFinancialsSchema), billingController.updateFinancials);
+router.patch('/engagements/:engagementId/fee-arrangement', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), validate(updateFeeArrangementSchema), billingController.updateFeeArrangement);
+router.post('/engagements/:engagementId/milestones', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), validate(createMilestoneSchema), billingController.createMilestone);
+router.patch('/milestones', authenticate, adminOnly, validate(updateMilestonesSchema), billingController.updateMilestones);
+router.delete('/milestones/:milestoneId', authenticate, adminOnly, validate(milestoneIdParamSchema, 'params'), billingController.deleteMilestone);
 
 // ============================================================================
 // Project Mapping
 // ============================================================================
 
 router.get('/mapping/suggestions', authenticate, adminOnly, billingController.getMappingSuggestions);
-router.post('/mapping/link', authenticate, adminOnly, billingController.linkProjects);
-router.delete('/mapping/unlink/:linkId', authenticate, adminOnly, billingController.unlinkProjects);
+router.post('/mapping/link', authenticate, adminOnly, validate(linkProjectsSchema), billingController.linkProjects);
+router.delete('/mapping/unlink/:linkId', authenticate, adminOnly, validate(linkIdParamSchema, 'params'), billingController.unlinkProjects);
 
 // ============================================================================
 // B&C Attorney Mapping
 // ============================================================================
 
 router.get('/bc-attorneys/unmapped', authenticate, adminOnly, billingController.getUnmappedAttorneys);
-router.post('/bc-attorneys/map', authenticate, adminOnly, billingController.mapBCAttorney);
+router.post('/bc-attorneys/map', authenticate, adminOnly, validate(mapBCAttorneySchema), billingController.mapBCAttorney);
 
 // ============================================================================
 // Access Settings
 // ============================================================================
 
 router.get('/settings/access', authenticate, adminOnly, billingController.getBillingAccessSettings);
-router.patch('/settings/access', authenticate, adminOnly, billingController.updateBillingAccessSettings);
+router.patch('/settings/access', authenticate, adminOnly, validate(updateBillingAccessSettingsSchema), billingController.updateBillingAccessSettings);
 
 export default router;
