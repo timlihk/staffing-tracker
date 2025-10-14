@@ -12,7 +12,7 @@ export interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (credentials: LoginRequest) => Promise<LoginResult>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 

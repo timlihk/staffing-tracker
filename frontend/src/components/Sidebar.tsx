@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Drawer,
@@ -13,6 +13,8 @@ import {
   useTheme,
   Divider,
   IconButton,
+  Menu as MuiMenu,
+  MenuItem,
 } from '@mui/material';
 import {
   Dashboard,
@@ -24,8 +26,10 @@ import {
   Menu,
   AttachMoney,
   AccountCircle,
+  DevicesOther,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import apiClient from '../api/client';
 
 interface SidebarProps {
   drawerWidth: number;
@@ -39,8 +43,37 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
   const location = useLocation();
   const theme = useTheme();
   const { user, logout } = useAuth();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const width = collapsed ? collapsedWidth : drawerWidth;
+
+  const handleLogoutMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleLogoutMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    handleLogoutMenuClose();
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  const handleLogoutAll = async () => {
+    handleLogoutMenuClose();
+    try {
+      await apiClient.post('/auth/logout-all');
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout all error:', error);
+      // Fallback to regular logout
+      await logout();
+      navigate('/login', { replace: true });
+    }
+  };
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
@@ -222,10 +255,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
           </ListItemButton>
         )}
         <ListItemButton
-          onClick={() => {
-            logout();
-            navigate('/login', { replace: true });
-          }}
+          onClick={collapsed ? handleLogout : handleLogoutMenuOpen}
           sx={{
             borderRadius: 2,
             py: collapsed ? 1 : 1.25,
@@ -249,6 +279,33 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
           </ListItemIcon>
           {!collapsed && <ListItemText primary="Log out" primaryTypographyProps={{ fontWeight: 600 }} />}
         </ListItemButton>
+
+        <MuiMenu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleLogoutMenuClose}
+          anchorOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+          transformOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+        >
+          <MenuItem onClick={handleLogout}>
+            <ListItemIcon>
+              <Logout fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Log out</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleLogoutAll}>
+            <ListItemIcon>
+              <DevicesOther fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Log out from all devices</ListItemText>
+          </MenuItem>
+        </MuiMenu>
       </Box>
     </Drawer>
   );

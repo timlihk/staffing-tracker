@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import apiClient from '../api/client';
+import apiClient, { setAccessToken } from '../api/client';
 import type { LoginRequest, LoginResponse } from '../types';
 import { toast } from '../lib/toast';
 import { AuthContext, type AuthContextValue } from './AuthContextData';
@@ -21,11 +21,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    // Check if user is logged in (token is in HttpOnly cookie, only check user data)
+    const savedUser = sessionStorage.getItem('user');
 
-    if (token && savedUser) {
+    if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
     setLoading(false);
@@ -36,8 +35,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
       const { token, user } = response.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Store access token in memory (refresh token is in HttpOnly cookie)
+      setAccessToken(token);
+      sessionStorage.setItem('user', JSON.stringify(user));
       setUser(user);
 
       return { requiresPasswordReset: false };
@@ -58,11 +58,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    queryClient.clear();
-    setUser(null);
+  const logout = useCallback(async () => {
+    try {
+      // Call backend to revoke refresh token
+      await apiClient.post('/auth/logout');
+    } catch (error) {
+      // Logout locally even if backend call fails
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local state regardless of backend response
+      setAccessToken(null);
+      sessionStorage.removeItem('user');
+      queryClient.clear();
+      setUser(null);
+    }
   }, [queryClient]);
 
   useEffect(() => {
