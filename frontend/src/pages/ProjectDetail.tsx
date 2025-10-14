@@ -498,6 +498,19 @@ const ProjectDetail: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>{assignment.jurisdiction || '—'}</TableCell>
+                        <TableCell>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={project?.bcAttorneys?.some(bcAttorney => bcAttorney.staff?.id === assignment.staffId) || false}
+                                onChange={(e) => handleToggleBcAttorney(assignment, e.target.checked)}
+                                disabled={addBcAttorney.isPending || removeBcAttorney.isPending}
+                                size="small"
+                              />
+                            }
+                            label=""
+                          />
+                        </TableCell>
                         <TableCell align="right">
                           {permissions.canEditAssignment && (
                             <Tooltip title="Edit">
