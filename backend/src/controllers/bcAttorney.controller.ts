@@ -18,39 +18,7 @@ export const addBcAttorney = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    // Check if project exists
-    const project = await prisma.project.findUnique({
-      where: { id: parsedProjectId },
-    });
-
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-
-    // Check if staff exists
-    const staff = await prisma.staff.findUnique({
-      where: { id: parsedStaffId },
-    });
-
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff member not found' });
-    }
-
-    // Check if B&C attorney already exists
-    const existingBcAttorney = await prisma.projectBcAttorney.findUnique({
-      where: {
-        projectId_staffId: {
-          projectId: parsedProjectId,
-          staffId: parsedStaffId,
-        },
-      },
-    });
-
-    if (existingBcAttorney) {
-      return res.status(409).json({ error: 'B&C attorney already exists for this project' });
-    }
-
-    // Create B&C attorney
+    // Create B&C attorney (database constraints will handle validation)
     const bcAttorney = await prisma.projectBcAttorney.create({
       data: {
         projectId: parsedProjectId,
@@ -67,17 +35,6 @@ export const addBcAttorney = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'create',
-        entityType: 'bc_attorney',
-        entityId: bcAttorney.id,
-        description: `Added B&C attorney: ${staff.name} to project: ${project.name}`,
-      },
-    });
-
     // Invalidate cache
     invalidateCache(CACHE_KEYS.PROJECT_DETAIL(parsedProjectId));
     invalidateCache('projects:list');
@@ -89,8 +46,19 @@ export const addBcAttorney = async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json(bcAttorney);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Add B&C attorney error:', error);
+
+    // Handle unique constraint violation
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'B&C attorney already exists for this project' });
+    }
+
+    // Handle foreign key constraint violation
+    if (error.code === 'P2003') {
+      return res.status(404).json({ error: 'Project or staff member not found' });
+    }
+
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -106,50 +74,13 @@ export const removeBcAttorney = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    // Check if B&C attorney exists
-    const bcAttorney = await prisma.projectBcAttorney.findUnique({
-      where: {
-        projectId_staffId: {
-          projectId: parsedProjectId,
-          staffId: parsedStaffId,
-        },
-      },
-      include: {
-        project: {
-          select: {
-            name: true,
-          },
-        },
-        staff: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    if (!bcAttorney) {
-      return res.status(404).json({ error: 'B&C attorney not found' });
-    }
-
-    // Delete B&C attorney
+    // Delete B&C attorney directly (database will handle "not found" case)
     await prisma.projectBcAttorney.delete({
       where: {
         projectId_staffId: {
           projectId: parsedProjectId,
           staffId: parsedStaffId,
         },
-      },
-    });
-
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'delete',
-        entityType: 'bc_attorney',
-        entityId: bcAttorney.id,
-        description: `Removed B&C attorney: ${bcAttorney.staff.name} from project: ${bcAttorney.project.name}`,
       },
     });
 
@@ -160,12 +91,17 @@ export const removeBcAttorney = async (req: AuthRequest, res: Response) => {
     req.log?.info('B&C attorney removed', {
       projectId: parsedProjectId,
       staffId: parsedStaffId,
-      bcAttorneyId: bcAttorney.id
     });
 
     res.json({ message: 'B&C attorney removed successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Remove B&C attorney error:', error);
+
+    // Handle record not found
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'B&C attorney not found' });
+    }
+
     res.status(500).json({ error: 'Internal server error' });
   }
 };

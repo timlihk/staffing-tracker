@@ -1,14 +1,15 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import prisma from '../utils/prisma';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const execAsync = promisify(exec);
 
-// Migration endpoint - should be protected or removed after use
-router.post('/run-excel-migration', async (req: Request, res: Response) => {
+// Migration endpoint - ADMIN ONLY - Protected with authentication
+router.post('/run-excel-migration', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     // Check if migration already ran (check if data exists)
 
@@ -43,8 +44,8 @@ router.post('/run-excel-migration', async (req: Request, res: Response) => {
   }
 });
 
-// Check migration status
-router.get('/migration-status', async (req: Request, res: Response) => {
+// Check migration status - ADMIN ONLY
+router.get('/migration-status', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [projectCount, staffCount, userCount, assignmentCount] = await Promise.all([
       prisma.project.count(),

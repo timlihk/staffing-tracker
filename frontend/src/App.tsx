@@ -1,5 +1,5 @@
 import { ReactNode, useState, useMemo, lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -10,6 +10,8 @@ import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AUTH_ERROR_EVENT } from './api/client';
+import { toast } from './lib/toast';
 
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -59,6 +61,36 @@ const SuspenseFallback = () => {
   return visible ? <LoadingScreen /> : null;
 };
 
+// Component to handle auth errors from API interceptor
+const AuthErrorHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    const handleAuthError = (event: Event) => {
+      const customEvent = event as CustomEvent<{ from: string }>;
+
+      // Call logout from auth context
+      logout();
+
+      // Show toast notification
+      toast.error('Session expired', 'Please log in again');
+
+      // Navigate to login with state to remember where user was
+      navigate('/login', {
+        replace: true,
+        state: { from: customEvent.detail?.from || location.pathname }
+      });
+    };
+
+    window.addEventListener(AUTH_ERROR_EVENT, handleAuthError);
+    return () => window.removeEventListener(AUTH_ERROR_EVENT, handleAuthError);
+  }, [logout, navigate, location]);
+
+  return null;
+};
+
 function App() {
   const mode: 'light' | 'dark' = 'light';
   const theme = useMemo(() => getTheme(mode), [mode]);
@@ -68,6 +100,7 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <Router>
+          <AuthErrorHandler />
           <ErrorBoundary>
             <Suspense fallback={<SuspenseFallback />}>
               <Routes>

@@ -78,8 +78,8 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
     } else if (attorneyNames.length > 0) {
       filteredProjects = projects.filter(p => attorneyNames.includes(p.attorney_in_charge));
     } else {
-      // Fallback to original behaviour so that B&C attorneys without mappings can still view data
-      filteredProjects = projects;
+      // Non-admins with no mapped attorney names should see nothing
+      filteredProjects = [];
     }
 
     // Convert BigInt values to numbers for JSON serialization

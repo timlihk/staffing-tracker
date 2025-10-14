@@ -24,6 +24,15 @@ export const trackFieldChanges = async (options: ChangeTrackingOptions) => {
     // Skip internal fields
     if (['id', 'createdAt', 'updatedAt'].includes(field)) continue;
 
+    // Skip relational/object fields (connect, disconnect, create, etc.)
+    // These create noisy [object Object] entries in change history
+    if (typeof newValue === 'object' && newValue !== null && !(newValue instanceof Date)) {
+      // Check if it's a Prisma relation operation
+      if ('connect' in newValue || 'disconnect' in newValue || 'create' in newValue || 'update' in newValue) {
+        continue;
+      }
+    }
+
     // Convert dates to strings for comparison
     const oldStr = oldValue instanceof Date ? oldValue.toISOString() : String(oldValue ?? '');
     const newStr = newValue instanceof Date ? newValue.toISOString() : String(newValue ?? '');

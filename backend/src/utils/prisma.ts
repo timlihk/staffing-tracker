@@ -91,14 +91,11 @@ const prismaClientSingleton = () => {
         url: process.env.DATABASE_URL,
       },
     },
-    // Connection pool optimization
-    ...(process.env.NODE_ENV === 'production' && {
-      // Production optimizations
-      transactionOptions: {
-        maxWait: 5000,
-        timeout: 10000,
-      },
-    }),
+    // Connection pool optimization for both dev and prod
+    transactionOptions: {
+      maxWait: 2000,  // Max time to wait for a transaction slot
+      timeout: 5000,  // Max time a transaction can run
+    },
   });
 };
 

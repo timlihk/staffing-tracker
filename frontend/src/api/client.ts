@@ -18,14 +18,23 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Custom event for auth failures - allows App component to handle logout gracefully
+export const AUTH_ERROR_EVENT = 'auth-error';
+
 // Handle auth errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Clear auth data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+
+      // Dispatch custom event instead of hard redirect
+      // This allows the app to show a message and preserve navigation state
+      window.dispatchEvent(new CustomEvent(AUTH_ERROR_EVENT, {
+        detail: { from: window.location.pathname }
+      }));
     }
     return Promise.reject(error);
   }

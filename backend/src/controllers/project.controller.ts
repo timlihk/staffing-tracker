@@ -326,13 +326,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   if (sector !== undefined) updateData.sector = sector;
   if (notes !== undefined) updateData.notes = notes;
 
-  const confirmationTimestamp = new Date();
-  updateData.lastConfirmedAt = confirmationTimestamp;
-  if (req.user?.userId) {
-    updateData.confirmedBy = {
-      connect: { id: req.user.userId }
-    };
-  }
+  // Note: Confirmation metadata (lastConfirmedAt, confirmedBy) is only updated
+  // via the dedicated POST /:id/confirm endpoint, not on regular updates
 
   await trackFieldChanges({
     entityId: projectId,

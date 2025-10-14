@@ -276,19 +276,36 @@ const ProjectDetail: React.FC = () => {
     if (!project) return;
     try {
       if (isBcAttorney) {
-        await addBcAttorney.mutateAsync({
+        const newBcAttorney = await addBcAttorney.mutateAsync({
           projectId: project.id,
           staffId: assignment.staffId,
         });
+        // Update local state optimistically
+        setProject((prev) =>
+          prev
+            ? {
+                ...prev,
+                bcAttorneys: [...(prev.bcAttorneys ?? []), newBcAttorney],
+              }
+            : prev
+        );
       } else {
         await removeBcAttorney.mutateAsync({
           projectId: project.id,
           staffId: assignment.staffId,
         });
+        // Update local state optimistically
+        setProject((prev) =>
+          prev
+            ? {
+                ...prev,
+                bcAttorneys: (prev.bcAttorneys ?? []).filter(
+                  (ba) => ba.staffId !== assignment.staffId
+                ),
+              }
+            : prev
+        );
       }
-      // Refetch project data to get updated B&C attorneys
-      const projectResponse = await api.get(`/projects/${id}`);
-      setProject(projectResponse.data);
     } catch (error: any) {
       console.error('Failed to toggle B&C attorney', error);
       // The hooks already handle error toasts, so we don't need to show another one here
