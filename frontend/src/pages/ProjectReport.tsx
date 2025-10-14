@@ -97,7 +97,7 @@ const ProjectReport: React.FC = () => {
       if (priorities.length) params.priorities = toCsvParam(priorities)!;
       if (selectedStaff) params.staffId = selectedStaff.id.toString();
 
-      const res = await api.get('/reports/project-report', { params });
+      const res = await api.get('/project-reports', { params });
 
       const data = (res.data?.data ?? []) as ProjectReportRow[];
       const withIds = data.map((r) => ({
@@ -133,7 +133,7 @@ const ProjectReport: React.FC = () => {
       if (priorities.length) params.priorities = toCsvParam(priorities)!;
       if (selectedStaff) params.staffId = selectedStaff.id.toString();
 
-      const response = await api.get('/reports/project-report/excel', {
+      const response = await api.get('/project-reports/excel', {
         params,
         responseType: 'blob',
       });

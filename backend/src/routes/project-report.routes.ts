@@ -5,7 +5,8 @@ import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
-router.get('/project-report', authenticate, asyncHandler(getProjectReportJson));
-router.get('/project-report/excel', authenticate, asyncHandler(getProjectReportExcel));
+// Mounted at /api/project-reports
+router.get('/', authenticate, asyncHandler(getProjectReportJson));
+router.get('/excel', authenticate, asyncHandler(getProjectReportExcel));
 
 export default router;

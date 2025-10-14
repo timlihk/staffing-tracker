@@ -102,11 +102,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-// Reports - Both routers share /api/reports prefix but have different sub-paths
-// reportsRoutes: /staffing, /staffing.xlsx
-// projectReportRoutes: /project-report, /project-report/excel
-app.use('/api/reports', reportsRoutes);
-app.use('/api/reports', projectReportRoutes);
+// Reports routes
+app.use('/api/reports', reportsRoutes); // /api/reports/staffing, /api/reports/staffing.xlsx
+app.use('/api/project-reports', projectReportRoutes); // /api/project-reports, /api/project-reports/excel
 app.use('/api/users', userRoutes);
 app.use('/api/email-settings', emailSettingsRoutes);
 app.use('/api/billing', billingRoutes);
