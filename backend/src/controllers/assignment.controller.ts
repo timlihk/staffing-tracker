@@ -129,42 +129,62 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    const assignment = await prisma.projectAssignment.create({
-      data: {
-        projectId,
-        staffId,
-        
-        jurisdiction,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        notes,
-      },
-      include: {
-        project: true,
-        staff: true,
-      },
-    });
+    // Use transaction to ensure atomicity
+    const assignment = await prisma.$transaction(async (tx) => {
+      // Create assignment
+      const newAssignment = await tx.projectAssignment.create({
+        data: {
+          projectId,
+          staffId,
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'assign',
-        entityType: 'assignment',
-        entityId: assignment.id,
-        description: `Assigned ${staff.name} to ${project.name}`,
-      },
-    });
+          jurisdiction,
+          startDate: startDate ? new Date(startDate) : null,
+          endDate: endDate ? new Date(endDate) : null,
+          notes,
+        },
+        include: {
+          project: true,
+          staff: true,
+        },
+      });
 
-    // Track assignment change
-    const assignmentDetails = `${staff.name} (${staff.position})${jurisdiction ? ` - ${jurisdiction}` : ''}`;
-    await trackAssignmentChange(
-      projectId,
-      staffId,
-      'assignment_added',
-      assignmentDetails,
-      req.user?.userId
-    );
+      // Log activity
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: 'assign',
+          entityType: 'assignment',
+          entityId: newAssignment.id,
+          description: `Assigned ${staff.name} to ${project.name}`,
+        },
+      });
+
+      // Track assignment change on project side
+      await tx.projectChangeHistory.create({
+        data: {
+          projectId,
+          fieldName: 'assignment',
+          oldValue: null,
+          newValue: `${staff.name} (${staff.position})${jurisdiction ? ` - ${jurisdiction}` : ''}`,
+          changeType: 'assignment_added',
+          changedBy: req.user?.userId,
+        },
+      });
+
+      // Track assignment change on staff side
+      await tx.staffChangeHistory.create({
+        data: {
+          staffId,
+          fieldName: 'assignment',
+          oldValue: null,
+          newValue: `${staff.name} (${staff.position})${jurisdiction ? ` - ${jurisdiction}` : ''}`,
+          changeType: 'assignment_added',
+          changedBy: req.user?.userId,
+        },
+      });
+
+      return newAssignment;
+    });
 
     res.status(201).json(assignment);
   } catch (error: ControllerError) {
@@ -200,29 +220,34 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    const assignment = await prisma.projectAssignment.update({
-      where: { id: assignmentId },
-      data: {
-        ...(jurisdiction !== undefined && { jurisdiction }),
-        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
-        ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
-        ...(notes !== undefined && { notes }),
-      },
-      include: {
-        project: true,
-        staff: true,
-      },
-    });
+    // Use transaction to ensure atomicity
+    const assignment = await prisma.$transaction(async (tx) => {
+      const updatedAssignment = await tx.projectAssignment.update({
+        where: { id: assignmentId },
+        data: {
+          ...(jurisdiction !== undefined && { jurisdiction }),
+          ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+          ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
+          ...(notes !== undefined && { notes }),
+        },
+        include: {
+          project: true,
+          staff: true,
+        },
+      });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'update',
-        entityType: 'assignment',
-        entityId: assignment.id,
-        description: `Updated assignment: ${assignment.staff.name} on ${assignment.project.name}`,
-      },
+      // Log activity
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: 'update',
+          entityType: 'assignment',
+          entityId: updatedAssignment.id,
+          description: `Updated assignment: ${updatedAssignment.staff.name} on ${updatedAssignment.project.name}`,
+        },
+      });
+
+      return updatedAssignment;
     });
 
     res.json(assignment);
@@ -250,29 +275,49 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    await prisma.projectAssignment.delete({
-      where: { id: assignmentId },
-    });
+    // Use transaction to ensure atomicity
+    await prisma.$transaction(async (tx) => {
+      // Delete assignment
+      await tx.projectAssignment.delete({
+        where: { id: assignmentId },
+      });
 
-    // Track assignment removal
-    const assignmentDetails = `${assignment.staff.name} (${assignment.staff.position})${assignment.jurisdiction ? ` - ${assignment.jurisdiction}` : ''}`;
-    await trackAssignmentChange(
-      assignment.projectId,
-      assignment.staffId,
-      'assignment_removed',
-      assignmentDetails,
-      req.user?.userId
-    );
+      const assignmentDetails = `${assignment.staff.name} (${assignment.staff.position})${assignment.jurisdiction ? ` - ${assignment.jurisdiction}` : ''}`;
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'delete',
-        entityType: 'assignment',
-        entityId: assignmentId,
-        description: `Removed ${assignment.staff.name} from ${assignment.project.name}`,
-      },
+      // Track assignment removal on project side
+      await tx.projectChangeHistory.create({
+        data: {
+          projectId: assignment.projectId,
+          fieldName: 'assignment',
+          oldValue: assignmentDetails,
+          newValue: null,
+          changeType: 'assignment_removed',
+          changedBy: req.user?.userId,
+        },
+      });
+
+      // Track assignment removal on staff side
+      await tx.staffChangeHistory.create({
+        data: {
+          staffId: assignment.staffId,
+          fieldName: 'assignment',
+          oldValue: assignmentDetails,
+          newValue: null,
+          changeType: 'assignment_removed',
+          changedBy: req.user?.userId,
+        },
+      });
+
+      // Log activity
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: 'delete',
+          entityType: 'assignment',
+          entityId: assignmentId,
+          description: `Removed ${assignment.staff.name} from ${assignment.project.name}`,
+        },
+      });
     });
 
     res.json({ message: 'Assignment deleted successfully' });

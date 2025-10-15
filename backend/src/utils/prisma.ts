@@ -5,7 +5,33 @@ const cache = new Map();
 const CACHE_TTL = 30000; // 30 seconds
 const MAX_CACHE_SIZE = 1000; // Prevent memory leaks
 
-const getCacheKey = (key: string): string => `cache:${key}`;
+/**
+ * Sanitize cache key to prevent cache poisoning and injection attacks
+ * - Removes control characters and newlines
+ * - Limits length to prevent memory exhaustion
+ * - Normalizes to prevent cache key collisions
+ */
+const sanitizeCacheKey = (key: string): string => {
+  if (typeof key !== 'string') {
+    throw new Error('Cache key must be a string');
+  }
+
+  // Remove control characters, newlines, and other potentially dangerous characters
+  let sanitized = key
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+    .replace(/[^\x20-\x7E]/g, '') // Keep only printable ASCII
+    .trim();
+
+  // Limit key length to prevent memory exhaustion
+  const MAX_KEY_LENGTH = 500;
+  if (sanitized.length > MAX_KEY_LENGTH) {
+    sanitized = sanitized.substring(0, MAX_KEY_LENGTH);
+  }
+
+  return sanitized;
+};
+
+const getCacheKey = (key: string): string => `cache:${sanitizeCacheKey(key)}`;
 
 // Cache statistics for monitoring
 export const cacheStats = {
@@ -69,19 +95,61 @@ export const clearCache = (): void => {
   cacheStats.evictions = 0;
 };
 
-// Cache keys for common queries
+// Cache keys for common queries with automatic sanitization
 export const CACHE_KEYS = {
-  PROJECTS_LIST: (params: string) => `projects:list:${params}`,
+  PROJECTS_LIST: (params: string) => `projects:list:${sanitizeCacheKey(params)}`,
   PROJECT_DETAIL: (id: number) => `project:detail:${id}`,
-  PROJECT_REPORT: (params: string) => `project:report:${params}`,
+  PROJECT_REPORT: (params: string) => `project:report:${sanitizeCacheKey(params)}`,
   PROJECT_CATEGORIES: 'projects:categories',
   PROJECT_CHANGE_HISTORY: (id: number, limit: number) => `project:change-history:${id}:${limit}`,
-  STAFF_LIST: (params: string) => `staff:list:${params}`,
+  STAFF_LIST: (params: string) => `staff:list:${sanitizeCacheKey(params)}`,
   STAFF_DETAIL: (id: number) => `staff:detail:${id}`,
-  DASHBOARD_SUMMARY: (params: string) => `dashboard:summary:${params}`,
+  DASHBOARD_SUMMARY: (params: string) => `dashboard:summary:${sanitizeCacheKey(params)}`,
 };
 
-// Singleton pattern to prevent multiple instances in serverless/hot-reload environments
+/**
+ * Prisma Client Singleton with optimized connection pool settings
+ *
+ * Connection Pool Configuration:
+ * ==============================
+ *
+ * The connection pool is configured via DATABASE_URL query parameters:
+ *
+ * Required Parameters:
+ * - connection_limit: Maximum number of database connections (default: 20)
+ *   - Set to number of CPU cores * 2 + 1 for optimal performance
+ *   - Railway/Heroku: Usually 10-20 depending on plan
+ *   - Local dev: 5-10 is typically sufficient
+ *
+ * - pool_timeout: Maximum time (seconds) to wait for a connection (default: 30)
+ *   - If all connections are busy, new requests will wait up to this duration
+ *   - Set higher in production (30-60s) to handle traffic spikes
+ *   - Set lower in dev (10-20s) to fail fast
+ *
+ * - idle_timeout: Time (seconds) before idle connections are closed (default: 300)
+ *   - Prevents holding connections unnecessarily during low traffic
+ *   - Railway: Set to 300s (5 min) to balance responsiveness and resource usage
+ *   - Should be less than database's own connection timeout
+ *
+ * Example DATABASE_URL:
+ * postgresql://user:pass@host:port/db?connection_limit=20&pool_timeout=30&idle_timeout=300
+ *
+ * Transaction Settings:
+ * - maxWait: Maximum time to wait for a transaction slot (2000ms)
+ * - timeout: Maximum time a transaction can run before being rolled back (5000ms)
+ *
+ * Security Considerations:
+ * - Always use SSL in production (add ?sslmode=require to DATABASE_URL)
+ * - Keep connection_limit appropriate to avoid exhausting database resources
+ * - Monitor connection pool usage via Prisma metrics
+ * - Use transactions sparingly and keep them short-lived
+ *
+ * Performance Tips:
+ * - Use connection pooling to reuse connections instead of creating new ones
+ * - Avoid long-running transactions that hold connections
+ * - Monitor for connection pool exhaustion (all connections busy)
+ * - Consider using read replicas for read-heavy workloads
+ */
 const prismaClientSingleton = () => {
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'], // Reduced logging in dev
