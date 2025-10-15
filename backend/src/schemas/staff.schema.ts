@@ -8,11 +8,10 @@ export const createStaffSchema = z.object({
     .min(1, 'Name is required')
     .max(255, 'Name must not exceed 255 characters')
     .trim(),
-  email: z.string()
-    .email('Invalid email address')
-    .max(255, 'Email must not exceed 255 characters')
-    .trim()
-    .toLowerCase()
+  email: z.union([
+    z.string().email('Invalid email address').max(255, 'Email must not exceed 255 characters').trim().toLowerCase(),
+    z.literal('')
+  ])
     .optional()
     .nullable(),
   position: z.string()
@@ -42,11 +41,10 @@ export const updateStaffSchema = z.object({
     .max(255, 'Name must not exceed 255 characters')
     .trim()
     .optional(),
-  email: z.string()
-    .email('Invalid email address')
-    .max(255, 'Email must not exceed 255 characters')
-    .trim()
-    .toLowerCase()
+  email: z.union([
+    z.string().email('Invalid email address').max(255, 'Email must not exceed 255 characters').trim().toLowerCase(),
+    z.literal('')
+  ])
     .optional()
     .nullable(),
   position: z.string()
