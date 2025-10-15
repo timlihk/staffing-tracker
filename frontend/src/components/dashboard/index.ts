@@ -1,2 +1,2 @@
-export { default as ProjectStatusChart } from './ProjectStatusChart';
-export { default as ProjectCategoryChart } from './ProjectCategoryChart';
+export { default as DealRadarCard } from './DealRadarCard';
+export { default as StaffingHeatmapCard } from './StaffingHeatmapCard';
