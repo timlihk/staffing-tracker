@@ -2,6 +2,8 @@ import { Router } from 'express';
 import * as staffController from '../controllers/staff.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { validate } from '../middleware/validate';
+import { createStaffSchema, updateStaffSchema, staffQuerySchema } from '../schemas/staff.schema';
 
 const router = Router();
 
@@ -26,7 +28,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.get('/', authenticate, asyncHandler(staffController.getAllStaff));
+router.get('/', authenticate, validate(staffQuerySchema, 'query'), asyncHandler(staffController.getAllStaff));
 
 /**
  * @openapi
@@ -192,7 +194,7 @@ router.get('/:id/change-history', authenticate, asyncHandler(staffController.get
  *       403:
  *         description: Forbidden (admin or editor only)
  */
-router.post('/', authenticate, authorize('admin', 'editor'), asyncHandler(staffController.createStaff));
+router.post('/', authenticate, authorize('admin', 'editor'), validate(createStaffSchema), asyncHandler(staffController.createStaff));
 
 /**
  * @openapi
@@ -248,7 +250,7 @@ router.post('/', authenticate, authorize('admin', 'editor'), asyncHandler(staffC
  *       404:
  *         description: Staff member not found
  */
-router.put('/:id', authenticate, authorize('admin', 'editor'), asyncHandler(staffController.updateStaff));
+router.put('/:id', authenticate, authorize('admin', 'editor'), validate(updateStaffSchema), asyncHandler(staffController.updateStaff));
 
 /**
  * @openapi

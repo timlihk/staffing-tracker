@@ -5,9 +5,10 @@ import type { Staff } from '../types';
 import { toast } from '../lib/toast';
 
 interface StaffParams {
-  role?: string;
+  position?: string;
   department?: string;
   status?: string;
+  search?: string;
 }
 
 export const useStaff = (params: StaffParams = {}) => {

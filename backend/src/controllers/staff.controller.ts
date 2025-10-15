@@ -162,19 +162,17 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
 
 export const createStaff = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, email, role, department, status, notes } = req.body;
+    const { name, email, position, department, status, notes } = req.body;
 
-    console.log('[CREATE STAFF] Received data:', { name, email, role, department, status });
-
-    if (!name || !role) {
-      return res.status(400).json({ error: 'Name and role are required' });
+    if (!name || !position) {
+      return res.status(400).json({ error: 'Name and position are required' });
     }
 
     const staff = await prisma.staff.create({
       data: {
         name,
         email,
-        position: role,
+        position,
         department,
         status: status || 'active',
         notes,
@@ -205,13 +203,10 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
 export const updateStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, email, role, department, status, notes } = req.body;
-
-    console.log('[UPDATE STAFF] Received ID:', id, 'Type:', typeof id);
+    const { name, email, position, department, status, notes } = req.body;
 
     const staffId = parseInt(id, 10);
     if (Number.isNaN(staffId)) {
-      console.log('[UPDATE STAFF] Invalid ID - returning 400');
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
 
@@ -227,7 +222,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     const updateData: Prisma.StaffUpdateInput = {};
     if (name) updateData.name = name;
     if (email !== undefined) updateData.email = email === '' ? null : email;
-    if (role) updateData.position = role;
+    if (position) updateData.position = position;
     if (department !== undefined) updateData.department = department === '' ? null : department;
     if (status) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes === '' ? null : notes;

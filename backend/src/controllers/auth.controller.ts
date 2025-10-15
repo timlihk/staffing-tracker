@@ -137,7 +137,7 @@ export const register = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Username or email already exists' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
 
     const normalizedRole = typeof role === 'string' && ALLOWED_ROLES.has(role) ? role : 'viewer';
 
@@ -235,7 +235,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
 
     const now = new Date();
     await prisma.user.update({

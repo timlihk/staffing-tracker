@@ -10,7 +10,7 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 
 // Project validation
 export const projectSchema = z.object({
-  name: z.string().min(1, 'Project code is required'),
+  name: z.string().min(1, 'Project name is required'),
   category: z.string().min(1, 'Category is required'),
   status: z.string().min(1, 'Status is required'),
   priority: z.string().optional(),
@@ -30,7 +30,7 @@ export type ProjectFormData = z.infer<typeof projectSchema>;
 export const staffSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
-  role: z.string().min(1, 'Role is required'),
+  position: z.string().min(1, 'Position is required'),
   department: z.string().optional(),
   status: z.string().min(1, 'Status is required'),
   notes: z.string().optional(),

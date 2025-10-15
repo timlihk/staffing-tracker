@@ -437,7 +437,9 @@ const ProjectDetail: React.FC = () => {
               },
               {
                 label: 'B&C ATTORNEY',
-                value: project.bcAttorney || '-',
+                value: project.bcAttorneys && project.bcAttorneys.length > 0
+                  ? project.bcAttorneys.map(bcAttorney => bcAttorney.staff?.name).filter(Boolean).join(', ')
+                  : '-',
               },
               {
                 label: 'LAST CONFIRMED',

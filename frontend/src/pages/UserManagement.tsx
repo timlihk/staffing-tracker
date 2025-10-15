@@ -92,13 +92,11 @@ const UserManagement: React.FC = () => {
   // Only runs when this component is mounted (page is being viewed)
   React.useEffect(() => {
     const interval = setInterval(() => {
-      console.log('[UserManagement] Auto-refreshing user data for online status...');
       refetchUsers();
     }, 5 * 60 * 1000); // 5 minutes in milliseconds
 
     // Cleanup: stop auto-refresh when component unmounts (user navigates away)
     return () => {
-      console.log('[UserManagement] Stopping auto-refresh (page closed/navigated away)');
       clearInterval(interval);
     };
   }, [refetchUsers]);

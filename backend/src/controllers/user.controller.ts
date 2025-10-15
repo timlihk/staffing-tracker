@@ -6,6 +6,7 @@ import { generateTempPassword } from '../utils/password';
 import { sendWelcomeEmail } from '../services/email.service';
 import { ControllerError } from '../types/prisma';
 import { Prisma } from '@prisma/client';
+import config from '../config';
 
 const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
 
@@ -51,24 +52,29 @@ export const listUsers = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // For each user, count their actions in the last 7 days
-    const usersWithStats = await Promise.all(
-      users.map(async (user) => {
-        const recentActionCount = await prisma.activityLog.count({
-          where: {
-            userId: user.id,
-            createdAt: {
-              gte: sevenDaysAgo,
-            },
-          },
-        });
+    // Get activity counts for all users in a single query
+    const activityCounts = await prisma.activityLog.groupBy({
+      by: ['userId'],
+      where: {
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+      _count: {
+        userId: true,
+      },
+    });
 
-        return {
-          ...user,
-          recentActionCount,
-        };
-      })
+    // Create a map of userId -> count for quick lookup
+    const activityCountMap = new Map(
+      activityCounts.map((ac) => [ac.userId, ac._count.userId])
     );
+
+    // Combine users with their activity counts
+    const usersWithStats = users.map((user) => ({
+      ...user,
+      recentActionCount: activityCountMap.get(user.id) || 0,
+    }));
 
     res.json(usersWithStats.map(sanitizeUser));
   } catch (error) {
@@ -109,7 +115,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid staffId' });
     }
     const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const passwordHash = await bcrypt.hash(tempPassword, config.security.bcryptRounds);
 
     const user = await prisma.user.create({
       data: {
@@ -234,7 +240,7 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
     }
 
     const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const passwordHash = await bcrypt.hash(tempPassword, config.security.bcryptRounds);
 
     await prisma.user.update({
       where: { id: user.id },

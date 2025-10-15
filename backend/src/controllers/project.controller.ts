@@ -211,7 +211,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
   } = req.body;
 
   if (!name || !category || !status) {
-    return res.status(400).json({ error: 'Project code, category, and status are required' });
+    return res.status(400).json({ error: 'Project name, category, and status are required' });
   }
 
   const project = await prisma.project.create({

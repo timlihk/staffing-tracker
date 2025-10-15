@@ -107,9 +107,6 @@ const ProjectForm: React.FC = () => {
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
-      console.log('Form submit - isEdit:', isEdit, 'id:', id);
-      console.log('Form data:', data);
-
       const cleanedData: Partial<Project> = { ...data };
 
       const normalize = (value?: string | null) =>
@@ -131,16 +128,12 @@ const ProjectForm: React.FC = () => {
         cleanedData.priority = undefined;
       }
 
-      console.log('Cleaned data:', cleanedData);
-
       let projectId: number;
 
       if (isEdit) {
-        console.log('Calling updateProject with id:', id);
         await updateProject.mutateAsync({ id: Number(id), data: cleanedData });
         projectId = Number(id);
       } else {
-        console.log('Calling createProject');
         const createdProject = await createProject.mutateAsync(cleanedData);
         projectId = createdProject.id;
 
@@ -190,7 +183,7 @@ const ProjectForm: React.FC = () => {
           <Stack spacing={2}>
             <TextField
               fullWidth
-              label="Project Code"
+              label="Project Name"
               {...register('name')}
               error={!!errors.name}
               helperText={errors.name?.message}

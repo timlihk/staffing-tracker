@@ -24,8 +24,6 @@ const StaffForm: React.FC = () => {
   const goBack = useSmartBack('/staff');
   const isEdit = !!id && id !== 'new';
 
-  console.log('[STAFF FORM] ID from params:', id, 'isEdit:', isEdit);
-
   const { data: staff, isLoading: staffLoading } = useStaffMember(isEdit ? id! : '');
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
@@ -41,7 +39,7 @@ const StaffForm: React.FC = () => {
     defaultValues: {
       name: '',
       email: '',
-      role: '',
+      position: '',
       department: '',
       status: 'active',
       notes: '',
@@ -53,7 +51,7 @@ const StaffForm: React.FC = () => {
       reset({
         name: staff.name,
         email: staff.email || '',
-        role: staff.position,
+        position: staff.position,
         department: staff.department || '',
         status: staff.status,
         notes: staff.notes || '',
@@ -63,12 +61,9 @@ const StaffForm: React.FC = () => {
 
   const onSubmit = async (data: StaffFormData) => {
     try {
-      console.log('[STAFF FORM] onSubmit called', { isEdit, id, data });
       if (isEdit) {
-        console.log('[STAFF FORM] Calling updateStaff with id:', Number(id));
         await updateStaff.mutateAsync({ id: Number(id), data });
       } else {
-        console.log('[STAFF FORM] Calling createStaff');
         await createStaff.mutateAsync(data);
       }
       navigate('/staff');
@@ -124,16 +119,16 @@ const StaffForm: React.FC = () => {
             />
 
             <Controller
-              name="role"
+              name="position"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
                   select
                   fullWidth
-                  label="Role"
-                  error={!!errors.role}
-                  helperText={errors.role?.message}
+                  label="Position"
+                  error={!!errors.position}
+                  helperText={errors.position?.message}
                   disabled={isSubmitting}
                 >
                   <MenuItem value="Partner">Partner</MenuItem>
