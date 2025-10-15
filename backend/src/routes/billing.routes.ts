@@ -104,37 +104,528 @@ function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
 // Billing Projects
 // ============================================================================
 
+/**
+ * @openapi
+ * /billing/projects:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get all billing projects
+ *     description: Retrieve a list of all billing matters and collections
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of billing projects
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Billing module not enabled or insufficient access
+ */
 router.get('/projects', authenticate, checkBillingAccess, billingController.getBillingProjects);
+
+/**
+ * @openapi
+ * /billing/projects/{id}:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get billing project detail
+ *     description: Retrieve detailed information about a specific billing matter
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     responses:
+ *       200:
+ *         description: Billing project details including engagements and financials
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Billing project not found
+ */
 router.get('/projects/:id', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectDetail);
+
+/**
+ * @openapi
+ * /billing/projects/{id}/engagement/{engagementId}:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get engagement detail
+ *     description: Retrieve detailed information about a specific engagement within a billing matter
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *       - in: path
+ *         name: engagementId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Engagement ID
+ *     responses:
+ *       200:
+ *         description: Engagement details including fee arrangement and milestones
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Engagement not found
+ */
 router.get('/projects/:id/engagement/:engagementId', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), validate(engagementIdParamSchema, 'params'), billingController.getEngagementDetail);
+
+/**
+ * @openapi
+ * /billing/projects/{id}/cm/{cmId}/engagements:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get client matter engagements
+ *     description: Retrieve all engagements for a specific client matter
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *       - in: path
+ *         name: cmId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client matter ID
+ *     responses:
+ *       200:
+ *         description: List of engagements for the client matter
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
 router.get('/projects/:id/cm/:cmId/engagements', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getCMEngagements);
+
+/**
+ * @openapi
+ * /billing/projects/{id}/activity:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get billing project activity
+ *     description: Retrieve change history and activity log for a billing project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     responses:
+ *       200:
+ *         description: Activity log for the billing project
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
 router.get('/projects/:id/activity', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectActivity);
+
+/**
+ * @openapi
+ * /billing/projects/{id}/financials:
+ *   patch:
+ *     tags: [Billing]
+ *     summary: Update billing project financials
+ *     description: Update financial information for a billing matter (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               totalBilled:
+ *                 type: number
+ *                 format: decimal
+ *               totalCollected:
+ *                 type: number
+ *                 format: decimal
+ *               outstandingAR:
+ *                 type: number
+ *                 format: decimal
+ *     responses:
+ *       200:
+ *         description: Financials updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.patch('/projects/:id/financials', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), validate(updateFinancialsSchema), billingController.updateFinancials);
+
+/**
+ * @openapi
+ * /billing/engagements/{engagementId}/fee-arrangement:
+ *   patch:
+ *     tags: [Billing]
+ *     summary: Update engagement fee arrangement
+ *     description: Update fee arrangement details for an engagement (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: engagementId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Engagement ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               feeType:
+ *                 type: string
+ *               totalFee:
+ *                 type: number
+ *                 format: decimal
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Fee arrangement updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.patch('/engagements/:engagementId/fee-arrangement', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), validate(updateFeeArrangementSchema), billingController.updateFeeArrangement);
+
+/**
+ * @openapi
+ * /billing/engagements/{engagementId}/milestones:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Create fee milestone
+ *     description: Add a new fee milestone to an engagement (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: engagementId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Engagement ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [description, amount]
+ *             properties:
+ *               description:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *                 format: decimal
+ *               dueDate:
+ *                 type: string
+ *                 format: date
+ *               status:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Milestone created successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.post('/engagements/:engagementId/milestones', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), validate(createMilestoneSchema), billingController.createMilestone);
+
+/**
+ * @openapi
+ * /billing/milestones:
+ *   patch:
+ *     tags: [Billing]
+ *     summary: Update multiple milestones
+ *     description: Bulk update fee milestones (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [milestones]
+ *             properties:
+ *               milestones:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Milestones updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.patch('/milestones', authenticate, adminOnly, validate(updateMilestonesSchema), billingController.updateMilestones);
+
+/**
+ * @openapi
+ * /billing/milestones/{milestoneId}:
+ *   delete:
+ *     tags: [Billing]
+ *     summary: Delete fee milestone
+ *     description: Remove a fee milestone (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: milestoneId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Milestone ID
+ *     responses:
+ *       200:
+ *         description: Milestone deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: Milestone not found
+ */
 router.delete('/milestones/:milestoneId', authenticate, adminOnly, validate(milestoneIdParamSchema, 'params'), billingController.deleteMilestone);
 
 // ============================================================================
 // Project Mapping
 // ============================================================================
 
+/**
+ * @openapi
+ * /billing/mapping/suggestions:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get project mapping suggestions
+ *     description: Retrieve suggested matches between billing matters and staffing projects (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of mapping suggestions
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.get('/mapping/suggestions', authenticate, adminOnly, billingController.getMappingSuggestions);
+
+/**
+ * @openapi
+ * /billing/mapping/link:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Link billing project to staffing project
+ *     description: Create a mapping between a billing matter and a staffing project (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [billingProjectId, staffingProjectId]
+ *             properties:
+ *               billingProjectId:
+ *                 type: integer
+ *               staffingProjectId:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Projects linked successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.post('/mapping/link', authenticate, adminOnly, validate(linkProjectsSchema), billingController.linkProjects);
+
+/**
+ * @openapi
+ * /billing/mapping/unlink/{linkId}:
+ *   delete:
+ *     tags: [Billing]
+ *     summary: Unlink projects
+ *     description: Remove mapping between billing matter and staffing project (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: linkId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Link ID
+ *     responses:
+ *       200:
+ *         description: Projects unlinked successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: Link not found
+ */
 router.delete('/mapping/unlink/:linkId', authenticate, adminOnly, validate(linkIdParamSchema, 'params'), billingController.unlinkProjects);
 
 // ============================================================================
 // B&C Attorney Mapping
 // ============================================================================
 
+/**
+ * @openapi
+ * /billing/bc-attorneys/unmapped:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get unmapped B&C attorneys
+ *     description: Retrieve list of B&C attorneys from billing data not yet mapped to staff records (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of unmapped B&C attorneys
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.get('/bc-attorneys/unmapped', authenticate, adminOnly, billingController.getUnmappedAttorneys);
+
+/**
+ * @openapi
+ * /billing/bc-attorneys/map:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Map B&C attorney to staff record
+ *     description: Create mapping between billing system B&C attorney and staffing system staff record (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [bcAttorneyId, staffId]
+ *             properties:
+ *               bcAttorneyId:
+ *                 type: integer
+ *               staffId:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: B&C attorney mapped successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.post('/bc-attorneys/map', authenticate, adminOnly, validate(mapBCAttorneySchema), billingController.mapBCAttorney);
 
 // ============================================================================
 // Access Settings
 // ============================================================================
 
+/**
+ * @openapi
+ * /billing/settings/access:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get billing access settings
+ *     description: Retrieve current billing module access configuration (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Billing access settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 billing_module_enabled:
+ *                   type: boolean
+ *                 access_level:
+ *                   type: string
+ *                   enum: [admin_only, admin_and_bc_attorney]
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.get('/settings/access', authenticate, adminOnly, billingController.getBillingAccessSettings);
+
+/**
+ * @openapi
+ * /billing/settings/access:
+ *   patch:
+ *     tags: [Billing]
+ *     summary: Update billing access settings
+ *     description: Configure billing module access permissions (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               billing_module_enabled:
+ *                 type: boolean
+ *               access_level:
+ *                 type: string
+ *                 enum: [admin_only, admin_and_bc_attorney]
+ *     responses:
+ *       200:
+ *         description: Access settings updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
 router.patch('/settings/access', authenticate, adminOnly, validate(updateBillingAccessSettingsSchema), billingController.updateBillingAccessSettings);
 
 export default router;

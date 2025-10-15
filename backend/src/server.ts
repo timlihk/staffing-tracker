@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
 
 import config, { validateConfig } from './config';
+import { swaggerSpec } from './config/swagger';
 import prisma from './utils/prisma';
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
@@ -56,6 +58,18 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); // Add size limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Staffing Tracker API Documentation',
+}));
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Routes
 app.get('/api/health', async (req, res) => {
