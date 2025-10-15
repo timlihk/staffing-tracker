@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 
 import config, { validateConfig } from './config';
 import prisma from './utils/prisma';
@@ -18,6 +17,7 @@ import emailSettingsRoutes from './routes/email-settings.routes';
 import billingRoutes from './routes/billing.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { logger } from './utils/logger';
 
 // Validate configuration on startup
@@ -42,26 +42,8 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === 'OPTIONS', // Skip CORS preflight requests
-});
-
-// Apply rate limiter to all API routes
-app.use('/api/', limiter);
-
-// Stricter rate limit for auth routes
-const authLimiter = rateLimit({
-  windowMs: config.rateLimit.authWindowMs,
-  max: config.rateLimit.authMaxRequests,
-  message: 'Too many login attempts, please try again later.',
-  skipSuccessfulRequests: true,
-});
+// Apply rate limiters
+app.use('/api/', apiLimiter);
 
 // Request logging
 app.use(requestLogger);
