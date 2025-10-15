@@ -13,6 +13,7 @@ import {
 import { AuthRequest } from '../middleware/auth';
 import { ControllerError } from '../types/prisma';
 import { logger } from '../utils/logger';
+import { sanitizeForLogs, safeLogData } from '../utils/sanitize';
 import config from '../config';
 
 export const login = async (req: Request, res: Response) => {
@@ -101,7 +102,7 @@ export const login = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Login error', {
       error: error instanceof Error ? error.message : String(error),
-      username: req.body?.username
+      username: sanitizeForLogs(req.body?.username)
     });
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -172,7 +173,7 @@ export const register = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Register error', {
       error: error instanceof Error ? error.message : String(error),
-      username: req.body?.username
+      username: sanitizeForLogs(req.body?.username)
     });
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -223,11 +224,15 @@ export const resetPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
 
+    // Verify token (this will throw if invalid)
     const payload = verifyPasswordResetToken(token);
 
+    // Check if user exists - use generic error to prevent user enumeration
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      // Don't reveal that the user doesn't exist - use same error as invalid token
+      logger.warn('Password reset attempted for non-existent user', { userId: payload.userId });
+      return res.status(400).json({ error: 'Invalid or expired token' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -258,6 +263,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     logger.error('Reset password error', {
       error: error instanceof Error ? error.message : String(error)
     });
+    // Generic error for all token validation failures - prevents timing attacks
     if (error && typeof error === 'object' && 'message' in error && error.message === 'Invalid password reset token') {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }

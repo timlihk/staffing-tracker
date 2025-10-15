@@ -3,14 +3,14 @@ import crypto from 'crypto';
 import prisma from './prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || `${JWT_SECRET}_refresh`;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
 
-if (!process.env.JWT_REFRESH_SECRET) {
-  console.warn('⚠️  WARNING: JWT_REFRESH_SECRET not set. Using derived secret. Set JWT_REFRESH_SECRET for better security.');
+if (!JWT_REFRESH_SECRET) {
+  throw new Error('JWT_REFRESH_SECRET environment variable is required. Do NOT derive from JWT_SECRET for security reasons.');
 }
 
 export interface JWTPayload {
