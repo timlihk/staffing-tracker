@@ -348,52 +348,117 @@ staffing-tracker/
 └── README.md                      # This file
 ```
 
-## 🔐 API Endpoints
+## 🔐 API Documentation
 
-### Authentication
-```
-POST   /api/auth/login      - User login
-POST   /api/auth/register   - User registration
-GET    /api/auth/me         - Get current user
-```
+### Interactive API Documentation
+- **Swagger UI**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs) (Development)
+- **Production Swagger UI**: [https://staffing-tracker-production.up.railway.app/api-docs](https://staffing-tracker-production.up.railway.app/api-docs)
+- **Complete API Reference**: See [`backend/API_DOCUMENTATION.md`](backend/API_DOCUMENTATION.md) for comprehensive documentation
 
-### Projects
-```
-GET    /api/projects        - List projects (with filters)
-GET    /api/projects/:id    - Get project details
-GET    /api/projects/:id/activity-log - Get project change log
-POST   /api/projects        - Create project (admin/editor)
-PUT    /api/projects/:id    - Update project (admin/editor)
-DELETE /api/projects/:id    - Delete project (admin)
-GET    /api/projects/categories - Get categories
-```
+### Quick API Reference
 
-### Staff
+#### Authentication (7 endpoints)
 ```
-GET    /api/staff           - List staff
-GET    /api/staff/:id       - Get staff details
-GET    /api/staff/:id/workload - Get workload metrics
-POST   /api/staff           - Create staff (admin/editor)
-PUT    /api/staff/:id       - Update staff (admin/editor)
-DELETE /api/staff/:id       - Delete staff (admin)
+POST   /api/auth/login           - User login
+POST   /api/auth/register        - User registration (admin only)
+GET    /api/auth/me              - Get current user
+POST   /api/auth/refresh         - Refresh access token
+POST   /api/auth/logout          - Logout current session
+POST   /api/auth/logout-all      - Logout all sessions
+POST   /api/auth/reset-password  - Reset user password (admin only)
 ```
 
-### Assignments
+#### Projects (11 endpoints)
 ```
-GET    /api/assignments     - List assignments
-GET    /api/assignments/:id - Get assignment
-POST   /api/assignments     - Create assignment (admin/editor)
-POST   /api/assignments/bulk - Bulk create (admin/editor)
-PUT    /api/assignments/:id - Update assignment (admin/editor)
-DELETE /api/assignments/:id - Delete assignment (admin/editor)
+GET    /api/projects                        - List projects (with filters)
+GET    /api/projects/categories             - Get categories
+GET    /api/projects/needing-attention      - Projects needing review
+GET    /api/projects/:id                    - Get project details
+GET    /api/projects/:id/change-history     - Get project change history
+POST   /api/projects                        - Create project (admin/editor)
+POST   /api/projects/:id/confirm            - Confirm project (all users)
+PUT    /api/projects/:id                    - Update project (admin/editor)
+DELETE /api/projects/:id                    - Delete project (admin)
+POST   /api/projects/:id/bc-attorneys       - Add B&C attorney (admin/editor)
+DELETE /api/projects/:id/bc-attorneys/:staffId - Remove B&C attorney (admin/editor)
 ```
 
-### Dashboard
+#### Staff (7 endpoints)
+```
+GET    /api/staff                    - List staff
+GET    /api/staff/:id                - Get staff details
+GET    /api/staff/:id/workload       - Get workload metrics
+GET    /api/staff/:id/change-history - Get staff change history
+POST   /api/staff                    - Create staff (admin/editor)
+PUT    /api/staff/:id                - Update staff (admin/editor)
+DELETE /api/staff/:id                - Delete staff (admin)
+```
+
+#### Assignments (6 endpoints)
+```
+GET    /api/assignments        - List assignments
+GET    /api/assignments/:id    - Get assignment
+POST   /api/assignments        - Create assignment (admin/editor)
+POST   /api/assignments/bulk   - Bulk create (admin/editor)
+PUT    /api/assignments/:id    - Update assignment (admin/editor)
+DELETE /api/assignments/:id    - Delete assignment (admin/editor)
+```
+
+#### Dashboard (4 endpoints)
 ```
 GET    /api/dashboard/summary         - Dashboard summary
 GET    /api/dashboard/workload-report - Workload report
 GET    /api/dashboard/activity-log    - Activity log
+GET    /api/dashboard/change-history  - Detailed change history
 ```
+
+#### Reports (4 endpoints)
+```
+GET    /api/reports/staffing        - Staffing report (JSON)
+GET    /api/reports/staffing.xlsx   - Staffing report (Excel)
+GET    /api/project-reports         - Project report (JSON)
+GET    /api/project-reports/excel   - Project report (Excel)
+```
+
+#### Users - Admin Only (5 endpoints)
+```
+GET    /api/users                     - List users
+POST   /api/users                     - Create user
+PATCH  /api/users/:id                 - Update user
+POST   /api/users/:id/reset-password  - Reset user password
+DELETE /api/users/:id                 - Delete user
+```
+
+#### Billing Module (17 endpoints)
+```
+GET    /api/billing/projects                         - List billing projects
+GET    /api/billing/projects/:id                     - Get billing project detail
+GET    /api/billing/projects/:id/engagement/:engagementId - Get engagement detail
+GET    /api/billing/projects/:id/cm/:cmId/engagements    - Get client matter engagements
+GET    /api/billing/projects/:id/activity            - Get billing project activity
+PATCH  /api/billing/projects/:id/financials          - Update financials (admin)
+PATCH  /api/billing/engagements/:engagementId/fee-arrangement - Update fee arrangement (admin)
+POST   /api/billing/engagements/:engagementId/milestones    - Create milestone (admin)
+PATCH  /api/billing/milestones                       - Update milestones (admin)
+DELETE /api/billing/milestones/:milestoneId          - Delete milestone (admin)
+GET    /api/billing/mapping/suggestions              - Get mapping suggestions (admin)
+POST   /api/billing/mapping/link                     - Link projects (admin)
+DELETE /api/billing/mapping/unlink/:linkId           - Unlink projects (admin)
+GET    /api/billing/bc-attorneys/unmapped            - Get unmapped attorneys (admin)
+POST   /api/billing/bc-attorneys/map                 - Map attorney (admin)
+GET    /api/billing/settings/access                  - Get access settings (admin)
+PATCH  /api/billing/settings/access                  - Update access settings (admin)
+```
+
+#### Settings (2 endpoints)
+```
+GET    /api/email-settings  - Get email settings
+PATCH  /api/email-settings  - Update email settings (admin only)
+```
+
+**Total: 60+ documented API endpoints**
+
+For detailed request/response schemas, authentication flows, and code examples, see the [Complete API Documentation](backend/API_DOCUMENTATION.md).
 
 ## 🗄️ Database Schema
 

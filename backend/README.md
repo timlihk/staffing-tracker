@@ -1,59 +1,86 @@
 # Staffing Tracker Backend API
 
-Backend API for Kirkland & Ellis Staffing Tracker application.
+Backend API for Kirkland & Ellis Staffing Tracker application with comprehensive OpenAPI/Swagger documentation.
 
-## Tech Stack
+## 📚 Documentation
 
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **ORM**: Prisma
+- **📖 [Complete API Documentation](./API_DOCUMENTATION.md)** - Comprehensive guide with examples
+- **🔧 [Interactive Swagger UI](http://localhost:3000/api-docs)** - Try the API interactively (development)
+- **🌐 [Production Swagger UI](https://staffing-tracker-production.up.railway.app/api-docs)** - Production API docs
+
+## 🛠️ Tech Stack
+
+- **Runtime**: Node.js 18+ with TypeScript
+- **Framework**: Express.js 5.x
+- **Database**: PostgreSQL 16+
+- **ORM**: Prisma 6.x
 - **Authentication**: JWT with bcrypt
+- **API Documentation**: OpenAPI 3.0 (Swagger)
+- **Email Service**: Resend
+- **Validation**: Zod
+- **Testing**: Jest + Supertest
 
-## Setup
+## 🚀 Setup
 
 ### Prerequisites
 
 - Node.js 18+
 - PostgreSQL database (or Railway PostgreSQL)
+- npm or yarn
 
 ### Installation
 
-1. Install dependencies:
+1. **Install dependencies:**
 ```bash
 npm install
 ```
 
-2. Set up environment variables:
+2. **Set up environment variables:**
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and update `DATABASE_URL` with your PostgreSQL connection string.
+Edit `.env` and configure:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/staffing_tracker"
+JWT_SECRET="your-secret-key-here"
+JWT_REFRESH_SECRET="your-refresh-secret-here"  # Optional, will derive from JWT_SECRET if not set
+FRONTEND_URL="http://localhost:5173"
+NODE_ENV="development"
+RESEND_API_KEY="your-resend-api-key"  # For email notifications
+EMAIL_FROM="notifications@your-domain.com"
+```
 
-3. Generate Prisma client:
+3. **Generate Prisma client:**
 ```bash
 npm run prisma:generate
 ```
 
-4. Run database migrations:
+4. **Run database migrations:**
 ```bash
 npx prisma migrate dev
 ```
 
-5. (Optional) Seed database with Excel data:
+5. **(Optional) Seed database with Excel data:**
 ```bash
 npx ts-node src/scripts/migrate-excel.ts
 ```
 
+6. **(Optional) View database in Prisma Studio:**
+```bash
+npm run prisma:studio
+```
+
 ### Development
 
-Start development server:
+Start development server with hot reload:
 ```bash
 npm run dev
 ```
 
 Server will run on `http://localhost:3000`
+
+**API Documentation:** http://localhost:3000/api-docs
 
 ### Production Build
 
@@ -62,48 +89,50 @@ npm run build
 npm start
 ```
 
-## API Endpoints
+### Testing
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/auth/me` - Get current user (requires auth)
-- `POST /api/auth/reset-password` - Complete a password reset using a one-time token
+```bash
+# Run all tests
+npm test
 
-### Projects
-- `GET /api/projects` - List all projects (with filters)
-- `GET /api/projects/:id` - Get project details
-- `POST /api/projects` - Create project (admin/editor)
-- `PUT /api/projects/:id` - Update project (admin/editor)
-- `DELETE /api/projects/:id` - Delete project (admin)
-- `GET /api/projects/categories` - Get project categories
+# Run tests in watch mode
+npm run test:watch
 
-### Staff
-- `GET /api/staff` - List all staff
-- `GET /api/staff/:id` - Get staff details
-- `GET /api/staff/:id/workload` - Get staff workload
-- `POST /api/staff` - Create staff (admin/editor)
-- `PUT /api/staff/:id` - Update staff (admin/editor)
-- `DELETE /api/staff/:id` - Delete staff (admin)
+# Run tests with coverage
+npm run test:coverage
+```
 
-### Assignments
-- `GET /api/assignments` - List all assignments
-- `GET /api/assignments/:id` - Get assignment details
-- `POST /api/assignments` - Create assignment (admin/editor)
-- `POST /api/assignments/bulk` - Bulk create assignments (admin/editor)
-- `PUT /api/assignments/:id` - Update assignment (admin/editor)
-- `DELETE /api/assignments/:id` - Delete assignment (admin/editor)
+## 📡 API Overview
 
-### Dashboard
-- `GET /api/dashboard/summary` - Get dashboard summary
-- `GET /api/dashboard/workload-report` - Get workload report
-- `GET /api/dashboard/activity-log` - Get activity log
+**Total Endpoints:** 60+ documented endpoints
 
-### Users (Admin Only)
-- `GET /api/users` - List application users
-- `POST /api/users` - Create user with temporary password (forces first-login reset)
-- `PATCH /api/users/:id` - Update role or linked staff member
-- `POST /api/users/:id/reset-password` - Generate a new temporary password
+### Quick Reference
+
+| Module | Endpoints | Description |
+|--------|-----------|-------------|
+| **Authentication** | 7 | Login, register, refresh tokens, logout |
+| **Projects** | 11 | CRUD, categories, B&C attorneys, history |
+| **Staff** | 7 | CRUD, workload tracking, history |
+| **Assignments** | 6 | CRUD, bulk operations |
+| **Dashboard** | 4 | Summary, workload, activity logs |
+| **Reports** | 4 | JSON and Excel exports |
+| **Users** | 5 | User management (admin only) |
+| **Billing** | 17 | Billing module with engagements |
+| **Settings** | 2 | Email notification settings |
+
+### Key Features
+
+✅ **OpenAPI 3.0 Specification** - Full Swagger/OpenAPI documentation
+✅ **Interactive API Docs** - Try endpoints directly in browser
+✅ **JWT Authentication** - Secure token-based auth with refresh tokens
+✅ **Role-Based Access** - Admin, Editor, and Viewer roles
+✅ **Rate Limiting** - Protection against abuse
+✅ **Request Validation** - Zod schema validation
+✅ **Comprehensive Error Handling** - Consistent error responses
+✅ **Change History Tracking** - Full audit trail
+✅ **Email Notifications** - Automated project update emails
+
+For detailed endpoint documentation, request/response examples, and authentication flows, see **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)**.
 
 ## Deployment to Railway
 
