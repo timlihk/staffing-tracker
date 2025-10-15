@@ -9,39 +9,27 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   IconButton,
-  MenuItem,
   Paper,
   Stack,
-  Switch,
-  TextField,
   Typography,
   Tabs,
   Tab,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add, Refresh, Edit, Delete } from '@mui/icons-material';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { Page, PageHeader } from '../components/ui';
+import { CreateOrEditUserDialog, EmailSettingsPanel, BillingSettingsPanel } from '../components/admin';
 import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDeleteUser } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth } from '../hooks/useAuth';
 import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSettings';
 import { useBillingSettings, useUpdateBillingSettings } from '../hooks/useBilling';
 import type { ManagedUser, Staff } from '../types';
-import { createUserSchema, type CreateUserFormData } from '../lib/validations';
 import { toast } from '../lib/toast';
-
-const Roles: Array<{ label: string; value: 'admin' | 'editor' | 'viewer' }> = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'Editor', value: 'editor' },
-  { label: 'Viewer', value: 'viewer' },
-];
 
 const formatDateTime = (value: string | null) => {
   if (!value) return '—';
@@ -600,279 +588,23 @@ const UserManagement: React.FC = () => {
 
       {activeTab === 3 && (
         <Paper sx={{ p: 3 }}>
-          {emailSettingsLoading ? (
-            <Box display="flex" justifyContent="center" py={6}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  Email Notification Settings
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Configure which staff positions receive email updates when projects are modified.
-                </Typography>
-              </Box>
-
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Stack>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      Enable Email Notifications
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Master toggle for all project update email notifications
-                    </Typography>
-                  </Stack>
-                  <Switch
-                    checked={emailSettings?.emailNotificationsEnabled ?? false}
-                    onChange={async (e) => {
-                      try {
-                        await updateEmailSettings.mutateAsync({
-                          emailNotificationsEnabled: e.target.checked,
-                        });
-                        toast.success('Settings updated', 'Email notification settings have been saved.');
-                      } catch (error: unknown) {
-                        toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                      }
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Position-Based Notifications
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Select which staff positions should receive email updates for project changes
-                  </Typography>
-
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Partner</Typography>
-                      <Switch
-                        checked={emailSettings?.notifyPartner ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await updateEmailSettings.mutateAsync({
-                              notifyPartner: e.target.checked,
-                            });
-                            toast.success('Settings updated', 'Partner notification preference saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!emailSettings?.emailNotificationsEnabled}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Associate</Typography>
-                      <Switch
-                        checked={emailSettings?.notifyAssociate ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await updateEmailSettings.mutateAsync({
-                              notifyAssociate: e.target.checked,
-                            });
-                            toast.success('Settings updated', 'Associate notification preference saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!emailSettings?.emailNotificationsEnabled}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Junior FLIC</Typography>
-                      <Switch
-                        checked={emailSettings?.notifyJuniorFlic ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await updateEmailSettings.mutateAsync({
-                              notifyJuniorFlic: e.target.checked,
-                            });
-                            toast.success('Settings updated', 'Junior FLIC notification preference saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!emailSettings?.emailNotificationsEnabled}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Senior FLIC</Typography>
-                      <Switch
-                        checked={emailSettings?.notifySeniorFlic ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await updateEmailSettings.mutateAsync({
-                              notifySeniorFlic: e.target.checked,
-                            });
-                            toast.success('Settings updated', 'Senior FLIC notification preference saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!emailSettings?.emailNotificationsEnabled}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Intern</Typography>
-                      <Switch
-                        checked={emailSettings?.notifyIntern ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await updateEmailSettings.mutateAsync({
-                              notifyIntern: e.target.checked,
-                            });
-                            toast.success('Settings updated', 'Intern notification preference saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!emailSettings?.emailNotificationsEnabled}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">B&C Working Attorney</Typography>
-                      <Switch
-                        checked={emailSettings?.notifyBCWorkingAttorney ?? false}
-                        onChange={async (e) => {
-                          try {
-                            await updateEmailSettings.mutateAsync({
-                              notifyBCWorkingAttorney: e.target.checked,
-                            });
-                            toast.success('Settings updated', 'B&C Working Attorney notification preference saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!emailSettings?.emailNotificationsEnabled}
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
-                  <Typography variant="body2" color="info.dark">
-                    <strong>Note:</strong> When a project is updated, only staff members assigned to that project with positions that have notifications enabled will receive email updates.
-                  </Typography>
-                </Box>
-              </Stack>
-            </Stack>
-          )}
+          <EmailSettingsPanel
+            emailSettings={emailSettings}
+            loading={emailSettingsLoading}
+            onUpdate={updateEmailSettings.mutateAsync}
+            extractError={extractUserError}
+          />
         </Paper>
       )}
 
       {activeTab === 4 && (
         <Paper sx={{ p: 3 }}>
-          {billingSettingsLoading ? (
-            <Box display="flex" justifyContent="center" py={6}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  Billing Module Settings
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Configure access to the billing and collection module.
-                </Typography>
-              </Box>
-
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Stack>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      Enable Billing Module
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Master toggle to enable or disable the billing module for all users
-                    </Typography>
-                  </Stack>
-                  <Switch
-                    checked={billingSettings?.billing_module_enabled ?? false}
-                    onChange={async (e) => {
-                      try {
-                        await updateBillingSettings.mutateAsync({
-                          billing_module_enabled: e.target.checked,
-                        });
-                        toast.success('Settings updated', 'Billing module settings have been saved.');
-                      } catch (error: unknown) {
-                        toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                      }
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Access Control
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Control which user roles can access the billing module
-                  </Typography>
-
-                  <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Stack>
-                        <Typography variant="body1" fontWeight={600}>
-                          Admin Access
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Allow administrators to access billing
-                        </Typography>
-                      </Stack>
-                      <Switch
-                        checked={true}
-                        disabled
-                        color="primary"
-                      />
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Stack>
-                        <Typography variant="body1" fontWeight={600}>
-                          B&C Attorney Access
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Allow B&C attorneys to access billing
-                        </Typography>
-                      </Stack>
-                      <Switch
-                        checked={billingSettings?.access_level === 'admin_and_bc_attorney'}
-                        onChange={async (e) => {
-                          try {
-                            await updateBillingSettings.mutateAsync({
-                              access_level: e.target.checked ? 'admin_and_bc_attorney' : 'admin_only',
-                            });
-                            toast.success('Settings updated', 'Billing access level has been saved.');
-                          } catch (error: unknown) {
-                            toast.error('Update failed', extractUserError(error, 'Failed to update settings.'));
-                          }
-                        }}
-                        disabled={!billingSettings?.billing_module_enabled}
-                        color="primary"
-                      />
-                    </Box>
-                  </Stack>
-                </Box>
-
-                <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
-                  <Typography variant="body2" color="info.dark">
-                    <strong>Note:</strong> When set to "Admin and B&C Attorneys", B&C attorneys will only see billing projects they are assigned to. Admins always have full access to all billing data.
-                  </Typography>
-                </Box>
-              </Stack>
-            </Stack>
-          )}
+          <BillingSettingsPanel
+            billingSettings={billingSettings}
+            loading={billingSettingsLoading}
+            onUpdate={updateBillingSettings.mutateAsync}
+            extractError={extractUserError}
+          />
         </Paper>
       )}
 
@@ -939,151 +671,8 @@ const UserManagement: React.FC = () => {
   );
 };
 
-interface CreateDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (values: CreateUserFormData) => Promise<void>;
-  staff: Array<{ label: string; value: number }>;
-  loadingStaff: boolean;
-  initialValues?: Partial<CreateUserFormData>;
-  disableUsernameEmail?: boolean;
-}
-
-const CreateOrEditUserDialog: React.FC<CreateDialogProps> = ({
-  open,
-  onClose,
-  onSubmit,
-  staff,
-  loadingStaff,
-  initialValues,
-  disableUsernameEmail,
-}) => {
-  const {
-    register,
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-  } = useForm<CreateUserFormData>({
-    resolver: zodResolver(createUserSchema),
-    defaultValues: {
-      username: initialValues?.username || '',
-      email: initialValues?.email || '',
-      role: initialValues?.role || 'viewer',
-      staffId: initialValues?.staffId ?? null,
-    },
-  });
-
-  const handleClose = () => {
-    if (!isSubmitting) {
-      onClose();
-      reset();
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>{disableUsernameEmail ? 'Edit User' : 'Create User'}</DialogTitle>
-      <DialogContent sx={{ pt: 1 }}>
-        <Box component="form" id="user-form" onSubmit={handleSubmit(async (values) => {
-          await onSubmit(values);
-          reset();
-        })}>
-          <Grid container spacing={2} sx={{ mt: 0 }}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                label="Username"
-                fullWidth
-                {...register('username')}
-                error={!!errors.username}
-                helperText={errors.username?.message}
-                disabled={disableUsernameEmail || isSubmitting}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                label="Email"
-                fullWidth
-                {...register('email')}
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                disabled={disableUsernameEmail || isSubmitting}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="role"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    select
-                    label="Role"
-                    fullWidth
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    error={!!errors.role}
-                    helperText={errors.role?.message}
-                    disabled={isSubmitting}
-                  >
-                    {Roles.map((role) => (
-                      <MenuItem key={role.value} value={role.value}>
-                        {role.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="staffId"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    select
-                    label="Linked Staff"
-                    fullWidth
-                    value={field.value ?? ''}
-                    onChange={(event) => {
-                      const nextValue = event.target.value === '' ? null : Number(event.target.value);
-                      field.onChange(nextValue);
-                    }}
-                    onBlur={field.onBlur}
-                    disabled={loadingStaff || isSubmitting}
-                    SelectProps={{
-                      displayEmpty: true,
-                      renderValue: (selected) => {
-                        if (!selected) return 'None';
-                        const option = staff.find((opt) => opt.value === selected);
-                        return option ? option.label : 'Unknown';
-                      },
-                    }}
-                    helperText="Optional: associate this user with a staff member"
-                  >
-                    <MenuItem value="">None</MenuItem>
-                    {staff.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
-              />
-            </Grid>
-          </Grid>
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting}>
-          {isSubmitting ? <CircularProgress size={22} /> : disableUsernameEmail ? 'Save Changes' : 'Create User'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
+// CreateOrEditUserDialog has been extracted to components/admin/CreateOrEditUserDialog.tsx
+// EmailSettingsPanel has been extracted to components/admin/EmailSettingsPanel.tsx
+// BillingSettingsPanel has been extracted to components/admin/BillingSettingsPanel.tsx
 
 export default UserManagement;
