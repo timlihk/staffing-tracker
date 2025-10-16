@@ -127,7 +127,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Invalid engagementId parameter' });
     }
 
-    // Get project basic info
+    // Get project basic info from the view
     const projectData = await prisma.$queryRaw<any[]>`
       SELECT * FROM billing_bc_attorney_dashboard
       WHERE project_id = ${projectId}
@@ -136,6 +136,22 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
 
     if (!projectData || projectData.length === 0) {
       return res.status(404).json({ error: 'Billing project not found' });
+    }
+
+    // Get B&C attorneys directly from the project-level table
+    const bcAttorneys = await prisma.$queryRaw<any[]>`
+      SELECT
+        string_agg(DISTINCT s.name, ', ' ORDER BY s.name) AS bc_attorney_name,
+        string_agg(DISTINCT s.id::text, ', ' ORDER BY s.id::text) AS bc_attorney_staff_id
+      FROM billing_project_bc_attorneys bpba
+      JOIN staff s ON s.id = bpba.staff_id
+      WHERE bpba.billing_project_id = ${projectId}
+    `;
+
+    // Merge B&C attorney info into project data
+    if (bcAttorneys && bcAttorneys.length > 0) {
+      projectData[0].bc_attorney_name = bcAttorneys[0].bc_attorney_name || null;
+      projectData[0].bc_attorney_staff_id = bcAttorneys[0].bc_attorney_staff_id || null;
     }
 
     // For summary view, return minimal data without nested details
