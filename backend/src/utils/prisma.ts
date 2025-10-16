@@ -95,16 +95,19 @@ export const clearCache = (): void => {
   cacheStats.evictions = 0;
 };
 
+// Cache version - increment this when schema changes to invalidate old cache entries
+const CACHE_VERSION = 'v2';
+
 // Cache keys for common queries with automatic sanitization
 export const CACHE_KEYS = {
-  PROJECTS_LIST: (params: string) => `projects:list:${sanitizeCacheKey(params)}`,
-  PROJECT_DETAIL: (id: number) => `project:detail:${id}`,
-  PROJECT_REPORT: (params: string) => `project:report:${sanitizeCacheKey(params)}`,
-  PROJECT_CATEGORIES: 'projects:categories',
-  PROJECT_CHANGE_HISTORY: (id: number, limit: number) => `project:change-history:${id}:${limit}`,
-  STAFF_LIST: (params: string) => `staff:list:${sanitizeCacheKey(params)}`,
-  STAFF_DETAIL: (id: number) => `staff:detail:${id}`,
-  DASHBOARD_SUMMARY: (params: string) => `dashboard:summary:${sanitizeCacheKey(params)}`,
+  PROJECTS_LIST: (params: string) => `projects:list:${CACHE_VERSION}:${sanitizeCacheKey(params)}`,
+  PROJECT_DETAIL: (id: number) => `project:detail:${CACHE_VERSION}:${id}`,
+  PROJECT_REPORT: (params: string) => `project:report:${CACHE_VERSION}:${sanitizeCacheKey(params)}`,
+  PROJECT_CATEGORIES: `projects:categories:${CACHE_VERSION}`,
+  PROJECT_CHANGE_HISTORY: (id: number, limit: number) => `project:change-history:${CACHE_VERSION}:${id}:${limit}`,
+  STAFF_LIST: (params: string) => `staff:list:${CACHE_VERSION}:${sanitizeCacheKey(params)}`,
+  STAFF_DETAIL: (id: number) => `staff:detail:${CACHE_VERSION}:${id}`,
+  DASHBOARD_SUMMARY: (params: string) => `dashboard:summary:${CACHE_VERSION}:${sanitizeCacheKey(params)}`,
 };
 
 /**

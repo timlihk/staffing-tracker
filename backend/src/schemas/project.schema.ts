@@ -5,8 +5,8 @@ import { z } from 'zod';
  */
 export const projectSchema = z.object({
   name: z.string()
-    .min(1, 'Project code is required')
-    .max(255, 'Project code must not exceed 255 characters')
+    .min(1, 'Project name is required')
+    .max(255, 'Project name must not exceed 255 characters')
     .trim(),
   category: z.string()
     .min(1, 'Category is required')

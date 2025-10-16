@@ -189,11 +189,11 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
     const staff = await prisma.staff.create({
       data: {
         name,
-        email,
+        email: email === '' ? null : email,
         position,
-        department,
+        department: department === '' ? null : department,
         status: status || 'active',
-        notes,
+        notes: notes === '' ? null : notes,
       },
     });
 

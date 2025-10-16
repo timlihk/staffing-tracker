@@ -63,7 +63,14 @@ export const useUpdateStaff = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<Staff> }) => {
-      const response = await api.put<Staff>(`/staff/${id}`, data);
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...data,
+        email: data.email === '' ? null : data.email,
+        department: data.department === '' ? null : data.department,
+        notes: data.notes === '' ? null : data.notes,
+      };
+      const response = await api.put<Staff>(`/staff/${id}`, cleanedData);
       return response.data;
     },
     onSuccess: (_, variables) => {
