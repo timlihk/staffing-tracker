@@ -184,3 +184,49 @@ export interface LoginResponse {
   token: string;
   user: User;
 }
+
+// Billing Types
+export interface BillingProject {
+  project_id: number;
+  project_name: string;
+  client_name?: string;
+  base_currency: string;
+  role?: string;
+  created_at: string;
+  bc_attorneys: BillingBcAttorney[];
+  linked_staffing_projects: LinkedStaffingProject[];
+  engagements: BillingEngagement[];
+}
+
+export interface BillingBcAttorney {
+  staff_id: number;
+  name: string;
+  position: string;
+  role?: string;
+}
+
+export interface LinkedStaffingProject {
+  id: number;
+  name: string;
+  status: string;
+  category: string;
+}
+
+export interface BillingEngagement {
+  engagement_id: number;
+  engagement_code?: string;
+  engagement_title?: string;
+  total_agreed_fee_value?: number;
+  total_agreed_fee_currency?: string;
+  pending_milestones: number;
+}
+
+export interface StaffBillingProjects {
+  staff: {
+    id: number;
+    name: string;
+    position: string;
+  };
+  total_projects: number;
+  billing_projects: BillingProject[];
+}

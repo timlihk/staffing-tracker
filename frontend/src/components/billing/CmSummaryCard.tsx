@@ -1,4 +1,5 @@
-import { Box, Paper, Stack, Chip, Divider, Typography } from '@mui/material';
+import { Box, Paper, Stack, Chip, Divider, Typography, IconButton, Tooltip } from '@mui/material';
+import { Edit as EditIcon } from '@mui/icons-material';
 import { InfoField } from './InfoField';
 import { formatDate, formatDateYmd, formatCurrencyWholeWithFallback } from '../../lib/billing/utils';
 import { formatCurrency } from '../../lib/currency';
@@ -20,6 +21,8 @@ export interface CmSummaryCardProps {
   engagementSummary: CMEngagementSummary | null;
   detail: EngagementDetailResponse | null;
   loading: boolean;
+  onEdit?: () => void;
+  canEdit?: boolean;
 }
 
 /**
@@ -35,6 +38,8 @@ export function CmSummaryCard({
   engagementSummary,
   detail,
   loading,
+  onEdit,
+  canEdit = false,
 }: CmSummaryCardProps) {
   const statusNormalized = (cm?.status || '').trim().toLowerCase();
   const statusColor: 'default' | 'success' | 'warning' =
@@ -59,7 +64,16 @@ export function CmSummaryCard({
           <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
             <Typography variant="h6">Client Matter Summary</Typography>
           </Stack>
-          {cm?.status && <Chip label={cm.status} color={statusColor} size="small" />}
+          <Stack direction="row" spacing={1} alignItems="center">
+            {cm?.status && <Chip label={cm.status} color={statusColor} size="small" />}
+            {canEdit && onEdit && (
+              <Tooltip title="Edit billing information">
+                <IconButton size="small" onClick={onEdit} color="primary">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
         </Stack>
 
         <Divider />
@@ -76,6 +90,7 @@ export function CmSummaryCard({
           }}
         >
           <InfoField label="C/M Number" value={cm?.cm_no || '—'} loading={loading && !cm} />
+          <InfoField label="B&C Attorney" value={project.bc_attorney_name || '—'} loading={loading} />
           <InfoField label="Opened" value={formatDate(cm?.open_date)} loading={loading} />
           <InfoField label="Closed" value={formatDate(cm?.closed_date)} loading={loading} />
           <InfoField label="Long Stop Date" value={formatDateYmd(longStopDate)} loading={loading} />

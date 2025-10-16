@@ -147,6 +147,75 @@ router.get('/:id/change-history', authenticate, asyncHandler(staffController.get
 
 /**
  * @openapi
+ * /staff/{id}/billing-projects:
+ *   get:
+ *     tags: [Staff]
+ *     summary: Get staff member's billing projects
+ *     description: Retrieve all billing projects where the staff member is a B&C attorney, including engagements and linked staffing projects
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Staff ID
+ *     responses:
+ *       200:
+ *         description: Staff billing projects
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 staff:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                     position:
+ *                       type: string
+ *                 total_projects:
+ *                   type: integer
+ *                 billing_projects:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       project_id:
+ *                         type: integer
+ *                       project_name:
+ *                         type: string
+ *                       client_name:
+ *                         type: string
+ *                       base_currency:
+ *                         type: string
+ *                       role:
+ *                         type: string
+ *                       bc_attorneys:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                       linked_staffing_projects:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                       engagements:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Staff member not found
+ */
+router.get('/:id/billing-projects', authenticate, asyncHandler(staffController.getStaffBillingProjects));
+
+/**
+ * @openapi
  * /staff:
  *   post:
  *     tags: [Staff]

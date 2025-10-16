@@ -6,6 +6,24 @@ import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { StaffWhereInput, ControllerError } from '../types/prisma';
 import { Prisma } from '@prisma/client';
 
+/**
+ * Helper function to convert BigInt values to numbers for JSON serialization
+ */
+function convertBigIntToNumber(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'bigint') return Number(obj);
+  if (obj instanceof Date) return obj.toISOString();
+  if (Array.isArray(obj)) return obj.map(convertBigIntToNumber);
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const key in obj) {
+      result[key] = convertBigIntToNumber(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+}
+
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { position, department, status, search } = req.query;
@@ -411,6 +429,117 @@ export const getStaffChangeHistory = async (req: AuthRequest, res: Response) => 
     );
   } catch (error) {
     console.error('Get staff change history error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getStaffBillingProjects = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const staffId = parseInt(id, 10);
+    if (Number.isNaN(staffId)) {
+      return res.status(400).json({ error: 'Invalid staff ID' });
+    }
+
+    // Verify staff exists
+    const staff = await prisma.staff.findUnique({
+      where: { id: staffId },
+      select: { id: true, name: true, position: true },
+    });
+
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff member not found' });
+    }
+
+    // Get billing projects where staff is BC attorney
+    const billingProjectAttorneys = await prisma.billing_project_bc_attorney.findMany({
+      where: { staff_id: staffId },
+      include: {
+        billing_project: {
+          include: {
+            billing_engagement: {
+              include: {
+                billing_milestone: {
+                  where: {
+                    completed: false,
+                  },
+                  orderBy: { sort_order: 'asc' },
+                  take: 5, // Show first 5 pending milestones
+                },
+              },
+              orderBy: { created_at: 'desc' },
+            },
+            billing_staffing_project_link: {
+              include: {
+                projects: {
+                  select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    category: true,
+                  },
+                },
+              },
+            },
+            billing_project_bc_attorney: {
+              include: {
+                staff: {
+                  select: {
+                    id: true,
+                    name: true,
+                    position: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        billing_project: {
+          updated_at: 'desc',
+        },
+      },
+    });
+
+    // Format response
+    const billingProjects = billingProjectAttorneys.map((bpa) => ({
+      project_id: bpa.billing_project.project_id,
+      project_name: bpa.billing_project.project_name,
+      client_name: bpa.billing_project.client_name,
+      base_currency: bpa.billing_project.base_currency,
+      role: bpa.role,
+      created_at: bpa.created_at,
+      bc_attorneys: bpa.billing_project.billing_project_bc_attorney.map((bc) => ({
+        staff_id: bc.staff.id,
+        name: bc.staff.name,
+        position: bc.staff.position,
+        role: bc.role,
+      })),
+      linked_staffing_projects: bpa.billing_project.billing_staffing_project_link
+        .map((link) => link.projects)
+        .filter((p) => p !== null),
+      engagements: bpa.billing_project.billing_engagement.map((eng) => ({
+        engagement_id: eng.engagement_id,
+        engagement_code: eng.engagement_code,
+        engagement_title: eng.engagement_title,
+        name: eng.name,
+        pending_milestones: eng.billing_milestone.length,
+      })),
+    }));
+
+    res.json(convertBigIntToNumber({
+      staff: {
+        id: staff.id,
+        name: staff.name,
+        position: staff.position,
+      },
+      total_projects: billingProjects.length,
+      billing_projects: billingProjects,
+    }));
+  } catch (error) {
+    console.error('Get staff billing projects error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

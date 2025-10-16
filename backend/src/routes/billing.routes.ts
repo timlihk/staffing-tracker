@@ -153,6 +153,109 @@ router.get('/projects/:id', authenticate, checkBillingAccess, validate(billingId
 
 /**
  * @openapi
+ * /billing/projects/{id}/bc-attorneys:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get B&C attorneys for billing project
+ *     description: Retrieve list of B&C attorneys assigned to a billing project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     responses:
+ *       200:
+ *         description: List of B&C attorneys
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get('/projects/:id/bc-attorneys', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectBCAttorneys);
+
+/**
+ * @openapi
+ * /billing/projects/{id}:
+ *   put:
+ *     tags: [Billing]
+ *     summary: Update billing project
+ *     description: Update project information including name, client, B&C attorneys, and financials (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               project_name:
+ *                 type: string
+ *               client_name:
+ *                 type: string
+ *               bc_attorney_staff_ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of staff IDs to assign as B&C attorneys
+ *               agreed_fee_usd:
+ *                 type: number
+ *                 nullable: true
+ *               agreed_fee_cny:
+ *                 type: number
+ *                 nullable: true
+ *               billing_usd:
+ *                 type: number
+ *                 nullable: true
+ *               billing_cny:
+ *                 type: number
+ *                 nullable: true
+ *               collection_usd:
+ *                 type: number
+ *                 nullable: true
+ *               collection_cny:
+ *                 type: number
+ *                 nullable: true
+ *               ubt_usd:
+ *                 type: number
+ *                 nullable: true
+ *               ubt_cny:
+ *                 type: number
+ *                 nullable: true
+ *               billing_credit_usd:
+ *                 type: number
+ *                 nullable: true
+ *               billing_credit_cny:
+ *                 type: number
+ *                 nullable: true
+ *               bonus_usd:
+ *                 type: number
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Billing project updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: Billing project not found
+ */
+router.put('/projects/:id', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), billingController.updateBillingProject);
+
+/**
+ * @openapi
  * /billing/projects/{id}/engagement/{engagementId}:
  *   get:
  *     tags: [Billing]
@@ -481,6 +584,64 @@ router.get('/mapping/suggestions', authenticate, adminOnly, billingController.ge
  *         description: Forbidden (admin only)
  */
 router.post('/mapping/link', authenticate, adminOnly, validate(linkProjectsSchema), billingController.linkProjects);
+
+/**
+ * @openapi
+ * /billing/mapping/suggest/{billingProjectId}:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get suggested staffing project matches
+ *     description: Suggest staffing projects that might match a billing project using fuzzy name matching (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: billingProjectId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing Project ID
+ *     responses:
+ *       200:
+ *         description: List of suggested matches with similarity scores
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 billing_project:
+ *                   type: object
+ *                   properties:
+ *                     project_id:
+ *                       type: integer
+ *                     project_name:
+ *                       type: string
+ *                 existing_link:
+ *                   type: object
+ *                   nullable: true
+ *                 suggestions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       score:
+ *                         type: number
+ *                       status:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: Billing project not found
+ */
+router.get('/mapping/suggest/:billingProjectId', authenticate, adminOnly, billingController.suggestProjectMatches);
 
 /**
  * @openapi

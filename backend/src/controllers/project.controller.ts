@@ -74,12 +74,14 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
           priority: true,
           elStatus: true,
           timetable: true,
+          filingDate: true,
+          listingDate: true,
           side: true,
           sector: true,
           lastConfirmedAt: true,
           createdAt: true,
           updatedAt: true,
-          // Removed unused fields: filingDate, listingDate, bcAttorney, notes, assignments
+          // Removed unused fields: bcAttorney, notes, assignments
           // This significantly reduces query complexity and data transfer
         },
         orderBy: { updatedAt: 'desc' },

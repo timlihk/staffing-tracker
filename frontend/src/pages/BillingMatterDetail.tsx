@@ -13,9 +13,11 @@ import {
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
-import { InfoField, CmSummaryCard, FeeMilestonesCard } from '../components/billing';
+import { InfoField, CmSummaryCard, FeeMilestonesCard, BillingInfoEditDialog, type BillingInfoFormData } from '../components/billing';
 import { useBillingProjectSummary, useCMEngagements, useEngagementDetail } from '../hooks/useBilling';
 import { parseEngagementId, mapToSummary } from '../lib/billing/utils';
+import { usePermissions } from '../hooks/usePermissions';
+import api from '../api/client';
 import type {
   BillingProjectSummaryResponse,
   BillingProjectCM,
@@ -32,8 +34,11 @@ export default function BillingMatterDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const projectId = Number.parseInt(id || '0', 10) || 0;
+  const permissions = usePermissions();
 
-  const { data: summary, isLoading: summaryLoading } = useBillingProjectSummary(projectId, { view: 'full' });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useBillingProjectSummary(projectId, { view: 'full' });
 
   const project = summary?.project;
   const cmNumbers = useMemo(() => summary?.cmNumbers ?? [], [summary?.cmNumbers]);
@@ -144,9 +149,18 @@ export default function BillingMatterDetail() {
 
   const pageSubtitle = useMemo(() => {
     if (!project) return undefined;
-    const bits = [project.client_name, project.attorney_in_charge && `Lead: ${project.attorney_in_charge}`].filter(Boolean);
-    return bits.join(' • ');
+    return project.client_name || undefined;
   }, [project]);
+
+  const handleSaveBillingInfo = async (data: BillingInfoFormData) => {
+    try {
+      await api.put(`/billing/projects/${projectId}`, data);
+      await refetchSummary();
+    } catch (error) {
+      console.error('Failed to update billing information:', error);
+      throw error;
+    }
+  };
 
   if (!projectId) {
     return (
@@ -212,6 +226,8 @@ export default function BillingMatterDetail() {
             engagementSummary={selectedEngagementSummary}
             detail={selectedEngagement}
             loading={summaryLoading || engagementsLoading}
+            onEdit={() => setEditDialogOpen(true)}
+            canEdit={permissions.isAdmin}
           />
 
           <FeeMilestonesCard
@@ -224,6 +240,15 @@ export default function BillingMatterDetail() {
             loading={engagementsLoading || detailLoadingEffective}
           />
         </Stack>
+      )}
+
+      {project && (
+        <BillingInfoEditDialog
+          open={editDialogOpen}
+          onClose={() => setEditDialogOpen(false)}
+          onSave={handleSaveBillingInfo}
+          project={project}
+        />
       )}
     </Page>
   );

@@ -11,8 +11,6 @@ import {
   Chip,
   Typography,
   Link as MuiLink,
-  Alert,
-  AlertTitle,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useBillingProjects } from '../hooks/useBilling';
@@ -184,10 +182,6 @@ export default function BillingMatters() {
         </Typography>
       </Box>
 
-      <Alert severity="success" sx={{ mb: 3 }}>
-        <AlertTitle>✓ Data Import Complete</AlertTitle>
-        Successfully imported from parsed HTML: 112 billing records ($85.5M billed), 107 collection records ($80.8M collected), 126 UBT entries, 32 billing credits, and 250 detailed finance comments. All 176 projects matched successfully. Please verify amounts match your source documents.
-      </Alert>
 
       <Card>
         <CardContent>

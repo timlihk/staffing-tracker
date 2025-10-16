@@ -45,22 +45,14 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
       : null;
 
     // If user is B&C attorney (not admin), filter by their staff_id
-    let attorneyNames: string[] = [];
+    let userProjectIds: bigint[] = [];
     if (!isAdmin && user?.staffId) {
-      const staff = await prisma.staff.findUnique({
-        where: { id: user.staffId },
-        select: { position: true },
+      // Get project IDs where this staff member is a B&C attorney
+      const userProjects = await prisma.billing_project_bc_attorney.findMany({
+        where: { staff_id: user.staffId },
+        select: { billing_project_id: true },
       });
-
-      if (staff?.position === 'B&C Working Attorney') {
-        // Get attorney names mapped to this staff member
-        const mappings = await prisma.$queryRaw<{ billing_attorney_name: string }[]>`
-          SELECT billing_attorney_name
-          FROM billing_bc_attorney_staff_map
-          WHERE staff_id = ${user.staffId}
-        `;
-        attorneyNames = mappings.map(r => r.billing_attorney_name);
-      }
+      userProjectIds = userProjects.map(p => p.billing_project_id);
     }
 
     const projects = await prisma.$queryRaw<any[]>`
@@ -71,14 +63,14 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
     // Apply authorization filters:
     // 1. Admins can see all billing projects
     // 2. B&C attorneys can only see their assigned projects
-    // 3. Everyone else (including B&C attorneys with no mappings) sees nothing
+    // 3. Everyone else sees nothing
     let filteredProjects: any[];
     if (isAdmin) {
       filteredProjects = projects;
-    } else if (attorneyNames.length > 0) {
-      filteredProjects = projects.filter(p => attorneyNames.includes(p.attorney_in_charge));
+    } else if (userProjectIds.length > 0) {
+      filteredProjects = projects.filter(p => userProjectIds.includes(BigInt(p.project_id)));
     } else {
-      // Non-admins with no mapped attorney names should see nothing
+      // Non-admins with no assigned projects should see nothing
       filteredProjects = [];
     }
 
@@ -210,6 +202,16 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
           cm.open_date,
           cm.closed_date,
           cm.status,
+          cm.billing_to_date_usd,
+          cm.billing_to_date_cny,
+          cm.collected_to_date_usd,
+          cm.collected_to_date_cny,
+          cm.ubt_usd,
+          cm.ubt_cny,
+          cm.billing_credit_usd,
+          cm.billing_credit_cny,
+          cm.financials_updated_at,
+          cm.financials_updated_by,
           COALESCE(
             JSON_AGG(
               JSON_BUILD_OBJECT(
@@ -220,26 +222,6 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
                 'name', e.name,
                 'start_date', e.start_date,
                 'end_date', e.end_date,
-                'total_agreed_fee_value', e.total_agreed_fee_value,
-                'total_agreed_fee_currency', e.total_agreed_fee_currency,
-                'ubt_usd', e.ubt_usd,
-                'ubt_cny', e.ubt_cny,
-                'billing_credit_usd', e.billing_credit_usd,
-                'billing_credit_cny', e.billing_credit_cny,
-                'financials_last_updated_at', e.financials_last_updated_at,
-                'financials_last_updated_by', e.financials_last_updated_by,
-                'billing_usd', efs.billing_usd,
-                'collection_usd', efs.collection_usd,
-                'efs_billing_credit_usd', efs.billing_credit_usd,
-                'efs_ubt_usd', efs.ubt_usd,
-                'billing_cny', efs.billing_cny,
-                'collection_cny', efs.collection_cny,
-                'efs_billing_credit_cny', efs.billing_credit_cny,
-                'efs_ubt_cny', efs.ubt_cny,
-                'agreed_fee_usd', efs.agreed_fee_usd,
-                'agreed_fee_cny', efs.agreed_fee_cny,
-                'efs_financials_last_updated_at', efs.financials_last_updated_at,
-                'efs_financials_last_updated_by', efs.financials_last_updated_by,
                 'feeArrangement', (
                   SELECT JSON_BUILD_OBJECT(
                     'fee_id', fa.fee_id,
@@ -281,12 +263,23 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
               ) ORDER BY e.start_date DESC NULLS LAST, e.created_at DESC
             ) FILTER (WHERE e.engagement_id IS NOT NULL),
             '[]'::JSON
-          ) as engagements
+          ) as engagements,
+          efs.billing_usd,
+          efs.collection_usd,
+          efs.agreed_fee_usd,
+          efs.agreed_fee_cny,
+          efs.billing_cny,
+          efs.collection_cny
         FROM billing_project_cm_no cm
         LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
-        LEFT JOIN billing_engagement_financial_summary efs ON efs.engagement_id = e.engagement_id
+        LEFT JOIN billing_engagement_financial_summary efs ON efs.cm_id = cm.cm_id
         WHERE cm.project_id = ${projectId}${appendedConditions}
-        GROUP BY cm.cm_id, cm.cm_no, cm.is_primary, cm.project_id, cm.open_date, cm.closed_date, cm.status
+        GROUP BY cm.cm_id, cm.cm_no, cm.is_primary, cm.project_id, cm.open_date, cm.closed_date, cm.status,
+                 cm.billing_to_date_usd, cm.billing_to_date_cny, cm.collected_to_date_usd, cm.collected_to_date_cny,
+                 cm.ubt_usd, cm.ubt_cny, cm.billing_credit_usd, cm.billing_credit_cny,
+                 cm.financials_updated_at, cm.financials_updated_by,
+                 efs.billing_usd, efs.collection_usd, efs.agreed_fee_usd, efs.agreed_fee_cny,
+                 efs.billing_cny, efs.collection_cny
         ORDER BY cm.is_primary DESC, cm.cm_no
       )
       SELECT * FROM project_data
@@ -363,14 +356,16 @@ export async function getEngagementDetail(req: AuthRequest, res: Response) {
         e.name,
         e.start_date,
         e.end_date,
-        e.total_agreed_fee_value,
-        e.total_agreed_fee_currency,
-        e.ubt_usd,
-        e.ubt_cny,
-        e.billing_credit_usd,
-        e.billing_credit_cny,
-        e.financials_last_updated_at,
-        e.financials_last_updated_by,
+        cm.billing_to_date_usd,
+        cm.billing_to_date_cny,
+        cm.collected_to_date_usd,
+        cm.collected_to_date_cny,
+        cm.ubt_usd,
+        cm.ubt_cny,
+        cm.billing_credit_usd,
+        cm.billing_credit_cny,
+        cm.financials_updated_at,
+        cm.financials_updated_by,
         efs.billing_usd,
         efs.collection_usd,
         efs.billing_credit_usd as efs_billing_credit_usd,
@@ -480,7 +475,7 @@ export async function getEngagementDetail(req: AuthRequest, res: Response) {
         ) as events
       FROM billing_engagement e
       INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
-      LEFT JOIN billing_engagement_financial_summary efs ON efs.engagement_id = e.engagement_id
+      LEFT JOIN billing_engagement_financial_summary efs ON efs.cm_id = cm.cm_id
       WHERE e.engagement_id = ${engId}
         AND cm.project_id = ${projectId}
       LIMIT 1
@@ -520,10 +515,8 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
         e.name,
         e.start_date,
         e.end_date,
-        e.total_agreed_fee_value,
-        e.total_agreed_fee_currency,
         COUNT(m.milestone_id) as milestone_count,
-        COUNT(CASE WHEN m.completed THEN 1 END) as completed_milestone_count
+        COUNT(CASE WHEN M.completed THEN 1 END) as completed_milestone_count
       FROM billing_engagement e
       INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
       LEFT JOIN billing_milestone m ON m.engagement_id = e.engagement_id
@@ -531,7 +524,7 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
         AND cm.cm_id = ${cmIdNumber}
       GROUP BY
         e.engagement_id, e.cm_id, e.engagement_code, e.engagement_title,
-        e.name, e.start_date, e.end_date, e.total_agreed_fee_value, e.total_agreed_fee_currency
+        e.name, e.start_date, e.end_date
       ORDER BY e.start_date DESC NULLS LAST, e.engagement_id
     `;
 
@@ -1102,6 +1095,77 @@ export async function linkProjects(req: AuthRequest, res: Response) {
 }
 
 /**
+ * GET /api/billing/mapping/suggest/:billingProjectId
+ * Get suggested staffing project matches for a billing project using fuzzy matching
+ */
+export async function suggestProjectMatches(req: AuthRequest, res: Response) {
+  try {
+    const { billingProjectId } = req.params;
+    const { findBestMatches } = await import('../utils/fuzzyMatch');
+
+    // Get the billing project
+    const billingProject = await prisma.billing_project.findUnique({
+      where: { project_id: BigInt(billingProjectId) },
+      select: { project_id: true, project_name: true },
+    });
+
+    if (!billingProject) {
+      return res.status(404).json({ error: 'Billing project not found' });
+    }
+
+    // Check if already linked
+    const existingLink = await prisma.billing_staffing_project_link.findFirst({
+      where: { billing_project_id: billingProject.project_id },
+      include: {
+        projects: {
+          select: { id: true, name: true, status: true, category: true },
+        },
+      },
+    });
+
+    if (existingLink?.projects) {
+      return res.json({
+        billing_project: convertBigIntToNumber(billingProject),
+        existing_link: convertBigIntToNumber(existingLink.projects),
+        suggestions: [],
+      });
+    }
+
+    // Get all staffing projects
+    const staffingProjects = await prisma.project.findMany({
+      where: { status: { in: ['Active', 'Slow-down', 'On-hold'] } },
+      select: { id: true, name: true, status: true, category: true },
+    });
+
+    // Find best matches using fuzzy matching
+    const matches = findBestMatches(
+      billingProject.project_name,
+      staffingProjects.map(p => ({ id: p.id, name: p.name })),
+      0.6, // threshold
+      5 // maxResults
+    );
+
+    // Enhance matches with full project data
+    const suggestions = matches.map(match => {
+      const project = staffingProjects.find(p => p.id === match.id);
+      return {
+        ...match,
+        ...project,
+      };
+    });
+
+    res.json({
+      billing_project: convertBigIntToNumber(billingProject),
+      existing_link: null,
+      suggestions: convertBigIntToNumber(suggestions),
+    });
+  } catch (error) {
+    console.error('Error suggesting project matches:', error);
+    res.status(500).json({ error: 'Failed to suggest matches' });
+  }
+}
+
+/**
  * DELETE /api/billing/mapping/unlink/:linkId
  * Unlink a billing-staffing project connection
  */
@@ -1221,5 +1285,134 @@ export async function updateBillingAccessSettings(req: AuthRequest, res: Respons
   } catch (error) {
     console.error('Error updating billing settings:', error);
     res.status(500).json({ error: 'Failed to update billing settings' });
+  }
+}
+
+/**
+ * GET /api/billing/projects/:id/bc-attorneys
+ * Get B&C attorneys assigned to a billing project
+ */
+export async function getBillingProjectBCAttorneys(req: AuthRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const projectId = BigInt(id);
+
+    const bcAttorneys = await prisma.billing_project_bc_attorney.findMany({
+      where: { billing_project_id: projectId },
+      include: {
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+          },
+        },
+      },
+    });
+
+    // Convert BigInt values for JSON serialization
+    const sanitized = convertBigIntToNumber(bcAttorneys);
+    res.json(sanitized);
+  } catch (error) {
+    console.error('Error fetching BC attorneys:', error);
+    res.status(500).json({ error: 'Failed to fetch BC attorneys' });
+  }
+}
+
+/**
+ * PUT /api/billing/projects/:id
+ * Update billing project information including project details, BC attorneys, and financials
+ */
+export async function updateBillingProject(req: AuthRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const projectId = BigInt(id);
+    const userId = req.user?.userId;
+
+    const {
+      project_name,
+      client_name,
+      bc_attorney_staff_ids,
+      agreed_fee_usd,
+      agreed_fee_cny,
+      billing_usd,
+      billing_cny,
+      collection_usd,
+      collection_cny,
+      ubt_usd,
+      ubt_cny,
+      billing_credit_usd,
+      billing_credit_cny,
+      bonus_usd,
+    } = req.body;
+
+    // Verify project exists
+    const project = await prisma.billing_project.findUnique({
+      where: { project_id: projectId },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Billing project not found' });
+    }
+
+    // Build update data for billing_project table
+    const updateData: any = {
+      updated_at: new Date(),
+    };
+
+    if (project_name !== undefined) updateData.project_name = project_name;
+    if (client_name !== undefined) updateData.client_name = client_name;
+    if (agreed_fee_usd !== undefined) updateData.agreed_fee_usd = agreed_fee_usd;
+    if (agreed_fee_cny !== undefined) updateData.agreed_fee_cny = agreed_fee_cny;
+    if (billing_usd !== undefined) updateData.billing_usd = billing_usd;
+    if (billing_cny !== undefined) updateData.billing_cny = billing_cny;
+    if (collection_usd !== undefined) updateData.collection_usd = collection_usd;
+    if (collection_cny !== undefined) updateData.collection_cny = collection_cny;
+    if (ubt_usd !== undefined) updateData.ubt_usd = ubt_usd;
+    if (ubt_cny !== undefined) updateData.ubt_cny = ubt_cny;
+    if (billing_credit_usd !== undefined) updateData.billing_credit_usd = billing_credit_usd;
+    if (billing_credit_cny !== undefined) updateData.billing_credit_cny = billing_credit_cny;
+    if (bonus_usd !== undefined) updateData.bonus_usd = bonus_usd;
+
+    // Update the project
+    await prisma.billing_project.update({
+      where: { project_id: projectId },
+      data: updateData,
+    });
+
+    // Update B&C attorneys if provided
+    if (bc_attorney_staff_ids !== undefined && Array.isArray(bc_attorney_staff_ids)) {
+      // Delete all existing B&C attorney assignments
+      await prisma.billing_project_bc_attorney.deleteMany({
+        where: { billing_project_id: projectId },
+      });
+
+      // Create new assignments
+      if (bc_attorney_staff_ids.length > 0) {
+        await prisma.billing_project_bc_attorney.createMany({
+          data: bc_attorney_staff_ids.map((staffId: number) => ({
+            billing_project_id: projectId,
+            staff_id: staffId,
+            role: 'bc_attorney',
+          })),
+        });
+      }
+    }
+
+    // Log activity
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        actionType: 'update',
+        entityType: 'billing_project',
+        entityId: Number(projectId),
+        description: `Updated billing project ${project_name || project.project_name}`,
+      },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating billing project:', error);
+    res.status(500).json({ error: 'Failed to update billing project' });
   }
 }

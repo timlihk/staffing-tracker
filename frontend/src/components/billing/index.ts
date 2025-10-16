@@ -6,3 +6,4 @@ export { MilestoneTable, type MilestoneTableProps } from './MilestoneTable';
 export { MilestoneReferenceDialog, type MilestoneReferenceDialogProps } from './MilestoneReferenceDialog';
 export { MilestoneFormDialog, type MilestoneFormDialogProps } from './MilestoneFormDialog';
 export { MilestoneDeleteDialog, type MilestoneDeleteDialogProps } from './MilestoneDeleteDialog';
+export { BillingInfoEditDialog, type BillingInfoEditDialogProps, type BillingInfoFormData } from './BillingInfoEditDialog';

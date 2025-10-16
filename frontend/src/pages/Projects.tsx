@@ -52,10 +52,21 @@ const Projects: React.FC = () => {
 
   const projects = data?.data || [];
 
+  const formatDate = (value?: string | null) => {
+    if (!value) {
+      return '—';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
+    return date.toLocaleDateString();
+  };
+
   const columns: GridColDef<Project>[] = [
     {
       field: 'name',
-      headerName: 'Project Code',
+      headerName: 'Project Name',
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
@@ -85,7 +96,28 @@ const Projects: React.FC = () => {
     { field: 'sector', headerName: 'Sector', flex: 0.5, minWidth: 100 },
     { field: 'priority', headerName: 'Priority', flex: 0.4, minWidth: 90 },
     { field: 'elStatus', headerName: 'EL Status', flex: 0.5, minWidth: 100 },
-    { field: 'timetable', headerName: 'Timetable', flex: 0.5, minWidth: 100 },
+    {
+      field: 'filingDate',
+      headerName: 'Filing Date',
+      flex: 0.6,
+      minWidth: 120,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatDate(params.row.filingDate)}
+        </Typography>
+      ),
+    },
+    {
+      field: 'listingDate',
+      headerName: 'Listing Date',
+      flex: 0.6,
+      minWidth: 120,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatDate(params.row.listingDate)}
+        </Typography>
+      ),
+    },
     {
       field: 'lastConfirmedAt',
       headerName: 'Last Confirmed',
