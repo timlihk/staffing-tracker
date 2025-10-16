@@ -2,7 +2,7 @@
  * Billing Matters List Page
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,17 +11,76 @@ import {
   Chip,
   Typography,
   Link as MuiLink,
+  TextField,
+  Stack,
+  MenuItem,
+  InputAdornment,
 } from '@mui/material';
+import { Search as SearchIcon, FilterList as FilterIcon } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useBillingProjects } from '../hooks/useBilling';
 import { formatCurrencyWhole } from '../lib/currency';
 import { Page } from '../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 
+// Helper to format currency with currency symbol in value
+const formatCurrencyWithSymbol = (usdValue: number | null, cnyValue: number | null): string => {
+  const usd = Number(usdValue) || 0;
+  const cny = Number(cnyValue) || 0;
+
+  if (usd > 0 && cny > 0) {
+    return `${formatCurrencyWhole(usd, 'USD')} / ${formatCurrencyWhole(cny, 'CNY')}`;
+  }
+  if (usd > 0) {
+    return formatCurrencyWhole(usd, 'USD');
+  }
+  if (cny > 0) {
+    return formatCurrencyWhole(cny, 'CNY');
+  }
+  return '—';
+};
 
 export default function BillingMatters() {
   const navigate = useNavigate();
   const { data: projects = [], isLoading } = useBillingProjects();
+
+  // Filter states
+  const [searchText, setSearchText] = useState('');
+  const [bcAttorneyFilter, setBcAttorneyFilter] = useState<string>('all');
+
+  // Get unique B&C attorneys for filter dropdown
+  const bcAttorneys = useMemo(() => {
+    const attorneys = new Set<string>();
+    projects.forEach(p => {
+      const name = p.bc_attorney_name || p.attorney_in_charge;
+      if (name) {
+        // Split by comma in case there are multiple attorneys
+        name.split(',').forEach(n => attorneys.add(n.trim()));
+      }
+    });
+    return Array.from(attorneys).sort();
+  }, [projects]);
+
+  // Filtered projects
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      // Search filter (project name or C/M number)
+      if (searchText) {
+        const search = searchText.toLowerCase();
+        const matchesName = project.project_name?.toLowerCase().includes(search);
+        const matchesCM = project.cm_numbers?.toLowerCase().includes(search);
+        if (!matchesName && !matchesCM) return false;
+      }
+
+      // B&C attorney filter
+      if (bcAttorneyFilter !== 'all') {
+        const projectAttorney = project.bc_attorney_name || project.attorney_in_charge || '';
+        if (!projectAttorney.includes(bcAttorneyFilter)) return false;
+      }
+
+      return true;
+    });
+  }, [projects, searchText, bcAttorneyFilter]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -56,65 +115,58 @@ export default function BillingMatters() {
         valueGetter: (_value, row) => row.bc_attorney_name || row.attorney_in_charge || '-',
       },
       {
-        field: 'agreed_fee_usd',
-        headerName: 'Fee (USD)',
-        width: 120,
-        type: 'number',
-        valueFormatter: ({ value }) => formatCurrencyWhole(value, 'USD'),
+        field: 'billed',
+        headerName: 'Billed',
+        width: 150,
+        valueGetter: (_value, row) => formatCurrencyWithSymbol(row.billing_usd, row.billing_cny),
       },
       {
-        field: 'billing_usd',
-        headerName: 'Billed (USD)',
-        width: 120,
-        type: 'number',
-        valueFormatter: ({ value }) => formatCurrencyWhole(value, 'USD'),
+        field: 'collected',
+        headerName: 'Collected',
+        width: 150,
+        valueGetter: (_value, row) => formatCurrencyWithSymbol(row.collection_usd, row.collection_cny),
       },
       {
-        field: 'collection_usd',
-        headerName: 'Collected (USD)',
-        width: 130,
-        type: 'number',
-        valueFormatter: ({ value }) => formatCurrencyWhole(value, 'USD'),
-      },
-      {
-        field: 'billing_credit_usd',
-        headerName: 'Credit (USD)',
-        width: 120,
-        type: 'number',
+        field: 'ubt',
+        headerName: 'UBT',
+        width: 150,
         renderCell: (params: GridRenderCellParams) => {
-          const numeric = Number(params.value) || 0;
-          const label = numeric ? formatCurrencyWhole(numeric, 'USD') : '—';
+          const usd = Number(params.row.ubt_usd) || 0;
+          const cny = Number(params.row.ubt_cny) || 0;
+          const label = formatCurrencyWithSymbol(params.row.ubt_usd, params.row.ubt_cny);
+          const hasValue = usd > 0 || cny > 0;
           return (
             <Chip
               label={label}
               size="small"
-              color={numeric > 0 ? 'success' : 'default'}
-              variant={numeric > 0 ? 'filled' : 'outlined'}
+              color={hasValue ? 'warning' : 'default'}
+              variant={hasValue ? 'filled' : 'outlined'}
             />
           );
         },
       },
       {
-        field: 'ubt_usd',
-        headerName: 'UBT (USD)',
-        width: 120,
-        type: 'number',
+        field: 'credit',
+        headerName: 'Credit',
+        width: 150,
         renderCell: (params: GridRenderCellParams) => {
-          const numeric = Number(params.value) || 0;
-          const label = numeric ? formatCurrencyWhole(numeric, 'USD') : '—';
+          const usd = Number(params.row.billing_credit_usd) || 0;
+          const cny = Number(params.row.billing_credit_cny) || 0;
+          const label = formatCurrencyWithSymbol(params.row.billing_credit_usd, params.row.billing_credit_cny);
+          const hasValue = usd > 0 || cny > 0;
           return (
             <Chip
               label={label}
               size="small"
-              color={numeric > 0 ? 'warning' : 'default'}
-              variant={numeric > 0 ? 'filled' : 'outlined'}
+              color={hasValue ? 'success' : 'default'}
+              variant={hasValue ? 'filled' : 'outlined'}
             />
           );
         },
       },
       {
         field: 'bonus_usd',
-        headerName: 'Bonus (USD)',
+        headerName: 'Bonus',
         width: 130,
         type: 'number',
         renderCell: (params: GridRenderCellParams) => {
@@ -125,31 +177,6 @@ export default function BillingMatters() {
               label={formatCurrencyWhole(numeric, 'USD')}
               size="small"
               color="info"
-              variant="filled"
-            />
-          );
-        },
-      },
-      {
-        field: 'agreed_fee_cny',
-        headerName: 'Fee (CNY)',
-        width: 120,
-        type: 'number',
-        valueFormatter: ({ value }) => value ? formatCurrencyWhole(value, 'CNY') : '-',
-      },
-      {
-        field: 'ubt_cny',
-        headerName: 'UBT (CNY)',
-        width: 120,
-        type: 'number',
-        renderCell: (params: GridRenderCellParams) => {
-          const numeric = Number(params.value) || 0;
-          if (numeric === 0) return <Typography variant="body2">-</Typography>;
-          return (
-            <Chip
-              label={formatCurrencyWhole(numeric, 'CNY')}
-              size="small"
-              color="warning"
               variant="filled"
             />
           );
@@ -182,11 +209,54 @@ export default function BillingMatters() {
         </Typography>
       </Box>
 
+      {/* Filters */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              placeholder="Search by project name or C/M number..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              select
+              label="B&C Attorney"
+              value={bcAttorneyFilter}
+              onChange={(e) => setBcAttorneyFilter(e.target.value)}
+              size="small"
+              sx={{ minWidth: { sm: 250 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FilterIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            >
+              <MenuItem value="all">All Attorneys</MenuItem>
+              {bcAttorneys.map((attorney) => (
+                <MenuItem key={attorney} value={attorney}>
+                  {attorney}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent>
           <DataGrid
-            rows={projects}
+            rows={filteredProjects}
             columns={columns}
             getRowId={(row) => row.project_id}
             loading={isLoading}
@@ -213,13 +283,11 @@ export default function BillingMatters() {
         </CardContent>
       </Card>
 
-      {projects.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" color="text.secondary">
-            Total: {projects.length} billing matters
-          </Typography>
-        </Box>
-      )}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          Showing {filteredProjects.length} of {projects.length} billing matters
+        </Typography>
+      </Box>
     </Page>
   );
 }
