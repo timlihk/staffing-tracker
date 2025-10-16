@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
 
 import config, { validateConfig } from './config';
@@ -19,6 +20,7 @@ import emailSettingsRoutes from './routes/email-settings.routes';
 import billingRoutes from './routes/billing.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import { queryPerformanceMonitor } from './middleware/queryPerformance';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { logger } from './utils/logger';
 
@@ -36,12 +38,40 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles in React/MUI
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"], // API connections
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin requests from frontend
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+}));
+
+// Response compression (gzip/deflate)
+app.use(compression({
+  // Only compress responses larger than 1KB
+  threshold: 1024,
+  // Compression level (0-9, higher = better compression but slower)
+  level: 6,
+  // Filter function to determine which responses to compress
+  filter: (req, res) => {
+    // Don't compress if request includes no-transform directive
+    if (req.headers['cache-control']?.includes('no-transform')) {
+      return false;
+    }
+    // Compress JSON and text responses
+    return compression.filter(req, res);
+  },
 }));
 
 // Apply rate limiters
@@ -49,6 +79,9 @@ app.use('/api/', apiLimiter);
 
 // Request logging
 app.use(requestLogger);
+
+// Query performance monitoring (tracks slow queries >100ms)
+app.use(queryPerformanceMonitor);
 
 // Middleware
 app.use(cors({

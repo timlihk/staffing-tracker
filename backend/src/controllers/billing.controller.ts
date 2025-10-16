@@ -96,10 +96,10 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
  */
 export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
   try {
-    // Disable caching to ensure fresh data after updates
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
+    // Use short cache for better performance while maintaining data freshness
+    // Cache for 30 seconds - balances performance with data accuracy
+    res.set('Cache-Control', 'private, max-age=30');
+    res.set('Pragma', 'cache');
 
     const { id } = req.params;
     const projectId = parseInt(id, 10);
