@@ -44,5 +44,5 @@ migrate.sql
 # Test and debug files
 test-*.js
 check-*.js
-Billing/
+/Billing/
 scripts/*.py
