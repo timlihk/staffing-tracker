@@ -23,6 +23,7 @@ import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProj
 import { useStaff } from '../hooks/useStaff';
 import api from '../api/client';
 import type { Project, Staff } from '../types';
+import { toast } from '../lib/toast';
 
 interface TeamMember {
   staffId: number;
@@ -139,13 +140,45 @@ const ProjectForm: React.FC = () => {
 
         // Add team members if any
         if (teamMembers.length > 0) {
-          await api.post('/assignments/bulk', {
-            assignments: teamMembers.map(member => ({
-              projectId,
-              staffId: member.staffId,
-              jurisdiction: member.jurisdiction,
-            })),
-          });
+          try {
+            const bulkResponse = await api.post('/assignments/bulk', {
+              assignments: teamMembers.map(member => ({
+                projectId,
+                staffId: member.staffId,
+                jurisdiction: member.jurisdiction,
+              })),
+            });
+
+            // Check for errors in the response (partial failures)
+            if (bulkResponse.data.errors && bulkResponse.data.errors.length > 0) {
+              const errorCount = bulkResponse.data.errors.length;
+              const successCount = bulkResponse.data.count || 0;
+
+              // Partial failure - some succeeded, some failed
+              toast.warning(`Partial team assignment failure`,
+                `${successCount} of ${successCount + errorCount} team members added. ${errorCount} failed.`
+              );
+            } else {
+              // All succeeded
+              toast.success('Project created', `All ${teamMembers.length} team members added successfully.`);
+            }
+          } catch (bulkError: any) {
+            // Handle 400 error when all assignments fail
+            if (bulkError.response?.status === 400) {
+              const errorData = bulkError.response.data;
+              const errorCount = errorData.errors?.length || teamMembers.length;
+
+              toast.error('Failed to add team members',
+                `All ${errorCount} team member assignments failed. Please add them manually from the project detail page.`
+              );
+            } else {
+              // Unexpected error
+              toast.error('Failed to add team members',
+                'An unexpected error occurred while adding team members. Please add them manually.'
+              );
+            }
+            // Still navigate since project was created, but user is warned
+          }
         }
       }
       navigate('/projects');
