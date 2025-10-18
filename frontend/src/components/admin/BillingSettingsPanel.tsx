@@ -55,9 +55,13 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
           <Switch
             checked={billingSettings?.billing_module_enabled ?? false}
             onChange={async (e) => {
+              const isEnabled = e.target.checked;
+              const currentAccessLevel = billingSettings?.access_level ?? 'admin_only';
+
               try {
                 await onUpdate({
-                  billing_module_enabled: e.target.checked,
+                  billing_module_enabled: isEnabled,
+                  access_level: isEnabled ? currentAccessLevel : 'admin_only',
                 });
                 toast.success('Settings updated', 'Billing module settings have been saved.');
               } catch (error: unknown) {
@@ -100,9 +104,13 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
               <Switch
                 checked={billingSettings?.access_level === 'admin_and_bc_attorney'}
                 onChange={async (e) => {
+                  const nextAccessLevel = e.target.checked ? 'admin_and_bc_attorney' : 'admin_only';
+                  const billingEnabled = billingSettings?.billing_module_enabled ?? false;
+
                   try {
                     await onUpdate({
-                      access_level: e.target.checked ? 'admin_and_bc_attorney' : 'admin_only',
+                      billing_module_enabled: billingEnabled,
+                      access_level: nextAccessLevel,
                     });
                     toast.success('Settings updated', 'Billing access level has been saved.');
                   } catch (error: unknown) {
