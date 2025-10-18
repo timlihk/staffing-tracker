@@ -1287,15 +1287,29 @@ export async function updateBillingAccessSettings(req: AuthRequest, res: Respons
     const { billing_module_enabled, access_level } = req.body;
     const userId = req.user?.userId;
 
-    await prisma.$executeRaw`
-      UPDATE billing_access_settings
-      SET
-        billing_module_enabled = ${billing_module_enabled},
-        access_level = ${access_level},
-        updated_by = ${userId},
-        updated_at = NOW()
-      WHERE id = (SELECT id FROM billing_access_settings ORDER BY id DESC LIMIT 1)
+    // Use upsert pattern: try to get existing row first
+    const existing = await prisma.$queryRaw<any[]>`
+      SELECT id FROM billing_access_settings ORDER BY id DESC LIMIT 1
     `;
+
+    if (existing && existing.length > 0) {
+      // Update existing row
+      await prisma.$executeRaw`
+        UPDATE billing_access_settings
+        SET
+          billing_module_enabled = ${billing_module_enabled},
+          access_level = ${access_level},
+          updated_by = ${userId},
+          updated_at = NOW()
+        WHERE id = ${existing[0].id}
+      `;
+    } else {
+      // Insert new row if none exists
+      await prisma.$executeRaw`
+        INSERT INTO billing_access_settings (billing_module_enabled, access_level, updated_by, updated_at)
+        VALUES (${billing_module_enabled}, ${access_level}, ${userId}, NOW())
+      `;
+    }
 
     res.json({ success: true });
   } catch (error) {
