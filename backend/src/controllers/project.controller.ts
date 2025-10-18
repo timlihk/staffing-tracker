@@ -438,7 +438,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   }
 
   // Invalidate cache for this project, project lists, and dashboard
-  invalidateCache(`project:detail:${projectId}`);
+  invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
   invalidateCache('projects:list');
   invalidateCache('dashboard:summary');
 
@@ -476,7 +476,7 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
   });
 
   // Invalidate cache for this project, project lists, and dashboard
-  invalidateCache(`project:detail:${projectId}`);
+  invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
   invalidateCache('projects:list');
   invalidateCache('dashboard:summary');
 

@@ -271,7 +271,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     });
 
     // Invalidate cache for this staff member and staff lists
-    invalidateCache(`staff:detail:${staffId}`);
+    invalidateCache(CACHE_KEYS.STAFF_DETAIL(staffId));
     invalidateCache('staff:list');
 
     res.json(staff);
@@ -319,7 +319,7 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
     });
 
     // Invalidate cache for this staff member and staff lists
-    invalidateCache(`staff:detail:${staffId}`);
+    invalidateCache(CACHE_KEYS.STAFF_DETAIL(staffId));
     invalidateCache('staff:list');
 
     res.json({ message: 'Staff member deleted successfully' });

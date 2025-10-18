@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import prisma from '../utils/prisma';
+import prisma, { invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AssignmentWhereInput, ControllerError } from '../types/prisma';
 
 const trackAssignmentChange = async (
@@ -337,6 +337,11 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
 
     const createdAssignments = [];
     const errors: Array<{ index: number; error: string }> = [];
+    const affectedProjectIds = new Set<number>();
+    const affectedStaffIds = new Set<number>();
+
+    // Validate all assignments first
+    const validatedAssignments: Array<{ index: number; projectId: number; staffId: number; jurisdiction?: string }> = [];
 
     for (let i = 0; i < assignments.length; i++) {
       const assignmentData = assignments[i];
@@ -368,31 +373,82 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         continue;
       }
 
+      validatedAssignments.push({
+        index: i,
+        projectId: parsedProjectId,
+        staffId: parsedStaffId,
+        jurisdiction,
+      });
+    }
+
+    // Create all assignments in a transaction with change tracking
+    for (const assignmentData of validatedAssignments) {
       try {
-        const assignment = await prisma.projectAssignment.create({
-          data: {
-            projectId: parsedProjectId,
-            staffId: parsedStaffId,
-            jurisdiction,
-          },
-          include: {
-            project: true,
-            staff: true,
-          },
+        const assignment = await prisma.$transaction(async (tx) => {
+          // Fetch project and staff details for change history
+          const [project, staff] = await Promise.all([
+            tx.project.findUnique({ where: { id: assignmentData.projectId } }),
+            tx.staff.findUnique({ where: { id: assignmentData.staffId } }),
+          ]);
+
+          if (!project || !staff) {
+            throw new Error('Project or staff not found');
+          }
+
+          // Create assignment
+          const newAssignment = await tx.projectAssignment.create({
+            data: {
+              projectId: assignmentData.projectId,
+              staffId: assignmentData.staffId,
+              jurisdiction: assignmentData.jurisdiction,
+            },
+            include: {
+              project: true,
+              staff: true,
+            },
+          });
+
+          // Track assignment change on project side
+          await tx.projectChangeHistory.create({
+            data: {
+              projectId: assignmentData.projectId,
+              fieldName: 'assignment',
+              oldValue: null,
+              newValue: `${staff.name} (${staff.position})${assignmentData.jurisdiction ? ` - ${assignmentData.jurisdiction}` : ''}`,
+              changeType: 'assignment_added',
+              changedBy: req.user?.userId,
+            },
+          });
+
+          // Track assignment change on staff side
+          await tx.staffChangeHistory.create({
+            data: {
+              staffId: assignmentData.staffId,
+              fieldName: 'assignment',
+              oldValue: null,
+              newValue: `${staff.name} (${staff.position})${assignmentData.jurisdiction ? ` - ${assignmentData.jurisdiction}` : ''}`,
+              changeType: 'assignment_added',
+              changedBy: req.user?.userId,
+            },
+          });
+
+          return newAssignment;
         });
 
         createdAssignments.push(assignment);
+        affectedProjectIds.add(assignmentData.projectId);
+        affectedStaffIds.add(assignmentData.staffId);
       } catch (error: ControllerError) {
         // Skip duplicates
         if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-          errors.push({ index: i, error: 'Duplicate assignment' });
+          errors.push({ index: assignmentData.index, error: 'Duplicate assignment' });
         } else {
           throw error;
         }
       }
     }
 
-    // Log activity
+    // Log bulk activity
     await prisma.activityLog.create({
       data: {
         userId: req.user?.userId,
@@ -401,6 +457,17 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         description: `Bulk created ${createdAssignments.length} assignments`,
       },
     });
+
+    // Invalidate caches for all affected projects and staff
+    affectedProjectIds.forEach(projectId => {
+      invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
+    });
+    affectedStaffIds.forEach(staffId => {
+      invalidateCache(CACHE_KEYS.STAFF_DETAIL(staffId));
+    });
+    invalidateCache('projects:list');
+    invalidateCache('staff:list');
+    invalidateCache('dashboard:summary');
 
     res.status(201).json({
       count: createdAssignments.length,

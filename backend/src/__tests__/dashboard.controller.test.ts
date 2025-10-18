@@ -25,6 +25,12 @@ jest.mock('../utils/prisma', () => ({
       findMany: jest.fn(),
     },
   },
+  getCached: jest.fn(() => null), // Always return null to skip cache
+  setCached: jest.fn(),
+  invalidateCache: jest.fn(),
+  CACHE_KEYS: {
+    DASHBOARD_SUMMARY: (params: string) => `dashboard:summary:v2:${params}`,
+  },
 }));
 
 // Create test app with mock auth middleware
@@ -406,6 +412,109 @@ describe('Dashboard Controller', () => {
       expect(teamMembers[0].position).toBe('Partner');
       expect(teamMembers[1].position).toBe('Associate');
       expect(teamMembers[2].position).toBe('Junior FLIC');
+    });
+  });
+
+  describe('Partner Detection in Deal Radar', () => {
+    it('should identify partner by position field, not name', async () => {
+      const now = new Date('2025-10-03');
+      const filingDate = new Date('2025-10-20');
+
+      (prisma.project.count as jest.Mock).mockResolvedValue(0);
+      (prisma.staff.count as jest.Mock).mockResolvedValue(0);
+      (prisma.project.groupBy as jest.Mock).mockResolvedValue([]);
+      (prisma.staff.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.activityLog.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.projectAssignment.findMany as jest.Mock).mockResolvedValue([]);
+
+      // Mock project with staff member who has "Partner" in position field
+      // but NOT in name field (to test the fix)
+      (prisma.project.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 1,
+          name: 'Test Project',
+          category: 'US Trx',
+          status: 'Active',
+          filingDate,
+          listingDate: null,
+          assignments: [
+            {
+              staff: {
+                id: 1,
+                name: 'John Smith', // No "Partner" in name
+                position: 'Partner', // Partner is in position field
+              },
+            },
+            {
+              staff: {
+                id: 2,
+                name: 'Jane Doe',
+                position: 'Associate',
+              },
+            },
+          ],
+        },
+      ]);
+
+      const response = await request(app).get('/api/dashboard/summary');
+
+      expect(response.status).toBe(200);
+      expect(response.body.dealRadar).toBeDefined();
+
+      const project = response.body.dealRadar.find((p: any) => p.projectId === 1);
+      expect(project).toBeDefined();
+      // Verify that the partner is correctly identified as "John Smith"
+      expect(project.partner).toBe('John Smith');
+    });
+
+    it('should fallback to first assignment if no partner position exists', async () => {
+      const now = new Date('2025-10-03');
+      const filingDate = new Date('2025-10-20');
+
+      (prisma.project.count as jest.Mock).mockResolvedValue(0);
+      (prisma.staff.count as jest.Mock).mockResolvedValue(0);
+      (prisma.project.groupBy as jest.Mock).mockResolvedValue([]);
+      (prisma.staff.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.activityLog.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.projectAssignment.findMany as jest.Mock).mockResolvedValue([]);
+
+      // Mock project with no partner - should use first staff member
+      (prisma.project.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 1,
+          name: 'Test Project',
+          category: 'US Trx',
+          status: 'Active',
+          filingDate,
+          listingDate: null,
+          assignments: [
+            {
+              staff: {
+                id: 1,
+                name: 'First Associate',
+                position: 'Associate',
+              },
+            },
+            {
+              staff: {
+                id: 2,
+                name: 'Second Associate',
+                position: 'Associate',
+              },
+            },
+          ],
+        },
+      ]);
+
+      const response = await request(app).get('/api/dashboard/summary');
+
+      expect(response.status).toBe(200);
+      const project = response.body.dealRadar.find((p: any) => p.projectId === 1);
+      expect(project).toBeDefined();
+      // Should fallback to first assignment
+      expect(project.partner).toBe('First Associate');
     });
   });
 });

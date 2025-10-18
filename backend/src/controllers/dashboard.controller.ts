@@ -559,7 +559,7 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
         teamMembers: Array<{ id: number; name: string; position: string }>;
       }> = [];
 
-      const leadPartner = project.assignments.find(a => a.staff.name.includes('Partner'))?.staff?.name ??
+      const leadPartner = project.assignments.find(a => a.staff.position === 'Partner')?.staff?.name ??
                           project.assignments[0]?.staff?.name ?? null;
 
       // Deduplicate team members by staff ID to ensure each person appears only once

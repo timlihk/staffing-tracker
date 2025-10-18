@@ -36,6 +36,12 @@ jest.mock('../utils/prisma', () => ({
     staffChangeHistory: {
       create: jest.fn(),
     },
+    $transaction: jest.fn(),
+  },
+  invalidateCache: jest.fn(),
+  CACHE_KEYS: {
+    PROJECT_DETAIL: (id: number) => `project:detail:v2:${id}`,
+    STAFF_DETAIL: (id: number) => `staff:detail:v2:${id}`,
   },
 }));
 
@@ -60,6 +66,20 @@ app.post('/api/assignments/bulk', mockAuth, bulkCreateAssignments);
 describe('Assignment Controller', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Setup default transaction behavior to execute the callback immediately
+    (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+      // Create a mock transaction client that delegates to the main prisma mock
+      const mockTx = {
+        projectAssignment: prisma.projectAssignment,
+        project: prisma.project,
+        staff: prisma.staff,
+        activityLog: prisma.activityLog,
+        projectChangeHistory: prisma.projectChangeHistory,
+        staffChangeHistory: prisma.staffChangeHistory,
+      };
+      return callback(mockTx);
+    });
   });
 
   describe('GET /api/assignments', () => {
@@ -627,6 +647,95 @@ describe('Assignment Controller', () => {
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('count', 1);
       expect(prisma.projectAssignment.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('should create project change history for each assignment in bulk', async () => {
+      const bulkAssignments = {
+        assignments: [
+          { projectId: 1, staffId: 1, jurisdiction: 'US' },
+          { projectId: 2, staffId: 2, jurisdiction: 'HK' },
+        ],
+      };
+
+      const mockProject1 = { id: 1, name: 'Project Alpha' };
+      const mockProject2 = { id: 2, name: 'Project Beta' };
+      const mockStaff1 = { id: 1, name: 'John Doe', position: 'Partner' };
+      const mockStaff2 = { id: 2, name: 'Jane Smith', position: 'Associate' };
+
+      // Use default transaction mock from beforeEach
+      (prisma.project.findUnique as jest.Mock)
+        .mockResolvedValueOnce(mockProject1)
+        .mockResolvedValueOnce(mockProject2);
+      (prisma.staff.findUnique as jest.Mock)
+        .mockResolvedValueOnce(mockStaff1)
+        .mockResolvedValueOnce(mockStaff2);
+      (prisma.projectAssignment.create as jest.Mock)
+        .mockResolvedValueOnce({
+          id: 1,
+          projectId: 1,
+          staffId: 1,
+          jurisdiction: 'US',
+          project: mockProject1,
+          staff: mockStaff1,
+        })
+        .mockResolvedValueOnce({
+          id: 2,
+          projectId: 2,
+          staffId: 2,
+          jurisdiction: 'HK',
+          project: mockProject2,
+          staff: mockStaff2,
+        });
+      (prisma.projectChangeHistory.create as jest.Mock).mockResolvedValue({});
+      (prisma.staffChangeHistory.create as jest.Mock).mockResolvedValue({});
+      (prisma.activityLog.create as jest.Mock).mockResolvedValue({});
+
+      const response = await request(app)
+        .post('/api/assignments/bulk')
+        .send(bulkAssignments);
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('count', 2);
+
+      // Verify that change history was created for each assignment
+      expect(prisma.projectChangeHistory.create).toHaveBeenCalledTimes(2);
+      expect(prisma.staffChangeHistory.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('should create staff change history for each assignment in bulk', async () => {
+      const bulkAssignments = {
+        assignments: [
+          { projectId: 1, staffId: 1, jurisdiction: 'US' },
+        ],
+      };
+
+      const mockProject = { id: 1, name: 'Project Alpha' };
+      const mockStaff = { id: 1, name: 'John Doe', position: 'Partner' };
+
+      // Use default transaction mock from beforeEach
+      (prisma.project.findUnique as jest.Mock).mockResolvedValue(mockProject);
+      (prisma.staff.findUnique as jest.Mock).mockResolvedValue(mockStaff);
+      (prisma.projectAssignment.create as jest.Mock).mockResolvedValue({
+        id: 1,
+        projectId: 1,
+        staffId: 1,
+        jurisdiction: 'US',
+        project: mockProject,
+        staff: mockStaff,
+      });
+      (prisma.projectChangeHistory.create as jest.Mock).mockResolvedValue({});
+      (prisma.staffChangeHistory.create as jest.Mock).mockResolvedValue({});
+      (prisma.activityLog.create as jest.Mock).mockResolvedValue({});
+
+      const response = await request(app)
+        .post('/api/assignments/bulk')
+        .send(bulkAssignments);
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('count', 1);
+
+      // Verify that staff change history was created
+      expect(prisma.staffChangeHistory.create).toHaveBeenCalledTimes(1);
     });
   });
 });
