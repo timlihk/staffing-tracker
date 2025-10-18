@@ -254,32 +254,11 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      // Track assignment change on project side (assignment modified)
-      const oldValue = `${existingAssignment.staff.name} (${existingAssignment.staff.position})${existingAssignment.jurisdiction ? ` - ${existingAssignment.jurisdiction}` : ''}`;
-      const newValue = `${updatedAssignment.staff.name} (${updatedAssignment.staff.position})${updatedAssignment.jurisdiction ? ` - ${updatedAssignment.jurisdiction}` : ''}`;
-
-      await tx.projectChangeHistory.create({
-        data: {
-          projectId: updatedAssignment.projectId,
-          fieldName: 'assignment',
-          oldValue,
-          newValue,
-          changeType: 'assignment_added', // Use assignment_added as the type for updates too
-          changedBy: req.user?.userId,
-        },
-      });
-
-      // Track assignment change on staff side
-      await tx.staffChangeHistory.create({
-        data: {
-          staffId: updatedAssignment.staffId,
-          fieldName: 'assignment',
-          oldValue,
-          newValue,
-          changeType: 'assignment_added',
-          changedBy: req.user?.userId,
-        },
-      });
+      // Note: We do NOT write to projectChangeHistory/staffChangeHistory for updates
+      // because updates only modify jurisdiction/dates/notes, NOT team composition.
+      // Team composition changes (assignment_added/assignment_removed) only happen
+      // in create/delete operations. This prevents false "team changed" alerts
+      // when users simply update assignment details.
 
       return updatedAssignment;
     });
