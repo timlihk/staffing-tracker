@@ -3,38 +3,6 @@ import { AuthRequest } from '../middleware/auth';
 import prisma, { invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AssignmentWhereInput, ControllerError } from '../types/prisma';
 
-const trackAssignmentChange = async (
-  projectId: number,
-  staffId: number,
-  changeType: 'assignment_added' | 'assignment_removed',
-  assignmentDetails: string,
-  userId?: number
-) => {
-  // Track on project side
-  await prisma.projectChangeHistory.create({
-    data: {
-      projectId,
-      fieldName: 'assignment',
-      oldValue: changeType === 'assignment_added' ? null : assignmentDetails,
-      newValue: changeType === 'assignment_added' ? assignmentDetails : null,
-      changeType,
-      changedBy: userId,
-    },
-  });
-
-  // Track on staff side
-  await prisma.staffChangeHistory.create({
-    data: {
-      staffId,
-      fieldName: 'assignment',
-      oldValue: changeType === 'assignment_added' ? null : assignmentDetails,
-      newValue: changeType === 'assignment_added' ? assignmentDetails : null,
-      changeType,
-      changedBy: userId,
-    },
-  });
-};
-
 export const getAllAssignments = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId, staffId } = req.query;
@@ -466,10 +434,13 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         affectedProjectIds.add(assignmentData.projectId);
         affectedStaffIds.add(assignmentData.staffId);
       } catch (error: ControllerError) {
-        // Skip duplicates
+        // Handle known errors gracefully to allow partial success
         if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
           errors.push({ index: assignmentData.index, error: 'Duplicate assignment' });
+        } else if (error instanceof Error && error.message === 'Project or staff not found') {
+          errors.push({ index: assignmentData.index, error: 'Project or staff not found' });
         } else {
+          // Re-throw unexpected errors
           throw error;
         }
       }
