@@ -463,6 +463,14 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
       }
     }
 
+    // If no assignments were created, return 400 with errors
+    if (createdAssignments.length === 0) {
+      return res.status(400).json({
+        error: 'No assignments were created',
+        errors,
+      });
+    }
+
     // Log bulk activity
     await prisma.activityLog.create({
       data: {

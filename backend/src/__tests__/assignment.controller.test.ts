@@ -8,7 +8,7 @@ import {
   deleteAssignment,
   bulkCreateAssignments,
 } from '../controllers/assignment.controller';
-import prisma from '../utils/prisma';
+import prisma, { invalidateCache } from '../utils/prisma';
 
 // Mock dependencies
 jest.mock('../utils/prisma', () => ({
@@ -736,6 +736,28 @@ describe('Assignment Controller', () => {
 
       // Verify that staff change history was created
       expect(prisma.staffChangeHistory.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return 400 when all assignments fail validation', async () => {
+      const bulkAssignments = {
+        assignments: [
+          { projectId: 1 }, // Missing staffId
+          { staffId: 2 }, // Missing projectId
+          { projectId: 'invalid', staffId: 'invalid' }, // Invalid types
+        ],
+      };
+
+      const response = await request(app)
+        .post('/api/assignments/bulk')
+        .send(bulkAssignments);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error', 'No assignments were created');
+      expect(response.body.errors).toHaveLength(3);
+
+      // Verify that no activity log or cache invalidation occurred
+      expect(prisma.activityLog.create).not.toHaveBeenCalled();
+      expect(invalidateCache).not.toHaveBeenCalled();
     });
   });
 });
