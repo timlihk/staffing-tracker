@@ -158,10 +158,8 @@ const ProjectForm: React.FC = () => {
               toast.warning(`Partial team assignment failure`,
                 `${successCount} of ${successCount + errorCount} team members added. ${errorCount} failed.`
               );
-            } else {
-              // All succeeded
-              toast.success('Project created', `All ${teamMembers.length} team members added successfully.`);
             }
+            // Note: No toast for all-success case since useCreateProject already shows "Project created" toast
           } catch (bulkError: any) {
             // Handle 400 error when all assignments fail
             if (bulkError.response?.status === 400) {

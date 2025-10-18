@@ -157,6 +157,7 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
     // Invalidate caches for affected project, staff, and lists
     invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
     invalidateCache(CACHE_KEYS.STAFF_DETAIL(staffId));
+    invalidateCache(`project:change-history:v2:${projectId}`); // All limits for this project
     invalidateCache('projects:list');
     invalidateCache('staff:list');
     invalidateCache('dashboard:summary');
@@ -311,6 +312,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
     // Invalidate caches for affected project, staff, and lists
     invalidateCache(CACHE_KEYS.PROJECT_DETAIL(assignment.projectId));
     invalidateCache(CACHE_KEYS.STAFF_DETAIL(assignment.staffId));
+    invalidateCache(`project:change-history:v2:${assignment.projectId}`); // All limits for this project
     invalidateCache('projects:list');
     invalidateCache('staff:list');
     invalidateCache('dashboard:summary');
@@ -484,6 +486,7 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
     // Invalidate caches for all affected projects and staff
     affectedProjectIds.forEach(projectId => {
       invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
+      invalidateCache(`project:change-history:v2:${projectId}`); // All limits for this project
     });
     affectedStaffIds.forEach(staffId => {
       invalidateCache(CACHE_KEYS.STAFF_DETAIL(staffId));

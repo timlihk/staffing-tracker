@@ -439,6 +439,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
   // Invalidate cache for this project, project lists, and dashboard
   invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
+  invalidateCache(`project:change-history:v2:${projectId}`); // All limits for this project
   invalidateCache('projects:list');
   invalidateCache('dashboard:summary');
 
