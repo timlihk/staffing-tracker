@@ -69,35 +69,3 @@ export const trackFieldChanges = async (options: ChangeTrackingOptions) => {
 
   return changes.length;
 };
-
-export const trackAssignmentChange = async (
-  entityId: number,
-  entityType: 'project' | 'staff',
-  changeType: 'assignment_added' | 'assignment_removed',
-  assignmentDetails: string,
-  userId?: number
-) => {
-  const changeData = {
-    fieldName: 'assignments',
-    oldValue: changeType === 'assignment_added' ? null : assignmentDetails,
-    newValue: changeType === 'assignment_added' ? assignmentDetails : null,
-    changeType,
-    changedBy: userId,
-  };
-
-  if (entityType === 'project') {
-    await prisma.projectChangeHistory.create({
-      data: {
-        projectId: entityId,
-        ...changeData,
-      },
-    });
-  } else if (entityType === 'staff') {
-    await prisma.staffChangeHistory.create({
-      data: {
-        staffId: entityId,
-        ...changeData,
-      },
-    });
-  }
-};

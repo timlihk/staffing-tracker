@@ -336,7 +336,15 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
     const affectedStaffIds = new Set<number>();
 
     // Validate all assignments first
-    const validatedAssignments: Array<{ index: number; projectId: number; staffId: number; jurisdiction?: string }> = [];
+    const validatedAssignments: Array<{
+      index: number;
+      projectId: number;
+      staffId: number;
+      jurisdiction?: string;
+      startDate?: string;
+      endDate?: string;
+      notes?: string;
+    }> = [];
 
     for (let i = 0; i < assignments.length; i++) {
       const assignmentData = assignments[i];
@@ -344,6 +352,9 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         projectId,
         staffId,
         jurisdiction,
+        startDate,
+        endDate,
+        notes,
       } = assignmentData;
 
       // Validate and coerce IDs
@@ -373,6 +384,9 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
         projectId: parsedProjectId,
         staffId: parsedStaffId,
         jurisdiction,
+        startDate,
+        endDate,
+        notes,
       });
     }
 
@@ -396,6 +410,9 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
               projectId: assignmentData.projectId,
               staffId: assignmentData.staffId,
               jurisdiction: assignmentData.jurisdiction,
+              startDate: assignmentData.startDate ? new Date(assignmentData.startDate) : null,
+              endDate: assignmentData.endDate ? new Date(assignmentData.endDate) : null,
+              notes: assignmentData.notes,
             },
             include: {
               project: true,
