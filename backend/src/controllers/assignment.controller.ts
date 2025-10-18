@@ -186,6 +186,13 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       return newAssignment;
     });
 
+    // Invalidate caches for affected project, staff, and lists
+    invalidateCache(CACHE_KEYS.PROJECT_DETAIL(projectId));
+    invalidateCache(CACHE_KEYS.STAFF_DETAIL(staffId));
+    invalidateCache('projects:list');
+    invalidateCache('staff:list');
+    invalidateCache('dashboard:summary');
+
     res.status(201).json(assignment);
   } catch (error: ControllerError) {
     console.error('Create assignment error:', error);
@@ -247,8 +254,42 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
         },
       });
 
+      // Track assignment change on project side (assignment modified)
+      const oldValue = `${existingAssignment.staff.name} (${existingAssignment.staff.position})${existingAssignment.jurisdiction ? ` - ${existingAssignment.jurisdiction}` : ''}`;
+      const newValue = `${updatedAssignment.staff.name} (${updatedAssignment.staff.position})${updatedAssignment.jurisdiction ? ` - ${updatedAssignment.jurisdiction}` : ''}`;
+
+      await tx.projectChangeHistory.create({
+        data: {
+          projectId: updatedAssignment.projectId,
+          fieldName: 'assignment',
+          oldValue,
+          newValue,
+          changeType: 'assignment_added', // Use assignment_added as the type for updates too
+          changedBy: req.user?.userId,
+        },
+      });
+
+      // Track assignment change on staff side
+      await tx.staffChangeHistory.create({
+        data: {
+          staffId: updatedAssignment.staffId,
+          fieldName: 'assignment',
+          oldValue,
+          newValue,
+          changeType: 'assignment_added',
+          changedBy: req.user?.userId,
+        },
+      });
+
       return updatedAssignment;
     });
+
+    // Invalidate caches for affected project, staff, and lists
+    invalidateCache(CACHE_KEYS.PROJECT_DETAIL(assignment.projectId));
+    invalidateCache(CACHE_KEYS.STAFF_DETAIL(assignment.staffId));
+    invalidateCache('projects:list');
+    invalidateCache('staff:list');
+    invalidateCache('dashboard:summary');
 
     res.json(assignment);
   } catch (error) {
@@ -319,6 +360,13 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
         },
       });
     });
+
+    // Invalidate caches for affected project, staff, and lists
+    invalidateCache(CACHE_KEYS.PROJECT_DETAIL(assignment.projectId));
+    invalidateCache(CACHE_KEYS.STAFF_DETAIL(assignment.staffId));
+    invalidateCache('projects:list');
+    invalidateCache('staff:list');
+    invalidateCache('dashboard:summary');
 
     res.json({ message: 'Assignment deleted successfully' });
   } catch (error) {
