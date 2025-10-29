@@ -221,17 +221,27 @@ const DealRadarCard = ({
     );
   };
 
-  // Flatten all events and sort by date
+  // Flatten all events and sort by date, filtering to show only today and future dates
   const allEvents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
     const events: Array<DashboardSummary['dealRadar'][0]> = [];
     groups.forEach((group) => {
       events.push(...group.items);
     });
-    return events.sort((a, b) => {
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
+    return events
+      .filter((event) => {
+        if (!event.date) return false;
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0); // Start of event day
+        return eventDate >= today; // Only include today and future dates
+      })
+      .sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      });
   }, [groups]);
 
   // Filter events by selected date
