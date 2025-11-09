@@ -15,6 +15,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -160,64 +161,121 @@ const DealRadarCard = ({
 
     const isSelected = selectedDate === dateKey;
 
-    return (
-      <Box sx={{ position: 'relative' }}>
-        <PickersDay
-          day={day}
-          outsideCurrentMonth={outsideCurrentMonth}
-          {...other}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedDate((prev) => {
-              if (prev === dateKey) {
-                return null;
-              }
-              setShowAllEvents(true);
-              return dateKey;
-            });
-          }}
-          sx={{
-            cursor: 'pointer',
-            bgcolor: isSelected ? 'primary.main' : undefined,
-            color: isSelected ? 'common.white' : undefined,
-            '&:hover': {
-              bgcolor: isSelected ? 'primary.dark' : 'action.hover',
-            },
-          }}
-        />
-        <Stack
-          direction="row"
-          spacing={0.2}
-          sx={{
-            position: 'absolute',
-            bottom: 1.5,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            pointerEvents: 'none',
-          }}
-        >
-          {eventData.filingCount > 0 && (
-            <Box
-              sx={{
-                width: 4,
-                height: 4,
-                borderRadius: '50%',
-                bgcolor: isSelected ? 'common.white' : 'info.main',
-              }}
-            />
-          )}
-          {eventData.listingCount > 0 && (
-            <Box
-              sx={{
-                width: 4,
-                height: 4,
-                borderRadius: '50%',
-                bgcolor: isSelected ? 'common.white' : 'secondary.main',
-              }}
-            />
-          )}
+    // Create tooltip content showing events for this date
+    const tooltipContent = (
+      <Box sx={{ p: 0.5 }}>
+        <Typography variant="caption" fontWeight={600} display="block" sx={{ mb: 0.5 }}>
+          {formatDate(dateKey)}
+        </Typography>
+        <Stack spacing={0.5}>
+          {eventData.events.map((event, idx) => (
+            <Box key={idx}>
+              <Typography variant="caption" display="block" sx={{ fontWeight: 600 }}>
+                <Chip
+                  label={event.type}
+                  size="small"
+                  color={event.type === 'Filing' ? 'info' : 'secondary'}
+                  sx={{ height: 16, fontSize: '0.65rem', mr: 0.5 }}
+                />
+                {event.projectName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                {event.category}
+                {event.side ? ` • ${event.side}` : ''}
+              </Typography>
+            </Box>
+          ))}
         </Stack>
       </Box>
+    );
+
+    return (
+      <Tooltip
+        title={tooltipContent}
+        placement="top"
+        arrow
+        enterDelay={300}
+        leaveDelay={0}
+        componentsProps={{
+          tooltip: {
+            sx: {
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              boxShadow: 3,
+              border: 1,
+              borderColor: 'divider',
+              maxWidth: 300,
+            },
+          },
+          arrow: {
+            sx: {
+              color: 'background.paper',
+              '&::before': {
+                border: 1,
+                borderColor: 'divider',
+              },
+            },
+          },
+        }}
+      >
+        <Box sx={{ position: 'relative' }}>
+          <PickersDay
+            day={day}
+            outsideCurrentMonth={outsideCurrentMonth}
+            {...other}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedDate((prev) => {
+                if (prev === dateKey) {
+                  return null;
+                }
+                setShowAllEvents(true);
+                return dateKey;
+              });
+            }}
+            sx={{
+              cursor: 'pointer',
+              bgcolor: isSelected ? 'primary.main' : undefined,
+              color: isSelected ? 'common.white' : undefined,
+              '&:hover': {
+                bgcolor: isSelected ? 'primary.dark' : 'action.hover',
+              },
+            }}
+          />
+          <Stack
+            direction="row"
+            spacing={0.2}
+            sx={{
+              position: 'absolute',
+              bottom: 1.5,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              pointerEvents: 'none',
+            }}
+          >
+            {eventData.filingCount > 0 && (
+              <Box
+                sx={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  bgcolor: isSelected ? 'common.white' : 'info.main',
+                }}
+              />
+            )}
+            {eventData.listingCount > 0 && (
+              <Box
+                sx={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  bgcolor: isSelected ? 'common.white' : 'secondary.main',
+                }}
+              />
+            )}
+          </Stack>
+        </Box>
+      </Tooltip>
     );
   };
 
