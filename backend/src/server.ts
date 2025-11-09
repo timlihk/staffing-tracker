@@ -18,6 +18,7 @@ import projectReportRoutes from './routes/project-report.routes';
 import userRoutes from './routes/user.routes';
 import emailSettingsRoutes from './routes/email-settings.routes';
 import billingRoutes from './routes/billing.routes';
+import adminRoutes from './routes/admin.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { queryPerformanceMonitor } from './middleware/queryPerformance';
@@ -137,6 +138,7 @@ app.use('/api/project-reports', projectReportRoutes); // /api/project-reports, /
 app.use('/api/users', userRoutes);
 app.use('/api/email-settings', emailSettingsRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler - must be before error handler
 app.use(notFoundHandler);
