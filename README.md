@@ -450,6 +450,8 @@ GET    /api/billing/settings/access                  - Get access settings (admi
 PATCH  /api/billing/settings/access                  - Update access settings (admin)
 ```
 
+> ℹ️ `GET /api/billing/projects` supports `page`, `limit`, `search`, and `bcAttorney` query parameters (defaults: `page=1`, `limit=100`, max `limit=250`). Responses are shaped as `{ data, pagination }`, where `pagination` exposes `page`, `limit`, `total`, and `totalPages`.
+
 #### Settings (2 endpoints)
 ```
 GET    /api/email-settings  - Get email settings

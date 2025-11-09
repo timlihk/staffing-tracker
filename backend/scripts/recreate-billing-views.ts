@@ -54,40 +54,66 @@ async function recreateViews() {
           bp.project_name,
           bp.client_name,
           bp.attorney_in_charge,
-          s.id AS bc_attorney_staff_id,
-          s.name AS bc_attorney_name,
-          s.position AS bc_attorney_position,
-          s.status AS bc_attorney_status,
-          bcmap.is_auto_mapped,
-          bcmap.match_confidence,
+          (
+              SELECT string_agg(DISTINCT s2.name, ' & ' ORDER BY s2.name)
+              FROM billing_project_bc_attorneys bpba
+              JOIN staff s2 ON s2.id = bpba.staff_id
+              WHERE bpba.billing_project_id = bp.project_id
+          ) AS bc_attorney_name,
+          (
+              SELECT string_agg(DISTINCT s2.id::text, ', ' ORDER BY s2.id::text)
+              FROM billing_project_bc_attorneys bpba
+              JOIN staff s2 ON s2.id = bpba.staff_id
+              WHERE bpba.billing_project_id = bp.project_id
+          ) AS bc_attorney_staff_id,
+          (
+              SELECT s2.position
+              FROM billing_project_bc_attorneys bpba
+              JOIN staff s2 ON s2.id = bpba.staff_id
+              WHERE bpba.billing_project_id = bp.project_id
+              ORDER BY bpba.created_at ASC
+              LIMIT 1
+          ) AS bc_attorney_position,
+          (
+              SELECT s2.status
+              FROM billing_project_bc_attorneys bpba
+              JOIN staff s2 ON s2.id = bpba.staff_id
+              WHERE bpba.billing_project_id = bp.project_id
+              ORDER BY bpba.created_at ASC
+              LIMIT 1
+          ) AS bc_attorney_status,
+          NULL::boolean AS is_auto_mapped,
+          NULL::numeric(3,2) AS match_confidence,
           string_agg(DISTINCT pcm.cm_no, ', ' ORDER BY pcm.cm_no) AS cm_numbers,
-          pcm.status AS cm_status,
-          pcm.open_date AS cm_open_date,
-          pcm.closed_date AS cm_closed_date,
+          MAX(pcm.status) AS cm_status,
+          MIN(pcm.open_date) AS cm_open_date,
+          MAX(pcm.closed_date) AS cm_closed_date,
           (
               SELECT fa.raw_text
               FROM billing_fee_arrangement fa
               JOIN billing_engagement e1 ON fa.engagement_id = e1.engagement_id
-              WHERE e1.cm_id = pcm.cm_id
+              JOIN billing_project_cm_no pcm2 ON pcm2.cm_id = e1.cm_id
+              WHERE pcm2.project_id = bp.project_id
               LIMIT 1
           ) AS fee_arrangement_text,
           (
               SELECT fa.lsd_date
               FROM billing_fee_arrangement fa
               JOIN billing_engagement e1 ON fa.engagement_id = e1.engagement_id
-              WHERE e1.cm_id = pcm.cm_id
+              JOIN billing_project_cm_no pcm2 ON pcm2.cm_id = e1.cm_id
+              WHERE pcm2.project_id = bp.project_id
               LIMIT 1
           ) AS lsd_date,
-          MAX(efs.agreed_fee_usd) AS agreed_fee_usd,
-          MAX(efs.billing_usd) AS billing_usd,
-          MAX(efs.collection_usd) AS collection_usd,
-          MAX(efs.billing_credit_usd) AS billing_credit_usd,
-          MAX(efs.ubt_usd) AS ubt_usd,
-          MAX(efs.agreed_fee_cny) AS agreed_fee_cny,
-          MAX(efs.billing_cny) AS billing_cny,
-          MAX(efs.collection_cny) AS collection_cny,
-          MAX(efs.billing_credit_cny) AS billing_credit_cny,
-          MAX(efs.ubt_cny) AS ubt_cny,
+          MAX(COALESCE(efs.agreed_fee_usd, 0)) AS agreed_fee_usd,
+          MAX(COALESCE(efs.billing_usd, 0)) AS billing_usd,
+          MAX(COALESCE(efs.collection_usd, 0)) AS collection_usd,
+          MAX(COALESCE(efs.billing_credit_usd, 0)) AS billing_credit_usd,
+          MAX(COALESCE(efs.ubt_usd, 0)) AS ubt_usd,
+          MAX(COALESCE(efs.agreed_fee_cny, 0)) AS agreed_fee_cny,
+          MAX(COALESCE(efs.billing_cny, 0)) AS billing_cny,
+          MAX(COALESCE(efs.collection_cny, 0)) AS collection_cny,
+          MAX(COALESCE(efs.billing_credit_cny, 0)) AS billing_credit_cny,
+          MAX(COALESCE(efs.ubt_cny, 0)) AS ubt_cny,
           COUNT(DISTINCT m.milestone_id) AS total_milestones,
           COUNT(DISTINCT m.milestone_id) FILTER (WHERE m.completed) AS completed_milestones,
           bspl.staffing_project_id,
@@ -96,7 +122,7 @@ async function recreateViews() {
           bspl.linked_at,
           MAX(efs.financials_last_updated_at) AS financials_last_updated_at,
           u.username AS financials_last_updated_by_username,
-          MAX(pcm.billing_to_date_usd + pcm.billing_to_date_cny) AS bonus_usd
+          0 AS bonus_usd
       FROM billing_project bp
       LEFT JOIN billing_project_cm_no pcm ON pcm.project_id = bp.project_id
       LEFT JOIN billing_engagement e ON e.cm_id = pcm.cm_id
@@ -105,8 +131,6 @@ async function recreateViews() {
       LEFT JOIN billing_engagement_financial_summary efs ON efs.cm_id = pcm.cm_id
       LEFT JOIN billing_staffing_project_link bspl ON bspl.billing_project_id = bp.project_id
       LEFT JOIN projects sp ON sp.id = bspl.staffing_project_id
-      LEFT JOIN billing_bc_attorney_staff_map bcmap ON bcmap.billing_attorney_name = bp.attorney_in_charge
-      LEFT JOIN staff s ON s.id = bcmap.staff_id
       LEFT JOIN users u ON u.id = (
           SELECT efs2.financials_last_updated_by
           FROM billing_engagement_financial_summary efs2
@@ -118,17 +142,6 @@ async function recreateViews() {
           bp.project_name,
           bp.client_name,
           bp.attorney_in_charge,
-          s.id,
-          s.name,
-          s.position,
-          s.status,
-          bcmap.is_auto_mapped,
-          bcmap.match_confidence,
-          pcm.cm_no,
-          pcm.cm_id,
-          pcm.status,
-          pcm.open_date,
-          pcm.closed_date,
           bspl.staffing_project_id,
           sp.name,
           sp.status,

@@ -4,6 +4,7 @@
  * TanStack Query hooks for billing data
  */
 
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import * as billingApi from '../api/billing';
@@ -36,10 +37,20 @@ export const billingKeys = {
 };
 
 // Get all billing projects
-export function useBillingProjects() {
+export function useBillingProjects(params?: { page?: number; limit?: number; search?: string; bcAttorney?: string }) {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 100;
+  const search = params?.search;
+  const bcAttorney = params?.bcAttorney;
+
+  const keyParams = useMemo(
+    () => ({ page, limit, search: search ?? null, bcAttorney: bcAttorney ?? null }),
+    [page, limit, search, bcAttorney]
+  );
+
   return useQuery({
-    queryKey: billingKeys.projects(),
-    queryFn: billingApi.getBillingProjects,
+    queryKey: [...billingKeys.projects(), keyParams],
+    queryFn: () => billingApi.getBillingProjects({ page, limit, search, bcAttorney }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

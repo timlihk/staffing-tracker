@@ -186,8 +186,17 @@ export interface LoginResponse {
 }
 
 // Billing Types
+export type BigIntLike = number | string;
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface BillingProject {
-  project_id: number;
+  project_id: BigIntLike;
   project_name: string;
   client_name?: string;
   base_currency: string;
@@ -213,7 +222,7 @@ export interface LinkedStaffingProject {
 }
 
 export interface BillingEngagement {
-  engagement_id: number;
+  engagement_id: BigIntLike;
   engagement_code?: string;
   engagement_title?: string;
   total_agreed_fee_value?: number;

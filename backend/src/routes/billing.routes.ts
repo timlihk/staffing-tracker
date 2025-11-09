@@ -179,6 +179,25 @@ router.get('/projects/:id/bc-attorneys', authenticate, checkBillingAccess, valid
 
 /**
  * @openapi
+ * /billing/bc-attorneys:
+ *   get:
+ *     tags: [Billing]
+ *     summary: List distinct B&C attorneys
+ *     description: Returns unique B&C attorneys assigned to billing projects for filter dropdowns
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of B&C attorneys
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get('/bc-attorneys', authenticate, checkBillingAccess, billingController.listAllBCAttorneys);
+
+/**
+ * @openapi
  * /billing/projects/{id}:
  *   put:
  *     tags: [Billing]

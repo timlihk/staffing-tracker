@@ -1462,27 +1462,46 @@ Delete a user.
 **Note:** Billing module must be enabled in settings. Access is controlled by billing access settings.
 
 #### GET /billing/projects
-Get all billing matters and collections.
+Get paginated billing matters and collections.
 
 **Authentication:** Required (Bearer token)
 
 **Authorization:** Billing access required (Admin or B&C Attorney based on settings)
 
+**Query Parameters (optional):**
+- `page` – Page number (default: 1)
+- `limit` – Results per page (default: 100, max: 250)
+- `search` – Case-insensitive search across project name, client name, and CM numbers
+- `bcAttorney` – Filter by B&C attorney name (matches mapped or attorney_in_charge)
+
 **Response (200):**
 ```json
-[
-  {
-    "id": 1,
-    "name": "Matter 12345 - Client A Acquisition",
-    "clientName": "Client A",
-    "matterNumber": "12345",
-    "totalBilled": 500000.00,
-    "totalCollected": 450000.00,
-    "outstandingAR": 50000.00,
-    "status": "active",
-    "createdAt": "2025-01-01T00:00:00Z"
+{
+  "data": [
+    {
+      "project_id": 1010101001,
+      "project_name": "Matter 12345 - Client A Acquisition",
+      "client_name": "Client A",
+      "attorney_in_charge": "Jane Partner",
+      "cm_numbers": "12345, 67890",
+      "billing_usd": 500000.0,
+      "collection_usd": 450000.0,
+      "billing_credit_usd": 0.0,
+      "ubt_usd": 50000.0,
+      "total_milestones": 12,
+      "completed_milestones": 8,
+      "staffing_project_id": 42,
+      "staffing_project_name": "Client A Staffing Project",
+      "financials_last_updated_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 100,
+    "total": 325,
+    "totalPages": 4
   }
-]
+}
 ```
 
 ---

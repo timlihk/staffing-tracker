@@ -2,7 +2,7 @@
  * Billing Matters List Page
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -15,13 +15,17 @@ import {
   Stack,
   MenuItem,
   InputAdornment,
+  Pagination,
 } from '@mui/material';
 import { Search as SearchIcon, FilterList as FilterIcon } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { useQuery } from '@tanstack/react-query';
 import { useBillingProjects } from '../hooks/useBilling';
 import { formatCurrencyWhole } from '../lib/currency';
 import { Page } from '../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
+import type { BillingAttorneyOption } from '../api/billing';
+import { getBillingAttorneys } from '../api/billing';
 
 // Helper to format currency with currency symbol in value
 const formatCurrencyWithSymbol = (usdValue: number | null, cnyValue: number | null): string => {
@@ -40,47 +44,103 @@ const formatCurrencyWithSymbol = (usdValue: number | null, cnyValue: number | nu
   return '—';
 };
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function BillingMatters() {
   const navigate = useNavigate();
-  const { data: projects = [], isLoading } = useBillingProjects();
-
-  // Filter states
-  const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
+  const [searchInput, setSearchInput] = useState('');
   const [bcAttorneyFilter, setBcAttorneyFilter] = useState<string>('all');
 
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const activeSearch = debouncedSearch.trim();
+  const activeAttorney = bcAttorneyFilter !== 'all' ? bcAttorneyFilter : undefined;
+
+  const { data: projectsResponse, isLoading } = useBillingProjects({
+    page,
+    limit: pageSize,
+    search: activeSearch || undefined,
+    bcAttorney: activeAttorney,
+  });
+  const projects = projectsResponse?.data ?? [];
+  const pagination = projectsResponse?.pagination;
+  const totalPages = pagination?.totalPages ?? 0;
+
+  useEffect(() => {
+    if (!pagination) {
+      setPage((prev) => (prev !== 1 ? 1 : prev));
+      return;
+    }
+    setPage((prev) => {
+      if (pagination.totalPages === 0) {
+        return prev !== 1 ? 1 : prev;
+      }
+      if (prev > pagination.totalPages) {
+        return pagination.totalPages;
+      }
+      return prev;
+    });
+  }, [pagination?.totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeSearch, activeAttorney]);
+
+  const handlePageChange = (_event: ChangeEvent<unknown>, value: number) => {
+    if (value !== page) {
+      setPage(value);
+    }
+  };
+
+  const handlePageSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const next = Number(event.target.value);
+    if (!Number.isNaN(next) && next !== pageSize) {
+      setPageSize(next);
+      setPage(1);
+    }
+  };
+
+  const pageSizeOptions = [25, 50, 100, 250];
+  const paginationPage = totalPages > 0 ? Math.min(page, totalPages) : 1;
+  const filtersActive = Boolean(activeSearch || activeAttorney);
+
   // Get unique B&C attorneys for filter dropdown
-  const bcAttorneys = useMemo(() => {
-    const attorneys = new Set<string>();
+  const { data: bcAttorneyServerOptions } = useQuery<BillingAttorneyOption[]>({
+    queryKey: ['billing-bc-attorneys'],
+    queryFn: getBillingAttorneys,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const fallbackAttorneyOptions = useMemo(() => {
+    const names = new Set<string>();
     projects.forEach(p => {
       const name = p.bc_attorney_name || p.attorney_in_charge;
       if (name) {
-        // Split by comma in case there are multiple attorneys
-        name.split(',').forEach(n => attorneys.add(n.trim()));
+        name.split(/[,&]/).forEach(n => {
+          const trimmed = n.trim();
+          if (trimmed) names.add(trimmed);
+        });
       }
     });
-    return Array.from(attorneys).sort();
+    return Array.from(names)
+      .sort()
+      .map((name, idx) => ({ staff_id: String(idx), name, position: null }));
   }, [projects]);
 
-  // Filtered projects
-  const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
-      // Search filter (project name or C/M number)
-      if (searchText) {
-        const search = searchText.toLowerCase();
-        const matchesName = project.project_name?.toLowerCase().includes(search);
-        const matchesCM = project.cm_numbers?.toLowerCase().includes(search);
-        if (!matchesName && !matchesCM) return false;
-      }
-
-      // B&C attorney filter
-      if (bcAttorneyFilter !== 'all') {
-        const projectAttorney = project.bc_attorney_name || project.attorney_in_charge || '';
-        if (!projectAttorney.includes(bcAttorneyFilter)) return false;
-      }
-
-      return true;
-    });
-  }, [projects, searchText, bcAttorneyFilter]);
+  const bcAttorneyOptions =
+    bcAttorneyServerOptions && bcAttorneyServerOptions.length > 0
+      ? bcAttorneyServerOptions
+      : fallbackAttorneyOptions;
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -215,8 +275,8 @@ export default function BillingMatters() {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               placeholder="Search by project name or C/M number..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               size="small"
               fullWidth
               InputProps={{
@@ -243,9 +303,9 @@ export default function BillingMatters() {
               }}
             >
               <MenuItem value="all">All Attorneys</MenuItem>
-              {bcAttorneys.map((attorney) => (
-                <MenuItem key={attorney} value={attorney}>
-                  {attorney}
+              {bcAttorneyOptions.map((attorney) => (
+                <MenuItem key={`${attorney.staff_id}-${attorney.name}`} value={attorney.name}>
+                  {attorney.name}
                 </MenuItem>
               ))}
             </TextField>
@@ -253,18 +313,54 @@ export default function BillingMatters() {
         </CardContent>
       </Card>
 
+      {pagination && (
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+          sx={{ mb: 2 }}
+        >
+          <Pagination
+            count={Math.max(totalPages, 1)}
+            page={paginationPage}
+            onChange={handlePageChange}
+            color="primary"
+            disabled={isLoading || totalPages <= 1}
+          />
+          <TextField
+            select
+            label="Rows per page"
+            value={pageSize}
+            onChange={handlePageSizeChange}
+            size="small"
+            sx={{ width: 160 }}
+          >
+            {pageSizeOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option} rows
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+      )}
+
+      {filtersActive && (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+          Filters applied server-side{pagination ? ` (${pagination.total} total matches)` : ''}.
+        </Typography>
+      )}
+
       <Card>
         <CardContent>
           <DataGrid
-            rows={filteredProjects}
+            rows={projects}
             columns={columns}
-            getRowId={(row) => row.project_id}
+            getRowId={(row) => String(row.project_id)}
             loading={isLoading}
             autoHeight
-            pageSizeOptions={[25, 50, 100]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 25 } },
-            }}
+            hideFooterPagination
+            hideFooterSelectedRowCount
             sx={{
               '& .MuiDataGrid-row:hover': {
                 cursor: 'pointer',
@@ -285,7 +381,9 @@ export default function BillingMatters() {
 
       <Box sx={{ mt: 2 }}>
         <Typography variant="caption" color="text.secondary">
-          Showing {filteredProjects.length} of {projects.length} billing matters
+          {pagination
+            ? `Showing ${projects.length} of ${pagination.total} billing matters (page ${paginationPage} of ${Math.max(totalPages, 1)})`
+            : `Showing ${projects.length} billing matters`}
         </Typography>
       </Box>
     </Page>

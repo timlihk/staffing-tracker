@@ -45,7 +45,7 @@ export default function BillingMatterDetail() {
 
   const [selectedCmIndex, setSelectedCmIndex] = useState(0);
   const selectedCm: BillingProjectCM | null = cmNumbers[selectedCmIndex] ?? null;
-  const selectedCmId = selectedCm?.cm_id ?? null;
+  const selectedCmId = parseEngagementId(selectedCm?.cm_id);
 
   const {
     data: cmEngagements = [],
@@ -205,7 +205,7 @@ export default function BillingMatterDetail() {
             >
               {cmNumbers.map((cm, index) => (
                 <Tab
-                  key={`${cm.cm_id ?? cm.cm_no ?? index}`}
+                  key={String(cm.cm_id ?? cm.cm_no ?? index)}
                   value={index}
                   label={
                     <Stack spacing={0.25} alignItems="flex-start">

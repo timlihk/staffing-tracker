@@ -3,14 +3,15 @@
  */
 
 import apiClient from './client';
+import type { BigIntLike, PaginationMeta } from '../types';
 
 export interface BillingProject {
-  project_id: number;
+  project_id: BigIntLike;
   project_name: string;
   client_name: string;
   attorney_in_charge: string;
   cm_numbers: string;
-  bc_attorney_staff_id: number | null;
+  bc_attorney_staff_id: BigIntLike | null;
   bc_attorney_name: string | null;
   bc_attorney_position: string | null;
   is_auto_mapped: boolean;
@@ -31,7 +32,7 @@ export interface BillingProject {
   bonus_cny: number;
   total_milestones: number;
   completed_milestones: number;
-  staffing_project_id: number | null;
+  staffing_project_id: BigIntLike | null;
   staffing_project_name: string | null;
   staffing_project_status: string | null;
   linked_at: string | null;
@@ -52,7 +53,7 @@ export interface BillingProjectSummaryResponse {
 }
 
 export interface BillingProjectCM {
-  cm_id: number;
+  cm_id: BigIntLike;
   cm_no: string | null;
   is_primary: boolean;
   open_date: string | null;
@@ -71,8 +72,8 @@ export interface ProjectActivityResponse {
 }
 
 export interface BillingEvent {
-  event_id: number;
-  engagement_id: number;
+  event_id: BigIntLike;
+  engagement_id: BigIntLike;
   event_type: string | null;
   event_date: string | null;
   description: string | null;
@@ -83,8 +84,8 @@ export interface BillingEvent {
 }
 
 export interface FinanceComment {
-  comment_id: number;
-  engagement_id: number;
+  comment_id: BigIntLike;
+  engagement_id: BigIntLike;
   milestone_id: number | null;
   comment_text: string | null;
   notes: string | null;
@@ -93,8 +94,8 @@ export interface FinanceComment {
 }
 
 export interface CMEngagementSummary {
-  engagement_id: number;
-  cm_id: number;
+  engagement_id: BigIntLike;
+  cm_id: BigIntLike;
   engagement_code: string | null;
   engagement_title: string | null;
   name: string | null;
@@ -107,8 +108,8 @@ export interface CMEngagementSummary {
 }
 
 export interface EngagementDetailResponse {
-  engagement_id: number;
-  cm_id: number;
+  engagement_id: BigIntLike;
+  cm_id: BigIntLike;
   engagement_code: string | null;
   engagement_title: string | null;
   name: string | null;
@@ -141,7 +142,7 @@ export interface EngagementDetailResponse {
     lsd_raw: string | null;
   } | null;
   milestones: Array<{
-    milestone_id: number;
+    milestone_id: BigIntLike;
     ordinal: number | null;
     title: string | null;
     description: string | null;
@@ -172,8 +173,31 @@ export interface BillingAccessSettings {
 }
 
 // Get all billing projects
-export const getBillingProjects = async (): Promise<BillingProject[]> => {
-  const response = await apiClient.get('/billing/projects');
+export interface BillingProjectsResponse {
+  data: BillingProject[];
+  pagination: PaginationMeta;
+}
+
+export interface BillingProjectsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  bcAttorney?: string;
+}
+
+export const getBillingProjects = async (params?: BillingProjectsQueryParams): Promise<BillingProjectsResponse> => {
+  const response = await apiClient.get('/billing/projects', { params });
+  return response.data;
+};
+
+export interface BillingAttorneyOption {
+  staff_id: BigIntLike;
+  name: string;
+  position: string | null;
+}
+
+export const getBillingAttorneys = async (): Promise<BillingAttorneyOption[]> => {
+  const response = await apiClient.get('/billing/bc-attorneys');
   return response.data;
 };
 

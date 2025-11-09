@@ -74,7 +74,7 @@ export function BillingInfoEditDialog({
 
   // Fetch current B&C attorneys for this project
   const { data: currentBcAttorneys = [] } = useQuery<Array<{ staff_id: number; staff: { id: number; name: string; position: string } }>>({
-    queryKey: ['billing-project-bc-attorneys', project.project_id],
+    queryKey: ['billing-project-bc-attorneys', String(project.project_id)],
     queryFn: async () => {
       const response = await api.get(`/billing/projects/${project.project_id}/bc-attorneys`);
       return response.data;
