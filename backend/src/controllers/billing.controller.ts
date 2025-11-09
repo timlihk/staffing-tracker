@@ -162,7 +162,7 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
     }
 
     const whereClause = conditions.length
-      ? Prisma.sql`WHERE ${Prisma.join(conditions, Prisma.sql` AND `)}`
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
       : Prisma.sql``;
 
     const [countResult] = await prisma.$queryRaw<{ count: bigint }[]>`
