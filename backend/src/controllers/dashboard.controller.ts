@@ -187,8 +187,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         },
       }),
       findUpcomingMilestones(windowStart, windowEnd),
-      buildStaffingHeatmap(now, windowEnd),
-      findUnstaffedMilestones(now, windowEnd),
+      buildStaffingHeatmap(windowStart, windowEnd),
+      findUnstaffedMilestones(windowStart, windowEnd),
       prisma.user.findMany({
         where: { mustResetPassword: true },
         select: {
@@ -623,6 +623,10 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
 };
 
 const buildStaffingHeatmap = async (start: Date, end: Date) => {
+  // Normalize start to start of day and end to end of day
+  const adjustedStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const adjustedEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+
   // Fetch all active staff members and their assignments with upcoming milestones
   const [allStaff, assignments] = await Promise.all([
     prisma.staff.findMany({
@@ -642,8 +646,8 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
       where: {
         project: {
           OR: [
-            { filingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
-            { listingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
+            { filingDate: { gte: adjustedStart, lte: new Date(adjustedEnd.getFullYear(), adjustedEnd.getMonth(), adjustedEnd.getDate()) } },
+            { listingDate: { gte: adjustedStart, lte: new Date(adjustedEnd.getFullYear(), adjustedEnd.getMonth(), adjustedEnd.getDate()) } },
           ],
         },
         staff: {
@@ -675,7 +679,7 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
   // 60 days = 6 biweeks (10-day intervals)
   // 90 days = 6 biweeks (15-day intervals)
   // 120 days = 6 periods (20-day intervals)
-  const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const daysDiff = Math.ceil((adjustedEnd.getTime() - adjustedStart.getTime()) / (1000 * 60 * 60 * 24));
   let intervalDays: number;
   let numPeriods: number;
 
@@ -705,15 +709,17 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
   }
 
   const periods: Period[] = [];
-  const cursor = new Date(start);
+  const cursor = new Date(adjustedStart);
   for (let i = 0; i < numPeriods; i += 1) {
     const periodEnd = new Date(cursor);
     periodEnd.setDate(periodEnd.getDate() + intervalDays - 1);
 
     // Don't exceed the end date
-    if (periodEnd > end) {
-      periodEnd.setTime(end.getTime());
+    if (periodEnd > adjustedEnd) {
+      periodEnd.setTime(adjustedEnd.getTime());
     }
+    // Ensure period end is end of day
+    periodEnd.setHours(23, 59, 59, 999);
 
     const weekKey = formatWeekKey(cursor, periodEnd);
     periods.push({
@@ -746,7 +752,7 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
     if (assignment.project?.listingDate) dates.push(assignment.project.listingDate);
 
     dates
-      .filter((date) => date >= start && date <= end)
+      .filter((date) => date >= adjustedStart && date <= adjustedEnd)
       .forEach((date) => {
         const periodKey = findPeriodForDate(date);
         if (periodKey) {
@@ -768,12 +774,16 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
 };
 
 const findUnstaffedMilestones = async (start: Date, end: Date) => {
+  // Create date-only versions for comparison
+  const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
   const projects = await prisma.project.findMany({
     where: {
       status: { in: ['Active', 'Slow-down'] },
       OR: [
-        { filingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
-        { listingDate: { gte: new Date(start.getFullYear(), start.getMonth(), start.getDate()), lte: new Date(end.getFullYear(), end.getMonth(), end.getDate()) } },
+        { filingDate: { gte: startDateOnly, lte: endDateOnly } },
+        { listingDate: { gte: startDateOnly, lte: endDateOnly } },
       ],
     },
     select: {
@@ -827,7 +837,10 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
 
 const formatWeekKey = (date: Date, customEndDate?: Date) => {
   const startOfWeek = new Date(date);
-  startOfWeek.setDate(date.getDate() - date.getDay());
+  // Only adjust to Sunday if we're creating a standard week (no custom end date)
+  if (!customEndDate) {
+    startOfWeek.setDate(date.getDate() - date.getDay());
+  }
   startOfWeek.setHours(0, 0, 0, 0);
 
   const endOfWeek = customEndDate
