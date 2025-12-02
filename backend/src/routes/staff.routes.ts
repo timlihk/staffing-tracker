@@ -220,7 +220,7 @@ router.get('/:id/billing-projects', authenticate, asyncHandler(staffController.g
  *   post:
  *     tags: [Staff]
  *     summary: Create a new staff member
- *     description: Add a new staff member to the system (admin and editor only)
+ *     description: Add a new staff member to the system
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -260,10 +260,8 @@ router.get('/:id/billing-projects', authenticate, asyncHandler(staffController.g
  *               $ref: '#/components/schemas/Staff'
  *       401:
  *         description: Unauthorized
- *       403:
- *         description: Forbidden (admin or editor only)
  */
-router.post('/', authenticate, authorize('admin', 'editor'), validate(createStaffSchema), asyncHandler(staffController.createStaff));
+router.post('/', authenticate, validate(createStaffSchema), asyncHandler(staffController.createStaff));
 
 /**
  * @openapi
@@ -271,7 +269,7 @@ router.post('/', authenticate, authorize('admin', 'editor'), validate(createStaf
  *   put:
  *     tags: [Staff]
  *     summary: Update a staff member
- *     description: Update an existing staff member (admin and editor only)
+ *     description: Update an existing staff member
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -314,12 +312,10 @@ router.post('/', authenticate, authorize('admin', 'editor'), validate(createStaf
  *               $ref: '#/components/schemas/Staff'
  *       401:
  *         description: Unauthorized
- *       403:
- *         description: Forbidden (admin or editor only)
  *       404:
  *         description: Staff member not found
  */
-router.put('/:id', authenticate, authorize('admin', 'editor'), validate(updateStaffSchema), asyncHandler(staffController.updateStaff));
+router.put('/:id', authenticate, validate(updateStaffSchema), asyncHandler(staffController.updateStaff));
 
 /**
  * @openapi
@@ -327,7 +323,7 @@ router.put('/:id', authenticate, authorize('admin', 'editor'), validate(updateSt
  *   delete:
  *     tags: [Staff]
  *     summary: Delete a staff member
- *     description: Remove a staff member from the system (admin only)
+ *     description: Remove a staff member from the system
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -342,11 +338,9 @@ router.put('/:id', authenticate, authorize('admin', 'editor'), validate(updateSt
  *         description: Staff member deleted successfully
  *       401:
  *         description: Unauthorized
- *       403:
- *         description: Forbidden (admin only)
  *       404:
  *         description: Staff member not found
  */
-router.delete('/:id', authenticate, authorize('admin'), asyncHandler(staffController.deleteStaff));
+router.delete('/:id', authenticate, asyncHandler(staffController.deleteStaff));
 
 export default router;

@@ -54,7 +54,6 @@ const categorizeTeamMembers = (members: Array<{ id: number; name: string; positi
   const partners: typeof members = [];
   const associates: typeof members = [];
   const flics: typeof members = [];
-  const interns: typeof members = [];
 
   members.forEach((member) => {
     const positionLower = member.position.toLowerCase();
@@ -64,8 +63,6 @@ const categorizeTeamMembers = (members: Array<{ id: number; name: string; positi
       associates.push(member);
     } else if (positionLower.includes('flic')) {
       flics.push(member);
-    } else if (positionLower.includes('intern')) {
-      interns.push(member);
     }
   });
 
@@ -76,7 +73,6 @@ const categorizeTeamMembers = (members: Array<{ id: number; name: string; positi
     partners: partners.sort(sortByName),
     associates: associates.sort(sortByName),
     flics: flics.sort(sortByName),
-    interns: interns.sort(sortByName),
   };
 };
 
@@ -452,7 +448,6 @@ const DealRadarCard = ({
                       <TableCell sx={{ fontWeight: 600 }}>Partner</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Associate</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>FLIC</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Intern</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -521,21 +516,6 @@ const DealRadarCard = ({
                             {categorized.flics.length > 0 ? (
                               <Stack direction="column" spacing={0.5}>
                                 {categorized.flics.map((member) => (
-                                  <Typography key={member.id} variant="body2">
-                                    {member.name}
-                                  </Typography>
-                                ))}
-                              </Stack>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">
-                                —
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {categorized.interns.length > 0 ? (
-                              <Stack direction="column" spacing={0.5}>
-                                {categorized.interns.map((member) => (
                                   <Typography key={member.id} variant="body2">
                                     {member.name}
                                   </Typography>
