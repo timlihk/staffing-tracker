@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../api/client';
 import type { DashboardSummary } from '../types';
 
-export const useDashboard = (days: number = 30, milestoneType: 'filing' | 'listing' | 'both' = 'both') => {
+export const useDashboard = (days: number = 30) => {
   return useQuery({
-    queryKey: ['dashboard', days, milestoneType],
+    queryKey: ['dashboard', days],
     queryFn: async () => {
       const response = await api.get<DashboardSummary>('/dashboard/summary', {
-        params: { days, milestoneType },
+        params: { days },
       });
       return response.data;
     },

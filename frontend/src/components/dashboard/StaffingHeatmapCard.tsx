@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -16,15 +16,18 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
+  FormControl,
+  Select,
+  MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useStaffingHeatmap } from '../../hooks/useStaffingHeatmap';
 import type { DashboardSummary } from '../../types';
 
 interface StaffingHeatmapCardProps {
-  weeks: string[];
-  groups: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }>;
+  days: number;
   onSelectStaff: (id: number) => void;
-  milestoneType?: 'filing' | 'listing' | 'both';
 }
 
 const formatWeekLabel = (weekKey: string) => {
@@ -42,20 +45,53 @@ const getHeatColor = (count: number) => {
   return 'rgba(198, 40, 40, 0.85)';
 };
 
-const getMilestoneLabel = (type: 'filing' | 'listing' | 'both') => {
-  switch (type) {
-    case 'filing':
-      return 'Filing Only';
-    case 'listing':
-      return 'Listing Only';
-    default:
-      return 'All Milestones';
-  }
+const groupHeatmapByRole = (heatmap: DashboardSummary['staffingHeatmap']) => {
+  const order = ['Partner', 'Associate', 'Senior FLIC', 'Junior FLIC', 'Intern'];
+  const map = new Map<string, DashboardSummary['staffingHeatmap']>();
+
+  heatmap.forEach((row) => {
+    const key = order.includes(row.position) ? row.position : 'Other Roles';
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push(row);
+  });
+
+  const result: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }> = [];
+
+  order.forEach((key) => {
+    if (map.has(key)) {
+      const rows = map.get(key)!;
+      result.push({ label: key, rows, count: rows.length });
+      map.delete(key);
+    }
+  });
+
+  map.forEach((rows, key) => {
+    result.push({ label: key, rows, count: rows.length });
+  });
+
+  return result;
 };
 
-const StaffingHeatmapCard = ({ weeks, groups, onSelectStaff, milestoneType = 'both' }: StaffingHeatmapCardProps) => {
+const StaffingHeatmapCard = ({ days, onSelectStaff }: StaffingHeatmapCardProps) => {
+  const [milestoneType, setMilestoneType] = useState<'filing' | 'listing' | 'both'>('both');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<Record<string, { field: 'name' | string; order: 'asc' | 'desc' }>>({});
+
+  const { data, isLoading } = useStaffingHeatmap(days, milestoneType);
+
+  const groups = useMemo(() => {
+    return groupHeatmapByRole(data?.staffingHeatmap ?? []);
+  }, [data?.staffingHeatmap]);
+
+  const weeks = useMemo(() => {
+    const set = new Set<string>();
+    (data?.staffingHeatmap ?? []).forEach((row) => {
+      row.weeks.forEach((week) => set.add(week.week));
+    });
+    return Array.from(set).sort();
+  }, [data?.staffingHeatmap]);
 
   useEffect(() => {
     setExpandedGroups((prev) => {
@@ -120,13 +156,17 @@ const StaffingHeatmapCard = ({ weeks, groups, onSelectStaff, milestoneType = 'bo
           <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
             Staffing Heatmap
           </Typography>
-          <Chip
-            label={getMilestoneLabel(milestoneType)}
-            size="small"
-            color={milestoneType === 'both' ? 'default' : 'primary'}
-            variant={milestoneType === 'both' ? 'outlined' : 'filled'}
-            sx={{ fontSize: '0.75rem', height: 24 }}
-          />
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <Select
+              value={milestoneType}
+              onChange={(e) => setMilestoneType(e.target.value as 'filing' | 'listing' | 'both')}
+              sx={{ fontSize: '0.8rem', height: 32 }}
+            >
+              <MenuItem value="both">All Milestones</MenuItem>
+              <MenuItem value="filing">Filing Only</MenuItem>
+              <MenuItem value="listing">Listing Only</MenuItem>
+            </Select>
+          </FormControl>
         </Stack>
         {groups.length > 0 && (
           <Stack direction="row" spacing={1}>
@@ -139,7 +179,11 @@ const StaffingHeatmapCard = ({ weeks, groups, onSelectStaff, milestoneType = 'bo
           </Stack>
         )}
       </Stack>
-      {groups.length === 0 ? (
+      {isLoading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : groups.length === 0 ? (
         <Typography color="text.secondary">No staffing data for upcoming milestones.</Typography>
       ) : (
         <Stack spacing={1} sx={{ flex: 1 }}>

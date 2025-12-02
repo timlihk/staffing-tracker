@@ -94,13 +94,6 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     const days = parseQueryInt(req.query.days as string, { default: 30, min: 1, max: 365 });
     windowEnd.setDate(windowEnd.getDate() + days);
 
-    // Allow milestone type filtering (default 'both', options: 'filing', 'listing', 'both')
-    const milestoneTypeParam = (req.query.milestoneType as string) || 'both';
-    if (!['filing', 'listing', 'both'].includes(milestoneTypeParam)) {
-      return res.status(400).json({ error: 'Invalid milestoneType. Must be "filing", "listing", or "both"' });
-    }
-    const milestoneType = milestoneTypeParam as 'filing' | 'listing' | 'both';
-
     // Calculate 7 days ago for trends
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -111,7 +104,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
 
     // Generate cache key based on query parameters
     const cacheKey = CACHE_KEYS.DASHBOARD_SUMMARY(
-      `days=${days}&milestoneType=${milestoneType}&userId=${req.user?.userId}`
+      `days=${days}&userId=${req.user?.userId}`
     );
 
     // Try to get from cache first
@@ -136,7 +129,6 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       upcomingFilings30Days,
       upcomingListings30Days,
       upcomingMilestones,
-      staffingHeatmap,
       unstaffedMilestones,
       pendingResets,
       recentActivity,
@@ -193,9 +185,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           },
         },
       }),
-      findUpcomingMilestones(windowStart, windowEnd, milestoneType),
-      buildStaffingHeatmap(windowStart, windowEnd, milestoneType),
-      findUnstaffedMilestones(windowStart, windowEnd, milestoneType),
+      findUpcomingMilestones(windowStart, windowEnd),
+      findUnstaffedMilestones(windowStart, windowEnd),
       prisma.user.findMany({
         where: { mustResetPassword: true },
         select: {
@@ -258,7 +249,6 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       topAssignedStaff,
       sevenDayTrends,
       dealRadar: upcomingMilestones,
-      staffingHeatmap,
       actionItems: {
         unstaffedMilestones,
         pendingResets: pendingResets.map((user) => ({
@@ -516,6 +506,33 @@ export const getDetailedChangeHistory = async (req: AuthRequest, res: Response) 
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getStaffingHeatmap = async (req: AuthRequest, res: Response) => {
+  try {
+    const now = new Date();
+    const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const windowEnd = new Date();
+
+    // Allow customizable time window (default 30 days, min 1, max 365)
+    const days = parseQueryInt(req.query.days as string, { default: 30, min: 1, max: 365 });
+    windowEnd.setDate(windowEnd.getDate() + days);
+
+    // Allow milestone type filtering (default 'both', options: 'filing', 'listing', 'both')
+    const milestoneTypeParam = (req.query.milestoneType as string) || 'both';
+    if (!['filing', 'listing', 'both'].includes(milestoneTypeParam)) {
+      return res.status(400).json({ error: 'Invalid milestoneType. Must be "filing", "listing", or "both"' });
+    }
+    const milestoneType = milestoneTypeParam as 'filing' | 'listing' | 'both';
+
+    const staffingHeatmap = await buildStaffingHeatmap(windowStart, windowEnd, milestoneType);
+
+    res.json({ staffingHeatmap });
+  } catch (error) {
+    console.error('Get staffing heatmap error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 const findUpcomingMilestones = async (start: Date, end: Date, milestoneType: 'filing' | 'listing' | 'both' = 'both') => {
   // Create date-only versions for comparison (remove time component)
   const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());

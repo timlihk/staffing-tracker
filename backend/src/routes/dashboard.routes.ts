@@ -150,4 +150,35 @@ router.get('/activity-log', authenticate, asyncHandler(dashboardController.getAc
  */
 router.get('/change-history', authenticate, asyncHandler(dashboardController.getDetailedChangeHistory));
 
+/**
+ * @openapi
+ * /dashboard/staffing-heatmap:
+ *   get:
+ *     tags: [Dashboard]
+ *     summary: Get staffing heatmap data
+ *     description: Retrieve staffing heatmap data with milestone type filtering
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Number of days to look ahead
+ *       - in: query
+ *         name: milestoneType
+ *         schema:
+ *           type: string
+ *           enum: [filing, listing, both]
+ *           default: both
+ *         description: Filter by milestone type
+ *     responses:
+ *       200:
+ *         description: Staffing heatmap data
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/staffing-heatmap', authenticate, asyncHandler(dashboardController.getStaffingHeatmap));
+
 export default router;
