@@ -95,10 +95,11 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     windowEnd.setDate(windowEnd.getDate() + days);
 
     // Allow milestone type filtering (default 'both', options: 'filing', 'listing', 'both')
-    const milestoneType = (req.query.milestoneType as string) || 'both';
-    if (!['filing', 'listing', 'both'].includes(milestoneType)) {
+    const milestoneTypeParam = (req.query.milestoneType as string) || 'both';
+    if (!['filing', 'listing', 'both'].includes(milestoneTypeParam)) {
       return res.status(400).json({ error: 'Invalid milestoneType. Must be "filing", "listing", or "both"' });
     }
+    const milestoneType = milestoneTypeParam as 'filing' | 'listing' | 'both';
 
     // Calculate 7 days ago for trends
     const sevenDaysAgo = new Date();
