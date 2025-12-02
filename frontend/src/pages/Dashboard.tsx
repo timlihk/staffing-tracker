@@ -66,15 +66,16 @@ const formatDate = (dateString: string | null) => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState(120);
+  const [milestoneType, setMilestoneType] = useState<'filing' | 'listing' | 'both'>('both');
   const [showAllEvents, setShowAllEvents] = useState(false);
-  const { data, isLoading, error } = useDashboard(timeRange);
+  const { data, isLoading, error } = useDashboard(timeRange, milestoneType);
 
   const dealRadarGroups = useMemo(() => groupDealRadar(data?.dealRadar ?? []), [data?.dealRadar]);
 
-  // Reset show all events when time range changes
+  // Reset show all events when time range or milestone type changes
   useEffect(() => {
     setShowAllEvents(false);
-  }, [timeRange]);
+  }, [timeRange, milestoneType]);
 
   const heatmapWeeks = useMemo(() => {
     const set = new Set<string>();
@@ -117,18 +118,31 @@ const Dashboard = () => {
     <Page>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
         <PageHeader title="Dashboard" />
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <Select
-            value={timeRange}
-            onChange={(e) => setTimeRange(Number(e.target.value))}
-            sx={{ fontSize: '0.875rem' }}
-          >
-            <MenuItem value={30}>30 Days</MenuItem>
-            <MenuItem value={60}>2 Months</MenuItem>
-            <MenuItem value={90}>3 Months</MenuItem>
-            <MenuItem value={120}>4 Months</MenuItem>
-          </Select>
-        </FormControl>
+        <Stack direction="row" spacing={1}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <Select
+              value={timeRange}
+              onChange={(e) => setTimeRange(Number(e.target.value))}
+              sx={{ fontSize: '0.875rem' }}
+            >
+              <MenuItem value={30}>30 Days</MenuItem>
+              <MenuItem value={60}>2 Months</MenuItem>
+              <MenuItem value={90}>3 Months</MenuItem>
+              <MenuItem value={120}>4 Months</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <Select
+              value={milestoneType}
+              onChange={(e) => setMilestoneType(e.target.value as 'filing' | 'listing' | 'both')}
+              sx={{ fontSize: '0.875rem' }}
+            >
+              <MenuItem value="both">Both Milestones</MenuItem>
+              <MenuItem value="filing">Filing Only</MenuItem>
+              <MenuItem value="listing">Listing Only</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
       </Stack>
       <Stack spacing={1.75}>
         <InsightsPanel data={data} timeRange={timeRange} />
@@ -143,6 +157,7 @@ const Dashboard = () => {
           weeks={heatmapWeeks}
           groups={groupHeatmapByRole(data.staffingHeatmap)}
           onSelectStaff={(id) => navigate(`/staff/${id}`)}
+          milestoneType={milestoneType}
         />
       </Stack>
     </Page>

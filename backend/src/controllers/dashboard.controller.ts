@@ -94,6 +94,12 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
     const days = parseQueryInt(req.query.days as string, { default: 30, min: 1, max: 365 });
     windowEnd.setDate(windowEnd.getDate() + days);
 
+    // Allow milestone type filtering (default 'both', options: 'filing', 'listing', 'both')
+    const milestoneType = (req.query.milestoneType as string) || 'both';
+    if (!['filing', 'listing', 'both'].includes(milestoneType)) {
+      return res.status(400).json({ error: 'Invalid milestoneType. Must be "filing", "listing", or "both"' });
+    }
+
     // Calculate 7 days ago for trends
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -104,7 +110,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
 
     // Generate cache key based on query parameters
     const cacheKey = CACHE_KEYS.DASHBOARD_SUMMARY(
-      `days=${days}&userId=${req.user?.userId}`
+      `days=${days}&milestoneType=${milestoneType}&userId=${req.user?.userId}`
     );
 
     // Try to get from cache first
@@ -186,9 +192,9 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
           },
         },
       }),
-      findUpcomingMilestones(windowStart, windowEnd),
-      buildStaffingHeatmap(windowStart, windowEnd),
-      findUnstaffedMilestones(windowStart, windowEnd),
+      findUpcomingMilestones(windowStart, windowEnd, milestoneType),
+      buildStaffingHeatmap(windowStart, windowEnd, milestoneType),
+      findUnstaffedMilestones(windowStart, windowEnd, milestoneType),
       prisma.user.findMany({
         where: { mustResetPassword: true },
         select: {
@@ -509,15 +515,19 @@ export const getDetailedChangeHistory = async (req: AuthRequest, res: Response) 
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-const findUpcomingMilestones = async (start: Date, end: Date) => {
+const findUpcomingMilestones = async (start: Date, end: Date, milestoneType: 'filing' | 'listing' | 'both' = 'both') => {
   // Create date-only versions for comparison (remove time component)
   const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
   const projects = await prisma.project.findMany({
     where: {
-      OR: [
+      OR: milestoneType === 'both' ? [
         { filingDate: { gte: startDateOnly, lte: endDateOnly } },
+        { listingDate: { gte: startDateOnly, lte: endDateOnly } },
+      ] : milestoneType === 'filing' ? [
+        { filingDate: { gte: startDateOnly, lte: endDateOnly } },
+      ] : [
         { listingDate: { gte: startDateOnly, lte: endDateOnly } },
       ],
     },
@@ -575,7 +585,7 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
       });
       const teamMembers = Array.from(uniqueStaffMap.values());
 
-      if (project.filingDate) {
+      if ((milestoneType === 'both' || milestoneType === 'filing') && project.filingDate) {
         // Use date-only comparison for consistency with the database query
         const filingDateOnly = new Date(project.filingDate.getFullYear(), project.filingDate.getMonth(), project.filingDate.getDate());
         if (filingDateOnly >= startDateOnly && filingDateOnly <= endDateOnly) {
@@ -594,7 +604,7 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
         }
       }
 
-      if (project.listingDate) {
+      if ((milestoneType === 'both' || milestoneType === 'listing') && project.listingDate) {
         // Use date-only comparison for consistency with the database query
         const listingDateOnly = new Date(project.listingDate.getFullYear(), project.listingDate.getMonth(), project.listingDate.getDate());
         if (listingDateOnly >= startDateOnly && listingDateOnly <= endDateOnly) {
@@ -622,7 +632,7 @@ const findUpcomingMilestones = async (start: Date, end: Date) => {
     }));
 };
 
-const buildStaffingHeatmap = async (start: Date, end: Date) => {
+const buildStaffingHeatmap = async (start: Date, end: Date, milestoneType: 'filing' | 'listing' | 'both' = 'both') => {
   // Normalize start to start of day and end to end of day
   const adjustedStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const adjustedEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
@@ -645,8 +655,12 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
     prisma.projectAssignment.findMany({
       where: {
         project: {
-          OR: [
+          OR: milestoneType === 'both' ? [
             { filingDate: { gte: adjustedStart, lte: new Date(adjustedEnd.getFullYear(), adjustedEnd.getMonth(), adjustedEnd.getDate()) } },
+            { listingDate: { gte: adjustedStart, lte: new Date(adjustedEnd.getFullYear(), adjustedEnd.getMonth(), adjustedEnd.getDate()) } },
+          ] : milestoneType === 'filing' ? [
+            { filingDate: { gte: adjustedStart, lte: new Date(adjustedEnd.getFullYear(), adjustedEnd.getMonth(), adjustedEnd.getDate()) } },
+          ] : [
             { listingDate: { gte: adjustedStart, lte: new Date(adjustedEnd.getFullYear(), adjustedEnd.getMonth(), adjustedEnd.getDate()) } },
           ],
         },
@@ -748,8 +762,12 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
     if (!assignment.staff) return;
 
     const dates: Date[] = [];
-    if (assignment.project?.filingDate) dates.push(assignment.project.filingDate);
-    if (assignment.project?.listingDate) dates.push(assignment.project.listingDate);
+    if (milestoneType === 'both' || milestoneType === 'filing') {
+      if (assignment.project?.filingDate) dates.push(assignment.project.filingDate);
+    }
+    if (milestoneType === 'both' || milestoneType === 'listing') {
+      if (assignment.project?.listingDate) dates.push(assignment.project.listingDate);
+    }
 
     dates
       .filter((date) => date >= adjustedStart && date <= adjustedEnd)
@@ -773,7 +791,7 @@ const buildStaffingHeatmap = async (start: Date, end: Date) => {
   }));
 };
 
-const findUnstaffedMilestones = async (start: Date, end: Date) => {
+const findUnstaffedMilestones = async (start: Date, end: Date, milestoneType: 'filing' | 'listing' | 'both' = 'both') => {
   // Create date-only versions for comparison
   const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
   const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
@@ -781,8 +799,12 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
   const projects = await prisma.project.findMany({
     where: {
       status: { in: ['Active', 'Slow-down'] },
-      OR: [
+      OR: milestoneType === 'both' ? [
         { filingDate: { gte: startDateOnly, lte: endDateOnly } },
+        { listingDate: { gte: startDateOnly, lte: endDateOnly } },
+      ] : milestoneType === 'filing' ? [
+        { filingDate: { gte: startDateOnly, lte: endDateOnly } },
+      ] : [
         { listingDate: { gte: startDateOnly, lte: endDateOnly } },
       ],
     },
@@ -815,7 +837,12 @@ const findUnstaffedMilestones = async (start: Date, end: Date) => {
         (assignment) => assignment.jurisdiction === 'HK Law' && assignment.staff?.position === 'Partner'
       );
 
-      const milestoneDate = project.filingDate || project.listingDate;
+      // For 'both', pick the earliest upcoming milestone date
+      const milestoneDate = milestoneType === 'filing' ? project.filingDate :
+                            milestoneType === 'listing' ? project.listingDate :
+                            (project.filingDate && project.listingDate
+                              ? (project.filingDate < project.listingDate ? project.filingDate : project.listingDate)
+                              : project.filingDate || project.listingDate);
 
       return {
         projectId: project.id,

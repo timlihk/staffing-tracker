@@ -24,6 +24,7 @@ interface StaffingHeatmapCardProps {
   weeks: string[];
   groups: Array<{ label: string; rows: DashboardSummary['staffingHeatmap']; count: number }>;
   onSelectStaff: (id: number) => void;
+  milestoneType?: 'filing' | 'listing' | 'both';
 }
 
 const formatWeekLabel = (weekKey: string) => {
@@ -41,7 +42,18 @@ const getHeatColor = (count: number) => {
   return 'rgba(198, 40, 40, 0.85)';
 };
 
-const StaffingHeatmapCard = ({ weeks, groups, onSelectStaff }: StaffingHeatmapCardProps) => {
+const getMilestoneLabel = (type: 'filing' | 'listing' | 'both') => {
+  switch (type) {
+    case 'filing':
+      return 'Filing Only';
+    case 'listing':
+      return 'Listing Only';
+    default:
+      return 'All Milestones';
+  }
+};
+
+const StaffingHeatmapCard = ({ weeks, groups, onSelectStaff, milestoneType = 'both' }: StaffingHeatmapCardProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<Record<string, { field: 'name' | string; order: 'asc' | 'desc' }>>({});
 
@@ -104,9 +116,18 @@ const StaffingHeatmapCard = ({ weeks, groups, onSelectStaff }: StaffingHeatmapCa
   return (
     <Paper sx={{ p: 2.5, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5} spacing={2}>
-        <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
-          Staffing Heatmap
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
+            Staffing Heatmap
+          </Typography>
+          <Chip
+            label={getMilestoneLabel(milestoneType)}
+            size="small"
+            color={milestoneType === 'both' ? 'default' : 'primary'}
+            variant={milestoneType === 'both' ? 'outlined' : 'filled'}
+            sx={{ fontSize: '0.75rem', height: 24 }}
+          />
+        </Stack>
         {groups.length > 0 && (
           <Stack direction="row" spacing={1}>
             <Button size="small" variant="text" onClick={expandAll} disabled={allExpanded}>
