@@ -13,12 +13,14 @@ const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> 
   Active: 'success',
   'Slow-down': 'warning',
   Suspended: 'error',
+  Closed: 'default',
+  Terminated: 'error',
 };
 
 const Projects: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('Active');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sideFilter, setSideFilter] = useState('all');
   const [sectorFilter, setSectorFilter] = useState('all');
@@ -191,10 +193,12 @@ const Projects: React.FC = () => {
             size="small"
             sx={{ flex: 1, minWidth: 100 }}
           >
-            <MenuItem value="all">All Status</MenuItem>
+            <MenuItem value="all">All Statuses</MenuItem>
             <MenuItem value="Active">Active</MenuItem>
             <MenuItem value="Slow-down">Slow-down</MenuItem>
             <MenuItem value="Suspended">Suspended</MenuItem>
+            <MenuItem value="Closed">Closed</MenuItem>
+            <MenuItem value="Terminated">Terminated</MenuItem>
           </TextField>
           <TextField
             select

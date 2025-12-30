@@ -259,6 +259,8 @@ const ProjectForm: React.FC = () => {
                   <MenuItem value="Active">Active</MenuItem>
                   <MenuItem value="Slow-down">Slow-down</MenuItem>
                   <MenuItem value="Suspended">Suspended</MenuItem>
+                  <MenuItem value="Closed">Closed</MenuItem>
+                  <MenuItem value="Terminated">Terminated</MenuItem>
                 </TextField>
               )}
             />

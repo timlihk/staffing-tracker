@@ -61,7 +61,7 @@ const STAFF_ROLES = [
 ];
 
 const PRIORITIES = ['High', 'Medium', 'Low'];
-const STATUSES = ['Active', 'Slow-down', 'Suspended'];
+const STATUSES = ['Active', 'Slow-down', 'Suspended', 'Closed', 'Terminated'];
 const JURISDICTIONS = ['US Law', 'HK Law', 'B&C'];
 
 const columns: GridColDef<ReportRow>[] = [

@@ -118,6 +118,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       activeProjects,
       slowdownProjects,
       suspendedProjects,
+      closedProjects,
+      terminatedProjects,
       totalStaff,
       activeStaff,
       projectsByCategory,
@@ -138,6 +140,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       prisma.project.count({ where: { status: 'Active' } }),
       prisma.project.count({ where: { status: 'Slow-down' } }),
       prisma.project.count({ where: { status: 'Suspended' } }),
+      prisma.project.count({ where: { status: 'Closed' } }),
+      prisma.project.count({ where: { status: 'Terminated' } }),
       prisma.staff.count(),
       prisma.staff.count({ where: { status: 'active' } }),
       prisma.project.groupBy({
@@ -215,6 +219,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       { status: 'Active', count: activeProjects },
       { status: 'Slow-down', count: slowdownProjects },
       { status: 'Suspended', count: suspendedProjects },
+      { status: 'Closed', count: closedProjects },
+      { status: 'Terminated', count: terminatedProjects },
     ];
 
     const response = {
@@ -223,6 +229,8 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         activeProjects,
         slowdownProjects,
         suspendedProjects,
+        closedProjects,
+        terminatedProjects,
         totalStaff,
         activeStaff,
         pendingConfirmations,

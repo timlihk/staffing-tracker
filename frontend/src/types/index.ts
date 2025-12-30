@@ -4,6 +4,8 @@ export interface DashboardSummary {
     activeProjects: number;
     slowdownProjects: number;
     suspendedProjects: number;
+    closedProjects?: number;
+    terminatedProjects?: number;
     totalStaff: number;
     activeStaff: number;
     pendingConfirmations: number;

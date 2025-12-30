@@ -8,7 +8,7 @@ import { DashboardSummary } from '../types';
 
 // Color palettes for different categories
 const CATEGORY_COLORS = ['#1976d2', '#2196f3', '#42a5f5', '#64b5f6', '#90caf9'];
-const STATUS_COLORS = ['#4caf50', '#ff9800', '#f44336'];
+const STATUS_COLORS = ['#4caf50', '#ff9800', '#f44336', '#9e9e9e', '#6d4c41'];
 const SECTOR_COLORS = ['#9c27b0', '#ab47bc', '#ba68c8', '#ce93d8'];
 const SIDE_COLORS = ['#00bcd4', '#26c6da'];
 

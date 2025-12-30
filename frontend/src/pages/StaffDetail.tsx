@@ -37,6 +37,8 @@ const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'>
   Active: 'success',
   'Slow-down': 'warning',
   Suspended: 'error',
+  Closed: 'default',
+  Terminated: 'error',
 };
 
 const getActionIcon = (actionType: string) => {

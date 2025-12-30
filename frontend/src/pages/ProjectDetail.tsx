@@ -39,6 +39,14 @@ import { useConfirmProject } from '../hooks/useProjects';
 import { useCreateAssignment, useUpdateAssignment, useDeleteAssignment } from '../hooks/useAssignments';
 import { useAddBcAttorney, useRemoveBcAttorney } from '../hooks/useBcAttorneys';
 
+const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
+  Active: 'success',
+  'Slow-down': 'warning',
+  Suspended: 'error',
+  Closed: 'default',
+  Terminated: 'error',
+};
+
 const getActionIcon = (actionType: string) => {
   switch (actionType) {
     case 'create':
@@ -116,12 +124,7 @@ const ProjectDetail: React.FC = () => {
     return <Typography>Project not found</Typography>;
   }
 
-  const statusColor =
-    project.status === 'Active'
-      ? 'success'
-      : project.status === 'Slow-down'
-      ? 'warning'
-      : 'error';
+  const statusColor = STATUS_COLORS[project.status] || 'default';
 
   const getPriorityColor = (priority: string | null) => {
     if (!priority) return 'default';

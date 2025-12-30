@@ -64,7 +64,7 @@ const CATEGORY_OPTIONS = [
   'Others',
 ];
 
-const STATUSES = ['Active', 'Slow-down', 'Suspended'];
+const STATUSES = ['Active', 'Slow-down', 'Suspended', 'Closed', 'Terminated'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
 function toCsvParam(values: string[]) {
