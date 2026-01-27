@@ -2,6 +2,14 @@ import { Router } from 'express';
 import * as assignmentController from '../controllers/assignment.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { validate } from '../middleware/validate';
+import {
+  createAssignmentSchema,
+  updateAssignmentSchema,
+  bulkCreateAssignmentsSchema,
+  assignmentIdParamSchema,
+  assignmentQuerySchema,
+} from '../schemas/assignment.schema';
 
 const router = Router();
 
@@ -26,7 +34,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.get('/', authenticate, asyncHandler(assignmentController.getAllAssignments));
+router.get('/', authenticate, validate(assignmentQuerySchema, 'query'), asyncHandler(assignmentController.getAllAssignments));
 
 /**
  * @openapi
@@ -56,7 +64,7 @@ router.get('/', authenticate, asyncHandler(assignmentController.getAllAssignment
  *       404:
  *         description: Assignment not found
  */
-router.get('/:id', authenticate, asyncHandler(assignmentController.getAssignmentById));
+router.get('/:id', authenticate, validate(assignmentIdParamSchema, 'params'), asyncHandler(assignmentController.getAssignmentById));
 
 /**
  * @openapi
@@ -111,7 +119,7 @@ router.get('/:id', authenticate, asyncHandler(assignmentController.getAssignment
  *       403:
  *         description: Forbidden (admin or editor only)
  */
-router.post('/', authenticate, authorize('admin', 'editor'), asyncHandler(assignmentController.createAssignment));
+router.post('/', authenticate, authorize('admin', 'editor'), validate(createAssignmentSchema), asyncHandler(assignmentController.createAssignment));
 
 /**
  * @openapi
@@ -168,7 +176,7 @@ router.post('/', authenticate, authorize('admin', 'editor'), asyncHandler(assign
  *       403:
  *         description: Forbidden (admin or editor only)
  */
-router.post('/bulk', authenticate, authorize('admin', 'editor'), asyncHandler(assignmentController.bulkCreateAssignments));
+router.post('/bulk', authenticate, authorize('admin', 'editor'), validate(bulkCreateAssignmentsSchema), asyncHandler(assignmentController.bulkCreateAssignments));
 
 /**
  * @openapi
@@ -221,7 +229,7 @@ router.post('/bulk', authenticate, authorize('admin', 'editor'), asyncHandler(as
  *       404:
  *         description: Assignment not found
  */
-router.put('/:id', authenticate, authorize('admin', 'editor'), asyncHandler(assignmentController.updateAssignment));
+router.put('/:id', authenticate, authorize('admin', 'editor'), validate(assignmentIdParamSchema, 'params'), validate(updateAssignmentSchema), asyncHandler(assignmentController.updateAssignment));
 
 /**
  * @openapi
@@ -249,6 +257,6 @@ router.put('/:id', authenticate, authorize('admin', 'editor'), asyncHandler(assi
  *       404:
  *         description: Assignment not found
  */
-router.delete('/:id', authenticate, authorize('admin', 'editor'), asyncHandler(assignmentController.deleteAssignment));
+router.delete('/:id', authenticate, authorize('admin', 'editor'), validate(assignmentIdParamSchema, 'params'), asyncHandler(assignmentController.deleteAssignment));
 
 export default router;

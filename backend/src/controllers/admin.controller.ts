@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 /**
  * POST /api/admin/recreate-billing-views
@@ -21,15 +22,15 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    console.log('Starting billing views recreation...');
+    logger.info('Starting billing views recreation');
 
     // Step 1: Drop existing views
-    console.log('Dropping existing views...');
+    logger.info('Dropping existing views');
     await prisma.$executeRaw`DROP VIEW IF EXISTS billing_bc_attorney_dashboard CASCADE`;
     await prisma.$executeRaw`DROP VIEW IF EXISTS billing_engagement_financial_summary CASCADE`;
 
     // Step 2: Create billing_engagement_financial_summary view
-    console.log('Creating billing_engagement_financial_summary view...');
+    logger.info('Creating billing_engagement_financial_summary view');
     await prisma.$executeRaw`
       CREATE VIEW billing_engagement_financial_summary AS
       SELECT
@@ -51,7 +52,7 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
     `;
 
     // Step 3: Create billing_bc_attorney_dashboard view
-    console.log('Creating billing_bc_attorney_dashboard view...');
+    logger.info('Creating billing_bc_attorney_dashboard view');
     await prisma.$executeRaw`
       CREATE VIEW billing_bc_attorney_dashboard AS
       SELECT
@@ -154,7 +155,7 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
       ORDER BY bp.project_name
     `;
 
-    console.log('✅ All views recreated successfully');
+    logger.info('All views recreated successfully');
 
     res.json({
       success: true,
@@ -167,7 +168,7 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
     });
 
   } catch (error) {
-    console.error('Error recreating billing views:', error);
+    logger.error('Error recreating billing views', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({
       success: false,
       error: 'Failed to recreate billing views',

@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma, { invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AssignmentWhereInput, ControllerError } from '../types/prisma';
+import { logger } from '../utils/logger';
 
 export const getAllAssignments = async (req: AuthRequest, res: Response) => {
   try {
@@ -35,7 +36,7 @@ export const getAllAssignments = async (req: AuthRequest, res: Response) => {
 
     res.json(assignments);
   } catch (error) {
-    console.error('Get assignments error:', error);
+    logger.error('Get assignments error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -63,7 +64,7 @@ export const getAssignmentById = async (req: AuthRequest, res: Response) => {
 
     res.json(assignment);
   } catch (error) {
-    console.error('Get assignment error:', error);
+    logger.error('Get assignment error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -164,7 +165,7 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(assignment);
   } catch (error: ControllerError) {
-    console.error('Create assignment error:', error);
+    logger.error('Create assignment error', { error: error instanceof Error ? error.message : String(error) });
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return res.status(400).json({ error: 'This assignment already exists' });
     }
@@ -241,7 +242,7 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
 
     res.json(assignment);
   } catch (error) {
-    console.error('Update assignment error:', error);
+    logger.error('Update assignment error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -319,7 +320,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'Assignment deleted successfully' });
   } catch (error) {
-    console.error('Delete assignment error:', error);
+    logger.error('Delete assignment error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -501,7 +502,7 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
-    console.error('Bulk create assignments error:', error);
+    logger.error('Bulk create assignments error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };

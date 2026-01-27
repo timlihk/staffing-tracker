@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma, { invalidateCache, CACHE_KEYS } from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 export const addBcAttorney = async (req: AuthRequest, res: Response) => {
   const { id: projectId } = req.params;
@@ -47,7 +48,7 @@ export const addBcAttorney = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(bcAttorney);
   } catch (error: any) {
-    console.error('Add B&C attorney error:', error);
+    logger.error('Add B&C attorney error', { error: error instanceof Error ? error.message : String(error) });
 
     // Handle unique constraint violation
     if (error.code === 'P2002') {
@@ -95,7 +96,7 @@ export const removeBcAttorney = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'B&C attorney removed successfully' });
   } catch (error: any) {
-    console.error('Remove B&C attorney error:', error);
+    logger.error('Remove B&C attorney error', { error: error instanceof Error ? error.message : String(error) });
 
     // Handle record not found
     if (error.code === 'P2025') {

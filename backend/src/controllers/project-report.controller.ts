@@ -4,6 +4,7 @@ import { getProjectReport, ProjectReportQuery } from '../services/project-report
 import { buildProjectReportWorkbook } from '../services/project-report.excel';
 import { isAppError } from '../utils/errors';
 import { ControllerError } from '../types/prisma';
+import { logger } from '../utils/logger';
 
 export async function getProjectReportJson(req: AuthRequest, res: Response) {
   try {
@@ -26,7 +27,7 @@ export async function getProjectReportJson(req: AuthRequest, res: Response) {
       },
     });
   } catch (error: ControllerError) {
-    console.error('Get project report error:', error);
+    logger.error('Get project report error', { error: error instanceof Error ? error.message : String(error) });
     if (isAppError(error)) {
       return res.status(error.statusCode).json({ error: error.message });
     }
@@ -61,7 +62,7 @@ export async function getProjectReportExcel(req: AuthRequest, res: Response) {
     await wb.xlsx.write(res);
     res.end();
   } catch (error: ControllerError) {
-    console.error('Get project report Excel error:', error);
+    logger.error('Get project report Excel error', { error: error instanceof Error ? error.message : String(error) });
     if (isAppError(error)) {
       return res.status(error.statusCode).json({ error: error.message });
     }

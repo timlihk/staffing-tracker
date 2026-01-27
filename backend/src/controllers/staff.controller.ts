@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
+import { logger } from '../utils/logger';
 import { StaffWhereInput, ControllerError } from '../types/prisma';
 import { Prisma } from '@prisma/client';
 
@@ -89,7 +90,7 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
 
     res.json(staff);
   } catch (error) {
-    console.error('Get staff error:', error);
+    logger.error('Get staff error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -173,7 +174,7 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
 
     res.json(staff);
   } catch (error) {
-    console.error('Get staff error:', error);
+    logger.error('Get staff error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -213,7 +214,7 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(staff);
   } catch (error) {
-    console.error('Create staff error:', error);
+    logger.error('Create staff error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -276,7 +277,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
 
     res.json(staff);
   } catch (error: ControllerError) {
-    console.error('Update staff error:', error);
+    logger.error('Update staff error', { error: error instanceof Error ? error.message : String(error) });
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       // Unique constraint violation
       const field = (error as any).meta?.target?.[0] || 'field';
@@ -324,7 +325,7 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'Staff member deleted successfully' });
   } catch (error) {
-    console.error('Delete staff error:', error);
+    logger.error('Delete staff error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -382,7 +383,7 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
       assignments: staff.assignments || [],
     });
   } catch (error) {
-    console.error('Get staff workload error:', error);
+    logger.error('Get staff workload error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -400,7 +401,7 @@ export const getStaffChangeHistory = async (req: AuthRequest, res: Response) => 
     const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 500 });
 
     if (wasValueClamped(limit as string, limitNum, { max: 500 })) {
-      console.warn(`[STAFF_CHANGE_HISTORY] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+      logger.warn('Staff change history limit clamped', { limit: limitNum, userId: req.user?.userId });
     }
 
     const changes = await prisma.staffChangeHistory.findMany({
@@ -428,7 +429,7 @@ export const getStaffChangeHistory = async (req: AuthRequest, res: Response) => 
       }))
     );
   } catch (error) {
-    console.error('Get staff change history error:', error);
+    logger.error('Get staff change history error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -539,7 +540,7 @@ export const getStaffBillingProjects = async (req: AuthRequest, res: Response) =
       billing_projects: billingProjects,
     }));
   } catch (error) {
-    console.error('Get staff billing projects error:', error);
+    logger.error('Get staff billing projects error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };

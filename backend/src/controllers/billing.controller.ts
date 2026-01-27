@@ -8,6 +8,7 @@ import { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 const NUMERIC_ID_REGEX = /^\d+$/;
 
@@ -194,7 +195,7 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
       pagination,
     });
   } catch (error) {
-    console.error('Error fetching billing projects:', error);
+    logger.error('Error fetching billing projects', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch billing projects' });
   }
 }
@@ -441,7 +442,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching billing project detail:', error);
+    logger.error('Error fetching billing project detail', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch billing project detail' });
   }
 }
@@ -603,7 +604,7 @@ export async function getEngagementDetail(req: AuthRequest, res: Response) {
 
     res.json(convertBigIntToNumber(engagementData[0]));
   } catch (error) {
-    console.error('Error fetching engagement detail:', error);
+    logger.error('Error fetching engagement detail', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch engagement detail' });
   }
 }
@@ -648,7 +649,7 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
 
     res.json(convertBigIntToNumber(engagements));
   } catch (error) {
-    console.error('Error fetching CM engagements:', error);
+    logger.error('Error fetching CM engagements', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch CM engagements' });
   }
 }
@@ -698,7 +699,7 @@ export async function getBillingProjectActivity(req: AuthRequest, res: Response)
       eventCount: events.length,
     }));
   } catch (error) {
-    console.error('Error fetching billing project activity:', error);
+    logger.error('Error fetching billing project activity', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch billing project activity' });
   }
 }
@@ -764,7 +765,7 @@ export async function updateFeeArrangement(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating fee arrangement:', error);
+    logger.error('Error updating fee arrangement', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to update fee arrangement' });
   }
 }
@@ -879,7 +880,7 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
         `
       );
 
-      console.log(`Milestone ${milestoneId} update result:`, updateResult, 'rows affected');
+      logger.info('Milestone updated', { milestoneId, rowsAffected: updateResult });
     }
 
     if (req.user?.userId) {
@@ -901,7 +902,7 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating milestones:', error);
+    logger.error('Error updating milestones', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to update milestones' });
   }
 }
@@ -1022,7 +1023,7 @@ export async function createMilestone(req: AuthRequest, res: Response) {
 
     res.json(convertBigIntToNumber({ success: true, milestone_id: milestoneId }));
   } catch (error) {
-    console.error('Error creating milestone:', error);
+    logger.error('Error creating milestone', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to create milestone' });
   }
 }
@@ -1060,7 +1061,7 @@ export async function deleteMilestone(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting milestone:', error);
+    logger.error('Error deleting milestone', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to delete milestone' });
   }
 }
@@ -1145,7 +1146,7 @@ export async function updateFinancials(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating financials:', error);
+    logger.error('Error updating financials', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to update financials' });
   }
 }
@@ -1187,7 +1188,7 @@ export async function getMappingSuggestions(req: AuthRequest, res: Response) {
 
     res.json(suggestions);
   } catch (error) {
-    console.error('Error fetching mapping suggestions:', error);
+    logger.error('Error fetching mapping suggestions', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch mapping suggestions' });
   }
 }
@@ -1214,7 +1215,7 @@ export async function linkProjects(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error linking projects:', error);
+    logger.error('Error linking projects', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to link projects' });
   }
 }
@@ -1285,7 +1286,7 @@ export async function suggestProjectMatches(req: AuthRequest, res: Response) {
       suggestions: convertBigIntToNumber(suggestions),
     });
   } catch (error) {
-    console.error('Error suggesting project matches:', error);
+    logger.error('Error suggesting project matches', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to suggest matches' });
   }
 }
@@ -1305,7 +1306,7 @@ export async function unlinkProjects(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error unlinking projects:', error);
+    logger.error('Error unlinking projects', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to unlink projects' });
   }
 }
@@ -1333,7 +1334,7 @@ export async function getUnmappedAttorneys(req: AuthRequest, res: Response) {
 
     res.json(unmapped);
   } catch (error) {
-    console.error('Error fetching unmapped attorneys:', error);
+    logger.error('Error fetching unmapped attorneys', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch unmapped attorneys' });
   }
 }
@@ -1358,7 +1359,7 @@ export async function mapBCAttorney(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error mapping B&C attorney:', error);
+    logger.error('Error mapping B&C attorney', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to map B&C attorney' });
   }
 }
@@ -1382,7 +1383,7 @@ export async function getBillingAccessSettings(req: AuthRequest, res: Response) 
 
     res.json(settings[0]);
   } catch (error) {
-    console.error('Error fetching billing settings:', error);
+    logger.error('Error fetching billing settings', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch billing settings' });
   }
 }
@@ -1422,7 +1423,7 @@ export async function updateBillingAccessSettings(req: AuthRequest, res: Respons
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating billing settings:', error);
+    logger.error('Error updating billing settings', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to update billing settings' });
   }
 }
@@ -1458,7 +1459,7 @@ export async function getBillingProjectBCAttorneys(req: AuthRequest, res: Respon
     const sanitized = convertBigIntToNumber(bcAttorneys);
     res.json(sanitized);
   } catch (error) {
-    console.error('Error fetching BC attorneys:', error);
+    logger.error('Error fetching BC attorneys', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to fetch BC attorneys' });
   }
 }
@@ -1481,7 +1482,7 @@ export async function listAllBCAttorneys(req: AuthRequest, res: Response) {
 
     res.json(convertBigIntToNumber(attorneys));
   } catch (error) {
-    console.error('Error listing BC attorneys:', error);
+    logger.error('Error listing BC attorneys', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to list BC attorneys' });
   }
 }
@@ -1585,7 +1586,7 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating billing project:', error);
+    logger.error('Error updating billing project', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to update billing project' });
   }
 }

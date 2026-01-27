@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
+import { validate } from '../middleware/validate';
+import {
+  createUserSchema,
+  updateUserSchema,
+  userIdParamSchema,
+} from '../schemas/user.schema';
 import {
   listUsers,
   createUser,
@@ -78,7 +84,7 @@ router.get('/', asyncHandler(listUsers));
  *       403:
  *         description: Forbidden (admin only)
  */
-router.post('/', asyncHandler(createUser));
+router.post('/', validate(createUserSchema), asyncHandler(createUser));
 
 /**
  * @openapi
@@ -128,7 +134,7 @@ router.post('/', asyncHandler(createUser));
  *       404:
  *         description: User not found
  */
-router.patch('/:id', asyncHandler(updateUser));
+router.patch('/:id', validate(userIdParamSchema, 'params'), validate(updateUserSchema), asyncHandler(updateUser));
 
 /**
  * @openapi
@@ -165,7 +171,7 @@ router.patch('/:id', asyncHandler(updateUser));
  *       404:
  *         description: User not found
  */
-router.post('/:id/reset-password', asyncHandler(resetUserPassword));
+router.post('/:id/reset-password', validate(userIdParamSchema, 'params'), asyncHandler(resetUserPassword));
 
 /**
  * @openapi
@@ -193,6 +199,6 @@ router.post('/:id/reset-password', asyncHandler(resetUserPassword));
  *       404:
  *         description: User not found
  */
-router.delete('/:id', asyncHandler(deleteUser));
+router.delete('/:id', validate(userIdParamSchema, 'params'), asyncHandler(deleteUser));
 
 export default router;

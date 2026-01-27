@@ -5,6 +5,8 @@ import {
   getEmailSettings,
   updateEmailSettings,
 } from '../controllers/email-settings.controller';
+import { validate } from '../middleware/validate';
+import { updateEmailSettingsSchema } from '../schemas/email-settings.schema';
 
 const router = Router();
 
@@ -73,6 +75,6 @@ router.get('/', authenticate, asyncHandler(getEmailSettings));
  *       403:
  *         description: Forbidden (admin only)
  */
-router.patch('/', authenticate, authorize('admin'), asyncHandler(updateEmailSettings));
+router.patch('/', authenticate, authorize('admin'), validate(updateEmailSettingsSchema), asyncHandler(updateEmailSettings));
 
 export default router;

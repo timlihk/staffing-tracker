@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { logger } from '../utils/logger';
 
 // Load environment variables
 dotenv.config();
@@ -132,14 +133,18 @@ export const validateConfig = () => {
   // Warn about insecure defaults in production
   if (config.isProduction) {
     if (config.jwt.secret === 'dev-secret-key-change-in-production') {
-      console.warn('⚠️  WARNING: Using default JWT secret in production! Please set a secure JWT_SECRET.');
+      logger.warn('Using default JWT secret in production', { 
+        message: 'Please set a secure JWT_SECRET' 
+      });
     }
     if (config.security.sessionSecret === 'session-secret-change-in-production') {
-      console.warn('⚠️  WARNING: Using default session secret in production! Please set a secure SESSION_SECRET.');
+      logger.warn('Using default session secret in production', { 
+        message: 'Please set a secure SESSION_SECRET' 
+      });
     }
   }
 
-  console.log('✅ Configuration validated successfully');
+  logger.info('Configuration validated successfully');
 };
 
 export default config;

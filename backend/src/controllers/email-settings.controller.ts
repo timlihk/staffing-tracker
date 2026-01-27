@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 /**
  * Get email settings (singleton)
@@ -27,7 +28,7 @@ export const getEmailSettings = async (req: AuthRequest, res: Response) => {
 
     res.json(settings);
   } catch (error) {
-    console.error('Get email settings error:', error);
+    logger.error('Get email settings error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to get email settings' });
   }
 };
@@ -92,7 +93,7 @@ export const updateEmailSettings = async (req: AuthRequest, res: Response) => {
 
     res.json(updatedSettings);
   } catch (error) {
-    console.error('Update email settings error:', error);
+    logger.error('Update email settings error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Failed to update email settings' });
   }
 };

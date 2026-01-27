@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { ReportQuerySchema } from '../types/reports.types';
 import { getStaffingReport } from '../services/reports.service';
 import { buildStaffingWorkbook } from '../services/reports.excel';
+import { logger } from '../utils/logger';
 
 export async function getStaffingReportJson(req: AuthRequest, res: Response) {
   try {
@@ -33,7 +34,7 @@ export async function getStaffingReportJson(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error('Get staffing report error:', error);
+    logger.error('Get staffing report error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -61,7 +62,7 @@ export async function getStaffingReportExcel(req: AuthRequest, res: Response) {
     await wb.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Get staffing report Excel error:', error);
+    logger.error('Get staffing report Excel error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 }

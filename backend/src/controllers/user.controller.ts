@@ -7,6 +7,7 @@ import { sendWelcomeEmail } from '../services/email.service';
 import { ControllerError } from '../types/prisma';
 import { Prisma } from '@prisma/client';
 import config from '../config';
+import { logger } from '../utils/logger';
 
 const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
 
@@ -78,7 +79,7 @@ export const listUsers = async (req: AuthRequest, res: Response) => {
 
     res.json(usersWithStats.map(sanitizeUser));
   } catch (error) {
-    console.error('List users error:', error);
+    logger.error('List users error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -149,12 +150,12 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       username: user.username,
       tempPassword,
     }).catch((err) => {
-      console.error(`Failed to send welcome email to ${user.email}:`, err);
+      logger.error('Failed to send welcome email', { email: user.email, error: err instanceof Error ? err.message : String(err) });
     });
 
     res.status(201).json({ user: sanitizeUser(user), tempPassword });
   } catch (error) {
-    console.error('Create user error:', error);
+    logger.error('Create user error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -220,7 +221,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
-    console.error('Update user error:', error);
+    logger.error('Update user error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -262,7 +263,7 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
 
     res.json({ tempPassword });
   } catch (error) {
-    console.error('Reset user password error:', error);
+    logger.error('Reset user password error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -314,7 +315,7 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
 
     return res.status(204).send();
   } catch (error) {
-    console.error('Delete user error:', error);
+    logger.error('Delete user error', { error: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

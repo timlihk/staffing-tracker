@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { ActivityLogWhereInput } from '../types/prisma';
+import { logger } from '../utils/logger';
 
 // Helper functions
 const getTopAssignedStaff = async () => {
@@ -282,7 +283,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Get dashboard summary error:', error);
+    logger.error('Get dashboard summary error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -341,7 +342,7 @@ export const getWorkloadReport = async (req: AuthRequest, res: Response) => {
 
     res.json(report);
   } catch (error) {
-    console.error('Get workload report error:', error);
+    logger.error('Get workload report error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -355,7 +356,7 @@ export const getActivityLog = async (req: AuthRequest, res: Response) => {
     const skip = (pageNum - 1) * limitNum;
 
     if (wasValueClamped(limit as string, limitNum, { max: 100 })) {
-      console.warn(`[ACTIVITY_LOG] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+      logger.warn('Activity log limit clamped', { limit: limitNum, userId: req.user?.userId });
     }
 
     // Build where clause
@@ -397,7 +398,7 @@ export const getActivityLog = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Get activity log error:', error);
+    logger.error('Get activity log error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -408,7 +409,7 @@ export const getDetailedChangeHistory = async (req: AuthRequest, res: Response) 
     const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 500 });
 
     if (wasValueClamped(limit as string, limitNum, { max: 500 })) {
-      console.warn(`[CHANGE_HISTORY] Limit exceeded and clamped to ${limitNum} by user ${req.user?.userId}`);
+      logger.warn('Change history limit clamped', { limit: limitNum, userId: req.user?.userId });
     }
 
     if (entityType === 'staff') {
@@ -510,7 +511,7 @@ export const getDetailedChangeHistory = async (req: AuthRequest, res: Response) 
       res.json({ data: combined.slice(0, limitNum) });
     }
   } catch (error) {
-    console.error('Get detailed change history error:', error);
+    logger.error('Get detailed change history error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -536,7 +537,7 @@ export const getStaffingHeatmap = async (req: AuthRequest, res: Response) => {
 
     res.json({ staffingHeatmap });
   } catch (error) {
-    console.error('Get staffing heatmap error:', error);
+    logger.error('Get staffing heatmap error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
