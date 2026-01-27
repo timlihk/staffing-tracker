@@ -11,6 +11,7 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   const requestLogger = (req as any).log ?? logger;
+  const requestId = (req as any).requestId ?? 'unknown';
 
   requestLogger.error('Unhandled error', {
     name: err.name,
@@ -20,46 +21,48 @@ export const errorHandler = (
     method: req.method,
   });
 
+  // Helper to build error response with requestId
+  const buildErrorResponse = (error: string, details?: unknown) => ({
+    error,
+    requestId,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(details && { details }),
+  });
+
   // Handle custom AppError
   if (isAppError(err)) {
-    return res.status(err.statusCode).json({
-      error: err.message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    });
+    return res.status(err.statusCode).json(buildErrorResponse(err.message));
   }
 
   // Handle Prisma errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    return handlePrismaError(err, res);
+    return handlePrismaError(err, res, requestId);
   }
 
   if (err instanceof Prisma.PrismaClientValidationError) {
-    return res.status(400).json({
-      error: 'Invalid data provided',
-      ...(process.env.NODE_ENV === 'development' && { details: err.message }),
-    });
+    return res.status(400).json(buildErrorResponse(
+      'Invalid data provided',
+      process.env.NODE_ENV === 'development' ? err.message : undefined
+    ));
   }
 
   // Handle JWT errors
   if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json(buildErrorResponse('Invalid token'));
   }
 
   if (err.name === 'TokenExpiredError') {
-    return res.status(401).json({ error: 'Token expired' });
+    return res.status(401).json(buildErrorResponse('Token expired'));
   }
 
   // Handle validation errors (Zod, etc.)
   if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      error: 'Validation failed',
-      details: err.message,
-    });
+    return res.status(400).json(buildErrorResponse('Validation failed', err.message));
   }
 
   // Handle syntax errors (malformed JSON)
   if (err instanceof SyntaxError && 'body' in err) {
-    return res.status(400).json({ error: 'Invalid JSON in request body' });
+    return res.status(400).json(buildErrorResponse('Invalid JSON in request body'));
   }
 
   // Default error response
@@ -68,46 +71,44 @@ export const errorHandler = (
     ? 'Internal server error'
     : err.message || 'Something went wrong';
 
-  res.status(statusCode).json({
-    error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
+  res.status(statusCode).json(buildErrorResponse(message));
 };
 
 // Handle Prisma-specific errors
-const handlePrismaError = (err: Prisma.PrismaClientKnownRequestError, res: Response) => {
+const handlePrismaError = (
+  err: Prisma.PrismaClientKnownRequestError,
+  res: Response,
+  requestId: string
+) => {
+  const buildErrorResponse = (error: string, details?: unknown) => ({
+    error,
+    requestId,
+    ...(process.env.NODE_ENV === 'development' && { code: err.code, details }),
+  });
+
   switch (err.code) {
     case 'P2002':
       // Unique constraint violation
       const target = err.meta?.target as string[] | undefined;
       const field = target?.[0] || 'field';
-      return res.status(409).json({
-        error: `A record with this ${field} already exists`,
-      });
+      return res.status(409).json(buildErrorResponse(
+        `A record with this ${field} already exists`
+      ));
 
     case 'P2025':
       // Record not found
-      return res.status(404).json({
-        error: 'Record not found',
-      });
+      return res.status(404).json(buildErrorResponse('Record not found'));
 
     case 'P2003':
       // Foreign key constraint violation
-      return res.status(400).json({
-        error: 'Invalid reference to related record',
-      });
+      return res.status(400).json(buildErrorResponse('Invalid reference to related record'));
 
     case 'P2014':
       // Required relation violation
-      return res.status(400).json({
-        error: 'Cannot delete record with existing relations',
-      });
+      return res.status(400).json(buildErrorResponse('Cannot delete record with existing relations'));
 
     default:
-      return res.status(400).json({
-        error: 'Database operation failed',
-        ...(process.env.NODE_ENV === 'development' && { code: err.code, details: err.message }),
-      });
+      return res.status(400).json(buildErrorResponse('Database operation failed', err.message));
   }
 };
 
@@ -120,7 +121,9 @@ export const asyncHandler = (fn: Function) => {
 
 // 404 handler for undefined routes
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
+  const requestId = (req as any).requestId ?? 'unknown';
   res.status(404).json({
     error: `Route ${req.method} ${req.path} not found`,
+    requestId,
   });
 };

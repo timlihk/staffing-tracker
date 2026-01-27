@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import type { AppLogger } from '../utils/logger';
@@ -10,11 +9,23 @@ declare module 'express-serve-static-core' {
   }
 }
 
+/**
+ * Request logging middleware
+ *
+ * Attaches a logger to each request with request context:
+ * - requestId: For tracing requests through logs
+ * - path: Request path
+ * - method: HTTP method
+ *
+ * Logs request start and completion with timing information.
+ *
+ * Note: requestId should be set by requestIdMiddleware before this middleware runs
+ */
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-  const requestId = randomUUID();
+  // Get requestId from request (set by requestIdMiddleware)
+  const requestId = req.requestId || 'unknown';
   const requestLog = logger.child({ requestId, path: req.path, method: req.method });
 
-  req.requestId = requestId;
   req.log = requestLog;
 
   const startedAt = Date.now();

@@ -20,6 +20,7 @@ import emailSettingsRoutes from './routes/email-settings.routes';
 import billingRoutes from './routes/billing.routes';
 import adminRoutes from './routes/admin.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { requestIdMiddleware } from './middleware/requestId';
 import { requestLogger } from './middleware/requestLogger';
 import { queryPerformanceMonitor } from './middleware/queryPerformance';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
@@ -77,6 +78,9 @@ app.use(compression({
 
 // Apply rate limiters
 app.use('/api/', apiLimiter);
+
+// Request ID middleware - must be before requestLogger
+app.use(requestIdMiddleware);
 
 // Request logging
 app.use(requestLogger);
