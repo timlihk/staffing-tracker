@@ -38,6 +38,33 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - Hot module replacement for development
 - **Status**: ✅ Deployed and running in production
 
+### 🎉 Recent Updates (Jan 2026)
+
+**Latest Release v1.6.0:**
+- ✅ **Controller Architecture Refactoring** - Split monolithic controllers for better maintainability
+  - Billing controller split from 1,592 lines into 8 focused modules
+  - Dashboard controller split from 926 lines into 6 modules
+  - Improved code organization and testability
+
+- ✅ **Type Safety Improvements** - Enhanced TypeScript coverage
+  - Fixed JWT type safety (removed 'as any' casts)
+  - Added proper types for Prisma raw queries
+  - Standardized parseInt usage across codebase
+
+- ✅ **API Health Monitoring** - Frontend health check system
+  - Real-time server connection monitoring
+  - Visual alerts for connection issues
+  - Automatic retry functionality
+
+- ✅ **Frontend Date Utilities** - Centralized date handling
+  - Time constants (DAY, WEEK, etc.)
+  - DateHelpers for common operations
+  - Consistent date formatting across components
+
+- ✅ **Comprehensive Test Coverage** - Added billing controller tests
+  - 3 new test files for billing modules
+  - Fixed test file type definitions
+
 ### 🎉 Recent Updates (Oct 2025)
 
 **Latest Features (Oct 6, 2025):**
@@ -318,17 +345,19 @@ Frontend will run on `http://localhost:5173`
 staffing-tracker/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/          # Business logic
+│   │   ├── controllers/          # Business logic (modular)
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── project.controller.ts
 │   │   │   ├── staff.controller.ts
 │   │   │   ├── assignment.controller.ts
-│   │   │   └── dashboard.controller.ts
+│   │   │   ├── dashboard*.controller.ts  # Dashboard modules
+│   │   │   ├── billing*.controller.ts    # Billing modules
+│   │   │   └── billing.utils.ts          # Shared utilities
 │   │   ├── routes/               # API routes
 │   │   ├── middleware/           # Auth & validation
-│   │   ├── utils/                # Utilities (Prisma, JWT)
-│   │   ├── scripts/              # Migration scripts
-│   │   └── server.ts             # Main entry point
+│   │   ├── utils/
+│   │   ├── constants/            # Application-wide constants
+│   │   └── server.ts
 │   ├── prisma/
 │   │   └── schema.prisma         # Database schema
 │   └── package.json
@@ -625,6 +654,21 @@ npm run preview
 ```
 
 ## 📊 Features
+
+### Completed - Backend (v1.6.0)
+- ✅ Structured logging with request tracing
+- ✅ Centralized configuration management
+- ✅ Strict security headers (Helmet CSP)
+- ✅ Request size limiting
+- ✅ Modular controller architecture
+- ✅ Comprehensive test suite
+
+### Completed - Frontend (v1.6.0)
+- ✅ API health monitoring
+- ✅ Date utility library
+- ✅ Proper pagination
+- ✅ Lazy loading for performance
+- ✅ Bundle optimization
 
 ### Completed - Backend (100%)
 - ✅ User authentication (JWT-based)

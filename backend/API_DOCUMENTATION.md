@@ -1,5 +1,27 @@
 # Staffing Tracker API Documentation
 
+## Architecture Note
+
+The backend controllers are organized into modular files for better maintainability:
+
+- **Dashboard Controllers**: Split by functionality
+  - `dashboard-summary.controller.ts` - Summary statistics and trends
+  - `dashboard-activity.controller.ts` - Activity logs
+  - `dashboard-history.controller.ts` - Change history
+  - `dashboard-workload.controller.ts` - Workload reports
+  - `dashboard-heatmap.controller.ts` - Staffing heatmap
+
+- **Billing Controllers**: Split by domain
+  - `billing-project.controller.ts` - Billing projects
+  - `billing-engagement.controller.ts` - Engagements
+  - `billing-milestone.controller.ts` - Milestones
+  - `billing-financials.controller.ts` - Financial data
+  - `billing-mapping.controller.ts` - Project mapping
+  - `billing-settings.controller.ts` - Billing settings
+  - `billing-attorney.controller.ts` - B&C attorneys
+
+All controllers maintain backwards compatibility through re-export files.
+
 ## Table of Contents
 
 1. [Introduction](#introduction)
@@ -1459,7 +1481,7 @@ Delete a user.
 
 ### Billing Endpoints
 
-**Note:** Billing module must be enabled in settings. Access is controlled by billing access settings.
+**Note:** Billing module must be enabled in settings. Access is controlled by billing access settings. Billing endpoints are organized across multiple modular controllers (`billing-project.controller.ts`, `billing-engagement.controller.ts`, `billing-milestone.controller.ts`, `billing-financials.controller.ts`, `billing-mapping.controller.ts`, `billing-settings.controller.ts`, `billing-attorney.controller.ts`).
 
 #### GET /billing/projects
 Get paginated billing matters and collections.

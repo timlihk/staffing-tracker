@@ -2,6 +2,89 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [1.6.0] - 2025-01-27
+
+### Code Quality Improvements
+
+#### Backend Architecture
+- **Split Billing Controller** - Refactored 1,592-line billing.controller.ts into 8 focused modules:
+  - billing-project.controller.ts - Project endpoints
+  - billing-engagement.controller.ts - Engagement endpoints  
+  - billing-milestone.controller.ts - Milestone endpoints
+  - billing-financials.controller.ts - Financial endpoints
+  - billing-mapping.controller.ts - Project mapping endpoints
+  - billing-settings.controller.ts - Settings endpoints
+  - billing-attorney.controller.ts - Attorney endpoints
+  - billing.utils.ts - Shared utilities
+
+- **Split Dashboard Controller** - Refactored 926-line dashboard.controller.ts into 6 modules:
+  - dashboard-summary.controller.ts - Summary and trends
+  - dashboard-activity.controller.ts - Activity logs
+  - dashboard-history.controller.ts - Change history
+  - dashboard-workload.controller.ts - Workload reports
+  - dashboard-heatmap.controller.ts - Staffing heatmap
+  - dashboard.utils.ts - Shared utilities
+
+#### Type Safety & Validation
+- Fixed JWT type safety - replaced 3 `as any` casts with proper `SignOptions` type
+- Added Zod validation for query parameters in project-report.controller.ts
+- Added type definitions for Prisma raw queries (8 interfaces)
+- Standardized parseInt usage with radix 10 across all controllers
+
+#### Error Handling
+- Fixed 18 missing `return` statements in error handlers across 5 controllers
+- Prevents "Cannot set headers after they are sent" errors
+
+#### Logging
+- Replaced all console.log/console.error in worker and services with structured logger
+- Worker script (reminder-cron.ts) now uses logger utility
+- Email service logging standardized
+- Reports and project-report services use proper log levels
+
+#### Security
+- Centralized process.env access through config module
+- Strict Helmet CSP with upgradeInsecureRequests, noSniff, xssFilter
+- Added request size limits (bulk: 1MB, milestones: 500KB, projects: 2MB)
+
+#### Testing
+- Added 3 new billing controller test files with comprehensive coverage
+- Fixed test file types - replaced `any` with proper Express types
+
+### Frontend Improvements
+
+#### New Features
+- **API Health Monitoring** - Added useHealthCheck hook and HealthStatus component
+  - Periodic health checks (30-second interval)
+  - Visual alert when server connection fails
+  - Retry button for manual health checks
+
+#### Code Quality
+- **Date Utilities** - Created frontend/src/lib/date.ts with:
+  - Time constants (SECOND, MINUTE, HOUR, DAY, WEEK)
+  - DateHelpers utilities (daysAgo, isStale, formatDaysAgo, formatDate, formatDateTime)
+  - Replaced magic date calculations across components
+
+- **Pagination** - Fixed hardcoded `limit: 1000` in Projects and Staff pages
+  - Proper server-side pagination with DataGrid
+  - Page size options: 10, 25, 50, 100
+
+#### Performance
+- Lazy loaded Dashboard components (DealRadarCard, StaffingHeatmapCard)
+- Optimized Vite bundle with manual chunk splitting
+- Memoized date calculations
+
+#### Error Handling
+- Added 30-second timeout to API requests
+- Network error detection (ECONNABORTED, ERR_NETWORK)
+- 5xx server error handling
+- User-friendly error messages
+
+### Files Changed
+- 26 new files created
+- 25+ files modified
+- 2,500+ lines added
+- 1,600+ lines removed
+
 ## [1.14.0] - 2025-10-06
 
 ### Added
