@@ -35,7 +35,7 @@ export async function getStaffingReportJson(req: AuthRequest, res: Response) {
     });
   } catch (error) {
     logger.error('Get staffing report error', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -63,6 +63,6 @@ export async function getStaffingReportExcel(req: AuthRequest, res: Response) {
     res.end();
   } catch (error) {
     logger.error('Get staffing report Excel error', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

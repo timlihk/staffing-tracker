@@ -15,6 +15,54 @@ import {
   toSafeNumber,
 } from './billing.utils';
 
+interface EngagementDetailRow {
+  engagement_id: bigint;
+  cm_id: bigint;
+  engagement_code: string | null;
+  engagement_title: string | null;
+  name: string | null;
+  start_date: Date | null;
+  end_date: Date | null;
+  billing_to_date_usd: number | null;
+  billing_to_date_cny: number | null;
+  collected_to_date_usd: number | null;
+  collected_to_date_cny: number | null;
+  ubt_usd: number | null;
+  ubt_cny: number | null;
+  billing_credit_usd: number | null;
+  billing_credit_cny: number | null;
+  financials_updated_at: Date | null;
+  financials_updated_by: string | null;
+  billing_usd: number | null;
+  collection_usd: number | null;
+  efs_billing_credit_usd: number | null;
+  efs_ubt_usd: number | null;
+  billing_cny: number | null;
+  collection_cny: number | null;
+  efs_billing_credit_cny: number | null;
+  efs_ubt_cny: number | null;
+  agreed_fee_usd: number | null;
+  agreed_fee_cny: number | null;
+  efs_financials_last_updated_at: Date | null;
+  efs_financials_last_updated_by: string | null;
+  feeArrangement: Record<string, unknown> | null;
+  milestones: Record<string, unknown>[];
+  financeComments: Record<string, unknown>[];
+  events: Record<string, unknown>[];
+}
+
+interface CMEngagementRow {
+  engagement_id: bigint;
+  cm_id: bigint;
+  engagement_code: string | null;
+  engagement_title: string | null;
+  name: string | null;
+  start_date: Date | null;
+  end_date: Date | null;
+  milestone_count: bigint;
+  completed_milestone_count: bigint;
+}
+
 /**
  * GET /api/billing/projects/:id/engagement/:engagementId
  * Get detailed data for a specific engagement (for lazy loading)
@@ -32,7 +80,7 @@ export async function getEngagementDetail(req: AuthRequest, res: Response) {
     }
 
     // Get engagement details with JSON aggregation
-    const engagementData = await prisma.$queryRaw<any[]>`
+    const engagementData = await prisma.$queryRaw<EngagementDetailRow[]>`
       SELECT
         e.engagement_id,
         e.cm_id,
@@ -193,7 +241,7 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: (err as Error).message });
     }
 
-    const engagements = await prisma.$queryRaw<any[]>`
+    const engagements = await prisma.$queryRaw<CMEngagementRow[]>`
       SELECT
         e.engagement_id,
         e.cm_id,

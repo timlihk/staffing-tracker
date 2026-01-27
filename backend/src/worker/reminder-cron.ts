@@ -2,34 +2,41 @@ import cron from 'node-cron';
 import prisma from '../utils/prisma';
 import { getPartnersWithIncompleteProjects } from '../services/project-reminder.service';
 import { sendDailyPartnerReminders } from '../services/email.service';
+import logger from '../utils/logger';
 
 const TIMEZONE = 'Asia/Hong_Kong';
 
 async function run(trigger: string) {
-  console.log(`📧 [Reminders] ${trigger} at ${new Date().toISOString()}`);
+  logger.info('📧 Reminders job started', { trigger, timestamp: new Date().toISOString() });
 
   if (process.env.ENABLE_PROJECT_REMINDERS !== 'true') {
-    console.log('⏭️  Disabled');
+    logger.info('⏭️ Reminders job disabled');
     return;
   }
 
   if (process.env.EMAIL_TEST_MODE === 'true') {
-    console.log(`⚠️  TEST MODE → ${process.env.EMAIL_TEST_RECIPIENT}`);
+    logger.info('⚠️ TEST MODE active', { recipient: process.env.EMAIL_TEST_RECIPIENT });
   }
 
   try {
     const reminders = await getPartnersWithIncompleteProjects();
-    console.log(`✓ Found ${reminders.length} partners`);
+    logger.info('✓ Found partners', { count: reminders.length });
 
     if (!reminders.length) {
-      console.log('✅ Nothing to send');
+      logger.info('✅ Nothing to send');
       return;
     }
 
     const results = await sendDailyPartnerReminders(reminders);
-    console.log(`✅ Sent ${results.sent}/${results.total} (failed ${results.failed})`);
+    logger.info('✅ Reminders job completed', {
+      sent: results.sent,
+      total: results.total,
+      failed: results.failed,
+    });
   } catch (error) {
-    console.error('❌ Fatal error:', error);
+    logger.error('❌ Reminders job failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -40,7 +47,7 @@ if (process.env.RUN_REMINDERS_ON_START === 'true') {
 }
 
 process.on('SIGTERM', async () => {
-  console.log('Graceful shutdown');
+  logger.info('Graceful shutdown');
   await prisma.$disconnect();
   process.exit(0);
 });

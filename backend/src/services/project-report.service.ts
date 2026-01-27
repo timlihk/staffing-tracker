@@ -1,6 +1,7 @@
 import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AppError } from '../utils/errors';
 import { parseQueryInt } from '../utils/queryParsing';
+import logger from '../utils/logger';
 
 export interface ProjectReportQuery {
   categories?: string;
@@ -81,7 +82,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<{
   // Try to get from cache first
   const cached = getCached(cacheKey);
   if (cached && typeof cached === 'object' && 'data' in cached && 'pagination' in cached) {
-    console.log('[Project Report] Cache hit');
+    logger.debug('[Project Report] Cache hit');
     return cached as {
       data: ProjectReportRow[];
       pagination: {
@@ -108,7 +109,7 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<{
     };
   }
 
-  console.log('[Project Report] Filter WHERE:', JSON.stringify(where, null, 2));
+  logger.debug('[Project Report] Filter WHERE', { where });
 
   // Fetch projects with their assignments - optimized with selective fields and pagination
   const [projects, total] = await Promise.all([
@@ -146,7 +147,11 @@ export async function getProjectReport(q: ProjectReportQuery): Promise<{
     prisma.project.count({ where }),
   ]);
 
-  console.log(`[Project Report] Found ${projects.length} projects (page ${pageNum} of ${Math.ceil(total / limitNum)})`);
+  logger.debug('[Project Report] Found projects', {
+    count: projects.length,
+    page: pageNum,
+    totalPages: Math.ceil(total / limitNum),
+  });
 
   // Transform to report rows
   const rows: ProjectReportRow[] = projects.map(project => {

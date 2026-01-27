@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma';
+import logger from '../utils/logger';
 import type { ReportRow, ReportQuery } from '../types/reports.types';
 
 // Helper: parse comma-separated query into string[]
@@ -53,7 +54,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     where.jurisdiction = { in: jurisdictions };
   }
 
-  console.log('[Reports Service] Filter WHERE:', JSON.stringify(where, null, 2));
+  logger.debug('[Reports Service] Filter WHERE', { where });
 
   const assignments = await prisma.projectAssignment.findMany({
     where,
@@ -87,7 +88,7 @@ export async function getStaffingReport(q: ReportQuery): Promise<ReportRow[]> {
     take: 10000, // Safety limit
   });
 
-  console.log(`[Reports Service] Found ${assignments.length} assignments`);
+  logger.info('[Reports Service] Found assignments', { count: assignments.length });
 
   // Map DB → report row
   const rows: ReportRow[] = assignments.map(a => ({

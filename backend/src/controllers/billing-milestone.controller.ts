@@ -151,7 +151,7 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error updating milestones', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to update milestones' });
+    return res.status(500).json({ error: 'Failed to update milestones' });
   }
 }
 
@@ -272,7 +272,7 @@ export async function createMilestone(req: AuthRequest, res: Response) {
     res.json(convertBigIntToNumber({ success: true, milestone_id: milestoneId }));
   } catch (error) {
     logger.error('Error creating milestone', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to create milestone' });
+    return res.status(500).json({ error: 'Failed to create milestone' });
   }
 }
 
@@ -310,6 +310,6 @@ export async function deleteMilestone(req: AuthRequest, res: Response) {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error deleting milestone', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to delete milestone' });
+    return res.status(500).json({ error: 'Failed to delete milestone' });
   }
 }

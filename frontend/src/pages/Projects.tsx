@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, TextField, MenuItem, Chip, IconButton, Typography, Autocomplete } from '@mui/material';
 import { Add, Edit } from '@mui/icons-material';
@@ -8,6 +8,7 @@ import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, Emp
 import { useProjects } from '../hooks/useProjects';
 import { usePermissions } from '../hooks/usePermissions';
 import { useStaff } from '../hooks/useStaff';
+import { DateHelpers } from '../lib/date';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -57,16 +58,7 @@ const Projects: React.FC = () => {
 
   const projects = data?.data || [];
 
-  const formatDate = (value?: string | null) => {
-    if (!value) {
-      return '—';
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '—';
-    }
-    return date.toLocaleDateString();
-  };
+
 
   const columns: GridColDef<Project>[] = [
     {
@@ -108,7 +100,7 @@ const Projects: React.FC = () => {
       minWidth: 120,
       renderCell: (params) => (
         <Typography variant="body2" color="text.secondary">
-          {formatDate(params.row.filingDate)}
+          {DateHelpers.formatDate(params.row.filingDate)}
         </Typography>
       ),
     },
@@ -119,7 +111,7 @@ const Projects: React.FC = () => {
       minWidth: 120,
       renderCell: (params) => (
         <Typography variant="body2" color="text.secondary">
-          {formatDate(params.row.listingDate)}
+          {DateHelpers.formatDate(params.row.listingDate)}
         </Typography>
       ),
     },
@@ -136,12 +128,12 @@ const Projects: React.FC = () => {
             </Box>
           );
         }
-        const daysAgo = Math.floor((Date.now() - new Date(params.row.lastConfirmedAt).getTime()) / (1000 * 60 * 60 * 24));
-        const color = daysAgo > 7 ? 'warning.main' : daysAgo > 14 ? 'error.main' : 'text.secondary';
+        const daysAgo = DateHelpers.daysAgo(params.row.lastConfirmedAt);
+        const color = daysAgo && daysAgo > 14 ? 'error.main' : daysAgo && daysAgo > 7 ? 'warning.main' : 'text.secondary';
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
             <Typography variant="body2" color={color}>
-              {daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`}
+              {DateHelpers.formatDaysAgo(params.row.lastConfirmedAt)}
             </Typography>
           </Box>
         );

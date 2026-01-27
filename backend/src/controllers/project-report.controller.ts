@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
 import { getProjectReport, ProjectReportQuery } from '../services/project-report.service';
 import { buildProjectReportWorkbook } from '../services/project-report.excel';
@@ -6,16 +7,22 @@ import { isAppError } from '../utils/errors';
 import { ControllerError } from '../types/prisma';
 import { logger } from '../utils/logger';
 
+const ProjectReportQuerySchema = z.object({
+  categories: z.string().optional(),
+  statuses: z.string().optional(),
+  priorities: z.string().optional(),
+  staffId: z.string().regex(/^\d+$/).optional(),
+  page: z.string().regex(/^\d+$/).optional(),
+  limit: z.string().regex(/^\d+$/).optional(),
+}).partial();
+
 export async function getProjectReportJson(req: AuthRequest, res: Response) {
   try {
-    const query: ProjectReportQuery = {
-      categories: req.query.categories as string | undefined,
-      statuses: req.query.statuses as string | undefined,
-      priorities: req.query.priorities as string | undefined,
-      staffId: req.query.staffId as string | undefined,
-      page: req.query.page as string | undefined,
-      limit: req.query.limit as string | undefined,
-    };
+    const parse = ProjectReportQuerySchema.safeParse(req.query);
+    if (!parse.success) {
+      return res.status(400).json({ error: 'Invalid query parameters', details: parse.error.flatten() });
+    }
+    const query: ProjectReportQuery = parse.data;
 
     const result = await getProjectReport(query);
 
@@ -31,17 +38,18 @@ export async function getProjectReportJson(req: AuthRequest, res: Response) {
     if (isAppError(error)) {
       return res.status(error.statusCode).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
 export async function getProjectReportExcel(req: AuthRequest, res: Response) {
   try {
+    const parse = ProjectReportQuerySchema.safeParse(req.query);
+    if (!parse.success) {
+      return res.status(400).json({ error: 'Invalid query parameters', details: parse.error.flatten() });
+    }
     const query: ProjectReportQuery = {
-      categories: req.query.categories as string | undefined,
-      statuses: req.query.statuses as string | undefined,
-      priorities: req.query.priorities as string | undefined,
-      staffId: req.query.staffId as string | undefined,
+      ...parse.data,
       // For Excel export, don't use pagination to get all data
       page: undefined,
       limit: undefined,
@@ -66,6 +74,6 @@ export async function getProjectReportExcel(req: AuthRequest, res: Response) {
     if (isAppError(error)) {
       return res.status(error.statusCode).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

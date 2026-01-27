@@ -48,7 +48,7 @@ export async function getMappingSuggestions(req: AuthRequest, res: Response) {
     res.json(suggestions);
   } catch (error) {
     logger.error('Error fetching mapping suggestions', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to fetch mapping suggestions' });
+    return res.status(500).json({ error: 'Failed to fetch mapping suggestions' });
   }
 }
 
@@ -75,7 +75,7 @@ export async function linkProjects(req: AuthRequest, res: Response) {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error linking projects', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to link projects' });
+    return res.status(500).json({ error: 'Failed to link projects' });
   }
 }
 
@@ -146,7 +146,7 @@ export async function suggestProjectMatches(req: AuthRequest, res: Response) {
     });
   } catch (error) {
     logger.error('Error suggesting project matches', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to suggest matches' });
+    return res.status(500).json({ error: 'Failed to suggest matches' });
   }
 }
 
@@ -160,13 +160,13 @@ export async function unlinkProjects(req: AuthRequest, res: Response) {
 
     await prisma.$executeRaw`
       DELETE FROM billing_staffing_project_link
-      WHERE link_id = ${parseInt(linkId)}
+      WHERE link_id = ${parseInt(linkId, 10)}
     `;
 
     res.json({ success: true });
   } catch (error) {
     logger.error('Error unlinking projects', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to unlink projects' });
+    return res.status(500).json({ error: 'Failed to unlink projects' });
   }
 }
 
@@ -194,7 +194,7 @@ export async function getUnmappedAttorneys(req: AuthRequest, res: Response) {
     res.json(unmapped);
   } catch (error) {
     logger.error('Error fetching unmapped attorneys', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to fetch unmapped attorneys' });
+    return res.status(500).json({ error: 'Failed to fetch unmapped attorneys' });
   }
 }
 
@@ -219,6 +219,6 @@ export async function mapBCAttorney(req: AuthRequest, res: Response) {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error mapping B&C attorney', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to map B&C attorney' });
+    return res.status(500).json({ error: 'Failed to map B&C attorney' });
   }
 }

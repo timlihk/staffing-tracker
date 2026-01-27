@@ -10,6 +10,7 @@ import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import { HealthStatus } from './components/HealthStatus';
 import { AUTH_ERROR_EVENT } from './api/client';
 import { toast } from './lib/toast';
 
@@ -98,6 +99,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <HealthStatus />
       <AuthProvider>
         <Router>
           <AuthErrorHandler />

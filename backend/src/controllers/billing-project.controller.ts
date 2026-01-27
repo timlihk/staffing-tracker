@@ -18,6 +18,86 @@ import {
   convertBigIntToNumber,
 } from './billing.utils';
 
+interface BillingProjectRow {
+  project_id: bigint;
+  project_name: string;
+  client_name: string;
+  attorney_in_charge: string | null;
+  bc_attorney_staff_id: bigint | null;
+  bc_attorney_name: string | null;
+  bc_attorney_position: string | null;
+  bc_attorney_status: string | null;
+  is_auto_mapped: boolean;
+  match_confidence: number | null;
+  cm_numbers: string | null;
+  cm_status: string | null;
+  cm_open_date: Date | null;
+  cm_closed_date: Date | null;
+  fee_arrangement_text: string | null;
+  lsd_date: Date | null;
+  agreed_fee_usd: number | null;
+  billing_usd: number | null;
+  collection_usd: number | null;
+  billing_credit_usd: number | null;
+  ubt_usd: number | null;
+  agreed_fee_cny: number | null;
+  billing_cny: number | null;
+  collection_cny: number | null;
+  billing_credit_cny: number | null;
+  ubt_cny: number | null;
+  total_milestones: bigint;
+  completed_milestones: bigint;
+  staffing_project_id: number | null;
+  staffing_project_name: string | null;
+  staffing_project_status: string | null;
+  linked_at: Date | null;
+  financials_last_updated_at: Date | null;
+  financials_last_updated_by_username: string | null;
+}
+
+interface BCAttorneyRow {
+  bc_attorney_name: string | null;
+  bc_attorney_staff_id: string | null;
+}
+
+interface CMSummaryRow {
+  cm_id: bigint;
+  cm_no: string;
+  is_primary: boolean;
+  open_date: Date | null;
+  closed_date: Date | null;
+  status: string | null;
+  engagement_count: bigint;
+  milestone_count: bigint;
+  completed_milestone_count: bigint;
+}
+
+interface EventCountRow {
+  count: bigint;
+}
+
+interface BillingEventRow {
+  event_id: bigint;
+  engagement_id: bigint;
+  event_type: string;
+  event_date: Date;
+  description: string | null;
+  amount_usd: number | null;
+  amount_cny: number | null;
+  created_at: Date;
+  created_by: string | null;
+}
+
+interface FinanceCommentRow {
+  comment_id: bigint;
+  engagement_id: bigint;
+  milestone_id: bigint | null;
+  comment_text: string | null;
+  notes: string | null;
+  created_at: Date;
+  created_by: string | null;
+}
+
 /**
  * GET /api/billing/projects
  * Get all billing projects with financial summary
@@ -87,7 +167,7 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
       ${whereClause}
     `;
 
-    const projects = await prisma.$queryRaw<any[]>`
+    const projects = await prisma.$queryRaw<BillingProjectRow[]>`
       ${BILLING_DASHBOARD_SELECT}
       ${whereClause}
       ORDER BY project_name
@@ -111,7 +191,7 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
     });
   } catch (error) {
     logger.error('Error fetching billing projects', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to fetch billing projects' });
+    return res.status(500).json({ error: 'Failed to fetch billing projects' });
   }
 }
 
@@ -147,7 +227,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     }
 
     // Get project basic info from the view
-    const projectData = await prisma.$queryRaw<any[]>`
+    const projectData = await prisma.$queryRaw<BillingProjectRow[]>`
       ${BILLING_DASHBOARD_SELECT}
       WHERE project_id = ${projectIdBigInt}
       LIMIT 1
@@ -158,7 +238,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     }
 
     // Get B&C attorneys directly from the project-level table
-    const bcAttorneys = await prisma.$queryRaw<any[]>`
+    const bcAttorneys = await prisma.$queryRaw<BCAttorneyRow[]>`
       SELECT
         string_agg(DISTINCT s.name, ', ' ORDER BY s.name) AS bc_attorney_name,
         string_agg(DISTINCT s.id::text, ', ' ORDER BY s.id::text) AS bc_attorney_staff_id
@@ -175,7 +255,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
 
     // For summary view, return minimal data without nested details
     if (view === 'summary') {
-      const summaryData = await prisma.$queryRaw<any[]>`
+      const summaryData = await prisma.$queryRaw<CMSummaryRow[]>`
         SELECT
           cm.cm_id,
           cm.cm_no,
@@ -195,7 +275,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
       `;
 
       // Get minimal event and comment counts
-      const eventCount = await prisma.$queryRaw<any[]>`
+      const eventCount = await prisma.$queryRaw<EventCountRow[]>`
         SELECT COUNT(*) as count
         FROM billing_event be
         INNER JOIN billing_engagement e ON e.engagement_id = be.engagement_id
@@ -223,7 +303,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
 
     // Use a single comprehensive query with JSON aggregation for full data
     // Apply optional filters directly in the query
-    const fullData = await prisma.$queryRaw<any[]>`
+    const fullData = await prisma.$queryRaw<Record<string, unknown>[]>`
       WITH project_data AS (
         SELECT
           cm.cm_id,
@@ -321,7 +401,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     let financeComments = [];
 
     if (cmIdFilter === null && engagementIdFilter === null) {
-      events = await prisma.$queryRaw<any[]>`
+      events = await prisma.$queryRaw<BillingEventRow[]>`
         SELECT *
         FROM billing_event
         WHERE engagement_id IN (
@@ -334,7 +414,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
         LIMIT 50
       `;
 
-      financeComments = await prisma.$queryRaw<any[]>`
+      financeComments = await prisma.$queryRaw<FinanceCommentRow[]>`
         SELECT *
         FROM billing_finance_comment
         WHERE engagement_id IN (
@@ -358,7 +438,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     res.json(response);
   } catch (error) {
     logger.error('Error fetching billing project detail', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to fetch billing project detail' });
+    return res.status(500).json({ error: 'Failed to fetch billing project detail' });
   }
 }
 
@@ -375,7 +455,7 @@ export async function getBillingProjectActivity(req: AuthRequest, res: Response)
       return res.status(400).json({ error: (err as Error).message });
     }
 
-    const events = await prisma.$queryRaw<any[]>`
+    const events = await prisma.$queryRaw<BillingEventRow[]>`
       SELECT *
       FROM billing_event
       WHERE engagement_id IN (
@@ -388,7 +468,7 @@ export async function getBillingProjectActivity(req: AuthRequest, res: Response)
       LIMIT 50
     `;
 
-    const financeComments = await prisma.$queryRaw<any[]>`
+    const financeComments = await prisma.$queryRaw<FinanceCommentRow[]>`
       SELECT *
       FROM billing_finance_comment
       WHERE engagement_id IN (
@@ -408,7 +488,7 @@ export async function getBillingProjectActivity(req: AuthRequest, res: Response)
     }));
   } catch (error) {
     logger.error('Error fetching billing project activity', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to fetch billing project activity' });
+    return res.status(500).json({ error: 'Failed to fetch billing project activity' });
   }
 }
 
@@ -444,7 +524,7 @@ export async function getBillingProjectBCAttorneys(req: AuthRequest, res: Respon
     res.json(sanitized);
   } catch (error) {
     logger.error('Error fetching BC attorneys', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to fetch BC attorneys' });
+    return res.status(500).json({ error: 'Failed to fetch BC attorneys' });
   }
 }
 
@@ -548,6 +628,6 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
     res.json({ success: true });
   } catch (error) {
     logger.error('Error updating billing project', { error: error instanceof Error ? error.message : String(error) });
-    res.status(500).json({ error: 'Failed to update billing project' });
+    return res.status(500).json({ error: 'Failed to update billing project' });
   }
 }

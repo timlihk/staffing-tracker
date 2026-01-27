@@ -32,6 +32,7 @@ import { Page, Section, PageHeader, StyledDataGrid } from '../components/ui';
 import { GridColDef } from '@mui/x-data-grid';
 import { usePermissions } from '../hooks/usePermissions';
 import { useConfirmProject } from '../hooks/useProjects';
+import { Time, DateHelpers } from '../lib/date';
 
 const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -213,12 +214,8 @@ const StaffDetail: React.FC = () => {
           const lastActivity = params.row.lastConfirmedAt ?? params.row.updatedAt ?? null;
           const isOverdue = !lastActivity
             ? true
-            : Date.now() - new Date(lastActivity).getTime() > 7 * 24 * 60 * 60 * 1000;
-          let label = '—';
-          if (lastActivity) {
-            const daysAgo = Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24));
-            label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
-          }
+            : Date.now() - new Date(lastActivity).getTime() > 7 * Time.DAY;
+          const label = lastActivity ? DateHelpers.formatDaysAgo(lastActivity) : '—';
           return (
             <Stack direction="row" spacing={1} alignItems="center">
               {isOverdue && (
@@ -438,7 +435,7 @@ const StaffDetail: React.FC = () => {
                         }
                         secondary={
                           <>
-                            {new Date(change.changedAt).toLocaleString()}
+                            {DateHelpers.formatDateTime(change.changedAt)}
                             {change.username && ` • by ${change.username}`}
                           </>
                         }

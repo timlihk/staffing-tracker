@@ -26,6 +26,7 @@ import { useStaff } from '../hooks/useStaff';
 import { usePermissions } from '../hooks/usePermissions';
 import { Staff } from '../types';
 import { Page, PageHeader } from '../components/ui';
+import { DateHelpers } from '../lib/date';
 
 type ProjectReportRow = {
   id: number;
@@ -272,7 +273,7 @@ const ProjectReport: React.FC = () => {
             Asia CM - Project Report
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Generated: {new Date().toLocaleString()}
+            Generated: {DateHelpers.formatDateTime(new Date().toISOString())}
           </Typography>
           <Divider sx={{ mt: 1 }} />
       </Box>

@@ -5,6 +5,7 @@ import {
 } from './project-reminder.service';
 import prisma from '../utils/prisma';
 import config from '../config';
+import logger from '../utils/logger';
 
 const resend = config.email.apiKey ? new Resend(config.email.apiKey) : null;
 const fromEmail = config.email.from;
@@ -44,7 +45,7 @@ export async function sendProjectUpdateEmail(data: EmailNotificationData) {
 
   // Skip if no email configured or in development without email
   if (!config.email.apiKey) {
-    console.log('Skipping email (no RESEND_API_KEY):', {
+    logger.info('Skipping email (no RESEND_API_KEY)', {
       to: staffEmail,
       project: projectName,
     });
@@ -156,7 +157,7 @@ Asia CM Team
       text: textContent,
     });
 
-    console.log('Email sent successfully:', {
+    logger.info('Email sent successfully', {
       to: staffEmail,
       project: projectName,
       emailId: result.data?.id,
@@ -164,7 +165,11 @@ Asia CM Team
 
     return result;
   } catch (error) {
-    console.error('Failed to send email:', error);
+    logger.error('Failed to send email', {
+      error: error instanceof Error ? error.message : String(error),
+      to: staffEmail,
+      project: projectName,
+    });
     // Don't throw - we don't want email failures to break the app
     return null;
   }
@@ -257,7 +262,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData) {
 
   // Skip if no email configured
   if (!config.email.apiKey) {
-    console.log('Skipping welcome email (no RESEND_API_KEY):', { to: email, username });
+    logger.info('Skipping welcome email (no RESEND_API_KEY)', { to: email, username });
     return null;
   }
 
@@ -370,7 +375,7 @@ ${appUrl}
       text: textContent,
     });
 
-    console.log('Welcome email sent successfully:', {
+    logger.info('Welcome email sent successfully', {
       to: email,
       username,
       emailId: result.data?.id,
@@ -378,7 +383,11 @@ ${appUrl}
 
     return result;
   } catch (error) {
-    console.error('Failed to send welcome email:', error);
+    logger.error('Failed to send welcome email', {
+      error: error instanceof Error ? error.message : String(error),
+      to: email,
+      username,
+    });
     // Don't throw - we don't want email failures to break user creation
     return null;
   }
@@ -410,7 +419,9 @@ export async function shouldReceiveNotification(staffPosition: string): Promise<
     // Return the setting for this position, default to true if position not found
     return positionMap[staffPosition] ?? true;
   } catch (error) {
-    console.error('Error checking email notification settings:', error);
+    logger.error('Error checking email notification settings', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     // Default to true if there's an error (fail open for notifications)
     return true;
   }
@@ -428,7 +439,7 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
 
   // Skip if no email configured
   if (!config.email.apiKey) {
-    console.log('Skipping project update emails (no RESEND_API_KEY):', {
+    logger.info('Skipping project update emails (no RESEND_API_KEY)', {
       project: emailDataList[0]?.projectName,
       recipients: emailDataList.length,
     });
@@ -438,7 +449,7 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
   // Check if email notifications are enabled globally
   const settings = await prisma.emailSettings.findFirst();
   if (!settings || !settings.emailNotificationsEnabled) {
-    console.log('Skipping project update emails (notifications disabled):', {
+    logger.info('Skipping project update emails (notifications disabled)', {
       project: emailDataList[0]?.projectName,
       recipients: emailDataList.length,
     });
@@ -454,7 +465,7 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
   }
 
   if (filteredEmailData.length === 0) {
-    console.log('No recipients after filtering by position settings:', {
+    logger.info('No recipients after filtering by position settings', {
       project: emailDataList[0]?.projectName,
       originalRecipients: emailDataList.length,
     });
@@ -466,7 +477,7 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
   // 2. Same person's position matches multiple enabled notification settings
   const ccEmails = [...new Set(filteredEmailData.map(data => data.staffEmail))];
 
-  console.log('Email recipients after deduplication:', {
+  logger.info('Email recipients after deduplication', {
     project: emailDataList[0]?.projectName,
     totalAssignments: emailDataList.length,
     afterFiltering: filteredEmailData.length,
@@ -582,7 +593,7 @@ Asia CM Team
       text: textContent,
     });
 
-    console.log('Project update email sent successfully:', {
+    logger.info('Project update email sent successfully', {
       project: projectName,
       recipients: ccEmails.length,
       emailId: result.data?.id,
@@ -590,7 +601,11 @@ Asia CM Team
 
     return [{ success: true, recipients: ccEmails, result }];
   } catch (error) {
-    console.error('Failed to send project update email:', error);
+    logger.error('Failed to send project update email', {
+      error: error instanceof Error ? error.message : String(error),
+      project: projectName,
+      recipients: ccEmails.length,
+    });
 
     // Log failure to database
     const prisma = (await import('../utils/prisma')).default;
@@ -604,7 +619,9 @@ Asia CM Team
         },
       });
     } catch (logError) {
-      console.error('[Email] Failed to log email failure to database:', logError);
+      logger.error('[Email] Failed to log email failure to database', {
+        error: logError instanceof Error ? logError.message : String(logError),
+      });
     }
 
     return [{ success: false, recipients: ccEmails, error }];
@@ -751,7 +768,7 @@ export async function sendPartnerReminderEmail(
 
   // Skip if no email configured
   if (!config.email.apiKey) {
-    console.log('[Reminders] Skipping (no RESEND_API_KEY):', { to: partnerEmail });
+    logger.info('[Reminders] Skipping (no RESEND_API_KEY)', { to: partnerEmail });
     return null;
   }
 
@@ -771,7 +788,7 @@ export async function sendPartnerReminderEmail(
 
   // Debug logging
   if (process.env.LOG_EMAIL_PAYLOADS === 'true') {
-    console.log('[DEBUG] Partner reminder payload:', JSON.stringify(data, null, 2));
+    logger.debug('[Reminders] Partner reminder payload', { payload: data });
   }
 
   // Build email content
@@ -790,7 +807,7 @@ export async function sendPartnerReminderEmail(
       text,
     });
 
-    console.log('[Reminders] Sent successfully:', {
+    logger.info('[Reminders] Sent successfully', {
       to: recipient,
       projects: data.projects.length,
       emailId: result.data?.id,
@@ -798,7 +815,10 @@ export async function sendPartnerReminderEmail(
 
     return result;
   } catch (error) {
-    console.error('[Reminders] Failed to send email:', error);
+    logger.error('[Reminders] Failed to send email', {
+      error: error instanceof Error ? error.message : String(error),
+      to: recipient,
+    });
     throw error;
   }
 }
@@ -815,7 +835,7 @@ export async function sendDailyPartnerReminders(
   total: number;
   errors: Array<{ email: string; error: any }>;
 }> {
-  console.log(`📧 [Reminders] Sending to ${reminders.length} partners`);
+  logger.info('📧 [Reminders] Sending to partners', { count: reminders.length });
 
   const results = {
     sent: 0,
@@ -841,9 +861,11 @@ export async function sendDailyPartnerReminders(
     }
   }
 
-  console.log(
-    `✅ [Reminders] Complete: Sent ${results.sent}/${results.total}, Failed ${results.failed}`
-  );
+  logger.info('✅ [Reminders] Complete', {
+    sent: results.sent,
+    total: results.total,
+    failed: results.failed,
+  });
 
   // Log failures to database for monitoring
   if (results.failed > 0) {
@@ -859,15 +881,17 @@ export async function sendDailyPartnerReminders(
         },
       });
 
-      console.error(`⚠️  [Reminders] Logged ${results.failed} failures to database`);
+      logger.error(`⚠️ [Reminders] Logged ${results.failed} failures to database`);
 
       // If failure rate is high, log additional warning
       const failureRate = (results.failed / results.total) * 100;
       if (failureRate > 20) {
-        console.error(`🚨 [Reminders] HIGH FAILURE RATE: ${failureRate.toFixed(1)}% of emails failed!`);
+        logger.error('🚨 [Reminders] HIGH FAILURE RATE', { failureRate: `${failureRate.toFixed(1)}%` });
       }
     } catch (logError) {
-      console.error('[Reminders] Failed to log email failures to database:', logError);
+      logger.error('[Reminders] Failed to log email failures to database', {
+        error: logError instanceof Error ? logError.message : String(logError),
+      });
     }
   }
 

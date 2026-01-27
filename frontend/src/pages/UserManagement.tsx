@@ -30,11 +30,9 @@ import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSetti
 import { useBillingSettings, useUpdateBillingSettings } from '../hooks/useBilling';
 import type { ManagedUser, Staff } from '../types';
 import { toast } from '../lib/toast';
+import { DateHelpers } from '../lib/date';
 
-const formatDateTime = (value: string | null) => {
-  if (!value) return '—';
-  return new Date(value).toLocaleString();
-};
+
 
 const extractUserError = (error: unknown, fallback: string): string => {
   if (isAxiosError<{ error?: string }>(error)) {
@@ -130,8 +128,7 @@ const UserManagement: React.FC = () => {
   // Helper function to check if user is online (active within last 5 minutes)
   const isUserOnline = (lastActivity: string | null) => {
     if (!lastActivity) return false;
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    return new Date(lastActivity) > fiveMinutesAgo;
+    return new Date(lastActivity) > DateHelpers.fiveMinutesAgo();
   };
 
   const columns: GridColDef<ManagedUser>[] = [
@@ -244,7 +241,7 @@ const UserManagement: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       valueGetter: (_value, row) => row.lastLogin,
-      renderCell: ({ value }) => <Typography variant="body2">{formatDateTime(value)}</Typography>,
+      renderCell: ({ value }) => <Typography variant="body2">{DateHelpers.formatDateTime(value)}</Typography>,
     },
     {
       field: 'staff',
@@ -318,7 +315,7 @@ const UserManagement: React.FC = () => {
       flex: 0.8,
       headerAlign: 'left',
       align: 'left',
-      valueFormatter: (value) => new Date(value).toLocaleString(),
+      valueFormatter: (value) => DateHelpers.formatDateTime(value),
     },
     {
       field: 'actionType',
@@ -354,7 +351,7 @@ const UserManagement: React.FC = () => {
       flex: 0.8,
       headerAlign: 'left',
       align: 'left',
-      valueFormatter: (value) => new Date(value).toLocaleString(),
+      valueFormatter: (value) => DateHelpers.formatDateTime(value),
     },
     {
       field: 'actionType',
