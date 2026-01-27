@@ -8,6 +8,7 @@ interface ProjectsParams {
   status?: string;
   category?: string;
   search?: string;
+  page?: number;
   limit?: number;
 }
 

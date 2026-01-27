@@ -7,19 +7,20 @@ import { logger } from '../utils/logger';
 
 // Helper functions
 const getTopAssignedStaff = async () => {
-  // Optimized query with selective fields and count aggregation
+  // Optimized query using _count aggregation instead of loading all assignments
   const staff = await prisma.staff.findMany({
     where: { status: 'active' },
     select: {
       id: true,
       name: true,
       position: true,
-      assignments: {
-        where: {
-          project: { status: { in: ['Active', 'Slow-down'] } },
-        },
+      _count: {
         select: {
-          id: true, // Just need existence for counting
+          assignments: {
+            where: {
+              project: { status: { in: ['Active', 'Slow-down'] } },
+            },
+          },
         },
       },
     },
@@ -30,7 +31,7 @@ const getTopAssignedStaff = async () => {
       staffId: member.id,
       name: member.name,
       position: member.position,
-      projectCount: member.assignments.length,
+      projectCount: member._count.assignments,
     }))
     .filter((member) => member.projectCount > 0)
     .sort((a, b) => b.projectCount - a.projectCount)
@@ -114,15 +115,27 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       return res.json(cached);
     }
 
+    // Combine project status counts into a single aggregated query
+    const projectStatusCounts = await prisma.project.groupBy({
+      by: ['status'],
+      _count: true,
+    });
+
+    // Create a lookup map for status counts
+    const projectCountByStatus = projectStatusCounts.reduce((acc, item) => {
+      acc[item.status] = item._count;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalProjects = Object.values(projectCountByStatus).reduce((sum, count) => sum + count, 0);
+    const activeProjects = projectCountByStatus['Active'] || 0;
+    const slowdownProjects = projectCountByStatus['Slow-down'] || 0;
+    const suspendedProjects = projectCountByStatus['Suspended'] || 0;
+    const closedProjects = projectCountByStatus['Closed'] || 0;
+    const terminatedProjects = projectCountByStatus['Terminated'] || 0;
+
     const [
-      totalProjects,
-      activeProjects,
-      slowdownProjects,
-      suspendedProjects,
-      closedProjects,
-      terminatedProjects,
-      totalStaff,
-      activeStaff,
+      staffCounts,
       projectsByCategory,
       projectsBySector,
       projectsBySide,
@@ -137,14 +150,14 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       recentActivity,
       sevenDayTrends,
     ] = await Promise.all([
-      prisma.project.count(),
-      prisma.project.count({ where: { status: 'Active' } }),
-      prisma.project.count({ where: { status: 'Slow-down' } }),
-      prisma.project.count({ where: { status: 'Suspended' } }),
-      prisma.project.count({ where: { status: 'Closed' } }),
-      prisma.project.count({ where: { status: 'Terminated' } }),
-      prisma.staff.count(),
-      prisma.staff.count({ where: { status: 'active' } }),
+      // Combine staff counts into a single query with aggregation
+      prisma.staff.aggregate({
+        _count: { id: true },
+        where: {},
+      }).then(result => ({ total: result._count.id })).then(async (base) => ({
+        ...base,
+        active: await prisma.staff.count({ where: { status: 'active' } }),
+      })),
       prisma.project.groupBy({
         by: ['category'],
         _count: true,
@@ -215,6 +228,9 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       }),
       getSevenDayTrends(sevenDaysAgo),
     ]);
+
+    const totalStaff = staffCounts.total;
+    const activeStaff = staffCounts.active;
 
     const projectsByStatus = [
       { status: 'Active', count: activeProjects },

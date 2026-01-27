@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import * as projectController from '../controllers/project.controller';
 import * as bcAttorneyController from '../controllers/bcAttorney.controller';
 import { authenticate, authorize } from '../middleware/auth';
@@ -233,7 +233,14 @@ router.get('/:id/change-history', authenticate, validate(idParamSchema, 'params'
  *       403:
  *         description: Forbidden (admin or editor only)
  */
-router.post('/', authenticate, authorize('admin', 'editor'), validate(projectSchema), asyncHandler(projectController.createProject));
+router.post(
+  '/',
+  authenticate,
+  authorize('admin', 'editor'),
+  express.json({ limit: '2mb' }),
+  validate(projectSchema),
+  asyncHandler(projectController.createProject)
+);
 
 /**
  * @openapi
@@ -330,7 +337,15 @@ router.post('/:id/confirm', authenticate, validate(idParamSchema, 'params'), asy
  *       404:
  *         description: Project not found
  */
-router.put('/:id', authenticate, authorize('admin', 'editor'), validate(idParamSchema, 'params'), validate(projectSchema), asyncHandler(projectController.updateProject));
+router.put(
+  '/:id',
+  authenticate,
+  authorize('admin', 'editor'),
+  express.json({ limit: '2mb' }),
+  validate(idParamSchema, 'params'),
+  validate(projectSchema),
+  asyncHandler(projectController.updateProject)
+);
 
 /**
  * @openapi

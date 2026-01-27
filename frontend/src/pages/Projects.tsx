@@ -25,6 +25,8 @@ const Projects: React.FC = () => {
   const [sideFilter, setSideFilter] = useState('all');
   const [sectorFilter, setSectorFilter] = useState('all');
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const navigate = useNavigate();
   const permissions = usePermissions();
 
@@ -41,7 +43,8 @@ const Projects: React.FC = () => {
 
   // Build params for the query
   const params = {
-    limit: 1000,
+    page,
+    limit: pageSize,
     ...(statusFilter !== 'all' && { status: statusFilter }),
     ...(categoryFilter !== 'all' && { category: categoryFilter }),
     ...(sideFilter !== 'all' && { side: sideFilter }),
@@ -284,10 +287,17 @@ const Projects: React.FC = () => {
               rows={projects}
               columns={columns}
               autoHeight
+              pagination
+              pageSizeOptions={[10, 25, 50, 100]}
               initialState={{
-                pagination: { paginationModel: { pageSize: 100 } },
+                pagination: {
+                  paginationModel: { page: page - 1, pageSize },
+                },
               }}
-              pageSizeOptions={[25, 50, 100, 200]}
+              onPaginationModelChange={(model) => {
+                setPage(model.page + 1);
+                setPageSize(model.pageSize);
+              }}
               onRowClick={(params) => navigate(`/projects/${params.row.id}`)}
               getRowClassName={(params) => (params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row')}
               sx={{

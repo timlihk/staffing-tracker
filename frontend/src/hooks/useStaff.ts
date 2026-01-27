@@ -9,13 +9,25 @@ interface StaffParams {
   department?: string;
   status?: string;
   search?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface StaffResponse {
+  data: Staff[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export const useStaff = (params: StaffParams = {}) => {
   return useQuery({
     queryKey: ['staff', params],
     queryFn: async () => {
-      const response = await api.get<Staff[]>('/staff', { params });
+      const response = await api.get<StaffResponse>('/staff', { params });
       return response.data;
     },
   });

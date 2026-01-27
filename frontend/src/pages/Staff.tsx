@@ -12,6 +12,8 @@ const Staff: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [positionFilter, setPositionFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const navigate = useNavigate();
 
   // Debounce search input
@@ -25,12 +27,22 @@ const Staff: React.FC = () => {
 
   // Build params for the query
   const params = {
+    page: page + 1, // API uses 1-based indexing
+    limit: pageSize,
     ...(positionFilter !== 'all' && { position: positionFilter }),
     ...(departmentFilter !== 'all' && { department: departmentFilter }),
     ...(searchTerm && { search: searchTerm }),
   };
 
-  const { data: staff = [], isLoading, error } = useStaff(params);
+  const { data, isLoading, error } = useStaff(params);
+
+  const staff = data?.data || [];
+  const totalCount = data?.pagination?.total || 0;
+
+  const handlePaginationModelChange = (model: { page: number; pageSize: number }) => {
+    setPage(model.page);
+    setPageSize(model.pageSize);
+  };
   const deleteStaff = useDeleteStaff();
 
   const handleDelete = async (id: number, name: string) => {
@@ -162,7 +174,7 @@ const Staff: React.FC = () => {
           </Section>
 
           {/* Data Grid */}
-          {staff.length === 0 ? (
+          {staff.length === 0 && !isLoading ? (
             <Section>
               <EmptyState
                 title="No staff found"
@@ -178,10 +190,13 @@ const Staff: React.FC = () => {
                   rows={staff}
                   columns={columns}
                   autoHeight
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 50 } },
-                  }}
+                  rowCount={totalCount}
+                  pagination
+                  paginationMode="server"
+                  paginationModel={{ page, pageSize }}
+                  onPaginationModelChange={handlePaginationModelChange}
                   pageSizeOptions={[25, 50, 100]}
+                  loading={isLoading}
                   onRowClick={(params) => navigate(`/staff/${params.row.id}`)}
                   getRowClassName={(params) => (params.indexRelativeToCurrentPage % 2 === 0 ? 'even-row' : 'odd-row')}
                   sx={{

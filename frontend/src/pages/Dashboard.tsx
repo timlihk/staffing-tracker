@@ -1,11 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { Typography, Box, Stack, Select, MenuItem, FormControl } from '@mui/material';
 import { Page, DashboardSkeleton, PageHeader } from '../components/ui';
 import InsightsPanel from '../components/InsightsPanel';
-import { DealRadarCard, StaffingHeatmapCard } from '../components/dashboard';
 import { useDashboard } from '../hooks/useDashboard';
 import { useNavigate } from 'react-router-dom';
 import type { DashboardSummary } from '../types';
+
+const DealRadarCard = lazy(() => import('../components/dashboard/DealRadarCard'));
+const StaffingHeatmapCard = lazy(() => import('../components/dashboard/StaffingHeatmapCard'));
+
+const CardSkeleton = () => (
+  <Box sx={{ height: 400, bgcolor: 'background.paper', borderRadius: 1, p: 2 }}>
+    <Typography variant="h6" sx={{ mb: 2, color: 'text.secondary' }}>Loading...</Typography>
+  </Box>
+);
 
 const groupDealRadar = (
   events: DashboardSummary['dealRadar']
@@ -95,17 +103,21 @@ const Dashboard = () => {
       </Stack>
       <Stack spacing={1.75}>
         <InsightsPanel data={data} timeRange={timeRange} />
-        <DealRadarCard
-          groups={dealRadarGroups}
-          onSelectProject={(id) => navigate(`/projects/${id}`)}
-          timeRange={timeRange}
-          showAllEvents={showAllEvents}
-          setShowAllEvents={setShowAllEvents}
-        />
-        <StaffingHeatmapCard
-          days={timeRange}
-          onSelectStaff={(id) => navigate(`/staff/${id}`)}
-        />
+        <Suspense fallback={<CardSkeleton />}>
+          <DealRadarCard
+            groups={dealRadarGroups}
+            onSelectProject={(id) => navigate(`/projects/${id}`)}
+            timeRange={timeRange}
+            showAllEvents={showAllEvents}
+            setShowAllEvents={setShowAllEvents}
+          />
+        </Suspense>
+        <Suspense fallback={<CardSkeleton />}>
+          <StaffingHeatmapCard
+            days={timeRange}
+            onSelectStaff={(id) => navigate(`/staff/${id}`)}
+          />
+        </Suspense>
       </Stack>
     </Page>
   );

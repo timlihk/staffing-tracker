@@ -445,7 +445,15 @@ router.patch('/projects/:id/financials', authenticate, adminOnly, validate(billi
  *       403:
  *         description: Forbidden (admin only)
  */
-router.patch('/engagements/:engagementId/fee-arrangement', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), validate(updateFeeArrangementSchema), billingController.updateFeeArrangement);
+router.patch(
+  '/engagements/:engagementId/fee-arrangement',
+  authenticate,
+  adminOnly,
+  express.json({ limit: '500kb' }),
+  validate(engagementIdParamSchema, 'params'),
+  validate(updateFeeArrangementSchema),
+  billingController.updateFeeArrangement
+);
 
 /**
  * @openapi
@@ -489,7 +497,15 @@ router.patch('/engagements/:engagementId/fee-arrangement', authenticate, adminOn
  *       403:
  *         description: Forbidden (admin only)
  */
-router.post('/engagements/:engagementId/milestones', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), validate(createMilestoneSchema), billingController.createMilestone);
+router.post(
+  '/engagements/:engagementId/milestones',
+  authenticate,
+  adminOnly,
+  express.json({ limit: '500kb' }),
+  validate(engagementIdParamSchema, 'params'),
+  validate(createMilestoneSchema),
+  billingController.createMilestone
+);
 
 /**
  * @openapi
@@ -520,7 +536,14 @@ router.post('/engagements/:engagementId/milestones', authenticate, adminOnly, va
  *       403:
  *         description: Forbidden (admin only)
  */
-router.patch('/milestones', authenticate, adminOnly, validate(updateMilestonesSchema), billingController.updateMilestones);
+router.patch(
+  '/milestones',
+  authenticate,
+  adminOnly,
+  express.json({ limit: '500kb' }),
+  validate(updateMilestonesSchema),
+  billingController.updateMilestones
+);
 
 /**
  * @openapi

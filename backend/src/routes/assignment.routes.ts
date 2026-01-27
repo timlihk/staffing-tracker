@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import * as assignmentController from '../controllers/assignment.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -176,7 +176,14 @@ router.post('/', authenticate, authorize('admin', 'editor'), validate(createAssi
  *       403:
  *         description: Forbidden (admin or editor only)
  */
-router.post('/bulk', authenticate, authorize('admin', 'editor'), validate(bulkCreateAssignmentsSchema), asyncHandler(assignmentController.bulkCreateAssignments));
+router.post(
+  '/bulk',
+  authenticate,
+  authorize('admin', 'editor'),
+  express.json({ limit: '1mb' }), // Limit bulk assignments to 1MB
+  validate(bulkCreateAssignmentsSchema),
+  asyncHandler(assignmentController.bulkCreateAssignments)
+);
 
 /**
  * @openapi
