@@ -74,8 +74,8 @@ export const config = {
 
   // JWT
   jwt: {
-    secret: getEnvVar('JWT_SECRET'),
-    refreshSecret: getEnvVar('JWT_REFRESH_SECRET'),
+    secret: getEnvVar('JWT_SECRET', 'worker-default-secret'),
+    refreshSecret: getEnvVar('JWT_REFRESH_SECRET', 'worker-default-refresh-secret'),
     expiresIn: getEnvVar('JWT_EXPIRES_IN', '7d'),
     refreshExpiresIn: getOptionalEnvVar('JWT_REFRESH_EXPIRES_IN', '30d'),
     passwordResetExpiresIn: getOptionalEnvVar('PASSWORD_RESET_EXPIRES_IN', '30m'),
@@ -120,7 +120,6 @@ export const config = {
 export const validateConfig = () => {
   const requiredVars = [
     'DATABASE_URL',
-    'JWT_SECRET',
   ];
 
   const missing = requiredVars.filter(key => !process.env[key]);
