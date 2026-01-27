@@ -298,7 +298,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const projectId = parseInt(id, 10);
+    const projectId = parseInt(id as string, 10);
     if (Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
@@ -472,7 +472,7 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const projectId = parseInt(id, 10);
+    const projectId = parseInt(id as string, 10);
     if (Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
@@ -526,7 +526,7 @@ export const getProjectChangeHistory = async (req: AuthRequest, res: Response) =
     const { id } = req.params;
     const { limit = '50' } = req.query; // Reduced default from 100 to 50
 
-    const projectId = parseInt(id, 10);
+    const projectId = parseInt(id as string, 10);
     if (Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
@@ -605,7 +605,7 @@ const wasUpdatedSinceConfirmation = (lastConfirmedAt: Date | null, updatedAt: Da
  * Check if project is a transaction project (HK Trx or US Trx)
  */
 const isTrxProject = (category: string): boolean => {
-  return [ProjectCategory.HK_TRX, ProjectCategory.US_TRX].includes(category as ProjectCategory);
+  return category === ProjectCategory.HK_TRX || category === ProjectCategory.US_TRX;
 };
 
 /**
@@ -732,7 +732,7 @@ export const confirmProject = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const projectId = parseInt(id, 10);
+    const projectId = parseInt(id as string, 10);
     if (Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }

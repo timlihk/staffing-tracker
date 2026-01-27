@@ -160,7 +160,7 @@ export async function unlinkProjects(req: AuthRequest, res: Response) {
 
     await prisma.$executeRaw`
       DELETE FROM billing_staffing_project_link
-      WHERE link_id = ${parseInt(linkId, 10)}
+      WHERE link_id = ${parseInt(linkId as string, 10)}
     `;
 
     res.json({ success: true });

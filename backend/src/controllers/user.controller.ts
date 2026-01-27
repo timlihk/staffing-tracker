@@ -271,7 +271,7 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const targetId = parseInt(id, 10);
+    const targetId = parseInt(id as string, 10);
 
     if (Number.isNaN(targetId)) {
       return res.status(400).json({ error: 'Invalid user id' });

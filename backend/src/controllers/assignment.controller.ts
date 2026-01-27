@@ -184,7 +184,7 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
       notes,
     } = req.body;
 
-    const assignmentId = parseInt(id, 10);
+    const assignmentId = parseInt(id as string, 10);
     if (Number.isNaN(assignmentId)) {
       return res.status(400).json({ error: 'Invalid assignment ID' });
     }
@@ -252,7 +252,7 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const assignmentId = parseInt(id, 10);
+    const assignmentId = parseInt(id as string, 10);
     if (Number.isNaN(assignmentId)) {
       return res.status(400).json({ error: 'Invalid assignment ID' });
     }

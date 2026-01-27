@@ -250,7 +250,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     // Merge B&C attorney info into project data
     if (bcAttorneys && bcAttorneys.length > 0) {
       projectData[0].bc_attorney_name = bcAttorneys[0].bc_attorney_name || null;
-      projectData[0].bc_attorney_staff_id = bcAttorneys[0].bc_attorney_staff_id || null;
+      projectData[0].bc_attorney_staff_id = bcAttorneys[0].bc_attorney_staff_id ? BigInt(bcAttorneys[0].bc_attorney_staff_id) : null;
     }
 
     // For summary view, return minimal data without nested details
