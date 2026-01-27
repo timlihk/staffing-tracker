@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Timetable, ValidationLimits } from '../constants';
 
 /**
  * Project creation/update validation schema
@@ -6,27 +7,27 @@ import { z } from 'zod';
 export const projectSchema = z.object({
   name: z.string()
     .min(1, 'Project name is required')
-    .max(255, 'Project name must not exceed 255 characters')
+    .max(ValidationLimits.MAX_NAME_LENGTH, `Project name must not exceed ${ValidationLimits.MAX_NAME_LENGTH} characters`)
     .trim(),
   category: z.string()
     .min(1, 'Category is required')
-    .max(100, 'Category must not exceed 100 characters')
+    .max(ValidationLimits.MAX_CATEGORY_LENGTH, `Category must not exceed ${ValidationLimits.MAX_CATEGORY_LENGTH} characters`)
     .trim(),
   status: z.string()
     .min(1, 'Status is required')
-    .max(50, 'Status must not exceed 50 characters')
+    .max(ValidationLimits.MAX_STATUS_LENGTH, `Status must not exceed ${ValidationLimits.MAX_STATUS_LENGTH} characters`)
     .trim(),
   priority: z.string()
-    .max(50, 'Priority must not exceed 50 characters')
+    .max(ValidationLimits.MAX_STATUS_LENGTH, `Priority must not exceed ${ValidationLimits.MAX_STATUS_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
   elStatus: z.string()
-    .max(100, 'EL status must not exceed 100 characters')
+    .max(ValidationLimits.MAX_CATEGORY_LENGTH, `EL status must not exceed ${ValidationLimits.MAX_CATEGORY_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
-  timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING'])
+  timetable: z.enum([Timetable.PRE_A1, Timetable.A1, Timetable.HEARING, Timetable.LISTING])
     .optional()
     .nullable(),
   filingDate: z.string()
@@ -40,22 +41,22 @@ export const projectSchema = z.object({
     .optional()
     .nullable(),
   bcAttorney: z.string()
-    .max(255, 'B&C Attorney must not exceed 255 characters')
+    .max(ValidationLimits.MAX_NAME_LENGTH, `B&C Attorney must not exceed ${ValidationLimits.MAX_NAME_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
   side: z.string()
-    .max(100, 'Side must not exceed 100 characters')
+    .max(ValidationLimits.MAX_CATEGORY_LENGTH, `Side must not exceed ${ValidationLimits.MAX_CATEGORY_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
   sector: z.string()
-    .max(100, 'Sector must not exceed 100 characters')
+    .max(ValidationLimits.MAX_CATEGORY_LENGTH, `Sector must not exceed ${ValidationLimits.MAX_CATEGORY_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
   notes: z.string()
-    .max(5000, 'Notes must not exceed 5000 characters')
+    .max(ValidationLimits.MAX_NOTES_LENGTH, `Notes must not exceed ${ValidationLimits.MAX_NOTES_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),

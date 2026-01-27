@@ -6,6 +6,7 @@ import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { logger } from '../utils/logger';
 import type { Prisma } from '@prisma/client';
+import { ProjectCategory, ProjectStatus, ActionType, EntityType } from '../constants';
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
@@ -218,62 +219,66 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Project name, category, and status are required' });
     }
 
-    const project = await prisma.project.create({
-      data: {
-        name,
-        category,
-        status,
-        priority,
-        elStatus,
-        timetable,
-        filingDate: filingDate ? new Date(filingDate) : null,
-        listingDate: listingDate ? new Date(listingDate) : null,
-        bcAttorney,
-        side,
-        sector,
-        notes,
-      },
-      // Optimized with selective fields for performance
-      select: {
-        id: true,
-        name: true,
-        category: true,
-        status: true,
-        priority: true,
-        elStatus: true,
-        timetable: true,
-        filingDate: true,
-        listingDate: true,
-        bcAttorney: true,
-        side: true,
-        sector: true,
-        notes: true,
-        createdAt: true,
-        updatedAt: true,
-        assignments: {
-          select: {
-            id: true,
-            jurisdiction: true,
-            staff: {
-              select: {
-                id: true,
-                name: true,
-                position: true,
+    const project = await prisma.$transaction(async (tx) => {
+      const newProject = await tx.project.create({
+        data: {
+          name,
+          category,
+          status,
+          priority,
+          elStatus,
+          timetable,
+          filingDate: filingDate ? new Date(filingDate) : null,
+          listingDate: listingDate ? new Date(listingDate) : null,
+          bcAttorney,
+          side,
+          sector,
+          notes,
+        },
+        // Optimized with selective fields for performance
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          status: true,
+          priority: true,
+          elStatus: true,
+          timetable: true,
+          filingDate: true,
+          listingDate: true,
+          bcAttorney: true,
+          side: true,
+          sector: true,
+          notes: true,
+          createdAt: true,
+          updatedAt: true,
+          assignments: {
+            select: {
+              id: true,
+              jurisdiction: true,
+              staff: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'create',
-        entityType: 'project',
-        entityId: project.id,
-        description: `Created project: ${project.name}`,
-      },
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: ActionType.CREATE,
+          entityType: EntityType.PROJECT,
+          entityId: newProject.id,
+          description: `Created project: ${newProject.name}`,
+        },
+      });
+
+      return newProject;
     });
 
     // Invalidate cache for project lists and dashboard
@@ -346,64 +351,68 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       userId: req.user?.userId,
     });
 
-    const project = await prisma.project.update({
-      where: { id: projectId },
-      data: updateData,
-      // Optimized with selective fields for performance
-      select: {
-        id: true,
-        name: true,
-        category: true,
-        status: true,
-        priority: true,
-        elStatus: true,
-        timetable: true,
-        filingDate: true,
-        listingDate: true,
-        bcAttorney: true,
-        side: true,
-        sector: true,
-        notes: true,
-        lastConfirmedAt: true,
-        lastConfirmedBy: true,
-        confirmedBy: {
-          select: {
-            id: true,
-            username: true,
-            staff: {
-              select: {
-                id: true,
-                name: true,
+    const project = await prisma.$transaction(async (tx) => {
+      const updatedProject = await tx.project.update({
+        where: { id: projectId },
+        data: updateData,
+        // Optimized with selective fields for performance
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          status: true,
+          priority: true,
+          elStatus: true,
+          timetable: true,
+          filingDate: true,
+          listingDate: true,
+          bcAttorney: true,
+          side: true,
+          sector: true,
+          notes: true,
+          lastConfirmedAt: true,
+          lastConfirmedBy: true,
+          confirmedBy: {
+            select: {
+              id: true,
+              username: true,
+              staff: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+          assignments: {
+            select: {
+              id: true,
+              jurisdiction: true,
+              staff: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                },
               },
             },
           },
         },
-        createdAt: true,
-        updatedAt: true,
-        assignments: {
-          select: {
-            id: true,
-            jurisdiction: true,
-            staff: {
-              select: {
-                id: true,
-                name: true,
-                position: true,
-              },
-            },
-          },
-        },
-      },
-    });
+      });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'update',
-        entityType: 'project',
-        entityId: project.id,
-        description: `Updated project: ${project.name}`,
-      },
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: ActionType.UPDATE,
+          entityType: EntityType.PROJECT,
+          entityId: updatedProject.id,
+          description: `Updated project: ${updatedProject.name}`,
+        },
+      });
+
+      return updatedProject;
     });
 
     const changes = detectProjectChanges(existingProject, project);
@@ -476,16 +485,17 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    await prisma.project.delete({ where: { id: projectId } });
-
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'delete',
-        entityType: 'project',
-        entityId: projectId,
-        description: `Deleted project: ${project.name}`,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.project.delete({ where: { id: projectId } });
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: ActionType.DELETE,
+          entityType: EntityType.PROJECT,
+          entityId: projectId,
+          description: `Deleted project: ${project.name}`,
+        },
+      });
     });
 
     // Invalidate cache for this project, project lists, and dashboard
@@ -572,6 +582,146 @@ export const getProjectChangeHistory = async (req: AuthRequest, res: Response) =
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+/**
+ * Calculate days since project was last confirmed
+ */
+const getDaysSinceConfirmed = (lastConfirmedAt: Date | null): number => {
+  return lastConfirmedAt
+    ? Math.floor((Date.now() - lastConfirmedAt.getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+};
+
+/**
+ * Check if project was updated since last confirmation
+ */
+const wasUpdatedSinceConfirmation = (lastConfirmedAt: Date | null, updatedAt: Date): boolean => {
+  return lastConfirmedAt
+    ? updatedAt.getTime() - lastConfirmedAt.getTime() > 1000
+    : true;
+};
+
+/**
+ * Check if project is a transaction project (HK Trx or US Trx)
+ */
+const isTrxProject = (category: string): boolean => {
+  return [ProjectCategory.HK_TRX, ProjectCategory.US_TRX].includes(category as ProjectCategory);
+};
+
+/**
+ * Get attention reasons for a project
+ */
+const getAttentionReasons = (
+  project: ProjectWithHistory,
+  daysSinceConfirmed: number,
+  changedSinceConfirmed: boolean,
+  sevenDaysAgo: Date
+): string[] => {
+  const reasons: string[] = [];
+
+  // Not confirmed in 7+ days
+  if (daysSinceConfirmed > 7) {
+    reasons.push(daysSinceConfirmed === 999
+      ? 'Never confirmed'
+      : `Not reviewed in ${daysSinceConfirmed} days`);
+  }
+
+  // Updated since last confirmation
+  if (changedSinceConfirmed && project.lastConfirmedAt) {
+    reasons.push('Updated since last confirmation');
+  }
+
+  // BC Attorney not assigned for Trx projects
+  if (isTrxProject(project.category) && !project.bcAttorney) {
+    reasons.push('BC Attorney not assigned');
+  }
+
+  // No team assigned
+  if (project.assignments.length === 0) {
+    reasons.push('No team assigned');
+  }
+
+  // Filing date not set for active Trx projects
+  if (project.status === ProjectStatus.ACTIVE && !project.filingDate && isTrxProject(project.category)) {
+    reasons.push('Filing date not set');
+  }
+
+  // Recent status change
+  const recentStatusChange = project.changeHistory.find(
+    (change) =>
+      change.fieldName === 'status' &&
+      change.changedAt > sevenDaysAgo &&
+      (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
+  );
+
+  if (recentStatusChange) {
+    reasons.push(`Status changed: ${recentStatusChange.oldValue} → ${recentStatusChange.newValue}`);
+  }
+
+  // Recent team changes
+  const recentTeamChanges = project.changeHistory.filter(
+    (change) =>
+      (change.changeType === 'assignment_added' || change.changeType === 'assignment_removed') &&
+      change.changedAt > sevenDaysAgo &&
+      (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
+  );
+
+  if (recentTeamChanges.length > 0) {
+    reasons.push('Team composition changed');
+  }
+
+  return reasons;
+};
+
+/**
+ * Calculate urgency score for a project
+ */
+const calculateUrgencyScore = (
+  daysSinceConfirmed: number,
+  reasons: string[],
+  changedSinceConfirmed: boolean,
+  hasRecentStatusChange: boolean
+): number => {
+  return (
+    (hasRecentStatusChange ? 100 : 0) +
+    (reasons.some((r) => r.includes('not assigned') || r.includes('not set')) ? 80 : 0) +
+    daysSinceConfirmed * 2 +
+    (changedSinceConfirmed ? 10 : 0)
+  );
+};
+
+/**
+ * Type definition for project with history
+ */
+type ProjectWithHistory = Prisma.ProjectGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    category: true;
+    status: true;
+    priority: true;
+    bcAttorney: true;
+    filingDate: true;
+    listingDate: true;
+    lastConfirmedAt: true;
+    updatedAt: true;
+    assignments: {
+      select: {
+        id: true;
+        staff: { select: { id: true } };
+      };
+    };
+    changeHistory: {
+      select: {
+        fieldName: true;
+        oldValue: true;
+        newValue: true;
+        changeType: true;
+        changedAt: true;
+      };
+    };
+  };
+}>;
 
 export const confirmProject = async (req: AuthRequest, res: Response) => {
   try {
@@ -720,79 +870,25 @@ export const getProjectsNeedingAttention = async (req: AuthRequest, res: Respons
       orderBy: { updatedAt: 'desc' },
     });
 
-    type AttentionProject = (typeof projects)[number] & {
+    type AttentionProject = ProjectWithHistory & {
       attentionReasons: string[];
       urgencyScore: number;
     };
 
     const needsAttention: AttentionProject[] = [];
-    const allGood: typeof projects = [];
+    const allGood: ProjectWithHistory[] = [];
 
     for (const project of projects) {
-      const reasons: string[] = [];
-
-      const daysSinceConfirmed = project.lastConfirmedAt
-        ? Math.floor((Date.now() - project.lastConfirmedAt.getTime()) / (1000 * 60 * 60 * 24))
-        : 999;
-
-      if (daysSinceConfirmed > 7) {
-        reasons.push(daysSinceConfirmed === 999
-          ? 'Never confirmed'
-          : `Not reviewed in ${daysSinceConfirmed} days`);
-      }
-
-      const changedSinceConfirmed = project.lastConfirmedAt
-        ? project.updatedAt.getTime() - project.lastConfirmedAt.getTime() > 1000
-        : true;
-
-      if (changedSinceConfirmed && project.lastConfirmedAt) {
-        reasons.push('Updated since last confirmation');
-      }
-
-      const isTrxProject = ['HK Trx', 'US Trx'].includes(project.category);
-      if (isTrxProject && !project.bcAttorney) {
-        reasons.push('BC Attorney not assigned');
-      }
-
-      if (project.assignments.length === 0) {
-        reasons.push('No team assigned');
-      }
-
-      if (project.status === 'Active' && !project.filingDate && isTrxProject) {
-        reasons.push('Filing date not set');
-      }
-
-      const recentStatusChange = project.changeHistory.find(
-        (change) =>
-          change.fieldName === 'status' &&
-          change.changedAt > sevenDaysAgo &&
-          (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
-      );
-
-      if (recentStatusChange) {
-        reasons.push(`Status changed: ${recentStatusChange.oldValue} → ${recentStatusChange.newValue}`);
-      }
-
-      const recentTeamChanges = project.changeHistory.filter(
-        (change) =>
-          (change.changeType === 'assignment_added' || change.changeType === 'assignment_removed') &&
-          change.changedAt > sevenDaysAgo &&
-          (!project.lastConfirmedAt || change.changedAt > project.lastConfirmedAt)
-      );
-
-      if (recentTeamChanges.length > 0) {
-        reasons.push('Team composition changed');
-      }
+      const daysSinceConfirmed = getDaysSinceConfirmed(project.lastConfirmedAt);
+      const changedSinceConfirmed = wasUpdatedSinceConfirmation(project.lastConfirmedAt, project.updatedAt);
+      const reasons = getAttentionReasons(project, daysSinceConfirmed, changedSinceConfirmed, sevenDaysAgo);
 
       if (reasons.length > 0) {
+        const recentStatusChange = reasons.some(r => r.startsWith('Status changed'));
         needsAttention.push({
           ...project,
           attentionReasons: reasons,
-          urgencyScore:
-            (recentStatusChange ? 100 : 0) +
-            (reasons.some((r) => r.includes('not assigned') || r.includes('not set')) ? 80 : 0) +
-            daysSinceConfirmed * 2 +
-            (changedSinceConfirmed ? 10 : 0),
+          urgencyScore: calculateUrgencyScore(daysSinceConfirmed, reasons, changedSinceConfirmed, recentStatusChange),
         });
       } else {
         allGood.push(project);

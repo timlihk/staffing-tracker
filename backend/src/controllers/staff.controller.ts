@@ -6,6 +6,7 @@ import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { logger } from '../utils/logger';
 import { StaffWhereInput, ControllerError } from '../types/prisma';
 import { Prisma } from '@prisma/client';
+import { ActionType, EntityType } from '../constants';
 
 /**
  * Helper function to convert BigInt values to numbers for JSON serialization
@@ -187,26 +188,29 @@ export const createStaff = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Name and position are required' });
     }
 
-    const staff = await prisma.staff.create({
-      data: {
-        name,
-        email: email === '' ? null : email,
-        position,
-        department: department === '' ? null : department,
-        status: status || 'active',
-        notes: notes === '' ? null : notes,
-      },
-    });
+    const staff = await prisma.$transaction(async (tx) => {
+      const newStaff = await tx.staff.create({
+        data: {
+          name,
+          email: email === '' ? null : email,
+          position,
+          department: department === '' ? null : department,
+          status: status || 'active',
+          notes: notes === '' ? null : notes,
+        },
+      });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'create',
-        entityType: 'staff',
-        entityId: staff.id,
-        description: `Created staff member: ${staff.name}`,
-      },
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: ActionType.CREATE,
+          entityType: EntityType.STAFF,
+          entityId: newStaff.id,
+          description: `Created staff: ${newStaff.name}`,
+        },
+      });
+
+      return newStaff;
     });
 
     // Invalidate cache for staff lists
@@ -255,20 +259,23 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
       userId: req.user?.userId,
     });
 
-    const staff = await prisma.staff.update({
-      where: { id: staffId },
-      data: updateData,
-    });
+    const staff = await prisma.$transaction(async (tx) => {
+      const updatedStaff = await tx.staff.update({
+        where: { id: staffId },
+        data: updateData,
+      });
 
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'update',
-        entityType: 'staff',
-        entityId: staff.id,
-        description: `Updated staff member: ${staff.name}`,
-      },
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: ActionType.UPDATE,
+          entityType: EntityType.STAFF,
+          entityId: staffId,
+          description: `Updated staff: ${updatedStaff.name}`,
+        },
+      });
+
+      return updatedStaff;
     });
 
     // Invalidate cache for this staff member and staff lists
@@ -304,19 +311,17 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    await prisma.staff.delete({
-      where: { id: staffId },
-    });
-
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: req.user?.userId,
-        actionType: 'delete',
-        entityType: 'staff',
-        entityId: staffId,
-        description: `Deleted staff member: ${staff.name}`,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.staff.delete({ where: { id: staffId } });
+      await tx.activityLog.create({
+        data: {
+          userId: req.user?.userId,
+          actionType: ActionType.DELETE,
+          entityType: EntityType.STAFF,
+          entityId: staffId,
+          description: `Deleted staff: ${staff.name}`,
+        },
+      });
     });
 
     // Invalidate cache for this staff member and staff lists

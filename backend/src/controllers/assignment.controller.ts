@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma, { invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AssignmentWhereInput, ControllerError } from '../types/prisma';
 import { logger } from '../utils/logger';
+import { ActionType, EntityType } from '../constants';
 
 export const getAllAssignments = async (req: AuthRequest, res: Response) => {
   try {
@@ -121,8 +122,8 @@ export const createAssignment = async (req: AuthRequest, res: Response) => {
       await tx.activityLog.create({
         data: {
           userId: req.user?.userId,
-          actionType: 'assign',
-          entityType: 'assignment',
+          actionType: ActionType.CREATE,
+          entityType: EntityType.ASSIGNMENT,
           entityId: newAssignment.id,
           description: `Assigned ${staff.name} to ${project.name}`,
         },
@@ -217,8 +218,8 @@ export const updateAssignment = async (req: AuthRequest, res: Response) => {
       await tx.activityLog.create({
         data: {
           userId: req.user?.userId,
-          actionType: 'update',
-          entityType: 'assignment',
+          actionType: ActionType.UPDATE,
+          entityType: EntityType.ASSIGNMENT,
           entityId: updatedAssignment.id,
           description: `Updated assignment: ${updatedAssignment.staff.name} on ${updatedAssignment.project.name}`,
         },
@@ -302,8 +303,8 @@ export const deleteAssignment = async (req: AuthRequest, res: Response) => {
       await tx.activityLog.create({
         data: {
           userId: req.user?.userId,
-          actionType: 'delete',
-          entityType: 'assignment',
+          actionType: ActionType.DELETE,
+          entityType: EntityType.ASSIGNMENT,
           entityId: assignmentId,
           description: `Removed ${assignment.staff.name} from ${assignment.project.name}`,
         },
@@ -478,8 +479,8 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
     await prisma.activityLog.create({
       data: {
         userId: req.user?.userId,
-        actionType: 'assign',
-        entityType: 'assignment',
+        actionType: ActionType.CREATE,
+        entityType: EntityType.ASSIGNMENT,
         description: `Bulk created ${createdAssignments.length} assignments`,
       },
     });

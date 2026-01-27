@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ValidationLimits } from '../constants';
 
 /**
  * Assignment creation validation schema
@@ -11,7 +12,7 @@ export const createAssignmentSchema = z.object({
     .int('Staff ID must be an integer')
     .positive('Staff ID must be positive'),
   jurisdiction: z.string()
-    .max(100, 'Jurisdiction must not exceed 100 characters')
+    .max(ValidationLimits.MAX_CATEGORY_LENGTH, `Jurisdiction must not exceed ${ValidationLimits.MAX_CATEGORY_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
@@ -26,7 +27,7 @@ export const createAssignmentSchema = z.object({
     .optional()
     .nullable(),
   notes: z.string()
-    .max(5000, 'Notes must not exceed 5000 characters')
+    .max(ValidationLimits.MAX_NOTES_LENGTH, `Notes must not exceed ${ValidationLimits.MAX_NOTES_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
@@ -38,7 +39,7 @@ export const createAssignmentSchema = z.object({
  */
 export const updateAssignmentSchema = z.object({
   jurisdiction: z.string()
-    .max(100, 'Jurisdiction must not exceed 100 characters')
+    .max(ValidationLimits.MAX_CATEGORY_LENGTH, `Jurisdiction must not exceed ${ValidationLimits.MAX_CATEGORY_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),
@@ -53,7 +54,7 @@ export const updateAssignmentSchema = z.object({
     .optional()
     .nullable(),
   notes: z.string()
-    .max(5000, 'Notes must not exceed 5000 characters')
+    .max(ValidationLimits.MAX_NOTES_LENGTH, `Notes must not exceed ${ValidationLimits.MAX_NOTES_LENGTH} characters`)
     .trim()
     .optional()
     .nullable(),

@@ -15,13 +15,22 @@ import { ControllerError } from '../types/prisma';
 import { logger } from '../utils/logger';
 import { sanitizeForLogs, safeLogData } from '../utils/sanitize';
 import config from '../config';
+import {
+  UserRole,
+  ALLOWED_ROLES,
+  HttpStatus,
+  ErrorMessage,
+  JWTConfig,
+  EntityType,
+  ActionType
+} from '../constants';
 
 export const login = async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Username and password are required' });
     }
 
     const user = await prisma.user.findUnique({
@@ -30,18 +39,18 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Invalid credentials' });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
 
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Invalid credentials' });
     }
 
     if (user.mustResetPassword) {
       const resetToken = generatePasswordResetToken(user.id);
-      return res.status(403).json({
+      return res.status(HttpStatus.FORBIDDEN).json({
         error: 'Password reset required',
         requiresPasswordReset: true,
         resetToken,
@@ -62,8 +71,8 @@ export const login = async (req: Request, res: Response) => {
     await prisma.activityLog.create({
       data: {
         userId: user.id,
-        actionType: 'login',
-        entityType: 'user',
+        actionType: ActionType.LOGIN,
+        entityType: EntityType.USER,
         entityId: user.id,
         description: `User ${user.username} logged in`,
       },
@@ -84,7 +93,7 @@ export const login = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: config.isProduction, // Only send over HTTPS in production
       sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: JWTConfig.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000, // 30 days
       path: '/api/auth/refresh', // Only send to refresh endpoint
     });
 
@@ -104,26 +113,26 @@ export const login = async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : String(error),
       username: sanitizeForLogs(req.body?.username)
     });
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
   }
 };
 
-const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
+
 
 export const register = async (req: AuthRequest, res: Response) => {
   try {
     const { username, email, password, role, staffId } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ error: 'Username, email, and password are required' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Username, email, and password are required' });
     }
 
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Authentication required' });
     }
 
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin privileges required' });
+    if (req.user.role !== UserRole.ADMIN) {
+      return res.status(HttpStatus.FORBIDDEN).json({ error: 'Admin privileges required' });
     }
 
     // Check if user already exists
@@ -134,12 +143,12 @@ export const register = async (req: AuthRequest, res: Response) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Username or email already exists' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Username or email already exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
 
-    const normalizedRole = typeof role === 'string' && ALLOWED_ROLES.has(role) ? role : 'viewer';
+    const normalizedRole = typeof role === 'string' && ALLOWED_ROLES.has(role) ? role : UserRole.VIEWER;
 
     const user = await prisma.user.create({
       data: {
@@ -175,14 +184,14 @@ export const register = async (req: AuthRequest, res: Response) => {
       error: error instanceof Error ? error.message : String(error),
       username: sanitizeForLogs(req.body?.username)
     });
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
   }
 };
 
 export const me = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
     }
 
     const user = await prisma.user.findUnique({
@@ -191,7 +200,7 @@ export const me = async (req: AuthRequest, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(HttpStatus.NOT_FOUND).json({ error: 'User not found' });
     }
 
     res.json({
@@ -208,7 +217,7 @@ export const me = async (req: AuthRequest, res: Response) => {
       error: error instanceof Error ? error.message : String(error),
       userId: req.user?.userId
     });
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
   }
 };
 
@@ -217,11 +226,11 @@ export const resetPassword = async (req: Request, res: Response) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token and new password are required' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Token and new password are required' });
     }
 
     if (typeof newPassword !== 'string' || newPassword.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Password must be at least 8 characters long' });
     }
 
     // Verify token (this will throw if invalid)
@@ -232,7 +241,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (!user) {
       // Don't reveal that the user doesn't exist - use same error as invalid token
       logger.warn('Password reset attempted for non-existent user', { userId: payload.userId });
-      return res.status(400).json({ error: 'Invalid or expired token' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Invalid or expired token' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
@@ -251,8 +260,8 @@ export const resetPassword = async (req: Request, res: Response) => {
     await prisma.activityLog.create({
       data: {
         userId: user.id,
-        actionType: 'update',
-        entityType: 'user',
+        actionType: ActionType.UPDATE,
+        entityType: EntityType.USER,
         entityId: user.id,
         description: `Password reset for user ${user.username}`,
       },
@@ -267,7 +276,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (error && typeof error === 'object' && 'message' in error && error.message === 'Invalid password reset token') {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
   }
 };
 
@@ -279,7 +288,7 @@ export const refresh = async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
-      return res.status(401).json({ error: 'No refresh token provided' });
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'No refresh token provided' });
     }
 
     // Verify refresh token
@@ -292,7 +301,7 @@ export const refresh = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(HttpStatus.NOT_FOUND).json({ error: 'User not found' });
     }
 
     // Generate new access token
@@ -328,7 +337,7 @@ export const refresh = async (req: Request, res: Response) => {
     logger.error('Refresh token error', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Invalid or expired refresh token' });
   }
 };
 
@@ -356,7 +365,7 @@ export const logout = async (req: Request, res: Response) => {
     logger.error('Logout error', {
       error: error instanceof Error ? error.message : String(error),
     });
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
   }
 };
 
@@ -366,7 +375,7 @@ export const logout = async (req: Request, res: Response) => {
 export const logoutAll = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Authentication required' });
     }
 
     await revokeAllRefreshTokens(req.user.userId);
@@ -385,6 +394,6 @@ export const logoutAll = async (req: AuthRequest, res: Response) => {
       error: error instanceof Error ? error.message : String(error),
       userId: req.user?.userId,
     });
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });
   }
 };
