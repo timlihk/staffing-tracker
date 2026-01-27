@@ -80,7 +80,8 @@ const ProjectReport: React.FC = () => {
   const [priorities, setPriorities] = useState<string[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
 
-  const { data: allStaff = [] } = useStaff({});
+  const { data: allStaffResponse } = useStaff({});
+  const allStaff = allStaffResponse?.data || [];
 
   const [rows, setRows] = useState<ProjectReportRow[]>([]);
   const [loading, setLoading] = useState(false);

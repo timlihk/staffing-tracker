@@ -19,7 +19,9 @@ export const useUsers = () => {
     queryKey: ['users'],
     queryFn: async () => {
       const response = await api.get<ManagedUser[]>('/users');
-      return response.data;
+      // Ensure we always return an array, even if API returns something unexpected
+      const data = response.data;
+      return Array.isArray(data) ? data : [];
     },
   });
 };

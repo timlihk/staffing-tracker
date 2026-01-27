@@ -31,7 +31,8 @@ const Projects: React.FC = () => {
   const navigate = useNavigate();
   const permissions = usePermissions();
 
-  const { data: allStaff = [] } = useStaff({});
+  const { data: allStaffResponse } = useStaff({});
+  const allStaff = allStaffResponse?.data || [];
 
   // Debounce search input
   useEffect(() => {
