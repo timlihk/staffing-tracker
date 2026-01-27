@@ -1,17 +1,10 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from './prisma';
+import config from '../config';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
-
-if (!JWT_REFRESH_SECRET) {
-  throw new Error('JWT_REFRESH_SECRET environment variable is required. Do NOT derive from JWT_SECRET for security reasons.');
-}
+const JWT_SECRET = config.jwt.secret;
+const JWT_REFRESH_SECRET = config.jwt.refreshSecret;
 
 export interface JWTPayload {
   userId: number;
@@ -20,15 +13,16 @@ export interface JWTPayload {
 }
 
 export const generateToken = (payload: JWTPayload): string => {
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  return jwt.sign(payload, JWT_SECRET, { expiresIn } as any);
+  const expiresIn = config.jwt.expiresIn;
+  const options: SignOptions = { expiresIn };
+  return jwt.sign(payload, JWT_SECRET, options);
 };
 
 export const verifyToken = (token: string): JWTPayload => {
   return jwt.verify(token, JWT_SECRET) as JWTPayload;
 };
 
-const PASSWORD_RESET_EXPIRES_IN = process.env.PASSWORD_RESET_EXPIRES_IN || '30m';
+const PASSWORD_RESET_EXPIRES_IN = config.jwt.passwordResetExpiresIn;
 
 export interface PasswordResetPayload {
   userId: number;
@@ -37,7 +31,8 @@ export interface PasswordResetPayload {
 
 export const generatePasswordResetToken = (userId: number): string => {
   const payload: PasswordResetPayload = { userId, purpose: 'password_reset' };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: PASSWORD_RESET_EXPIRES_IN } as any);
+  const options: SignOptions = { expiresIn: PASSWORD_RESET_EXPIRES_IN };
+  return jwt.sign(payload, JWT_SECRET, options);
 };
 
 export const verifyPasswordResetToken = (token: string): PasswordResetPayload => {
@@ -52,7 +47,7 @@ export const verifyPasswordResetToken = (token: string): PasswordResetPayload =>
  * Refresh Token Management
  */
 
-const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
+const REFRESH_TOKEN_EXPIRES_IN = config.jwt.refreshExpiresIn;
 
 export interface RefreshTokenPayload {
   userId: number;
@@ -67,10 +62,11 @@ export const generateRefreshToken = async (userId: number): Promise<string> => {
   const tokenId = crypto.randomBytes(32).toString('hex');
 
   // Create JWT with token ID
+  const options: SignOptions = { expiresIn: REFRESH_TOKEN_EXPIRES_IN };
   const token = jwt.sign(
     { userId, tokenId } as RefreshTokenPayload,
     JWT_REFRESH_SECRET,
-    { expiresIn: REFRESH_TOKEN_EXPIRES_IN } as any
+    options
   );
 
   // Calculate expiration date

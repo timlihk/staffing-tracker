@@ -4,10 +4,11 @@ import {
   formatFieldName as formatReminderFieldName,
 } from './project-reminder.service';
 import prisma from '../utils/prisma';
+import config from '../config';
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const fromEmail = process.env.EMAIL_FROM || 'Asia CM Team <notifications@asia-cm.team>';
-const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const resend = config.email.apiKey ? new Resend(config.email.apiKey) : null;
+const fromEmail = config.email.from;
+const appUrl = config.frontendUrl;
 
 // Utility function to add delay between emails to avoid rate limits
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -42,7 +43,7 @@ export async function sendProjectUpdateEmail(data: EmailNotificationData) {
   } = data;
 
   // Skip if no email configured or in development without email
-  if (!process.env.RESEND_API_KEY) {
+  if (!config.email.apiKey) {
     console.log('Skipping email (no RESEND_API_KEY):', {
       to: staffEmail,
       project: projectName,
@@ -255,7 +256,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData) {
   const { email, username, tempPassword } = data;
 
   // Skip if no email configured
-  if (!process.env.RESEND_API_KEY) {
+  if (!config.email.apiKey) {
     console.log('Skipping welcome email (no RESEND_API_KEY):', { to: email, username });
     return null;
   }
@@ -426,7 +427,7 @@ export async function sendProjectUpdateEmails(emailDataList: EmailNotificationDa
   }
 
   // Skip if no email configured
-  if (!process.env.RESEND_API_KEY) {
+  if (!config.email.apiKey) {
     console.log('Skipping project update emails (no RESEND_API_KEY):', {
       project: emailDataList[0]?.projectName,
       recipients: emailDataList.length,
@@ -749,7 +750,7 @@ export async function sendPartnerReminderEmail(
   const { partnerEmail } = data;
 
   // Skip if no email configured
-  if (!process.env.RESEND_API_KEY) {
+  if (!config.email.apiKey) {
     console.log('[Reminders] Skipping (no RESEND_API_KEY):', { to: partnerEmail });
     return null;
   }

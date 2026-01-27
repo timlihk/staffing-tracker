@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import config from '../config';
 
 // Enhanced in-memory cache for frequently accessed data
 const cache = new Map();
@@ -155,11 +156,11 @@ export const CACHE_KEYS = {
  */
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'], // Reduced logging in dev
+    log: config.nodeEnv === 'development' ? ['error', 'warn'] : ['error'], // Reduced logging in dev
     // Optimize connection pool settings
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: config.database.url,
       },
     },
     // Connection pool optimization for both dev and prod
@@ -176,6 +177,6 @@ declare global {
 
 const prisma = globalThis.prisma ?? prismaClientSingleton();
 
-if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
+if (config.nodeEnv !== 'production') globalThis.prisma = prisma;
 
 export default prisma;

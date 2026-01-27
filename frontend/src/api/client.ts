@@ -8,6 +8,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Enable sending/receiving cookies
+  timeout: 30000, // 30 seconds
 });
 
 // Track in-memory access token
@@ -52,7 +53,24 @@ const processQueue = (error: AxiosError | null = null) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    // Handle network/connection errors
+    if (!error.response) {
+      // Network error (no response received)
+      if (error.code === 'ECONNABORTED') {
+        return Promise.reject(new Error('Request timeout. Please try again.'));
+      }
+      if (error.code === 'ERR_NETWORK') {
+        return Promise.reject(new Error('Network error. Please check your connection.'));
+      }
+      return Promise.reject(new Error('Unable to connect to server. Please try again later.'));
+    }
+
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Handle server errors (5xx)
+    if (error.response.status >= 500) {
+      return Promise.reject(new Error('Server error. Please try again later.'));
+    }
 
     // If error is 401 and we haven't tried refreshing yet
     if (error.response?.status === 401 && !originalRequest._retry) {

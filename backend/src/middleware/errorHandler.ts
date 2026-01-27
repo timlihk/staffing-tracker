@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { AppError, isAppError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import config from '../config';
 
 // Error handler middleware
 export const errorHandler = (
@@ -16,7 +17,7 @@ export const errorHandler = (
   requestLogger.error('Unhandled error', {
     name: err.name,
     message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    stack: config.nodeEnv === 'development' ? err.stack : undefined,
     path: req.path,
     method: req.method,
   });
@@ -25,7 +26,7 @@ export const errorHandler = (
   const buildErrorResponse = (error: string, details?: unknown) => ({
     error,
     requestId,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(config.nodeEnv === 'development' && { stack: err.stack }),
     ...(details && { details }),
   });
 
@@ -42,7 +43,7 @@ export const errorHandler = (
   if (err instanceof Prisma.PrismaClientValidationError) {
     return res.status(400).json(buildErrorResponse(
       'Invalid data provided',
-      process.env.NODE_ENV === 'development' ? err.message : undefined
+      config.nodeEnv === 'development' ? err.message : undefined
     ));
   }
 
@@ -67,7 +68,7 @@ export const errorHandler = (
 
   // Default error response
   const statusCode = 500;
-  const message = process.env.NODE_ENV === 'production'
+  const message = config.nodeEnv === 'production'
     ? 'Internal server error'
     : err.message || 'Something went wrong';
 
@@ -83,7 +84,7 @@ const handlePrismaError = (
   const buildErrorResponse = (error: string, details?: unknown) => ({
     error,
     requestId,
-    ...(process.env.NODE_ENV === 'development' && { code: err.code, details }),
+    ...(config.nodeEnv === 'development' && { code: err.code, details }),
   });
 
   switch (err.code) {

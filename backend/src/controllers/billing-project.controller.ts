@@ -1,0 +1,553 @@
+/**
+ * Billing Project Controller
+ *
+ * Project-related endpoints for billing module
+ */
+
+import { Response } from 'express';
+import { Prisma } from '@prisma/client';
+import { AuthRequest } from '../middleware/auth';
+import prisma from '../utils/prisma';
+import { logger } from '../utils/logger';
+import {
+  BILLING_DASHBOARD_SELECT,
+  buildStaffCondition,
+  parseNumericIdParam,
+  parseOptionalQueryId,
+  toSafeNumber,
+  convertBigIntToNumber,
+} from './billing.utils';
+
+/**
+ * GET /api/billing/projects
+ * Get all billing projects with financial summary
+ */
+export async function getBillingProjects(req: AuthRequest, res: Response) {
+  try {
+    const authUser = req.user;
+    const isAdmin = authUser?.role === 'admin';
+    const pageParam = typeof req.query.page === 'string' ? Number.parseInt(req.query.page, 10) : 1;
+    const limitParam = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
+    const searchParam = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const bcAttorneyParam = typeof req.query.bcAttorney === 'string' ? req.query.bcAttorney.trim() : '';
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+    const limit = Math.max(1, Math.min(250, Number.isFinite(limitParam) ? Math.floor(limitParam) : 100));
+    const offset = Math.max(0, Math.floor((page - 1) * limit));
+
+    // Get full user record with staffId
+    const user = authUser?.userId
+      ? await prisma.user.findUnique({
+          where: { id: authUser.userId },
+          select: { staffId: true },
+        })
+      : null;
+
+    let staffFilter: bigint | null = null;
+    if (!isAdmin) {
+      if (!user?.staffId) {
+        return res.json({
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
+      }
+      staffFilter = BigInt(user.staffId);
+    }
+
+    const searchValue = searchParam.toLowerCase();
+    const staffCondition = buildStaffCondition(staffFilter);
+    const conditions: Prisma.Sql[] = [];
+    if (staffCondition) conditions.push(staffCondition);
+    if (searchValue) {
+      const likeValue = `%${searchValue}%`;
+      conditions.push(Prisma.sql`
+        (
+          LOWER(COALESCE(project_name, '')) LIKE ${likeValue}
+          OR LOWER(COALESCE(client_name, '')) LIKE ${likeValue}
+          OR LOWER(COALESCE(cm_numbers, '')) LIKE ${likeValue}
+        )
+      `);
+    }
+    if (bcAttorneyParam) {
+      const attorneyPattern = `%${bcAttorneyParam}%`;
+      conditions.push(Prisma.sql`
+        (
+          COALESCE(bc_attorney_name, '') ILIKE ${attorneyPattern}
+          OR COALESCE(attorney_in_charge, '') ILIKE ${attorneyPattern}
+        )
+      `);
+    }
+
+    const whereClause = conditions.length
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+      : Prisma.sql``;
+
+    const [countResult] = await prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(DISTINCT project_id) as count
+      FROM billing_bc_attorney_dashboard
+      ${whereClause}
+    `;
+
+    const projects = await prisma.$queryRaw<any[]>`
+      ${BILLING_DASHBOARD_SELECT}
+      ${whereClause}
+      ORDER BY project_name
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `;
+
+    const totalBigInt = countResult?.count ?? 0n;
+    const total = toSafeNumber(totalBigInt);
+
+    const pagination = {
+      page,
+      limit,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    };
+
+    res.json({
+      data: convertBigIntToNumber(projects),
+      pagination,
+    });
+  } catch (error) {
+    logger.error('Error fetching billing projects', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to fetch billing projects' });
+  }
+}
+
+/**
+ * GET /api/billing/projects/:id
+ * Get billing project detail with milestones, events, etc.
+ * Structured by C/M numbers → Engagements → Milestones
+ *
+ * Query params:
+ * - view: 'summary' | 'full' (default: 'full')
+ * - cmId: specific CM number to fetch
+ * - engagementId: specific engagement to fetch details for
+ */
+export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
+  try {
+    // Use short cache for better performance while maintaining data freshness
+    // Cache for 30 seconds - balances performance with data accuracy
+    res.set('Cache-Control', 'private, max-age=30');
+    res.set('Pragma', 'cache');
+
+    const { id } = req.params;
+    const { view = 'full', cmId, engagementId } = req.query;
+
+    let projectIdBigInt: bigint;
+    let cmIdFilter: bigint | null = null;
+    let engagementIdFilter: bigint | null = null;
+    try {
+      projectIdBigInt = parseNumericIdParam(id, 'project ID');
+      cmIdFilter = parseOptionalQueryId(cmId, 'cmId parameter');
+      engagementIdFilter = parseOptionalQueryId(engagementId, 'engagementId parameter');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    // Get project basic info from the view
+    const projectData = await prisma.$queryRaw<any[]>`
+      ${BILLING_DASHBOARD_SELECT}
+      WHERE project_id = ${projectIdBigInt}
+      LIMIT 1
+    `;
+
+    if (!projectData || projectData.length === 0) {
+      return res.status(404).json({ error: 'Billing project not found' });
+    }
+
+    // Get B&C attorneys directly from the project-level table
+    const bcAttorneys = await prisma.$queryRaw<any[]>`
+      SELECT
+        string_agg(DISTINCT s.name, ', ' ORDER BY s.name) AS bc_attorney_name,
+        string_agg(DISTINCT s.id::text, ', ' ORDER BY s.id::text) AS bc_attorney_staff_id
+      FROM billing_project_bc_attorneys bpba
+      JOIN staff s ON s.id = bpba.staff_id
+      WHERE bpba.billing_project_id = ${projectIdBigInt}
+    `;
+
+    // Merge B&C attorney info into project data
+    if (bcAttorneys && bcAttorneys.length > 0) {
+      projectData[0].bc_attorney_name = bcAttorneys[0].bc_attorney_name || null;
+      projectData[0].bc_attorney_staff_id = bcAttorneys[0].bc_attorney_staff_id || null;
+    }
+
+    // For summary view, return minimal data without nested details
+    if (view === 'summary') {
+      const summaryData = await prisma.$queryRaw<any[]>`
+        SELECT
+          cm.cm_id,
+          cm.cm_no,
+          cm.is_primary,
+          cm.open_date,
+          cm.closed_date,
+          cm.status,
+          COUNT(DISTINCT e.engagement_id) as engagement_count,
+          COUNT(DISTINCT m.milestone_id) as milestone_count,
+          COUNT(DISTINCT CASE WHEN m.completed THEN m.milestone_id END) as completed_milestone_count
+        FROM billing_project_cm_no cm
+        LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+        LEFT JOIN billing_milestone m ON m.engagement_id = e.engagement_id
+        WHERE cm.project_id = ${projectIdBigInt}
+        GROUP BY cm.cm_id, cm.cm_no, cm.is_primary, cm.open_date, cm.closed_date, cm.status
+        ORDER BY cm.is_primary DESC, cm.cm_no
+      `;
+
+      // Get minimal event and comment counts
+      const eventCount = await prisma.$queryRaw<any[]>`
+        SELECT COUNT(*) as count
+        FROM billing_event be
+        INNER JOIN billing_engagement e ON e.engagement_id = be.engagement_id
+        INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+        WHERE cm.project_id = ${projectIdBigInt}
+      `;
+
+      return res.json(convertBigIntToNumber({
+        project: projectData[0],
+        cmNumbers: summaryData.map(cm => ({
+          ...cm,
+          engagements: [] // Empty array for lazy loading
+        })),
+        events: [],
+        financeComments: [],
+        eventCount: eventCount[0]?.count || 0,
+        viewMode: 'summary'
+      }));
+    }
+
+    const cmFilterClause = cmIdFilter ? Prisma.sql` AND cm.cm_id = ${cmIdFilter}` : Prisma.sql``;
+    const engagementFilterClause = engagementIdFilter
+      ? Prisma.sql` AND e.engagement_id = ${engagementIdFilter}`
+      : Prisma.sql``;
+
+    // Use a single comprehensive query with JSON aggregation for full data
+    // Apply optional filters directly in the query
+    const fullData = await prisma.$queryRaw<any[]>`
+      WITH project_data AS (
+        SELECT
+          cm.cm_id,
+          cm.cm_no,
+          cm.is_primary,
+          cm.project_id,
+          cm.open_date,
+          cm.closed_date,
+          cm.status,
+          cm.billing_to_date_usd,
+          cm.billing_to_date_cny,
+          cm.collected_to_date_usd,
+          cm.collected_to_date_cny,
+          cm.ubt_usd,
+          cm.ubt_cny,
+          cm.billing_credit_usd,
+          cm.billing_credit_cny,
+          cm.financials_updated_at,
+          cm.financials_updated_by,
+          COALESCE(
+            JSON_AGG(
+              JSON_BUILD_OBJECT(
+                'engagement_id', e.engagement_id,
+                'cm_id', e.cm_id,
+                'engagement_code', e.engagement_code,
+                'engagement_title', e.engagement_title,
+                'name', e.name,
+                'start_date', e.start_date,
+                'end_date', e.end_date,
+                'feeArrangement', (
+                  SELECT JSON_BUILD_OBJECT(
+                    'fee_id', fa.fee_id,
+                    'raw_text', fa.raw_text,
+                    'lsd_date', fa.lsd_date,
+                    'lsd_raw', fa.lsd_raw
+                  )
+                  FROM billing_fee_arrangement fa
+                  WHERE fa.engagement_id = e.engagement_id
+                  LIMIT 1
+                ),
+                'milestones', (
+                  SELECT COALESCE(JSON_AGG(
+                    JSON_BUILD_OBJECT(
+                      'milestone_id', m.milestone_id,
+                      'ordinal', m.ordinal,
+                      'title', m.title,
+                      'description', m.description,
+                      'trigger_type', m.trigger_type,
+                      'trigger_text', m.trigger_text,
+                      'amount_value', m.amount_value,
+                      'amount_currency', m.amount_currency,
+                      'is_percent', m.is_percent,
+                      'percent_value', m.percent_value,
+                      'due_date', m.due_date,
+                      'completed', m.completed,
+                      'completion_date', m.completion_date,
+                      'completion_source', m.completion_source,
+                      'invoice_sent_date', m.invoice_sent_date,
+                      'payment_received_date', m.payment_received_date,
+                      'notes', m.notes,
+                      'raw_fragment', m.raw_fragment,
+                      'sort_order', m.sort_order
+                    ) ORDER BY m.sort_order ASC, m.ordinal ASC
+                  ), '[]'::JSON)
+                  FROM billing_milestone m
+                  WHERE m.engagement_id = e.engagement_id
+                )
+              ) ORDER BY e.start_date DESC NULLS LAST, e.created_at DESC
+            ) FILTER (WHERE e.engagement_id IS NOT NULL),
+            '[]'::JSON
+          ) as engagements,
+          efs.billing_usd,
+          efs.collection_usd,
+          efs.agreed_fee_usd,
+          efs.agreed_fee_cny,
+          efs.billing_cny,
+          efs.collection_cny
+        FROM billing_project_cm_no cm
+        LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+        LEFT JOIN billing_engagement_financial_summary efs ON efs.cm_id = cm.cm_id
+        WHERE cm.project_id = ${projectIdBigInt}${cmFilterClause}${engagementFilterClause}
+        GROUP BY cm.cm_id, cm.cm_no, cm.is_primary, cm.project_id, cm.open_date, cm.closed_date, cm.status,
+                 cm.billing_to_date_usd, cm.billing_to_date_cny, cm.collected_to_date_usd, cm.collected_to_date_cny,
+                 cm.ubt_usd, cm.ubt_cny, cm.billing_credit_usd, cm.billing_credit_cny,
+                 cm.financials_updated_at, cm.financials_updated_by,
+                 efs.billing_usd, efs.collection_usd, efs.agreed_fee_usd, efs.agreed_fee_cny,
+                 efs.billing_cny, efs.collection_cny
+        ORDER BY cm.is_primary DESC, cm.cm_no
+      )
+      SELECT * FROM project_data
+    `;
+
+    // Get events only if full view and no specific filters
+    let events = [];
+    let financeComments = [];
+
+    if (cmIdFilter === null && engagementIdFilter === null) {
+      events = await prisma.$queryRaw<any[]>`
+        SELECT *
+        FROM billing_event
+        WHERE engagement_id IN (
+          SELECT e.engagement_id
+          FROM billing_engagement e
+          INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+          WHERE cm.project_id = ${projectIdBigInt}
+        )
+        ORDER BY event_date DESC
+        LIMIT 50
+      `;
+
+      financeComments = await prisma.$queryRaw<any[]>`
+        SELECT *
+        FROM billing_finance_comment
+        WHERE engagement_id IN (
+          SELECT e.engagement_id
+          FROM billing_engagement e
+          INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+          WHERE cm.project_id = ${projectIdBigInt}
+        )
+        ORDER BY created_at DESC
+        LIMIT 100
+      `;
+    }
+
+    const response = convertBigIntToNumber({
+      project: projectData[0],
+      cmNumbers: fullData,
+      events,
+      financeComments,
+    });
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Error fetching billing project detail', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to fetch billing project detail' });
+  }
+}
+
+/**
+ * GET /api/billing/projects/:id/activity
+ * Fetch recent billing events and finance comments without loading full hierarchy
+ */
+export async function getBillingProjectActivity(req: AuthRequest, res: Response) {
+  try {
+    let projectIdBigInt: bigint;
+    try {
+      projectIdBigInt = parseNumericIdParam(req.params.id, 'project ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const events = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM billing_event
+      WHERE engagement_id IN (
+        SELECT e.engagement_id
+        FROM billing_engagement e
+        INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+        WHERE cm.project_id = ${projectIdBigInt}
+      )
+      ORDER BY event_date DESC
+      LIMIT 50
+    `;
+
+    const financeComments = await prisma.$queryRaw<any[]>`
+      SELECT *
+      FROM billing_finance_comment
+      WHERE engagement_id IN (
+        SELECT e.engagement_id
+        FROM billing_engagement e
+        INNER JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+        WHERE cm.project_id = ${projectIdBigInt}
+      )
+      ORDER BY created_at DESC
+      LIMIT 100
+    `;
+
+    res.json(convertBigIntToNumber({
+      events,
+      financeComments,
+      eventCount: events.length,
+    }));
+  } catch (error) {
+    logger.error('Error fetching billing project activity', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to fetch billing project activity' });
+  }
+}
+
+/**
+ * GET /api/billing/projects/:id/bc-attorneys
+ * Get B&C attorneys assigned to a billing project
+ */
+export async function getBillingProjectBCAttorneys(req: AuthRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    let projectIdBigInt: bigint;
+    try {
+      projectIdBigInt = parseNumericIdParam(id, 'project ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const bcAttorneys = await prisma.billing_project_bc_attorney.findMany({
+      where: { billing_project_id: projectIdBigInt },
+      include: {
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+          },
+        },
+      },
+    });
+
+    // Convert BigInt values for JSON serialization
+    const sanitized = convertBigIntToNumber(bcAttorneys);
+    res.json(sanitized);
+  } catch (error) {
+    logger.error('Error fetching BC attorneys', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to fetch BC attorneys' });
+  }
+}
+
+/**
+ * PUT /api/billing/projects/:id
+ * Update billing project information including project details, BC attorneys, and financials
+ */
+export async function updateBillingProject(req: AuthRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    let projectIdBigInt: bigint;
+    try {
+      projectIdBigInt = parseNumericIdParam(id, 'project ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+    const userId = req.user?.userId;
+
+    const {
+      project_name,
+      client_name,
+      bc_attorney_staff_ids,
+      agreed_fee_usd,
+      agreed_fee_cny,
+      billing_usd,
+      billing_cny,
+      collection_usd,
+      collection_cny,
+      ubt_usd,
+      ubt_cny,
+      billing_credit_usd,
+      billing_credit_cny,
+      bonus_usd,
+    } = req.body;
+
+    // Verify project exists
+    const project = await prisma.billing_project.findUnique({
+      where: { project_id: projectIdBigInt },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Billing project not found' });
+    }
+
+    // Build update data for billing_project table
+    const updateData: any = {
+      updated_at: new Date(),
+    };
+
+    if (project_name !== undefined) updateData.project_name = project_name;
+    if (client_name !== undefined) updateData.client_name = client_name;
+    if (agreed_fee_usd !== undefined) updateData.agreed_fee_usd = agreed_fee_usd;
+    if (agreed_fee_cny !== undefined) updateData.agreed_fee_cny = agreed_fee_cny;
+    if (billing_usd !== undefined) updateData.billing_usd = billing_usd;
+    if (billing_cny !== undefined) updateData.billing_cny = billing_cny;
+    if (collection_usd !== undefined) updateData.collection_usd = collection_usd;
+    if (collection_cny !== undefined) updateData.collection_cny = collection_cny;
+    if (ubt_usd !== undefined) updateData.ubt_usd = ubt_usd;
+    if (ubt_cny !== undefined) updateData.ubt_cny = ubt_cny;
+    if (billing_credit_usd !== undefined) updateData.billing_credit_usd = billing_credit_usd;
+    if (billing_credit_cny !== undefined) updateData.billing_credit_cny = billing_credit_cny;
+    if (bonus_usd !== undefined) updateData.bonus_usd = bonus_usd;
+
+    // Update the project
+    await prisma.billing_project.update({
+      where: { project_id: projectIdBigInt },
+      data: updateData,
+    });
+
+    // Update B&C attorneys if provided
+    if (bc_attorney_staff_ids !== undefined && Array.isArray(bc_attorney_staff_ids)) {
+      // Delete all existing B&C attorney assignments
+      await prisma.billing_project_bc_attorney.deleteMany({
+        where: { billing_project_id: projectIdBigInt },
+      });
+
+      // Create new assignments
+      if (bc_attorney_staff_ids.length > 0) {
+        await prisma.billing_project_bc_attorney.createMany({
+          data: bc_attorney_staff_ids.map((staffId: number) => ({
+            billing_project_id: projectIdBigInt,
+            staff_id: staffId,
+            role: 'bc_attorney',
+          })),
+        });
+      }
+    }
+
+    // Log activity
+    const activityProjectId = toSafeNumber(projectIdBigInt);
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        actionType: 'update',
+        entityType: 'billing_project',
+        entityId: activityProjectId,
+        description: `Updated billing project ${project_name || project.project_name}`,
+      },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error updating billing project', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to update billing project' });
+  }
+}

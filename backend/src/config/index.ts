@@ -75,8 +75,10 @@ export const config = {
   // JWT
   jwt: {
     secret: getEnvVar('JWT_SECRET'),
+    refreshSecret: getEnvVar('JWT_REFRESH_SECRET'),
     expiresIn: getEnvVar('JWT_EXPIRES_IN', '7d'),
     refreshExpiresIn: getOptionalEnvVar('JWT_REFRESH_EXPIRES_IN', '30d'),
+    passwordResetExpiresIn: getOptionalEnvVar('PASSWORD_RESET_EXPIRES_IN', '30m'),
   },
 
   // Email

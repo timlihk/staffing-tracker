@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import config from '../config';
 
 // Track query performance statistics
 const performanceStats = {
@@ -60,7 +61,7 @@ export const queryPerformanceMonitor = (req: Request, res: Response, next: NextF
     }
 
     // Log all queries in development for debugging
-    if (process.env.NODE_ENV === 'development' && duration > 50) {
+    if (config.nodeEnv === 'development' && duration > 50) {
       logger.debug('Query performance', {
         path: req.path,
         method: req.method,

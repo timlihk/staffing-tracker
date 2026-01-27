@@ -1,4 +1,5 @@
 import { inspect } from 'util';
+import config from '../config';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -16,7 +17,7 @@ const serialize = (value: unknown): unknown => {
     return {
       name: value.name,
       message: value.message,
-      stack: process.env.NODE_ENV === 'development' ? value.stack : undefined,
+      stack: config.nodeEnv === 'development' ? value.stack : undefined,
     };
   }
   if (typeof value === 'object' && value !== null) {

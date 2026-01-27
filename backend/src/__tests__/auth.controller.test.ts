@@ -1,5 +1,5 @@
 import request from 'supertest';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { login, register } from '../controllers/auth.controller';
 import prisma from '../utils/prisma';
 import * as jwtUtils from '../utils/jwt';
@@ -26,8 +26,8 @@ const app = express();
 app.use(express.json());
 
 // Add mock auth middleware for tests
-const mockAuth = (req: any, res: any, next: any) => {
-  req.user = { id: 1, username: 'admin', role: 'admin' };
+const mockAuth = (req: Partial<Request>, res: Partial<Response>, next: NextFunction) => {
+  (req as any).user = { id: 1, username: 'admin', role: 'admin' };
   next();
 };
 

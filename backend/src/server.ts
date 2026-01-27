@@ -40,23 +40,31 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles in React/MUI
+      // 'unsafe-inline' is required for Material-UI's inline styles
+      // Note: Nonce-based CSP would be ideal but requires more setup (server-side rendering
+      // or runtime nonce injection into the HTML and matching CSP header)
+      styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"], // API connections
+      connectSrc: ["'self'"],
       fontSrc: ["'self'", "data:"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],
+      upgradeInsecureRequests: [], // Force HTTPS
     },
   },
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin requests from frontend
+  // Add other security headers
   hsts: {
     maxAge: 31536000, // 1 year
     includeSubDomains: true,
     preload: true,
   },
+  noSniff: true, // X-Content-Type-Options: nosniff
+  xssFilter: true, // X-XSS-Protection
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginEmbedderPolicy: false, // Keep false for compatibility
+  crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
 // Response compression (gzip/deflate)
@@ -93,7 +101,13 @@ app.use(cors({
   origin: config.frontendUrl,
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' })); // Add size limit
+// Body parsing with global 10MB limit
+// Specific route limits override this:
+// - /api/assignments/bulk: 1MB
+// - /api/billing/milestones: 500kb
+// - /api/billing/engagements/:id/fee-arrangement: 500kb
+// - /api/projects: 2MB (create/update)
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 

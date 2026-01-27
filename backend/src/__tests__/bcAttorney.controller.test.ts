@@ -1,5 +1,5 @@
 import request from 'supertest';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { addBcAttorney, removeBcAttorney } from '../controllers/bcAttorney.controller';
 import prisma from '../utils/prisma';
 
@@ -33,9 +33,9 @@ const app = express();
 app.use(express.json());
 
 // Mock auth middleware
-const mockAuth = (req: any, res: any, next: any) => {
-  req.user = { userId: 1, username: 'testuser', role: 'admin' };
-  req.log = {
+const mockAuth = (req: Partial<Request>, res: Partial<Response>, next: NextFunction) => {
+  (req as any).user = { userId: 1, username: 'testuser', role: 'admin' };
+  (req as any).log = {
     info: jest.fn(),
   };
   next();
