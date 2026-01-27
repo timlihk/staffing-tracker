@@ -38,6 +38,9 @@ let failedQueue: Array<{
   reject: (reason?: unknown) => void;
 }> = [];
 
+// Prevent unbounded queue growth during refresh storms
+const MAX_FAILED_QUEUE_SIZE = 100;
+
 const processQueue = (error: AxiosError | null = null) => {
   failedQueue.forEach((promise) => {
     if (error) {
@@ -87,6 +90,10 @@ apiClient.interceptors.response.use(
 
       if (isRefreshing) {
         // If already refreshing, queue this request
+        // Prevent unbounded queue growth
+        if (failedQueue.length >= MAX_FAILED_QUEUE_SIZE) {
+          return Promise.reject(new Error('Too many concurrent requests. Please try again.'));
+        }
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })

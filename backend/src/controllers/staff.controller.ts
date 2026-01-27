@@ -303,11 +303,12 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     invalidateCache('staff:list');
 
     res.json(staff);
-  } catch (error: ControllerError) {
+  } catch (error) {
     logger.error('Update staff error', { error: error instanceof Error ? error.message : String(error) });
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       // Unique constraint violation
-      const field = (error as any).meta?.target?.[0] || 'field';
+      const target = error.meta?.target as string[] | undefined;
+      const field = target?.[0] || 'field';
       return res.status(400).json({ error: `This ${field} is already in use by another staff member` });
     }
     res.status(500).json({ error: 'Internal server error' });

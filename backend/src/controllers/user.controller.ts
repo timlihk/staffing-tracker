@@ -217,8 +217,8 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     });
 
     res.json(sanitizeUser(user));
-  } catch (error: ControllerError) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
     logger.error('Update user error', { error: error instanceof Error ? error.message : String(error) });

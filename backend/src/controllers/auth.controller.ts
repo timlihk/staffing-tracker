@@ -268,12 +268,12 @@ export const resetPassword = async (req: Request, res: Response) => {
     });
 
     res.json({ success: true });
-  } catch (error: ControllerError) {
+  } catch (error) {
     logger.error('Reset password error', {
       error: error instanceof Error ? error.message : String(error)
     });
     // Generic error for all token validation failures - prevents timing attacks
-    if (error && typeof error === 'object' && 'message' in error && error.message === 'Invalid password reset token') {
+    if (error instanceof Error && error.message === 'Invalid password reset token') {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal server error' });

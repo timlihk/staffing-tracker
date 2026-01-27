@@ -96,6 +96,27 @@ export const clearCache = (): void => {
   cacheStats.evictions = 0;
 };
 
+// Periodic cleanup of expired cache entries to prevent memory leaks
+// Runs every 30 seconds to match CACHE_TTL
+const cleanupExpiredCache = (): void => {
+  const now = Date.now();
+  let cleanedCount = 0;
+
+  for (const [key, value] of cache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      cache.delete(key);
+      cleanedCount++;
+    }
+  }
+
+  if (cleanedCount > 0) {
+    cacheStats.evictions += cleanedCount;
+  }
+};
+
+// Start periodic cleanup (unref to prevent keeping process alive)
+setInterval(cleanupExpiredCache, CACHE_TTL).unref();
+
 // Cache version - increment this when schema changes to invalidate old cache entries
 const CACHE_VERSION = 'v2';
 
