@@ -28,11 +28,16 @@ function convertBigIntToNumber(obj: any): any {
 
 export const getAllStaff = async (req: AuthRequest, res: Response) => {
   try {
-    const { position, department, status, search } = req.query;
+    const { position, department, status, search, page, limit } = req.query;
+
+    // Parse pagination params
+    const pageNum = parseQueryInt(page as string, { default: 1, min: 1 });
+    const limitNum = parseQueryInt(limit as string, { default: 25, min: 1, max: 100 });
+    const skip = (pageNum - 1) * limitNum;
 
     // Generate cache key based on query parameters
     const cacheKey = CACHE_KEYS.STAFF_LIST(
-      `position=${position}&department=${department}&status=${status}&search=${search}`
+      `position=${position}&department=${department}&status=${status}&search=${search}&page=${pageNum}&limit=${limitNum}`
     );
 
     // Try to get from cache first
@@ -59,8 +64,13 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
       ];
     }
 
+    // Get total count for pagination
+    const total = await prisma.staff.count({ where });
+
     const staff = await prisma.staff.findMany({
       where,
+      skip,
+      take: limitNum,
       // Optimized with selective fields for list view
       select: {
         id: true,
@@ -86,10 +96,20 @@ export const getAllStaff = async (req: AuthRequest, res: Response) => {
       orderBy: { name: 'asc' },
     });
 
-    // Cache the response
-    setCached(cacheKey, staff);
+    const response = {
+      data: staff,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
 
-    res.json(staff);
+    // Cache the response
+    setCached(cacheKey, response);
+
+    res.json(response);
   } catch (error) {
     logger.error('Get staff error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
