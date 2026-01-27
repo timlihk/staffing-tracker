@@ -67,8 +67,8 @@ export const addBcAttorney = async (req: AuthRequest, res: Response) => {
 export const removeBcAttorney = async (req: AuthRequest, res: Response) => {
   const { id: projectId, staffId } = req.params;
 
-  const parsedProjectId = parseInt(projectId, 10);
-  const parsedStaffId = parseInt(staffId, 10);
+  const parsedProjectId = parseInt(projectId as string, 10);
+  const parsedStaffId = parseInt(staffId as string, 10);
 
   if (Number.isNaN(parsedProjectId) || Number.isNaN(parsedStaffId)) {
     return res.status(400).json({ error: 'Invalid project ID or staff ID' });
