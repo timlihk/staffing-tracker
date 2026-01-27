@@ -5,7 +5,7 @@ import {
 } from './project-reminder.service';
 import prisma from '../utils/prisma';
 import config from '../config';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 const resend = config.email.apiKey ? new Resend(config.email.apiKey) : null;
 const fromEmail = config.email.from;

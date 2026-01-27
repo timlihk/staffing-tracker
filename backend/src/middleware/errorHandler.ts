@@ -27,7 +27,7 @@ export const errorHandler = (
     error,
     requestId,
     ...(config.nodeEnv === 'development' && { stack: err.stack }),
-    ...(details && { details }),
+    ...(details ? { details } : {}),
   });
 
   // Handle custom AppError

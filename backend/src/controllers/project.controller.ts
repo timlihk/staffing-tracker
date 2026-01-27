@@ -117,7 +117,7 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const projectId = parseInt(id, 10);
+    const projectId = parseInt(id as string, 10);
     if (Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }

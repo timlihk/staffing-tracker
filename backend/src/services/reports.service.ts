@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 import type { ReportRow, ReportQuery } from '../types/reports.types';
 
 // Helper: parse comma-separated query into string[]

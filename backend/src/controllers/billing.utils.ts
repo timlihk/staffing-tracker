@@ -58,7 +58,7 @@ export const buildStaffCondition = (staffId?: bigint | null) => (
     : null
 );
 
-export const parseNumericIdParam = (value: string | undefined, label: string) => {
+export const parseNumericIdParam = (value: string | string[] | undefined, label: string) => {
   if (typeof value !== 'string' || !NUMERIC_ID_REGEX.test(value.trim())) {
     throw new Error(`Invalid ${label}`);
   }

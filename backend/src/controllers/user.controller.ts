@@ -191,7 +191,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No updates provided' });
     }
 
-    const userId = parseInt(id, 10);
+    const userId = parseInt(id as string, 10);
     if (Number.isNaN(userId)) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
@@ -230,7 +230,7 @@ export const resetUserPassword = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const userId = parseInt(id, 10);
+    const userId = parseInt(id as string, 10);
     if (Number.isNaN(userId)) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }

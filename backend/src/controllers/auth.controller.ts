@@ -148,7 +148,7 @@ export const register = async (req: AuthRequest, res: Response) => {
 
     const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
 
-    const normalizedRole = typeof role === 'string' && ALLOWED_ROLES.has(role) ? role : UserRole.VIEWER;
+    const normalizedRole = typeof role === 'string' && ALLOWED_ROLES.has(role as typeof UserRole.ADMIN) ? role as typeof UserRole.ADMIN : UserRole.VIEWER;
 
     const user = await prisma.user.create({
       data: {

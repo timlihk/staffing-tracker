@@ -90,7 +90,7 @@ export async function suggestProjectMatches(req: AuthRequest, res: Response) {
 
     // Get the billing project
     const billingProject = await prisma.billing_project.findUnique({
-      where: { project_id: BigInt(billingProjectId) },
+      where: { project_id: BigInt(billingProjectId as string) },
       select: { project_id: true, project_name: true },
     });
 

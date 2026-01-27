@@ -120,7 +120,7 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const staffId = parseInt(id, 10);
+    const staffId = parseInt(id as string, 10);
     if (Number.isNaN(staffId)) {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
@@ -248,7 +248,7 @@ export const updateStaff = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { name, email, position, department, status, notes } = req.body;
 
-    const staffId = parseInt(id, 10);
+    const staffId = parseInt(id as string, 10);
     if (Number.isNaN(staffId)) {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
@@ -318,7 +318,7 @@ export const deleteStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const staffId = parseInt(id, 10);
+    const staffId = parseInt(id as string, 10);
     if (Number.isNaN(staffId)) {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
@@ -359,7 +359,7 @@ export const getStaffWorkload = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const staffId = parseInt(id, 10);
+    const staffId = parseInt(id as string, 10);
     if (Number.isNaN(staffId)) {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
@@ -418,7 +418,7 @@ export const getStaffChangeHistory = async (req: AuthRequest, res: Response) => 
     const { id } = req.params;
     const { limit = '100' } = req.query;
 
-    const staffId = parseInt(id, 10);
+    const staffId = parseInt(id as string, 10);
     if (Number.isNaN(staffId)) {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }
@@ -463,7 +463,7 @@ export const getStaffBillingProjects = async (req: AuthRequest, res: Response) =
   try {
     const { id } = req.params;
 
-    const staffId = parseInt(id, 10);
+    const staffId = parseInt(id as string, 10);
     if (Number.isNaN(staffId)) {
       return res.status(400).json({ error: 'Invalid staff ID' });
     }

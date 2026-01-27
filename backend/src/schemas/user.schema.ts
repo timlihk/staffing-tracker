@@ -16,9 +16,10 @@ export const createUserSchema = z.object({
     .max(ValidationLimits.MAX_EMAIL_LENGTH, `Email must not exceed ${ValidationLimits.MAX_EMAIL_LENGTH} characters`)
     .trim()
     .toLowerCase(),
-  role: z.enum([UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER], {
-    errorMap: () => ({ message: 'Role must be admin, editor, or viewer' }),
-  }),
+  role: z.enum([UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER])
+    .refine((val) => [UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER].includes(val), {
+      message: 'Role must be admin, editor, or viewer',
+    }),
   staffId: z.number()
     .int('Staff ID must be an integer')
     .positive('Staff ID must be positive')
@@ -44,9 +45,10 @@ export const updateUserSchema = z.object({
     .trim()
     .toLowerCase()
     .optional(),
-  role: z.enum([UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER], {
-    errorMap: () => ({ message: 'Role must be admin, editor, or viewer' }),
-  }).optional(),
+  role: z.enum([UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER])
+    .refine((val) => [UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER].includes(val), {
+      message: 'Role must be admin, editor, or viewer',
+    }).optional(),
   staffId: z.number()
     .int('Staff ID must be an integer')
     .positive('Staff ID must be positive')

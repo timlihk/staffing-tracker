@@ -209,6 +209,7 @@ export const RateLimitConfig = {
 export const JWTConfig = {
   DEFAULT_EXPIRES_IN: '7d',
   REFRESH_EXPIRES_IN: '30d',
+  REFRESH_TOKEN_EXPIRY_DAYS: 30,
   BCRYPT_ROUNDS: 10,
 } as const;
 

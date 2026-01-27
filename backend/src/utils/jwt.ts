@@ -13,7 +13,7 @@ export interface JWTPayload {
 }
 
 export const generateToken = (payload: JWTPayload): string => {
-  const expiresIn = config.jwt.expiresIn;
+  const expiresIn = config.jwt.expiresIn as `${number}d` | `${number}h` | `${number}m` | `${number}s`;
   const options: SignOptions = { expiresIn };
   return jwt.sign(payload, JWT_SECRET, options);
 };
@@ -31,7 +31,7 @@ export interface PasswordResetPayload {
 
 export const generatePasswordResetToken = (userId: number): string => {
   const payload: PasswordResetPayload = { userId, purpose: 'password_reset' };
-  const options: SignOptions = { expiresIn: PASSWORD_RESET_EXPIRES_IN };
+  const options: SignOptions = { expiresIn: PASSWORD_RESET_EXPIRES_IN as `${number}d` | `${number}h` | `${number}m` | `${number}s` };
   return jwt.sign(payload, JWT_SECRET, options);
 };
 
@@ -62,7 +62,7 @@ export const generateRefreshToken = async (userId: number): Promise<string> => {
   const tokenId = crypto.randomBytes(32).toString('hex');
 
   // Create JWT with token ID
-  const options: SignOptions = { expiresIn: REFRESH_TOKEN_EXPIRES_IN };
+  const options: SignOptions = { expiresIn: REFRESH_TOKEN_EXPIRES_IN as `${number}d` | `${number}h` | `${number}m` | `${number}s` };
   const token = jwt.sign(
     { userId, tokenId } as RefreshTokenPayload,
     JWT_REFRESH_SECRET,
@@ -70,7 +70,7 @@ export const generateRefreshToken = async (userId: number): Promise<string> => {
   );
 
   // Calculate expiration date
-  const expiresInMs = parseExpiration(REFRESH_TOKEN_EXPIRES_IN);
+  const expiresInMs = parseExpiration(REFRESH_TOKEN_EXPIRES_IN || '30d');
   const expiresAt = new Date(Date.now() + expiresInMs);
 
   // Store token in database

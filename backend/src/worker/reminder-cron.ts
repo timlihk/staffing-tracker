@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import prisma from '../utils/prisma';
 import { getPartnersWithIncompleteProjects } from '../services/project-reminder.service';
 import { sendDailyPartnerReminders } from '../services/email.service';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 const TIMEZONE = 'Asia/Hong_Kong';
 

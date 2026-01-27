@@ -1,7 +1,7 @@
 import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AppError } from '../utils/errors';
 import { parseQueryInt } from '../utils/queryParsing';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 export interface ProjectReportQuery {
   categories?: string;

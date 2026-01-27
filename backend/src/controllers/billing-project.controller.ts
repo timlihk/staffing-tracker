@@ -397,8 +397,8 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     `;
 
     // Get events only if full view and no specific filters
-    let events = [];
-    let financeComments = [];
+    let events: BillingEventRow[] = [];
+    let financeComments: FinanceCommentRow[] = [];
 
     if (cmIdFilter === null && engagementIdFilter === null) {
       events = await prisma.$queryRaw<BillingEventRow[]>`
