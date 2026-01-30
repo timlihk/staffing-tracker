@@ -64,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await apiClient.post('/auth/logout');
     } catch (error) {
       // Logout locally even if backend call fails
+      // eslint-disable-next-line no-console
       console.error('Logout error:', error);
     } finally {
       // Clear local state regardless of backend response

@@ -18,6 +18,7 @@ import {
   PersonAdd,
 } from '@mui/icons-material';
 import api from '../api/client';
+import { toast } from '../lib/toast';
 import type { ActivityLog } from '../types';
 
 const getActionIcon = (actionType: string) => {
@@ -49,7 +50,7 @@ const ActivityFeed = () => {
         });
         setActivities(response.data.data);
       } catch (error) {
-        console.error('Failed to fetch activity log:', error);
+        // Silently fail for activity feed - non-critical feature
       } finally {
         setLoading(false);
       }

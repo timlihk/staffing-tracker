@@ -18,6 +18,7 @@ import { useBillingProjectSummary, useCMEngagements, useEngagementDetail } from 
 import { parseEngagementId, mapToSummary } from '../lib/billing/utils';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../api/client';
+import { toast } from '../lib/toast';
 import type {
   BillingProjectSummaryResponse,
   BillingProjectCM,
@@ -157,7 +158,7 @@ export default function BillingMatterDetail() {
       await api.put(`/billing/projects/${projectId}`, data);
       await refetchSummary();
     } catch (error) {
-      console.error('Failed to update billing information:', error);
+      toast.error('Failed to update billing information', 'Please try again later');
       throw error;
     }
   };

@@ -38,6 +38,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useConfirmProject } from '../hooks/useProjects';
 import { useCreateAssignment, useUpdateAssignment, useDeleteAssignment } from '../hooks/useAssignments';
 import { useAddBcAttorney, useRemoveBcAttorney } from '../hooks/useBcAttorneys';
+import { toast } from '../lib/toast';
 
 const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -104,7 +105,7 @@ const ProjectDetail: React.FC = () => {
         setProject(projectResponse.data);
         setChangeHistory(changeHistoryResponse.data);
       } catch (error) {
-        console.error('Failed to fetch project:', error);
+        toast.error('Failed to load project details', 'Please try again later');
       } finally {
         setLoading(false);
       }
@@ -203,7 +204,7 @@ const ProjectDetail: React.FC = () => {
           : prev
       );
     } catch (error) {
-      console.error('Failed to delete assignment', error);
+      // Error is handled by deleteAssignment mutation hook with toast notifications
     }
   };
 
@@ -251,7 +252,7 @@ const ProjectDetail: React.FC = () => {
       setDialogOpen(false);
       setEditingAssignment(null);
     } catch (error) {
-      console.error('Failed to save assignment', error);
+      // Error is handled by create/update assignment mutation hooks with toast notifications
     } finally {
       setSavingAssignment(false);
     }
@@ -321,7 +322,7 @@ const ProjectDetail: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error('Failed to toggle B&C attorney', error);
+      // Rollback optimistic update on error
       setProject((prev) =>
         prev
           ? {
@@ -330,7 +331,7 @@ const ProjectDetail: React.FC = () => {
             }
           : prev
       );
-      // The hooks already handle error toasts, so we don't need to show another one here
+      // Error is handled by add/remove B&C attorney mutation hooks with toast notifications
     }
   };
 

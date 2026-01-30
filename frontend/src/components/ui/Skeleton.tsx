@@ -105,3 +105,27 @@ export const StaffListSkeleton: React.FC = () => {
     </Box>
   );
 };
+
+export const BillingListSkeleton: React.FC = () => {
+  return (
+    <Box>
+      {/* Filter bar skeleton */}
+      <Box 
+        display="flex" 
+        gap={2} 
+        mb={3}
+        flexDirection={{ xs: 'column', sm: 'row' }}
+      >
+        <MuiSkeleton variant="rectangular" width={{ xs: '100%', sm: 300 }} height={56} animation="wave" />
+        <MuiSkeleton variant="rectangular" width={{ xs: '100%', sm: 200 }} height={56} animation="wave" />
+      </Box>
+      {/* Pagination skeleton */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <MuiSkeleton variant="rectangular" width={200} height={40} animation="wave" />
+        <MuiSkeleton variant="rectangular" width={120} height={40} animation="wave" />
+      </Box>
+      {/* Table skeleton */}
+      <TableSkeleton rows={10} columns={9} />
+    </Box>
+  );
+};

@@ -22,7 +22,7 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useQuery } from '@tanstack/react-query';
 import { useBillingProjects } from '../hooks/useBilling';
 import { formatCurrencyWhole } from '../lib/currency';
-import { Page } from '../components/ui';
+import { Page, BillingListSkeleton } from '../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import type { BillingAttorneyOption } from '../api/billing';
 import { getBillingAttorneys } from '../api/billing';
@@ -142,17 +142,26 @@ export default function BillingMatters() {
       ? bcAttorneyServerOptions
       : fallbackAttorneyOptions;
 
+  // Responsive column widths based on screen size
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
   const columns: GridColDef[] = useMemo(
     () => [
       {
         field: 'project_name',
-        headerName: 'Project Name',
-        width: 200,
+        headerName: 'Project',
+        flex: isMobile ? 0 : 1,
+        minWidth: isMobile ? 140 : 200,
         renderCell: (params: GridRenderCellParams) => (
           <MuiLink
             component={RouterLink}
             to={`/billing/${params.row.project_id}`}
-            sx={{ fontWeight: 500, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+            sx={{ 
+              fontWeight: 500, 
+              textDecoration: 'none', 
+              '&:hover': { textDecoration: 'underline' },
+              fontSize: isMobile ? '0.875rem' : 'inherit',
+            }}
           >
             {params.value}
           </MuiLink>
@@ -161,35 +170,39 @@ export default function BillingMatters() {
       {
         field: 'client_name',
         headerName: 'Client',
-        width: 180,
+        flex: isMobile ? 0 : 0.8,
+        minWidth: isMobile ? 100 : 150,
+        hideable: true,
       },
       {
         field: 'cm_numbers',
-        headerName: 'C/M No.',
-        width: 130,
+        headerName: 'C/M',
+        width: isMobile ? 90 : 120,
+        hideable: true,
       },
       {
         field: 'bc_attorney_name',
-        headerName: 'B&C Attorney',
-        width: 150,
+        headerName: 'Attorney',
+        flex: isMobile ? 0 : 0.6,
+        minWidth: isMobile ? 100 : 130,
         valueGetter: (_value, row) => row.bc_attorney_name || row.attorney_in_charge || '-',
       },
       {
         field: 'billed',
         headerName: 'Billed',
-        width: 150,
+        width: isMobile ? 100 : 140,
         valueGetter: (_value, row) => formatCurrencyWithSymbol(row.billing_usd, row.billing_cny),
       },
       {
         field: 'collected',
         headerName: 'Collected',
-        width: 150,
+        width: isMobile ? 100 : 140,
         valueGetter: (_value, row) => formatCurrencyWithSymbol(row.collection_usd, row.collection_cny),
       },
       {
         field: 'ubt',
         headerName: 'UBT',
-        width: 150,
+        width: isMobile ? 90 : 120,
         renderCell: (params: GridRenderCellParams) => {
           const usd = Number(params.row.ubt_usd) || 0;
           const cny = Number(params.row.ubt_cny) || 0;
@@ -201,6 +214,7 @@ export default function BillingMatters() {
               size="small"
               color={hasValue ? 'warning' : 'default'}
               variant={hasValue ? 'filled' : 'outlined'}
+              sx={{ fontSize: isMobile ? '0.75rem' : 'inherit' }}
             />
           );
         },
@@ -208,7 +222,7 @@ export default function BillingMatters() {
       {
         field: 'credit',
         headerName: 'Credit',
-        width: 150,
+        width: isMobile ? 90 : 120,
         renderCell: (params: GridRenderCellParams) => {
           const usd = Number(params.row.billing_credit_usd) || 0;
           const cny = Number(params.row.billing_credit_cny) || 0;
@@ -220,6 +234,7 @@ export default function BillingMatters() {
               size="small"
               color={hasValue ? 'success' : 'default'}
               variant={hasValue ? 'filled' : 'outlined'}
+              sx={{ fontSize: isMobile ? '0.75rem' : 'inherit' }}
             />
           );
         },
@@ -227,7 +242,7 @@ export default function BillingMatters() {
       {
         field: 'bonus_usd',
         headerName: 'Bonus',
-        width: 130,
+        width: isMobile ? 90 : 110,
         type: 'number',
         renderCell: (params: GridRenderCellParams) => {
           const numeric = Number(params.value) || 0;
@@ -238,6 +253,7 @@ export default function BillingMatters() {
               size="small"
               color="info"
               variant="filled"
+              sx={{ fontSize: isMobile ? '0.75rem' : 'inherit' }}
             />
           );
         },
@@ -245,23 +261,40 @@ export default function BillingMatters() {
       {
         field: 'staffing_project_id',
         headerName: 'Link',
-        width: 100,
+        width: isMobile ? 80 : 90,
         renderCell: (params: GridRenderCellParams) => {
           return params.value ? (
-            <Chip label="Linked" size="small" color="success" />
+            <Chip label="Linked" size="small" color="success" sx={{ fontSize: isMobile ? '0.7rem' : 'inherit' }} />
           ) : (
-            <Chip label="Unlinked" size="small" variant="outlined" />
+            <Chip label="—" size="small" variant="outlined" />
           );
         },
       },
     ],
-    []
+    [isMobile]
   );
+
+  // Show skeleton on initial load
+  if (isLoading && !projects.length) {
+    return (
+      <Page title="Billing Matters">
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" gutterBottom>
+            Billing Matters
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            View and manage billing projects, fees, and collections
+          </Typography>
+        </Box>
+        <BillingListSkeleton />
+      </Page>
+    );
+  }
 
   return (
     <Page title="Billing Matters">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant={{ xs: 'h5', sm: 'h4' }} gutterBottom>
           Billing Matters
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -274,7 +307,7 @@ export default function BillingMatters() {
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              placeholder="Search by project name or C/M number..."
+              placeholder="Search by project or C/M number..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               size="small"
@@ -293,7 +326,7 @@ export default function BillingMatters() {
               value={bcAttorneyFilter}
               onChange={(e) => setBcAttorneyFilter(e.target.value)}
               size="small"
-              sx={{ minWidth: { sm: 250 } }}
+              sx={{ minWidth: { xs: '100%', sm: 200, md: 250 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -327,18 +360,20 @@ export default function BillingMatters() {
             onChange={handlePageChange}
             color="primary"
             disabled={isLoading || totalPages <= 1}
+            size={isMobile ? 'small' : 'medium'}
+            siblingCount={isMobile ? 0 : 1}
           />
           <TextField
             select
-            label="Rows per page"
+            label={isMobile ? 'Rows' : 'Rows per page'}
             value={pageSize}
             onChange={handlePageSizeChange}
             size="small"
-            sx={{ width: 160 }}
+            sx={{ width: isMobile ? 100 : 160 }}
           >
             {pageSizeOptions.map((option) => (
               <MenuItem key={option} value={option}>
-                {option} rows
+                {isMobile ? option : `${option} rows`}
               </MenuItem>
             ))}
           </TextField>
@@ -351,38 +386,53 @@ export default function BillingMatters() {
         </Typography>
       )}
 
-      <Card>
-        <CardContent>
-          <DataGrid
-            rows={projects}
-            columns={columns}
-            getRowId={(row) => String(row.project_id)}
-            loading={isLoading}
-            autoHeight
-            hideFooterPagination
-            hideFooterSelectedRowCount
-            sx={{
-              '& .MuiDataGrid-row:hover': {
-                cursor: 'pointer',
-                backgroundColor: 'action.hover',
-              },
-              '& .MuiDataGrid-columnHeaders': {
-                backgroundColor: 'grey.100',
-                '& .MuiDataGrid-columnHeaderTitle': {
-                  fontWeight: 600,
-                  color: 'text.primary',
+      <Card sx={{ overflow: 'hidden' }}>
+        <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+          <Box sx={{ 
+            width: '100%', 
+            overflow: 'auto',
+            '& .MuiDataGrid-root': {
+              minWidth: isMobile ? 800 : 'auto', // Ensure horizontal scroll on mobile
+            }
+          }}>
+            <DataGrid
+              rows={projects}
+              columns={columns}
+              getRowId={(row) => String(row.project_id)}
+              loading={isLoading}
+              autoHeight
+              hideFooterPagination
+              hideFooterSelectedRowCount
+              density={isMobile ? 'compact' : 'standard'}
+              sx={{
+                '& .MuiDataGrid-row:hover': {
+                  cursor: 'pointer',
+                  backgroundColor: 'action.hover',
                 },
-              },
-            }}
-            onRowClick={(params) => navigate(`/billing/${params.row.project_id}`)}
-          />
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor: 'grey.100',
+                  '& .MuiDataGrid-columnHeaderTitle': {
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    fontSize: isMobile ? '0.75rem' : 'inherit',
+                  },
+                },
+                '& .MuiDataGrid-cell': {
+                  fontSize: isMobile ? '0.8125rem' : 'inherit',
+                },
+              }}
+              onRowClick={(params) => navigate(`/billing/${params.row.project_id}`)}
+            />
+          </Box>
         </CardContent>
       </Card>
 
       <Box sx={{ mt: 2 }}>
         <Typography variant="caption" color="text.secondary">
           {pagination
-            ? `Showing ${projects.length} of ${pagination.total} billing matters (page ${paginationPage} of ${Math.max(totalPages, 1)})`
+            ? isMobile 
+              ? `${projects.length} of ${pagination.total} (p.${paginationPage}/${Math.max(totalPages, 1)})`
+              : `Showing ${projects.length} of ${pagination.total} billing matters (page ${paginationPage} of ${Math.max(totalPages, 1)})`
             : `Showing ${projects.length} billing matters`}
         </Typography>
       </Box>

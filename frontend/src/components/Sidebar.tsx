@@ -15,6 +15,7 @@ import {
   IconButton,
   Menu as MuiMenu,
   MenuItem,
+  SwipeableDrawer,
 } from '@mui/material';
 import {
   Dashboard,
@@ -30,15 +31,27 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import apiClient from '../api/client';
+import { toast } from '../lib/toast';
 
 interface SidebarProps {
   drawerWidth: number;
   collapsedWidth?: number;
   collapsed?: boolean;
   onToggle?: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+  isMobile?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, collapsed = false, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  drawerWidth,
+  collapsedWidth = 80,
+  collapsed = false,
+  onToggle,
+  mobileOpen = false,
+  onMobileClose,
+  isMobile = false,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -68,10 +81,17 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
       await logout();
       navigate('/login', { replace: true });
     } catch (error) {
-      console.error('Logout all error:', error);
-      // Fallback to regular logout
+      // Fallback to regular logout on error
+      toast.error('Logout from all devices failed', 'Logging out from this device only');
       await logout();
       navigate('/login', { replace: true });
+    }
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    if (isMobile && onMobileClose) {
+      onMobileClose();
     }
   };
 
@@ -92,38 +112,43 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
     return location.pathname.startsWith(path);
   };
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width,
-          transition: 'width 0.2s ease',
-          boxSizing: 'border-box',
-          borderRight: `1px solid ${theme.palette.divider}`,
-          display: 'flex',
-          flexDirection: 'column',
-          overflowX: 'hidden',
-        },
-      }}
-    >
-      {/* Menu Toggle Button */}
-      <Box sx={{ p: 1, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start' }}>
-        <IconButton
-          onClick={onToggle}
-          sx={{
-            color: 'text.secondary',
-            '&:hover': {
-              bgcolor: alpha(theme.palette.primary.main, 0.08),
-              color: 'primary.main',
-            },
-          }}
-        >
-          <Menu />
-        </IconButton>
-      </Box>
+  const drawerContent = (
+    <>
+      {/* Menu Toggle Button - Only show on desktop */}
+      {!isMobile && (
+        <Box sx={{ p: 1, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+          <IconButton
+            onClick={onToggle}
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                color: 'primary.main',
+              },
+            }}
+          >
+            <Menu />
+          </IconButton>
+        </Box>
+      )}
+
+      {/* Close button for mobile */}
+      {isMobile && (
+        <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <IconButton
+            onClick={onMobileClose}
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                color: 'primary.main',
+              },
+            }}
+          >
+            <Menu />
+          </IconButton>
+        </Box>
+      )}
 
       <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 }}>
         <Box textAlign="center" sx={{ width: '100%' }}>
@@ -164,11 +189,12 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
           return (
             <ListItemButton
               key={item.text}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavigation(item.path)}
               sx={{
                 mb: 0.5,
                 borderRadius: 2,
                 py: collapsed ? 1 : 1.25,
+                minHeight: 48, // Better touch target for mobile
                 transition: 'all 0.2s',
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 ...(active && {
@@ -259,6 +285,7 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
           sx={{
             borderRadius: 2,
             py: collapsed ? 1 : 1.25,
+            minHeight: 48, // Better touch target for mobile
             color: collapsed ? 'text.secondary' : 'text.secondary',
             '&:hover': {
               bgcolor: alpha(theme.palette.error.main, 0.08),
@@ -307,6 +334,57 @@ const Sidebar: React.FC<SidebarProps> = ({ drawerWidth, collapsedWidth = 80, col
           </MenuItem>
         </MuiMenu>
       </Box>
+    </>
+  );
+
+  // Mobile: Use SwipeableDrawer for better UX
+  if (isMobile) {
+    return (
+      <SwipeableDrawer
+        variant="temporary"
+        open={mobileOpen}
+        onOpen={() => {}}
+        onClose={onMobileClose || (() => {})}
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            borderRight: `1px solid ${theme.palette.divider}`,
+            display: 'flex',
+            flexDirection: 'column',
+            overflowX: 'hidden',
+          },
+        }}
+        ModalProps={{
+          keepMounted: true, // Better mobile performance
+        }}
+      >
+        {drawerContent}
+      </SwipeableDrawer>
+    );
+  }
+
+  // Desktop: Use permanent drawer
+  return (
+    <Drawer
+      variant="permanent"
+      sx={{
+        width,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width,
+          transition: 'width 0.2s ease',
+          boxSizing: 'border-box',
+          borderRight: `1px solid ${theme.palette.divider}`,
+          display: 'flex',
+          flexDirection: 'column',
+          overflowX: 'hidden',
+        },
+      }}
+    >
+      {drawerContent}
     </Drawer>
   );
 };

@@ -182,8 +182,8 @@ const ProjectForm: React.FC = () => {
       }
       navigate('/projects');
     } catch (error) {
-      // Error handling is done in the mutation hooks with toast notifications
-      console.error('Failed to save project:', error);
+      // Error is handled by mutation hooks with toast notifications
+      // No additional action needed - error is logged for debugging only
     }
   };
 

@@ -21,6 +21,7 @@ import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
 import { Page, PageHeader } from '../components/ui';
+import { toast } from '../lib/toast';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 
 type ReportRow = {
@@ -153,7 +154,7 @@ const Reports: React.FC = () => {
       }));
       setRows(withIds);
     } catch (error) {
-      console.error('Failed to fetch report:', error);
+      toast.error('Failed to load report', 'Please try again later');
     } finally {
       setLoading(false);
     }
@@ -184,8 +185,7 @@ const Reports: React.FC = () => {
       });
       saveAs(res.data, `staffing-report-${new Date().toISOString().split('T')[0]}.xlsx`);
     } catch (error) {
-      console.error('Failed to export Excel:', error);
-      alert('Failed to export report');
+      toast.error('Failed to export report', 'Please try again later');
     }
   };
 

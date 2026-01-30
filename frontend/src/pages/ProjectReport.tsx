@@ -23,6 +23,7 @@ import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import api from '../api/client';
 import { useStaff } from '../hooks/useStaff';
+import { toast } from '../lib/toast';
 import { usePermissions } from '../hooks/usePermissions';
 import { Staff } from '../types';
 import { Page, PageHeader } from '../components/ui';
@@ -108,7 +109,7 @@ const ProjectReport: React.FC = () => {
       }));
       setRows(withIds);
     } catch (error) {
-      console.error('Failed to fetch project report:', error);
+      toast.error('Failed to load project report', 'Please try again later');
     } finally {
       setLoading(false);
     }
@@ -149,8 +150,7 @@ const ProjectReport: React.FC = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export Excel:', error);
-      alert('Failed to export Excel file. Please try again.');
+      toast.error('Failed to export Excel', 'Please try again later');
     }
   };
 

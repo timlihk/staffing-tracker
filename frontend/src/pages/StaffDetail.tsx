@@ -33,6 +33,7 @@ import { GridColDef } from '@mui/x-data-grid';
 import { usePermissions } from '../hooks/usePermissions';
 import { useConfirmProject } from '../hooks/useProjects';
 import { Time, DateHelpers } from '../lib/date';
+import { toast } from '../lib/toast';
 
 const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -81,7 +82,7 @@ const StaffDetail: React.FC = () => {
         setStaff(staffResponse.data);
         setChangeHistory(changeHistoryResponse.data);
       } catch (error) {
-        console.error('Failed to fetch staff:', error);
+        toast.error('Failed to load staff details', 'Please try again later');
       } finally {
         if (showSpinner) {
           setLoading(false);
@@ -92,7 +93,9 @@ const StaffDetail: React.FC = () => {
   );
 
   useEffect(() => {
-    loadStaff(true).catch((error) => console.error('Failed to initialize staff detail:', error));
+    loadStaff(true).catch(() => {
+      // Error is already handled in loadStaff with toast
+    });
   }, [loadStaff]);
 
   const assignments = useMemo(() => staff?.assignments ?? [], [staff]);
@@ -164,7 +167,7 @@ const StaffDetail: React.FC = () => {
         await confirmProject.mutateAsync(projectId);
         await loadStaff();
       } catch (error) {
-        console.error('Failed to confirm project from staff detail:', error);
+        // Error is handled by confirmProject mutation hook with toast notifications
       }
     },
     [confirmProject, loadStaff]
