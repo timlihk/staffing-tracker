@@ -82,10 +82,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       <Box
+        className="sidebar-container"
         sx={{
           flexShrink: 0,
           height: '100vh',
           position: 'relative',
+          '@media print': {
+            display: 'none !important',
+          },
         }}
       >
         <Sidebar
@@ -100,6 +104,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Box>
       <Box
         component="main"
+        className="main-content"
         sx={{
           flexGrow: 1,
           flexShrink: 0,
@@ -110,6 +115,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           px: { xs: 2, sm: 3, md: 4 },
           // Add padding on mobile to account for the hamburger menu
           pt: isMobile ? 8 : undefined,
+          // Full width when printing
+          '@media print': {
+            flexBasis: '100% !important',
+            width: '100% !important',
+            maxWidth: 'none !important',
+            py: 2,
+            px: 3,
+          },
         }}
       >
         {children}

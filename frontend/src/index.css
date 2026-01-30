@@ -80,11 +80,17 @@ button:focus-visible {
 /* Print-friendly styles */
 @media print {
   /* Hide navigation and action elements */
+  .sidebar-container,
   .MuiDrawer-root,
   .MuiAppBar-root,
+  .MuiBackdrop-root,
+  .MuiPopover-root,
+  .MuiMenu-root,
+  .MuiModal-root,
   button,
   [role="button"],
-  .no-print {
+  .no-print,
+  nav {
     display: none !important;
   }
 
@@ -92,16 +98,38 @@ button:focus-visible {
   body {
     background: white !important;
     color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Ensure content is visible */
+  /* Ensure main content takes full width */
+  #root {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Reset flex layout for printing - make it block */
+  .MuiBox-root[style*="display: flex"] {
+    display: block !important;
+  }
+
+  /* Ensure content is visible and full width */
+  .main-content,
   main,
-  .MuiBox-root,
   .MuiContainer-root {
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
-    padding: 0.5cm !important;
+    padding: 1cm !important;
+    display: block !important;
+    flex: none !important;
+  }
+
+  /* Hide page toolbar in print */
+  .page-toolbar {
+    display: none !important;
   }
 
   /* Table styles for print */

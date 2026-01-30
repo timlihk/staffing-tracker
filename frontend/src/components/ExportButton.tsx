@@ -56,11 +56,12 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
 
   return (
     <>
-      <Tooltip title={tooltipText}>
+      <Tooltip title={tooltipText} className="no-print">
         <ButtonGroup
           variant="outlined"
           size="small"
           disabled={disabled || loading}
+          className="no-print"
         >
           <Button
             onClick={() => onExport('csv')}

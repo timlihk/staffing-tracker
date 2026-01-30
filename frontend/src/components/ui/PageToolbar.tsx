@@ -11,7 +11,14 @@ const PageToolbar = ({ children }: PageToolbarProps) => (
     spacing={2}
     flexWrap="wrap"
     alignItems="center"
-    sx={{ rowGap: 1.5, width: '100%' }}
+    className="page-toolbar"
+    sx={{ 
+      rowGap: 1.5, 
+      width: '100%',
+      '@media print': {
+        display: 'none !important',
+      },
+    }}
   >
     {children}
   </Stack>
