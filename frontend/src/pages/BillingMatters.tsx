@@ -23,9 +23,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useBillingProjects } from '../hooks/useBilling';
 import { formatCurrencyWhole } from '../lib/currency';
 import { Page, BillingListSkeleton } from '../components/ui';
+import { ExportButton, type ExportFormat } from '../components/ExportButton';
 import { Link as RouterLink } from 'react-router-dom';
-import type { BillingAttorneyOption } from '../api/billing';
+import type { BillingAttorneyOption, BillingProjectSummary } from '../api/billing';
 import { getBillingAttorneys } from '../api/billing';
+import { downloadCsv, downloadJson, type CsvColumn, Formatters } from '../lib/export';
 
 // Helper to format currency with currency symbol in value
 const formatCurrencyWithSymbol = (usdValue: number | null, cnyValue: number | null): string => {
@@ -75,6 +77,46 @@ export default function BillingMatters() {
   const projects = projectsResponse?.data ?? [];
   const pagination = projectsResponse?.pagination;
   const totalPages = pagination?.totalPages ?? 0;
+
+  // CSV export columns
+  const csvColumns: CsvColumn<BillingProjectSummary>[] = [
+    { header: 'Project Name', key: 'project_name' },
+    { header: 'Client', key: 'client_name' },
+    { header: 'C/M Numbers', key: 'cm_numbers' },
+    { header: 'B&C Attorney', key: 'bc_attorney_name', formatter: (_v, row) => row.bc_attorney_name || row.attorney_in_charge || '-' },
+    { header: 'Billed (USD)', key: 'billing_usd' },
+    { header: 'Billed (CNY)', key: 'billing_cny' },
+    { header: 'Collected (USD)', key: 'collection_usd' },
+    { header: 'Collected (CNY)', key: 'collection_cny' },
+    { header: 'UBT (USD)', key: 'ubt_usd' },
+    { header: 'UBT (CNY)', key: 'ubt_cny' },
+    { header: 'Credit (USD)', key: 'billing_credit_usd' },
+    { header: 'Credit (CNY)', key: 'billing_credit_cny' },
+    { header: 'Bonus (USD)', key: 'bonus_usd' },
+    { header: 'Linked to Staffing', key: 'staffing_project_id', formatter: (v) => v ? 'Yes' : 'No' },
+  ];
+
+  // Handle export
+  const handleExport = (format: ExportFormat) => {
+    if (projects.length === 0) return;
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `billing-matters-${timestamp}`;
+
+    switch (format) {
+      case 'csv':
+        downloadCsv(projects, csvColumns, filename);
+        break;
+      case 'json':
+        downloadJson(projects, filename);
+        break;
+      case 'print':
+        window.print();
+        break;
+      default:
+        break;
+    }
+  };
 
   useEffect(() => {
     if (!pagination) {
@@ -293,13 +335,21 @@ export default function BillingMatters() {
 
   return (
     <Page title="Billing Matters">
-      <Box sx={{ mb: 3 }}>
-        <Typography variant={{ xs: 'h5', sm: 'h4' }} gutterBottom>
-          Billing Matters
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          View and manage billing projects, fees, and collections
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant={{ xs: 'h5', sm: 'h4' }} gutterBottom>
+            Billing Matters
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            View and manage billing projects, fees, and collections
+          </Typography>
+        </Box>
+        <ExportButton
+          onExport={handleExport}
+          disabled={projects.length === 0}
+          showExcel={false}
+          tooltipText="Export billing matters"
+        />
       </Box>
 
       {/* Filters */}

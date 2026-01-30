@@ -4,3 +4,4 @@ export { default as StyledDataGrid } from './StyledDataGrid';
 export * from './Skeleton';
 export { default as PageHeader } from './PageHeader';
 export { default as PageToolbar } from './PageToolbar';
+export { default as ExportButton } from '../ExportButton';

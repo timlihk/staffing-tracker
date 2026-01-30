@@ -76,3 +76,69 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Print-friendly styles */
+@media print {
+  /* Hide navigation and action elements */
+  .MuiDrawer-root,
+  .MuiAppBar-root,
+  button,
+  [role="button"],
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout for printing */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Ensure content is visible */
+  main,
+  .MuiBox-root,
+  .MuiContainer-root {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0.5cm !important;
+  }
+
+  /* Table styles for print */
+  .MuiDataGrid-root {
+    font-size: 10pt !important;
+  }
+
+  .MuiDataGrid-cell {
+    padding: 4px 8px !important;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  /* Prevent breaks inside elements */
+  tr,
+  td,
+  th {
+    page-break-inside: avoid;
+  }
+
+  /* Show URLs for links in print */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 90%;
+    opacity: 0.8;
+  }
+
+  /* Ensure background colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

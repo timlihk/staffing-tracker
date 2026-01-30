@@ -5,10 +5,12 @@ import { Add, Edit } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Project, Staff } from '../types';
 import { Page, ProjectListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState, Section } from '../components/ui';
+import { ExportButton, type ExportFormat } from '../components/ExportButton';
 import { useProjects } from '../hooks/useProjects';
 import { usePermissions } from '../hooks/usePermissions';
 import { useStaff } from '../hooks/useStaff';
 import { DateHelpers } from '../lib/date';
+import { downloadCsv, downloadJson, type CsvColumn, Formatters } from '../lib/export';
 
 const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -59,7 +61,42 @@ const Projects: React.FC = () => {
 
   const projects = data?.data || [];
 
+  // CSV export columns
+  const csvColumns: CsvColumn<Project>[] = [
+    { header: 'Project Name', key: 'name' },
+    { header: 'Status', key: 'status' },
+    { header: 'Category', key: 'category' },
+    { header: 'Side', key: 'side' },
+    { header: 'Sector', key: 'sector' },
+    { header: 'Priority', key: 'priority' },
+    { header: 'EL Status', key: 'elStatus' },
+    { header: 'Filing Date', key: 'filingDate', formatter: (v) => Formatters.date(v) },
+    { header: 'Listing Date', key: 'listingDate', formatter: (v) => Formatters.date(v) },
+    { header: 'Last Confirmed', key: 'lastConfirmedAt', formatter: (v) => Formatters.date(v) },
+    { header: 'Notes', key: 'notes' },
+  ];
 
+  // Handle export
+  const handleExport = (format: ExportFormat) => {
+    if (projects.length === 0) return;
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `projects-${timestamp}`;
+
+    switch (format) {
+      case 'csv':
+        downloadCsv(projects, csvColumns, filename);
+        break;
+      case 'json':
+        downloadJson(projects, filename);
+        break;
+      case 'print':
+        window.print();
+        break;
+      default:
+        break;
+    }
+  };
 
   const columns: GridColDef<Project>[] = [
     {
@@ -170,6 +207,12 @@ const Projects: React.FC = () => {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             sx={{ flex: 1, minWidth: 160 }}
+          />
+          <ExportButton
+            onExport={handleExport}
+            disabled={projects.length === 0}
+            showExcel={false}
+            tooltipText="Export projects"
           />
           {permissions.canCreateProject && (
             <Button

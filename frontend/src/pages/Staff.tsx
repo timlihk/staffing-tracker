@@ -5,7 +5,9 @@ import { Add, Edit, Delete } from '@mui/icons-material';
 import { GridColDef } from '@mui/x-data-grid';
 import { Staff as StaffType } from '../types';
 import { Page, StaffListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState, Section } from '../components/ui';
+import { ExportButton, type ExportFormat } from '../components/ExportButton';
 import { useStaff, useDeleteStaff } from '../hooks/useStaff';
+import { downloadCsv, downloadJson, type CsvColumn } from '../lib/export';
 
 const Staff: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
@@ -38,6 +40,38 @@ const Staff: React.FC = () => {
 
   const staff = data?.data || [];
   const totalCount = data?.pagination?.total || 0;
+
+  // CSV export columns
+  const csvColumns: CsvColumn<StaffType>[] = [
+    { header: 'Name', key: 'name' },
+    { header: 'Position', key: 'position' },
+    { header: 'Department', key: 'department' },
+    { header: 'Email', key: 'email' },
+    { header: 'Status', key: 'status' },
+    { header: 'Notes', key: 'notes' },
+  ];
+
+  // Handle export
+  const handleExport = (format: ExportFormat) => {
+    if (staff.length === 0) return;
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `staff-${timestamp}`;
+
+    switch (format) {
+      case 'csv':
+        downloadCsv(staff, csvColumns, filename);
+        break;
+      case 'json':
+        downloadJson(staff, filename);
+        break;
+      case 'print':
+        window.print();
+        break;
+      default:
+        break;
+    }
+  };
 
   const handlePaginationModelChange = (model: { page: number; pageSize: number }) => {
     setPage(model.page);
@@ -134,6 +168,12 @@ const Staff: React.FC = () => {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 sx={{ flex: 1, minWidth: 160 }}
+              />
+              <ExportButton
+                onExport={handleExport}
+                disabled={staff.length === 0}
+                showExcel={false}
+                tooltipText="Export staff list"
               />
               <Button
                 variant="contained"
