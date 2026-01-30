@@ -7,6 +7,7 @@ import { Staff as StaffType } from '../types';
 import { Page, StaffListSkeleton, PageHeader, PageToolbar, StyledDataGrid, EmptyState, Section } from '../components/ui';
 import { ExportButton, type ExportFormat } from '../components/ExportButton';
 import { useStaff, useDeleteStaff } from '../hooks/useStaff';
+import { useAppSettings } from '../hooks/useAppSettings';
 import { downloadCsv, downloadJson, type CsvColumn } from '../lib/export';
 
 const Staff: React.FC = () => {
@@ -37,6 +38,8 @@ const Staff: React.FC = () => {
   };
 
   const { data, isLoading, error } = useStaff(params);
+  const { data: appSettings } = useAppSettings();
+  const enableDataExport = appSettings?.enableDataExport ?? false;
 
   const staff = data?.data || [];
   const totalCount = data?.pagination?.total || 0;
@@ -169,12 +172,14 @@ const Staff: React.FC = () => {
                 onChange={(e) => setSearchInput(e.target.value)}
                 sx={{ flex: 1, minWidth: 160 }}
               />
-              <ExportButton
-                onExport={handleExport}
-                disabled={staff.length === 0}
-                showExcel={false}
-                tooltipText="Export staff list"
-              />
+              {enableDataExport && (
+                <ExportButton
+                  onExport={handleExport}
+                  disabled={staff.length === 0}
+                  showExcel={false}
+                  tooltipText="Export staff list"
+                />
+              )}
               <Button
                 variant="contained"
                 startIcon={<Add />}

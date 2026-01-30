@@ -23,6 +23,7 @@ import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import api from '../api/client';
 import { useStaff } from '../hooks/useStaff';
+import { useAppSettings } from '../hooks/useAppSettings';
 import { toast } from '../lib/toast';
 import { usePermissions } from '../hooks/usePermissions';
 import { Staff } from '../types';
@@ -90,6 +91,8 @@ const ProjectReport: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(100);
   const [orderBy, setOrderBy] = useState<'projectName' | 'filingDate' | 'listingDate'>('projectName');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const { data: appSettings } = useAppSettings();
+  const enableDataExport = appSettings?.enableDataExport ?? false;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -189,7 +192,7 @@ const ProjectReport: React.FC = () => {
   }, [rows, order, orderBy]);
 
   const headerActions =
-    permissions.isAdmin || permissions.isEditor ? (
+    (permissions.isAdmin || permissions.isEditor) && enableDataExport ? (
       <Stack direction="row" spacing={1}>
         <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={onExportExcel}>
           Export Excel

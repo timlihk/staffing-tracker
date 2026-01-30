@@ -191,6 +191,15 @@ model EmailSettings {
   @@map("email_settings")
 }
 
+model AppSettings {
+  id               Int      @id @default(autoincrement())
+  enableDataExport Boolean  @default(false) @map("enable_data_export")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        Int?     @map("updated_by")
+
+  @@map("app_settings")
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model billing_access_settings {
   id                     Int       @id @default(autoincrement())

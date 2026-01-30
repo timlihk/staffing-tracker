@@ -9,6 +9,7 @@ import { ExportButton, type ExportFormat } from '../components/ExportButton';
 import { useProjects } from '../hooks/useProjects';
 import { usePermissions } from '../hooks/usePermissions';
 import { useStaff } from '../hooks/useStaff';
+import { useAppSettings } from '../hooks/useAppSettings';
 import { DateHelpers } from '../lib/date';
 import { downloadCsv, downloadJson, type CsvColumn, Formatters } from '../lib/export';
 
@@ -32,6 +33,8 @@ const Projects: React.FC = () => {
   const [pageSize, setPageSize] = useState(25);
   const navigate = useNavigate();
   const permissions = usePermissions();
+  const { data: appSettings } = useAppSettings();
+  const enableDataExport = appSettings?.enableDataExport ?? false;
 
   const { data: allStaffResponse } = useStaff({});
   const allStaff = allStaffResponse?.data || [];
@@ -208,12 +211,14 @@ const Projects: React.FC = () => {
             onChange={(e) => setSearchInput(e.target.value)}
             sx={{ flex: 1, minWidth: 160 }}
           />
-          <ExportButton
-            onExport={handleExport}
-            disabled={projects.length === 0}
-            showExcel={false}
-            tooltipText="Export projects"
-          />
+          {enableDataExport && (
+            <ExportButton
+              onExport={handleExport}
+              disabled={projects.length === 0}
+              showExcel={false}
+              tooltipText="Export projects"
+            />
+          )}
           {permissions.canCreateProject && (
             <Button
               variant="contained"

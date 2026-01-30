@@ -21,6 +21,7 @@ import { Search as SearchIcon, FilterList as FilterIcon } from '@mui/icons-mater
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useQuery } from '@tanstack/react-query';
 import { useBillingProjects } from '../hooks/useBilling';
+import { useAppSettings } from '../hooks/useAppSettings';
 import { formatCurrencyWhole } from '../lib/currency';
 import { Page, BillingListSkeleton } from '../components/ui';
 import { ExportButton, type ExportFormat } from '../components/ExportButton';
@@ -74,6 +75,9 @@ export default function BillingMatters() {
     search: activeSearch || undefined,
     bcAttorney: activeAttorney,
   });
+  const { data: appSettings } = useAppSettings();
+  const enableDataExport = appSettings?.enableDataExport ?? false;
+  
   const projects = projectsResponse?.data ?? [];
   const pagination = projectsResponse?.pagination;
   const totalPages = pagination?.totalPages ?? 0;
@@ -344,12 +348,14 @@ export default function BillingMatters() {
             View and manage billing projects, fees, and collections
           </Typography>
         </Box>
-        <ExportButton
-          onExport={handleExport}
-          disabled={projects.length === 0}
-          showExcel={false}
-          tooltipText="Export billing matters"
-        />
+        {enableDataExport && (
+          <ExportButton
+            onExport={handleExport}
+            disabled={projects.length === 0}
+            showExcel={false}
+            tooltipText="Export billing matters"
+          />
+        )}
       </Box>
 
       {/* Filters */}

@@ -21,6 +21,7 @@ import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import api from '../api/client';
 import { Page, PageHeader } from '../components/ui';
+import { useAppSettings } from '../hooks/useAppSettings';
 import { toast } from '../lib/toast';
 import StyledDataGrid from '../components/ui/StyledDataGrid';
 
@@ -119,6 +120,8 @@ const Reports: React.FC = () => {
 
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const { data: appSettings } = useAppSettings();
+  const enableDataExport = appSettings?.enableDataExport ?? false;
   const totals = useMemo(() => {
     const uniqueProjects = new Set<string>();
     const uniqueStaff = new Set<string>();
@@ -208,16 +211,20 @@ const Reports: React.FC = () => {
           title="Staffing Report"
           actions={
             <Stack direction="row" spacing={2} className="no-print">
-              <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
-                Print
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<DownloadRoundedIcon />}
-                onClick={onExportExcel}
-              >
-                Export Excel
-              </Button>
+              {enableDataExport && (
+                <>
+                  <Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={onPrint}>
+                    Print
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<DownloadRoundedIcon />}
+                    onClick={onExportExcel}
+                  >
+                    Export Excel
+                  </Button>
+                </>
+              )}
             </Stack>
           }
         />

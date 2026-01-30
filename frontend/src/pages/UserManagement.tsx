@@ -22,12 +22,13 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { Page, PageHeader } from '../components/ui';
-import { CreateOrEditUserDialog, EmailSettingsPanel, BillingSettingsPanel } from '../components/admin';
+import { CreateOrEditUserDialog, EmailSettingsPanel, BillingSettingsPanel, AppSettingsPanel } from '../components/admin';
 import { useUsers, useCreateUser, useUpdateUser, useResetUserPassword, useDeleteUser } from '../hooks/useUsers';
 import { useStaff } from '../hooks/useStaff';
 import { useAuth } from '../hooks/useAuth';
 import { useEmailSettings, useUpdateEmailSettings } from '../hooks/useEmailSettings';
 import { useBillingSettings, useUpdateBillingSettings } from '../hooks/useBilling';
+import { useAppSettings, useUpdateAppSettings } from '../hooks/useAppSettings';
 import type { ManagedUser, Staff } from '../types';
 import { toast } from '../lib/toast';
 import { DateHelpers } from '../lib/date';
@@ -64,12 +65,14 @@ const UserManagement: React.FC = () => {
   const staff = staffResponse?.data || [];
   const { data: emailSettings, isLoading: emailSettingsLoading } = useEmailSettings();
   const { data: billingSettings, isLoading: billingSettingsLoading } = useBillingSettings();
+  const { data: appSettings, isLoading: appSettingsLoading } = useAppSettings();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const resetUserPassword = useResetUserPassword();
   const deleteUser = useDeleteUser();
   const updateEmailSettings = useUpdateEmailSettings();
   const updateBillingSettings = useUpdateBillingSettings();
+  const updateAppSettings = useUpdateAppSettings();
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
@@ -428,6 +431,7 @@ const UserManagement: React.FC = () => {
           <Tab label="Activity Log" />
           <Tab label="Email Settings" />
           <Tab label="Billing Settings" />
+          <Tab label="App Settings" />
         </Tabs>
       </Paper>
 
@@ -599,6 +603,17 @@ const UserManagement: React.FC = () => {
             billingSettings={billingSettings}
             loading={billingSettingsLoading}
             onUpdate={updateBillingSettings.mutateAsync}
+            extractError={extractUserError}
+          />
+        </Paper>
+      )}
+
+      {activeTab === 5 && (
+        <Paper sx={{ p: 3 }}>
+          <AppSettingsPanel
+            appSettings={appSettings}
+            loading={appSettingsLoading}
+            onUpdate={updateAppSettings.mutateAsync}
             extractError={extractUserError}
           />
         </Paper>
