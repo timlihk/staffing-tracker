@@ -23,7 +23,7 @@ const Staff = lazy(() => import('./pages/Staff'));
 const StaffDetail = lazy(() => import('./pages/StaffDetail'));
 const StaffForm = lazy(() => import('./pages/StaffForm'));
 const ProjectReport = lazy(() => import('./pages/ProjectReport'));
-const TestPage = lazy(() => import('./pages/TestPage'));
+
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
@@ -261,14 +261,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/test"
-              element={
-                <ProtectedRoute>
-                  <TestPage />
-                </ProtectedRoute>
-              }
-            />
+
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
