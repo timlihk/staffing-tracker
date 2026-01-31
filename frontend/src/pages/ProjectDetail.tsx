@@ -75,7 +75,7 @@ const ProjectDetail: React.FC = () => {
   const [editingAssignment, setEditingAssignment] = useState<ProjectAssignment | null>(null);
   const [savingAssignment, setSavingAssignment] = useState(false);
 
-  const { data: staffResponse, isLoading: staffLoading } = useStaff({ status: 'active' });
+  const { data: staffResponse, isLoading: staffLoading } = useStaff({ status: 'active', limit: 100 });
   const staffList = staffResponse?.data || [];
   const staffOptions = useMemo(
     () =>

@@ -61,7 +61,7 @@ const UserManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: users = [], isLoading, refetch: refetchUsers } = useUsers();
-  const { data: staffResponse, isLoading: staffLoading } = useStaff();
+  const { data: staffResponse, isLoading: staffLoading } = useStaff({ limit: 100 });
   const staff = staffResponse?.data || [];
   const { data: emailSettings, isLoading: emailSettingsLoading } = useEmailSettings();
   const { data: billingSettings, isLoading: billingSettingsLoading } = useBillingSettings();

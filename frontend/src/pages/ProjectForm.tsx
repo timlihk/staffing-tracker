@@ -39,7 +39,7 @@ const ProjectForm: React.FC = () => {
   const isEdit = Boolean(id && id !== 'new' && !isNaN(Number(id)));
 
   const { data: project, isLoading: projectLoading } = useProject(isEdit ? id! : '');
-  const { data: staffResponse, isLoading: staffLoading } = useStaff();
+  const { data: staffResponse, isLoading: staffLoading } = useStaff({ limit: 100 });
   const staffList = staffResponse?.data || [];
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
