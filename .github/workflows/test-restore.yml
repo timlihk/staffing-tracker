@@ -51,6 +51,9 @@ jobs:
           sudo -u postgres psql -c "CREATE DATABASE restore_test;"
           sudo -u postgres psql -c "CREATE USER testuser WITH PASSWORD 'testpass';"
           sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE restore_test TO testuser;"
+          # PostgreSQL 15+ requires explicit schema permissions for non-superusers
+          sudo -u postgres psql -d restore_test -c "GRANT CREATE ON SCHEMA public TO testuser;"
+          sudo -u postgres psql -d restore_test -c "ALTER SCHEMA public OWNER TO testuser;"
           echo "TEST_DATABASE_URL=postgresql://testuser:testpass@localhost/restore_test" >> $GITHUB_ENV
 
       - name: Test restore procedure
