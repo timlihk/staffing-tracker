@@ -35,11 +35,10 @@ jobs:
 
       - name: Start local PostgreSQL 17
         run: |
-          # Stop any default PostgreSQL and initialize PG17
+          # Stop any default PostgreSQL and initialize PG17 on port 5432
           sudo systemctl stop postgresql || true
-          sudo pg_dropcluster 17 main --stop || true
-          sudo pg_createcluster 17 main --start
-          sudo systemctl start postgresql@17-main
+          sudo pg_dropcluster 17 main --stop 2>/dev/null || true
+          sudo pg_createcluster 17 main --port=5432 --start
 
           # Wait for PostgreSQL to be ready
           for i in {1..30}; do
