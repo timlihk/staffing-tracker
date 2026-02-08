@@ -33,9 +33,22 @@ jobs:
             --file="$outfile"
           echo "BACKUP_FILE=$outfile" >> $GITHUB_ENV
 
-      - name: Start local PostgreSQL
+      - name: Start local PostgreSQL 17
         run: |
-          sudo systemctl start postgresql
+          # Stop any default PostgreSQL and initialize PG17
+          sudo systemctl stop postgresql || true
+          sudo pg_dropcluster 17 main --stop || true
+          sudo pg_createcluster 17 main --start
+          sudo systemctl start postgresql@17-main
+
+          # Wait for PostgreSQL to be ready
+          for i in {1..30}; do
+            if sudo -u postgres psql -c "SELECT 1;" > /dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
           sudo -u postgres psql -c "CREATE DATABASE restore_test;"
           sudo -u postgres psql -c "CREATE USER testuser WITH PASSWORD 'testpass';"
           sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE restore_test TO testuser;"
