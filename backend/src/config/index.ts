@@ -99,7 +99,6 @@ export const config = {
   // Security
   security: {
     bcryptRounds: parseInt(getOptionalEnvVar('BCRYPT_ROUNDS', '10') || '10', 10),
-    sessionSecret: getOptionalEnvVar('SESSION_SECRET', 'session-secret-change-in-production'),
   },
 
   // Logging
@@ -138,11 +137,7 @@ export const validateConfig = () => {
         message: 'Please set a secure JWT_SECRET' 
       });
     }
-    if (config.security.sessionSecret === 'session-secret-change-in-production') {
-      logger.warn('Using default session secret in production', { 
-        message: 'Please set a secure SESSION_SECRET' 
-      });
-    }
+
   }
 
   logger.info('Configuration validated successfully');

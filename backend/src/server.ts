@@ -27,6 +27,17 @@ import { queryPerformanceMonitor } from './middleware/queryPerformance';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { logger } from './utils/logger';
 
+// Global error handlers for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception', { error });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection', { reason, promise });
+  process.exit(1);
+});
+
 // Validate configuration on startup
 validateConfig();
 
@@ -167,8 +178,10 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-const server = app.listen(PORT, () => {
-  logger.info('Server started', { port: PORT });
+logger.info('Starting server...', { port: PORT, env: config.nodeEnv });
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  logger.info('Server started successfully', { port: PORT });
   logger.info('Health endpoint available', { url: `/api/health` });
 });
 
