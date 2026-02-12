@@ -38,6 +38,7 @@ coverage/
 # Database backups and migrations
 backups/
 *.sql
+!backend/prisma/migrations/**/migration.sql
 SUPABASE_MIGRATION_GUIDE.md
 migrate.sql
 
