@@ -33,8 +33,15 @@ export const login = async (req: Request, res: Response) => {
       return res.status(HttpStatus.BAD_REQUEST).json({ error: 'Username and password are required' });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
+    const loginInput = String(username).trim();
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: { equals: loginInput, mode: 'insensitive' } },
+          { email: { equals: loginInput, mode: 'insensitive' } },
+        ],
+      },
       include: { staff: true },
     });
 
