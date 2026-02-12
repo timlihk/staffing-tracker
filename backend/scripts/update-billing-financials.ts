@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -19,16 +19,15 @@ async function readExcelData() {
   const filePath = '/Users/timli/Library/CloudStorage/OneDrive-Personal/Coding/staffing-tracker/Billing/HKCM Project List_20251008_with formulas & source reports.xlsx';
 
   console.log('Reading Excel file...');
-  const workbook = XLSX.readFile(filePath);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
 
   // Read Time & Fees reports sheet
   console.log('\nProcessing Time & Fees reports sheet...');
-  const timeFeesSheet = workbook.Sheets['Time & Fees reports'];
+  const timeFeesSheet = workbook.getWorksheet('Time & Fees reports');
   if (!timeFeesSheet) {
     throw new Error('Sheet "Time & Fees reports" not found');
   }
-
-  const timeFeesData = XLSX.utils.sheet_to_json(timeFeesSheet, { header: 1 }) as any[][];
 
   // Time & Fees sheet has no header row, data starts from row 0
   // C/M number is in column 9 (Mttr#)
@@ -45,15 +44,15 @@ async function readExcelData() {
   const timeFeesMap = new Map<string, TimeFeesRow>();
 
   // Process all data rows (no header row)
-  for (let i = 0; i < timeFeesData.length; i++) {
-      const row = timeFeesData[i];
-      const cmNo = row[cmColIndex];
+  for (let i = 1; i <= timeFeesSheet.rowCount; i++) {
+      const row = timeFeesSheet.getRow(i);
+      const cmNo = row.getCell(cmColIndex + 1).text;
 
       if (cmNo && String(cmNo).trim()) {
         const cmNoStr = String(cmNo).trim();
-        const feesBilled = parseFloat(row[feesBilledColIndex]) || 0;
-        const collected = parseFloat(row[collectedColIndex]) || 0;
-        const ar = parseFloat(row[arColIndex]) || 0;
+        const feesBilled = parseFloat(row.getCell(feesBilledColIndex + 1).text.replace(/,/g, '')) || 0;
+        const collected = parseFloat(row.getCell(collectedColIndex + 1).text.replace(/,/g, '')) || 0;
+        const ar = parseFloat(row.getCell(arColIndex + 1).text.replace(/,/g, '')) || 0;
 
         timeFeesMap.set(cmNoStr, {
           cmNo: cmNoStr,
@@ -68,12 +67,10 @@ async function readExcelData() {
 
   // Read UA Report sheet
   console.log('\nProcessing UA Report sheet...');
-  const uaSheet = workbook.Sheets['UA Report'];
+  const uaSheet = workbook.getWorksheet('UA Report');
   if (!uaSheet) {
     throw new Error('Sheet "UA Report" not found');
   }
-
-  const uaData = XLSX.utils.sheet_to_json(uaSheet, { header: 1 }) as any[][];
 
   // UA Report has header row at index 0
   // C/M number is in column 0 (Client matter)
@@ -87,13 +84,13 @@ async function readExcelData() {
   const uaMap = new Map<string, UAReportRow>();
 
   // Process data rows (start from row 1, after header)
-  for (let i = uaHeaderRowIndex + 1; i < uaData.length; i++) {
-      const row = uaData[i];
-      const cmNo = row[uaCmColIndex];
+  for (let i = uaHeaderRowIndex + 2; i <= uaSheet.rowCount; i++) {
+      const row = uaSheet.getRow(i);
+      const cmNo = row.getCell(uaCmColIndex + 1).text;
 
       if (cmNo && String(cmNo).trim()) {
         const cmNoStr = String(cmNo).trim();
-        const ubt = parseFloat(row[ubtColIndex]) || 0;
+        const ubt = parseFloat(row.getCell(ubtColIndex + 1).text.replace(/,/g, '')) || 0;
 
         uaMap.set(cmNoStr, {
           cmNo: cmNoStr,

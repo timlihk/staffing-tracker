@@ -101,7 +101,7 @@ const Projects: React.FC = () => {
     }
   };
 
-  const columns: GridColDef<Project>[] = [
+  const columns: GridColDef<Project>[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Project Name',
@@ -195,7 +195,7 @@ const Projects: React.FC = () => {
         </Box>
       ),
     },
-  ];
+  ], [navigate, permissions.canEditProject]);
 
   return (
     <Page>

@@ -7,7 +7,7 @@
  * 3. Updates database with completion status and bonus amounts
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import prisma from '../utils/prisma';
 
 interface MilestoneWithCompletion {
@@ -26,25 +26,27 @@ interface ParsedBonus {
  * Read Excel file and extract fee arrangements with formatting
  */
 async function readFeeArrangementsWithFormatting(filePath: string): Promise<Map<string, { text: string; completedMilestones: Set<string>; bonuses: ParsedBonus[] }>> {
-  const workbook = XLSX.readFile(filePath, { cellStyles: true });
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error('Excel file has no worksheets');
+  }
 
   // Find column indexes
-  const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
   let cmNoCol = -1;
   let feeArrangementCol = -1;
 
   // Look for headers
-  for (let i = 0; i < Math.min(5, data.length); i++) {
-    const row = data[i];
-    for (let j = 0; j < row.length; j++) {
-      const cell = String(row[j] || '').toLowerCase();
+  const headerScanRows = Math.min(5, worksheet.rowCount);
+  for (let i = 1; i <= headerScanRows; i++) {
+    for (let j = 1; j <= worksheet.columnCount; j++) {
+      const cell = worksheet.getCell(i, j).text.toLowerCase().trim();
       if (cell.includes('c/m') || cell.includes('cm no')) {
-        cmNoCol = j;
+        cmNoCol = j - 1;
       }
       if (cell.includes('fee') && cell.includes('arrangement')) {
-        feeArrangementCol = j;
+        feeArrangementCol = j - 1;
       }
     }
     if (cmNoCol >= 0 && feeArrangementCol >= 0) break;
@@ -59,37 +61,34 @@ async function readFeeArrangementsWithFormatting(filePath: string): Promise<Map<
   // Build map of C/M No -> { text, completedMilestones, bonuses }
   const feeMap = new Map<string, { text: string; completedMilestones: Set<string>; bonuses: ParsedBonus[] }>();
 
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const cmNo = String(row[cmNoCol] || '').trim();
+  for (let i = 2; i <= worksheet.rowCount; i++) {
+    const cmNo = worksheet.getCell(i, cmNoCol + 1).text.trim();
     if (!cmNo) continue;
 
-    // Get cell address for fee arrangement
-    const cellAddress = XLSX.utils.encode_cell({ r: i, c: feeArrangementCol });
-    const cell = worksheet[cellAddress];
+    const cell = worksheet.getCell(i, feeArrangementCol + 1);
 
-    if (!cell || !cell.v) continue;
+    if (!cell || cell.value == null) continue;
 
-    const text = String(cell.v);
+    const text = cell.text;
     const completedMilestones = new Set<string>();
 
-    // Check for strikethrough formatting in rich text
-    if (cell.r && Array.isArray(cell.r)) {
-      // Rich text format - check each run for strikethrough
-      for (const run of cell.r) {
-        if (run.s && run.s.strike && run.t) {
+    // Check for strikethrough formatting in rich text runs
+    const richText = (cell.value as { richText?: Array<{ font?: { strike?: boolean }; text?: string }> } | null)?.richText;
+    if (Array.isArray(richText)) {
+      for (const run of richText) {
+        if (run.font?.strike && run.text) {
           // Extract milestone ordinal from struck text
-          const ordinalMatch = run.t.match(/\(([a-z])\)/);
+          const ordinalMatch = run.text.match(/\(([a-z])\)/i);
           if (ordinalMatch) {
-            completedMilestones.add(`(${ordinalMatch[1]})`);
+            completedMilestones.add(`(${ordinalMatch[1].toLowerCase()})`);
           }
         }
       }
-    } else if (cell.s && cell.s.font && cell.s.font.strike) {
+    } else if (cell.font?.strike) {
       // Entire cell is struck through - all milestones completed
-      const ordinalMatches = text.matchAll(/\(([a-z])\)/g);
+      const ordinalMatches = text.matchAll(/\(([a-z])\)/gi);
       for (const match of ordinalMatches) {
-        completedMilestones.add(`(${match[1]})`);
+        completedMilestones.add(`(${match[1].toLowerCase()})`);
       }
     }
 

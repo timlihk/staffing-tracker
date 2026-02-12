@@ -386,6 +386,7 @@ model billing_milestone {
   @@index([engagement_id], map: "idx_billing_milestone_engagement")
   @@index([engagement_id, sort_order], map: "idx_billing_milestone_engagement_sort")
   @@index([fee_id, sort_order], map: "idx_billing_milestone_fee_sort")
+  @@index([last_reminder_sent_at], map: "idx_billing_milestone_last_reminder_sent")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

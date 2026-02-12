@@ -115,6 +115,12 @@ export const config = {
   },
 } as const;
 
+const INSECURE_DEFAULT_JWT_SECRETS = new Set([
+  'worker-default-secret',
+  'worker-default-refresh-secret',
+  'dev-secret-key-change-in-production',
+]);
+
 // Validate required configuration on startup
 export const validateConfig = () => {
   const requiredVars = [
@@ -130,14 +136,13 @@ export const validateConfig = () => {
     );
   }
 
-  // Warn about insecure defaults in production
+  // Fail fast on insecure defaults in production
   if (config.isProduction) {
-    if (config.jwt.secret === 'dev-secret-key-change-in-production') {
-      logger.warn('Using default JWT secret in production', { 
-        message: 'Please set a secure JWT_SECRET' 
-      });
+    if (INSECURE_DEFAULT_JWT_SECRETS.has(config.jwt.secret) || INSECURE_DEFAULT_JWT_SECRETS.has(config.jwt.refreshSecret)) {
+      throw new Error(
+        'Insecure JWT secret detected in production. Set strong JWT_SECRET and JWT_REFRESH_SECRET environment variables.'
+      );
     }
-
   }
 
   logger.info('Configuration validated successfully');

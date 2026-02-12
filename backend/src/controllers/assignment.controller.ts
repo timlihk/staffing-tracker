@@ -4,10 +4,11 @@ import prisma, { invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { AssignmentWhereInput, ControllerError } from '../types/prisma';
 import { logger } from '../utils/logger';
 import { ActionType, EntityType } from '../constants';
+import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 
 export const getAllAssignments = async (req: AuthRequest, res: Response) => {
   try {
-    const { projectId, staffId } = req.query;
+    const { projectId, staffId, page, limit } = req.query;
 
     const where: AssignmentWhereInput = {};
 
@@ -26,6 +27,17 @@ export const getAllAssignments = async (req: AuthRequest, res: Response) => {
       where.staffId = parsedStaffId;
     }
 
+    const pageNum = parseQueryInt(page as string, { default: 1, min: 1 });
+    const limitNum = parseQueryInt(limit as string, { default: 100, min: 1, max: 250 });
+    const skip = (pageNum - 1) * limitNum;
+
+    if (wasValueClamped(limit as string, limitNum, { max: 250 })) {
+      logger.warn('Assignments limit clamped to max value', {
+        requested: limit,
+        clamped: limitNum,
+      });
+    }
+
     const assignments = await prisma.projectAssignment.findMany({
       where,
       include: {
@@ -33,6 +45,8 @@ export const getAllAssignments = async (req: AuthRequest, res: Response) => {
         staff: true,
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limitNum,
     });
 
     res.json(assignments);
@@ -332,6 +346,9 @@ export const bulkCreateAssignments = async (req: AuthRequest, res: Response) => 
 
     if (!Array.isArray(assignments) || assignments.length === 0) {
       return res.status(400).json({ error: 'Assignments array is required' });
+    }
+    if (assignments.length > 100) {
+      return res.status(400).json({ error: 'Cannot create more than 100 assignments at once' });
     }
 
     const createdAssignments = [];

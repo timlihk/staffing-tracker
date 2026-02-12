@@ -84,6 +84,8 @@ export const assignmentIdParamSchema = z.object({
 export const assignmentQuerySchema = z.object({
   projectId: z.string().regex(/^\d+$/).optional(),
   staffId: z.string().regex(/^\d+$/).optional(),
+  page: z.string().regex(/^\d+$/).optional(),
+  limit: z.string().regex(/^\d+$/).optional(),
 }).partial();
 
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;

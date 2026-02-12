@@ -50,7 +50,6 @@
     "resend": "^3.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "xlsx": "^0.18.5",
     "zod": "^4.1.11"
   },
   "devDependencies": {

@@ -7,7 +7,7 @@
  * 3. Updates the billing database
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import prisma from '../utils/prisma';
 
 interface ParsedMilestone {
@@ -120,27 +120,27 @@ function parseFeeArrangement(rawText: string): ParsedFeeArrangement {
  * Read Excel file and extract fee data
  */
 async function readExcelFees(filePath: string): Promise<Map<string, number>> {
-  const workbook = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
-
-  // Convert to JSON
-  const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error('Excel file has no worksheets');
+  }
 
   // Find column indexes
   let cmNoCol = -1;
   let feeCol = -1;
 
   // Look for headers in first few rows
-  for (let i = 0; i < Math.min(5, data.length); i++) {
-    const row = data[i];
-    for (let j = 0; j < row.length; j++) {
-      const cell = String(row[j] || '').toLowerCase();
+  const headerScanRows = Math.min(5, worksheet.rowCount);
+  for (let i = 1; i <= headerScanRows; i++) {
+    for (let j = 1; j <= worksheet.columnCount; j++) {
+      const cell = worksheet.getCell(i, j).text.toLowerCase().trim();
       if (cell.includes('c/m') || cell.includes('cm no')) {
-        cmNoCol = j;
+        cmNoCol = j - 1;
       }
       if (cell.includes('fee') && cell.includes('us')) {
-        feeCol = j;
+        feeCol = j - 1;
       }
     }
     if (cmNoCol >= 0 && feeCol >= 0) break;
@@ -153,10 +153,9 @@ async function readExcelFees(filePath: string): Promise<Map<string, number>> {
   // Build map of C/M No -> Fee
   const feeMap = new Map<string, number>();
 
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const cmNo = String(row[cmNoCol] || '').trim();
-    const feeStr = String(row[feeCol] || '').trim();
+  for (let i = 2; i <= worksheet.rowCount; i++) {
+    const cmNo = worksheet.getCell(i, cmNoCol + 1).text.trim();
+    const feeStr = worksheet.getCell(i, feeCol + 1).text.trim();
 
     if (!cmNo || !feeStr) continue;
 
