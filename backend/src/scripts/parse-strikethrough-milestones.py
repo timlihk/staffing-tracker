@@ -16,7 +16,10 @@ import re
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:qtSnaaSaelqHVydazTmViwejXbkkZxVY@crossover.proxy.rlwy.net:15782/railway')
 
 # Excel file path
-EXCEL_FILE = '/home/timlihk/staffing-tracker/billing-matter/HKCM Project List(81764217.1)_6Oct25.xlsx'
+EXCEL_FILE = os.environ.get(
+    'EXCEL_FILE',
+    '/home/timlihk/staffing-tracker/billing-matter/HKCM Project List(81764217.1)_6Oct25.xlsx'
+)
 
 def connect_db():
     """Connect to PostgreSQL database"""
@@ -84,6 +87,9 @@ def parse_excel_for_strikethroughs():
     project_name_col = headers.get('Project Name')
     cm_no_col = headers.get('C/M No')
     fee_arrangement_col = headers.get('Fee arrangement')
+    if not fee_arrangement_col:
+        # Newer HKCM files keep fee text in column I with "(a)" sub-header.
+        fee_arrangement_col = headers.get('(a)')
 
     if not project_name_col or not fee_arrangement_col:
         print("ERROR: Could not find required columns", flush=True)

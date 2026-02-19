@@ -1,122 +1,134 @@
-import ExcelJS from 'exceljs';
+/**
+ * Update Billing Financials from Excel
+ * 
+ * Reads the new Excel format (single "Transactions" sheet) and updates
+ * billing_project_cm_no table with:
+ * - Fees (US$) -> billing_to_date_usd
+ * - Billing (US$) -> billing_to_date_usd  
+ * - Collection (US$) -> collected_to_date_usd
+ * - Billing Credit (US$) -> billing_credit_usd
+ * - UBT (US$) -> ubt_usd
+ */
+
+import XLSX from 'xlsx';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-interface TimeFeesRow {
+interface ExcelRow {
   cmNo: string;
-  feesBilled: number;
-  collected: number;
-  ar: number;
+  feesUsd: number;
+  billingUsd: number;
+  collectionUsd: number;
+  billingCreditUsd: number;
+  ubtUsd: number;
+  arUsd: number;
+  projectName: string;
+  clientName: string;
+  attorneyInCharge: string;
 }
 
-interface UAReportRow {
-  cmNo: string;
-  ubt: number;
+function parseAmount(value: any): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    // Remove commas, $, and any whitespace
+    const cleaned = value.replace(/[,$?\s]/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+  return 0;
 }
 
-async function readExcelData() {
-  const filePath = '/Users/timli/Library/CloudStorage/OneDrive-Personal/Coding/staffing-tracker/Billing/HKCM Project List_20251008_with formulas & source reports.xlsx';
+async function readExcelData(): Promise<Map<string, ExcelRow>> {
+  const filePath = '/Users/timli/Library/CloudStorage/OneDrive-Personal/Coding/staffing-tracker/Billing/HKCM Project List (2026.02.12).xlsx';
 
   console.log('Reading Excel file...');
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(filePath);
-
-  // Read Time & Fees reports sheet
-  console.log('\nProcessing Time & Fees reports sheet...');
-  const timeFeesSheet = workbook.getWorksheet('Time & Fees reports');
-  if (!timeFeesSheet) {
-    throw new Error('Sheet "Time & Fees reports" not found');
+  const workbook = XLSX.readFile(filePath);
+  
+  // Check for "Transactions" sheet
+  const sheetName = 'Transactions';
+  if (!workbook.SheetNames.includes(sheetName)) {
+    throw new Error(`Sheet "${sheetName}" not found. Available: ${workbook.SheetNames.join(', ')}`);
   }
 
-  // Time & Fees sheet has no header row, data starts from row 0
-  // C/M number is in column 9 (Mttr#)
-  // Fees Billed is in column Q (index 16)
-  // Collected is in column W (index 22)
-  // A/R is in column X (index 23)
-  const cmColIndex = 9;
-  const feesBilledColIndex = 16; // Column Q (0-indexed: Q = 16)
-  const collectedColIndex = 22; // Column W (0-indexed: W = 22)
-  const arColIndex = 23; // Column X (0-indexed: X = 23)
+  const sheet = workbook.Sheets[sheetName];
+  const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
-  console.log(`Using CM No column at index ${cmColIndex}`);
+  console.log(`Total rows in sheet: ${data.length}`);
 
-  const timeFeesMap = new Map<string, TimeFeesRow>();
+  // Headers are in row 4 (index 3)
+  const headers = data[3];
+  console.log('\nHeaders:', headers);
 
-  // Process all data rows (no header row)
-  for (let i = 1; i <= timeFeesSheet.rowCount; i++) {
-      const row = timeFeesSheet.getRow(i);
-      const cmNo = row.getCell(cmColIndex + 1).text;
+  // Find column indices by header name
+  const colIndex: Record<string, number> = {};
+  headers.forEach((header, idx) => {
+    if (header) {
+      const headerStr = String(header).trim();
+      if (headerStr.includes('C/M No')) colIndex['cmNo'] = idx;
+      else if (headerStr.includes('Fees (US$)')) colIndex['feesUsd'] = idx;
+      else if (headerStr.includes('Billing \r\n(US$)') || headerStr.includes('Billing (US$)')) colIndex['billingUsd'] = idx;
+      else if (headerStr.includes('Collection \r\n(US$)') || headerStr.includes('Collection (US$)')) colIndex['collectionUsd'] = idx;
+      else if (headerStr.includes('Billing Credit \r\n(US$)') || headerStr.includes('Billing Credit (US$)')) colIndex['billingCreditUsd'] = idx;
+      else if (headerStr.includes('UBT') && headerStr.includes('US$')) colIndex['ubtUsd'] = idx;
+      else if (headerStr.includes('AR') && headerStr.includes('US$')) colIndex['arUsd'] = idx;
+      else if (headerStr.includes('Project Name')) colIndex['projectName'] = idx;
+      else if (headerStr.includes('Client Name')) colIndex['clientName'] = idx;
+      else if (headerStr.includes('Attorney in Charge')) colIndex['attorneyInCharge'] = idx;
+    }
+  });
 
-      if (cmNo && String(cmNo).trim()) {
-        const cmNoStr = String(cmNo).trim();
-        const feesBilled = parseFloat(row.getCell(feesBilledColIndex + 1).text.replace(/,/g, '')) || 0;
-        const collected = parseFloat(row.getCell(collectedColIndex + 1).text.replace(/,/g, '')) || 0;
-        const ar = parseFloat(row.getCell(arColIndex + 1).text.replace(/,/g, '')) || 0;
+  console.log('\nColumn mapping:', colIndex);
 
-        timeFeesMap.set(cmNoStr, {
-          cmNo: cmNoStr,
-          feesBilled,
-          collected,
-          ar
-        });
-      }
+  // Data starts from row 5 (index 4)
+  const excelMap = new Map<string, ExcelRow>();
+
+  for (let i = 4; i < data.length; i++) {
+    const row = data[i];
+    if (!row || row.length === 0) continue;
+
+    // Skip rows that are category headers (like "IPOs", "Corporate", etc.)
+    const maybeNo = row[1];
+    if (maybeNo === undefined || maybeNo === null) continue;
+    
+    // If column B is not a number, it's a category header row - skip
+    if (typeof maybeNo !== 'number') continue;
+
+    const cmNo = colIndex['cmNo'] !== undefined ? row[colIndex['cmNo']] : null;
+    if (!cmNo || String(cmNo).trim() === '') continue;
+
+    const cmNoStr = String(cmNo).trim();
+    
+    const excelRow: ExcelRow = {
+      cmNo: cmNoStr,
+      feesUsd: colIndex['feesUsd'] !== undefined ? parseAmount(row[colIndex['feesUsd']]) : 0,
+      billingUsd: colIndex['billingUsd'] !== undefined ? parseAmount(row[colIndex['billingUsd']]) : 0,
+      collectionUsd: colIndex['collectionUsd'] !== undefined ? parseAmount(row[colIndex['collectionUsd']]) : 0,
+      billingCreditUsd: colIndex['billingCreditUsd'] !== undefined ? parseAmount(row[colIndex['billingCreditUsd']]) : 0,
+      ubtUsd: colIndex['ubtUsd'] !== undefined ? parseAmount(row[colIndex['ubtUsd']]) : 0,
+      arUsd: colIndex['arUsd'] !== undefined ? parseAmount(row[colIndex['arUsd']]) : 0,
+      projectName: colIndex['projectName'] !== undefined ? String(row[colIndex['projectName']] || '') : '',
+      clientName: colIndex['clientName'] !== undefined ? String(row[colIndex['clientName']] || '') : '',
+      attorneyInCharge: colIndex['attorneyInCharge'] !== undefined ? String(row[colIndex['attorneyInCharge']] || '') : '',
+    };
+
+    excelMap.set(cmNoStr, excelRow);
   }
 
-  console.log(`Extracted ${timeFeesMap.size} rows from Time & Fees reports (sample C/M numbers: ${Array.from(timeFeesMap.keys()).slice(0, 5).join(', ')})`);
+  console.log(`\nExtracted ${excelMap.size} rows from Excel`);
+  console.log('Sample C/M numbers:', Array.from(excelMap.keys()).slice(0, 10).join(', '));
 
-  // Read UA Report sheet
-  console.log('\nProcessing UA Report sheet...');
-  const uaSheet = workbook.getWorksheet('UA Report');
-  if (!uaSheet) {
-    throw new Error('Sheet "UA Report" not found');
-  }
-
-  // UA Report has header row at index 0
-  // C/M number is in column 0 (Client matter)
-  // UBT is in column AE (index 30)
-  const uaHeaderRowIndex = 0;
-  const uaCmColIndex = 0; // Client matter column
-  const ubtColIndex = 30; // Column AE (0-indexed: AE = 30)
-
-  console.log(`Using header row at index ${uaHeaderRowIndex}, CM No column at index ${uaCmColIndex}`);
-
-  const uaMap = new Map<string, UAReportRow>();
-
-  // Process data rows (start from row 1, after header)
-  for (let i = uaHeaderRowIndex + 2; i <= uaSheet.rowCount; i++) {
-      const row = uaSheet.getRow(i);
-      const cmNo = row.getCell(uaCmColIndex + 1).text;
-
-      if (cmNo && String(cmNo).trim()) {
-        const cmNoStr = String(cmNo).trim();
-        const ubt = parseFloat(row.getCell(ubtColIndex + 1).text.replace(/,/g, '')) || 0;
-
-        uaMap.set(cmNoStr, {
-          cmNo: cmNoStr,
-          ubt
-        });
-      }
-  }
-
-  console.log(`Extracted ${uaMap.size} rows from UA Report (sample C/M numbers: ${Array.from(uaMap.keys()).slice(0, 5).join(', ')})`);
-
-  return { timeFeesMap, uaMap };
+  return excelMap;
 }
 
 async function updateBillingData() {
   try {
-    const { timeFeesMap, uaMap } = await readExcelData();
+    const excelMap = await readExcelData();
 
-    console.log('\n=== Sample Data ===');
-    console.log('\nTime & Fees (first 5):');
-    Array.from(timeFeesMap.entries()).slice(0, 5).forEach(([cmNo, data]) => {
-      console.log(`  ${cmNo}: Billed=${data.feesBilled}, Collected=${data.collected}, A/R=${data.ar}`);
-    });
-
-    console.log('\nUA Report (first 5):');
-    Array.from(uaMap.entries()).slice(0, 5).forEach(([cmNo, data]) => {
-      console.log(`  ${cmNo}: UBT=${data.ubt}`);
+    console.log('\n=== Sample Data (first 5) ===');
+    Array.from(excelMap.entries()).slice(0, 5).forEach(([cmNo, data]) => {
+      console.log(`  ${cmNo}: Fees=$${data.feesUsd.toLocaleString()}, Billing=$${data.billingUsd.toLocaleString()}, Collection=$${data.collectionUsd.toLocaleString()}, UBT=$${data.ubtUsd.toLocaleString()}`);
     });
 
     // Get all CM numbers from database
@@ -136,39 +148,36 @@ async function updateBillingData() {
 
     for (const cmRecord of allCmNos) {
       const cmNo = cmRecord.cm_no.trim();
-      const timeFeesData = timeFeesMap.get(cmNo);
-      const uaData = uaMap.get(cmNo);
+      const excelData = excelMap.get(cmNo);
 
-      if (timeFeesData || uaData) {
+      if (excelData) {
         matchedCount++;
-        console.log(`\nUpdating CM No: ${cmNo}`);
+        console.log(`\nUpdating CM No: ${cmNo} (${excelData.projectName})`);
 
         const updateData: any = {
           financials_updated_at: new Date()
         };
 
-        // Update billing to date (fees billed)
-        if (timeFeesData && timeFeesData.feesBilled !== 0) {
-          updateData.billing_to_date_usd = timeFeesData.feesBilled;
-          console.log(`  - Billing to date: $${timeFeesData.feesBilled.toLocaleString()}`);
+        // Use Billing column as primary, fall back to Fees if Billing is 0
+        const billingValue = excelData.billingUsd || excelData.feesUsd;
+        if (billingValue > 0) {
+          updateData.billing_to_date_usd = billingValue;
+          console.log(`  - Billing to date: $${billingValue.toLocaleString()}`);
         }
 
-        // Update collected to date
-        if (timeFeesData && timeFeesData.collected !== 0) {
-          updateData.collected_to_date_usd = timeFeesData.collected;
-          console.log(`  - Collected to date: $${timeFeesData.collected.toLocaleString()}`);
+        if (excelData.collectionUsd > 0) {
+          updateData.collected_to_date_usd = excelData.collectionUsd;
+          console.log(`  - Collected to date: $${excelData.collectionUsd.toLocaleString()}`);
         }
 
-        // A/R is calculated as billing - collected, but we can store it for reference
-        // Note: The user mentioned A/R in column X, so we'll note it but not store separately
-        if (timeFeesData && timeFeesData.ar !== 0) {
-          console.log(`  - A/R (reference): $${timeFeesData.ar.toLocaleString()}`);
+        if (excelData.billingCreditUsd > 0) {
+          updateData.billing_credit_usd = excelData.billingCreditUsd;
+          console.log(`  - Billing Credit: $${excelData.billingCreditUsd.toLocaleString()}`);
         }
 
-        // Update UBT
-        if (uaData && uaData.ubt !== 0) {
-          updateData.ubt_usd = uaData.ubt;
-          console.log(`  - UBT: $${uaData.ubt.toLocaleString()}`);
+        if (excelData.ubtUsd > 0) {
+          updateData.ubt_usd = excelData.ubtUsd;
+          console.log(`  - UBT: $${excelData.ubtUsd.toLocaleString()}`);
         }
 
         if (Object.keys(updateData).length > 1) { // More than just financials_updated_at
@@ -185,7 +194,6 @@ async function updateBillingData() {
     console.log(`Total CM numbers in database: ${allCmNos.length}`);
     console.log(`Matched CM numbers from Excel: ${matchedCount}`);
     console.log(`Updated CM numbers: ${updatedCount}`);
-    console.log(`\nNote: A/R is not stored separately as it's calculated as (billing_to_date - collected_to_date)`);
 
   } catch (error) {
     console.error('Error:', error);
