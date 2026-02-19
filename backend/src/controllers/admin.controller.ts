@@ -195,7 +195,7 @@ export async function updateBillingFinancials(req: AuthRequest, res: Response) {
     // Dynamic import for xlsx (ESM module)
     const XLSX = await import('xlsx');
     
-    const filePath = '/Users/timli/Library/CloudStorage/OneDrive-Personal/Coding/staffing-tracker/Billing/HKCM Project List (2026.02.12).xlsx';
+    const filePath = './HKCM Project List (2026.02.12).xlsx';
     
     const workbook = XLSX.readFile(filePath);
     const sheet = workbook.Sheets['Transactions'];

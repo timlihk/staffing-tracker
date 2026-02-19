@@ -41,7 +41,7 @@ function parseAmount(value: any): number {
 }
 
 async function readExcelData(): Promise<Map<string, ExcelRow>> {
-  const filePath = '/Users/timli/Library/CloudStorage/OneDrive-Personal/Coding/staffing-tracker/Billing/HKCM Project List (2026.02.12).xlsx';
+  const filePath = './HKCM Project List (2026.02.12).xlsx';
 
   console.log('Reading Excel file...');
   const workbook = XLSX.readFile(filePath);
