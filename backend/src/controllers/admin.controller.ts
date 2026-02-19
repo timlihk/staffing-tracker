@@ -176,3 +176,120 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
     });
   }
 }
+
+/**
+ * POST /api/admin/update-billing-financials
+ * Updates billing financials from Excel file
+ * Requires admin role
+ */
+export async function updateBillingFinancials(req: AuthRequest, res: Response) {
+  try {
+    const authUser = req.user;
+
+    if (authUser?.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    logger.info('Starting billing financials update from Excel');
+
+    // Dynamic import for xlsx (ESM module)
+    const XLSX = await import('xlsx');
+    
+    const filePath = '/Users/timli/Library/CloudStorage/OneDrive-Personal/Coding/staffing-tracker/Billing/HKCM Project List (2026.02.12).xlsx';
+    
+    const workbook = XLSX.readFile(filePath);
+    const sheet = workbook.Sheets['Transactions'];
+    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    
+    // Find column indices
+    const headers = data[3];
+    const colIndex: Record<string, number> = {};
+    headers.forEach((header: any, idx: number) => {
+      if (header) {
+        const headerStr = String(header).trim();
+        if (headerStr.includes('C/M No')) colIndex['cmNo'] = idx;
+        else if (headerStr.includes('Fees (US$)')) colIndex['feesUsd'] = idx;
+        else if (headerStr.includes('Billing \r\n(US$)') || headerStr.includes('Billing (US$)')) colIndex['billingUsd'] = idx;
+        else if (headerStr.includes('Collection \r\n(US$)') || headerStr.includes('Collection (US$)')) colIndex['collectionUsd'] = idx;
+        else if (headerStr.includes('Billing Credit \r\n(US$)') || headerStr.includes('Billing Credit (US$)')) colIndex['billingCreditUsd'] = idx;
+        else if (headerStr.includes('UBT') && headerStr.includes('US$')) colIndex['ubtUsd'] = idx;
+      }
+    });
+
+    // Parse rows
+    const excelMap = new Map<string, any>();
+    for (let i = 4; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.length === 0) continue;
+      const maybeNo = row[1];
+      if (typeof maybeNo !== 'number') continue;
+      
+      const cmNo = colIndex['cmNo'] !== undefined ? row[colIndex['cmNo']] : null;
+      if (!cmNo || String(cmNo).trim() === '') continue;
+      
+      const parseAmount = (val: any): number => {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+          const cleaned = val.replace(/[,$?\s]/g, '');
+          return isNaN(parseFloat(cleaned)) ? 0 : parseFloat(cleaned);
+        }
+        return 0;
+      };
+
+      excelMap.set(String(cmNo).trim(), {
+        billingUsd: colIndex['billingUsd'] !== undefined ? parseAmount(row[colIndex['billingUsd']]) : 0,
+        feesUsd: colIndex['feesUsd'] !== undefined ? parseAmount(row[colIndex['feesUsd']]) : 0,
+        collectionUsd: colIndex['collectionUsd'] !== undefined ? parseAmount(row[colIndex['collectionUsd']]) : 0,
+        billingCreditUsd: colIndex['billingCreditUsd'] !== undefined ? parseAmount(row[colIndex['billingCreditUsd']]) : 0,
+        ubtUsd: colIndex['ubtUsd'] !== undefined ? parseAmount(row[colIndex['ubtUsd']]) : 0,
+      });
+    }
+
+    logger.info(`Parsed ${excelMap.size} rows from Excel`);
+
+    // Get all CM numbers from database
+    const allCmNos = await prisma.billing_project_cm_no.findMany({
+      select: { cm_id: true, cm_no: true }
+    });
+
+    let matchedCount = 0;
+    let updatedCount = 0;
+
+    for (const cmRecord of allCmNos) {
+      const cmNo = cmRecord.cm_no.trim();
+      const excelData = excelMap.get(cmNo);
+
+      if (excelData) {
+        matchedCount++;
+        const updateData: any = { financials_updated_at: new Date() };
+        
+        const billingValue = excelData.billingUsd || excelData.feesUsd;
+        if (billingValue > 0) updateData.billing_to_date_usd = billingValue;
+        if (excelData.collectionUsd > 0) updateData.collected_to_date_usd = excelData.collectionUsd;
+        if (excelData.billingCreditUsd > 0) updateData.billing_credit_usd = excelData.billingCreditUsd;
+        if (excelData.ubtUsd > 0) updateData.ubt_usd = excelData.ubtUsd;
+
+        if (Object.keys(updateData).length > 1) {
+          await prisma.billing_project_cm_no.update({
+            where: { cm_id: cmRecord.cm_id },
+            data: updateData
+          });
+          updatedCount++;
+        }
+      }
+    }
+
+    logger.info(`Billing financials update complete: ${matchedCount} matched, ${updatedCount} updated`);
+
+    res.json({
+      success: true,
+      matched: matchedCount,
+      updated: updatedCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error updating billing financials:', error);
+    res.status(500).json({ error: 'Failed to update billing financials' });
+  }
+}

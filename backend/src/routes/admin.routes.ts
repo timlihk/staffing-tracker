@@ -46,3 +46,19 @@ const router = express.Router();
 router.post('/recreate-billing-views', authenticate, adminController.recreateBillingViews);
 
 export default router;
+
+/**
+ * @openapi
+ * /admin/update-billing-financials:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Update billing financials from Excel
+ *     description: Reads Excel file and updates billing_project_cm_no table. Requires admin role.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Update completed
+ */
+import { updateBillingFinancials } from '../controllers/admin.controller';
+router.post('/update-billing-financials', authenticate, updateBillingFinancials);
