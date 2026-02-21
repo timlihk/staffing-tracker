@@ -31,6 +31,14 @@ interface PendingTriggerData {
   trigger_reason: string;
 }
 
+interface TriggerActionItemUpdate {
+  actionType?: string;
+  description?: string;
+  dueDate?: string | null;
+  status?: 'pending' | 'completed' | 'cancelled';
+  assignedTo?: number | null;
+}
+
 export class ProjectStatusTriggerService {
   /**
    * Process a status change for a project and create pending triggers if matching milestones found
@@ -318,6 +326,19 @@ export class ProjectStatusTriggerService {
           },
         },
         project: true,
+        billing_action_item: {
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                position: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -363,6 +384,19 @@ export class ProjectStatusTriggerService {
           },
         },
         project: true,
+        billing_action_item: {
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                position: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -409,17 +443,34 @@ export class ProjectStatusTriggerService {
         },
       });
 
-      // Create action item
-      await tx.billing_action_item.create({
-        data: {
-          trigger_queue_id: triggerId,
-          milestone_id: trigger.milestone_id,
-          action_type: actionType,
-          description: `Action required: ${this.getActionDescription(actionType)} for milestone`,
-          due_date: this.calculateDueDate(actionType),
-          status: 'pending',
-        },
+      // Create/update the consequence action item for this trigger.
+      const existingActionItem = await tx.billing_action_item.findFirst({
+        where: { trigger_queue_id: triggerId },
+        orderBy: { created_at: 'desc' },
       });
+
+      if (existingActionItem) {
+        await tx.billing_action_item.update({
+          where: { id: existingActionItem.id },
+          data: {
+            action_type: existingActionItem.action_type || actionType,
+            description: existingActionItem.description || `Action required: ${this.getActionDescription(actionType)} for milestone`,
+            due_date: existingActionItem.due_date ?? this.calculateDueDate(actionType),
+            status: existingActionItem.status || 'pending',
+          },
+        });
+      } else {
+        await tx.billing_action_item.create({
+          data: {
+            trigger_queue_id: triggerId,
+            milestone_id: trigger.milestone_id,
+            action_type: actionType,
+            description: `Action required: ${this.getActionDescription(actionType)} for milestone`,
+            due_date: this.calculateDueDate(actionType),
+            status: 'pending',
+          },
+        });
+      }
 
       logger.info(`Confirmed trigger ${triggerId}, milestone ${trigger.milestone_id} marked complete`);
 
@@ -453,9 +504,133 @@ export class ProjectStatusTriggerService {
         },
       });
 
+      await tx.billing_action_item.updateMany({
+        where: {
+          trigger_queue_id: triggerId,
+          status: 'pending',
+        },
+        data: {
+          status: 'cancelled',
+          completed_at: null,
+        },
+      });
+
       logger.info(`Rejected trigger ${triggerId}`);
 
       return updatedTrigger;
+    });
+  }
+
+  /**
+   * Add or edit consequence action item for a trigger and update action status.
+   */
+  static async updateTriggerActionItem(triggerId: number, updates: TriggerActionItemUpdate): Promise<any> {
+    return prisma.$transaction(async (tx: any) => {
+      const trigger = await tx.billing_milestone_trigger_queue.findUnique({
+        where: { id: triggerId },
+        include: {
+          billing_action_item: {
+            orderBy: { created_at: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      if (!trigger) {
+        throw new Error('Trigger not found');
+      }
+
+      const existingActionItem = trigger.billing_action_item?.[0] || null;
+      const resolvedActionType = (updates.actionType || existingActionItem?.action_type || trigger.action_taken || this.getActionTypeForStatus(trigger.new_status)).trim();
+      const resolvedDescription = (updates.description || existingActionItem?.description || `Action required: ${this.getActionDescription(resolvedActionType)} for milestone`).trim();
+
+      if (updates.assignedTo !== undefined && updates.assignedTo !== null) {
+        const staff = await tx.staff.findUnique({
+          where: { id: updates.assignedTo },
+          select: { id: true },
+        });
+        if (!staff) {
+          throw new Error('Assigned staff not found');
+        }
+      }
+
+      let dueDateToPersist: Date | null | undefined;
+      if (updates.dueDate !== undefined) {
+        if (updates.dueDate === null || updates.dueDate === '') {
+          dueDateToPersist = null;
+        } else {
+          const parsedDate = new Date(updates.dueDate);
+          if (Number.isNaN(parsedDate.getTime())) {
+            throw new Error('Invalid due date');
+          }
+          dueDateToPersist = parsedDate;
+        }
+      }
+
+      const resolvedStatus = updates.status || existingActionItem?.status || 'pending';
+      const completedAt = resolvedStatus === 'completed'
+        ? (existingActionItem?.completed_at || new Date())
+        : null;
+
+      const payload: any = {
+        action_type: resolvedActionType,
+        description: resolvedDescription,
+        status: resolvedStatus,
+        completed_at: completedAt,
+      };
+
+      if (dueDateToPersist !== undefined) {
+        payload.due_date = dueDateToPersist;
+      } else if (!existingActionItem) {
+        payload.due_date = this.calculateDueDate(resolvedActionType);
+      }
+
+      if (updates.assignedTo !== undefined) {
+        payload.assigned_to = updates.assignedTo;
+      }
+
+      let actionItem: any;
+      if (existingActionItem) {
+        actionItem = await tx.billing_action_item.update({
+          where: { id: existingActionItem.id },
+          data: payload,
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                position: true,
+              },
+            },
+          },
+        });
+      } else {
+        actionItem = await tx.billing_action_item.create({
+          data: {
+            trigger_queue_id: triggerId,
+            milestone_id: trigger.milestone_id,
+            ...payload,
+          },
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                position: true,
+              },
+            },
+          },
+        });
+      }
+
+      if (trigger.action_taken !== resolvedActionType) {
+        await tx.billing_milestone_trigger_queue.update({
+          where: { id: triggerId },
+          data: { action_taken: resolvedActionType },
+        });
+      }
+
+      return actionItem;
     });
   }
 

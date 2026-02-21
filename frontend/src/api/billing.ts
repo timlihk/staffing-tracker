@@ -195,6 +195,21 @@ export interface BillingTriggerRow {
     name: string;
     status: string;
   } | null;
+  actionItem?: BillingTriggerActionItem | null;
+}
+
+export interface BillingTriggerActionItem {
+  id: number;
+  actionType: string;
+  description: string;
+  dueDate: string | null;
+  status: 'pending' | 'completed' | 'cancelled';
+  completedAt: string | null;
+  assignedTo?: {
+    id: number;
+    name: string;
+    position: string | null;
+  } | null;
 }
 
 export interface BillingOverdueRow {
@@ -409,6 +424,20 @@ export const confirmBillingTrigger = async (id: number) => {
 
 export const rejectBillingTrigger = async (id: number) => {
   const response = await apiClient.post(`/billing/triggers/${id}/reject`);
+  return response.data;
+};
+
+export const updateTriggerActionItem = async (
+  id: number,
+  data: Partial<{
+    actionType: string;
+    description: string;
+    dueDate: string | null;
+    status: 'pending' | 'completed' | 'cancelled';
+    assignedTo: number | null;
+  }>
+) => {
+  const response = await apiClient.patch(`/billing/triggers/${id}/action-item`, data);
   return response.data;
 };
 

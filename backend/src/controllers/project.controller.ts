@@ -46,6 +46,7 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
     if (typeof search === 'string' && search.trim()) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
+        { cmNumber: { contains: search, mode: 'insensitive' } },
         { notes: { contains: search, mode: 'insensitive' } },
       ];
     }
@@ -73,6 +74,7 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
         select: {
           id: true,
           name: true,
+          cmNumber: true,
           category: true,
           status: true,
           lifecycleStage: true,

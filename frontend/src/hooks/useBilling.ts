@@ -412,6 +412,30 @@ export function useRejectBillingTrigger() {
   });
 }
 
+export function useUpdateTriggerActionItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: {
+      id: number;
+      data: Partial<{
+        actionType: string;
+        description: string;
+        dueDate: string | null;
+        status: 'pending' | 'completed' | 'cancelled';
+        assignedTo: number | null;
+      }>;
+    }) => billingApi.updateTriggerActionItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
+      toast.success('Trigger action updated');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to update trigger action'));
+    },
+  });
+}
+
 const extractBillingError = (error: unknown, fallback: string): string => {
   if (isAxiosError<{ error?: string }>(error)) {
     return error.response?.data?.error ?? fallback;

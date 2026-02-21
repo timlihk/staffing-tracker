@@ -18,6 +18,7 @@ import {
   linkProjectsSchema,
   mapBCAttorneySchema,
   updateBillingAccessSettingsSchema,
+  updateTriggerActionItemSchema,
   billingIdParamSchema,
   engagementIdParamSchema,
   milestoneIdParamSchema,
@@ -939,6 +940,39 @@ router.post('/triggers/:id/confirm', authenticate, adminOnly, billingTriggerCont
  *         description: Unauthorized
  */
 router.post('/triggers/:id/reject', authenticate, adminOnly, billingTriggerController.rejectTrigger);
+
+/**
+ * @openapi
+ * /billing/triggers/{id}/action-item:
+ *   patch:
+ *     tags: [Billing]
+ *     summary: Add or update trigger action item
+ *     description: Create/edit consequence action details for a trigger, including action status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Action item updated successfully
+ *       400:
+ *         description: Invalid trigger ID or payload
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch(
+  '/triggers/:id/action-item',
+  authenticate,
+  checkBillingAccess,
+  adminOnly,
+  validate(billingIdParamSchema, 'params'),
+  validate(updateTriggerActionItemSchema),
+  billingTriggerController.updateTriggerActionItem
+);
 
 /**
  * @openapi

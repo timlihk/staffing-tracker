@@ -155,6 +155,35 @@ export const updateBillingAccessSettingsSchema = z.object({
 });
 
 /**
+ * Trigger action item update schema
+ */
+export const updateTriggerActionItemSchema = z.object({
+  actionType: z.string()
+    .min(1, 'Action type is required')
+    .max(120, 'Action type must not exceed 120 characters')
+    .trim()
+    .optional(),
+  description: z.string()
+    .min(1, 'Description is required')
+    .max(2000, 'Description must not exceed 2000 characters')
+    .trim()
+    .optional(),
+  dueDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Due date must be in YYYY-MM-DD format')
+    .nullable()
+    .optional(),
+  status: z.enum(['pending', 'completed', 'cancelled']).optional(),
+  assignedTo: z.number()
+    .int('assignedTo must be an integer')
+    .positive('assignedTo must be positive')
+    .nullable()
+    .optional(),
+}).refine(
+  (data) => Object.values(data).some((value) => value !== undefined),
+  { message: 'At least one field must be provided' }
+);
+
+/**
  * ID parameter schemas
  */
 export const billingIdParamSchema = z.object({
@@ -188,3 +217,4 @@ export type UpdateMilestonesInput = z.infer<typeof updateMilestonesSchema>;
 export type LinkProjectsInput = z.infer<typeof linkProjectsSchema>;
 export type MapBCAttorneyInput = z.infer<typeof mapBCAttorneySchema>;
 export type UpdateBillingAccessSettingsInput = z.infer<typeof updateBillingAccessSettingsSchema>;
+export type UpdateTriggerActionItemInput = z.infer<typeof updateTriggerActionItemSchema>;

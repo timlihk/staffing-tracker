@@ -4,6 +4,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   MenuItem,
   Paper,
   Stack,
@@ -22,10 +26,12 @@ import {
   useConfirmBillingTrigger,
   useOverdueByAttorney,
   useRejectBillingTrigger,
+  useUpdateTriggerActionItem,
 } from '../hooks/useBilling';
 import type { BillingOverdueRow, BillingTriggerRow } from '../api/billing';
 
 type SortField = 'overdueAmount' | 'overdueCount' | 'avgDaysOverdue' | 'projectCount';
+type ActionStatus = 'pending' | 'completed' | 'cancelled';
 
 interface AttorneySummary {
   staffId: number;
@@ -59,6 +65,11 @@ const daysOverdue = (dueDate?: string | null) => {
 };
 
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
+const toInputDate = (value?: string | null) => (value ? new Date(value).toISOString().slice(0, 10) : '');
+const formatCode = (value?: string | null) => {
+  if (!value) return '—';
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+};
 const getErrorMessage = (error: unknown) => {
   if (isAxiosError<{ error?: string }>(error)) {
     return error.response?.data?.error || error.message;
@@ -74,6 +85,11 @@ const BillingControlTower: React.FC = () => {
   const [minAmount, setMinAmount] = useState<number | undefined>(undefined);
   const [triggerStatus, setTriggerStatus] = useState<'pending' | 'confirmed' | 'rejected' | 'all'>('pending');
   const [sortField, setSortField] = useState<SortField>('overdueAmount');
+  const [editingTrigger, setEditingTrigger] = useState<BillingTriggerRow | null>(null);
+  const [actionTypeInput, setActionTypeInput] = useState('general_followup');
+  const [actionStatusInput, setActionStatusInput] = useState<ActionStatus>('pending');
+  const [actionDueDateInput, setActionDueDateInput] = useState('');
+  const [actionDescriptionInput, setActionDescriptionInput] = useState('');
 
   const overdueQuery = useOverdueByAttorney({
     attorneyId: attorneyFilter,
@@ -86,6 +102,7 @@ const BillingControlTower: React.FC = () => {
 
   const confirmTrigger = useConfirmBillingTrigger();
   const rejectTrigger = useRejectBillingTrigger();
+  const updateTriggerActionItem = useUpdateTriggerActionItem();
 
   const overdueRows = overdueQuery.data ?? [];
   const triggerRows = triggersQuery.data ?? [];
@@ -205,6 +222,33 @@ const BillingControlTower: React.FC = () => {
 
   const handleReject = async (trigger: BillingTriggerRow) => {
     await rejectTrigger.mutateAsync(trigger.id);
+  };
+
+  const openActionEditor = (trigger: BillingTriggerRow) => {
+    setEditingTrigger(trigger);
+    setActionTypeInput(trigger.actionItem?.actionType || trigger.actionTaken || 'general_followup');
+    setActionStatusInput(trigger.actionItem?.status || 'pending');
+    setActionDueDateInput(toInputDate(trigger.actionItem?.dueDate));
+    setActionDescriptionInput(trigger.actionItem?.description || '');
+  };
+
+  const closeActionEditor = () => {
+    if (updateTriggerActionItem.isPending) return;
+    setEditingTrigger(null);
+  };
+
+  const handleSaveActionItem = async () => {
+    if (!editingTrigger) return;
+    await updateTriggerActionItem.mutateAsync({
+      id: editingTrigger.id,
+      data: {
+        actionType: actionTypeInput || undefined,
+        status: actionStatusInput,
+        dueDate: actionDueDateInput ? actionDueDateInput : null,
+        description: actionDescriptionInput.trim() ? actionDescriptionInput.trim() : undefined,
+      },
+    });
+    setEditingTrigger(null);
   };
 
   return (
@@ -350,6 +394,9 @@ const BillingControlTower: React.FC = () => {
                   <TableCell>Milestone</TableCell>
                   <TableCell>Reason</TableCell>
                   <TableCell align="right">Confidence</TableCell>
+                  <TableCell>Consequence / Action</TableCell>
+                  <TableCell>Action Status</TableCell>
+                  <TableCell>Action Due</TableCell>
                   <TableCell>Created</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
@@ -357,7 +404,7 @@ const BillingControlTower: React.FC = () => {
               <TableBody>
                 {triggerRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={10} align="center">
                       No triggers found for the selected filter
                     </TableCell>
                   </TableRow>
@@ -369,32 +416,43 @@ const BillingControlTower: React.FC = () => {
                       <TableCell>{row.milestone?.title || '—'}</TableCell>
                       <TableCell>{row.triggerReason || '—'}</TableCell>
                       <TableCell align="right">{(row.matchConfidence * 100).toFixed(0)}%</TableCell>
+                      <TableCell>{formatCode(row.actionItem?.actionType || row.actionTaken)}</TableCell>
+                      <TableCell>{formatCode(row.actionItem?.status)}</TableCell>
+                      <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
                       <TableCell>{formatDate(row.createdAt)}</TableCell>
                       <TableCell align="right">
-                        {row.status === 'pending' ? (
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="success"
-                              onClick={() => handleConfirm(row)}
-                              disabled={confirmTrigger.isPending || rejectTrigger.isPending}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="error"
-                              onClick={() => handleReject(row)}
-                              disabled={confirmTrigger.isPending || rejectTrigger.isPending}
-                            >
-                              Reject
-                            </Button>
-                          </Stack>
-                        ) : (
-                          '—'
-                        )}
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          {row.status === 'pending' && (
+                            <>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                onClick={() => handleConfirm(row)}
+                                disabled={confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending}
+                              >
+                                Confirm
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                onClick={() => handleReject(row)}
+                                disabled={confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending}
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => openActionEditor(row)}
+                            disabled={confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending}
+                          >
+                            {row.actionItem ? 'Edit Action' : 'Add Action'}
+                          </Button>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))
@@ -444,6 +502,65 @@ const BillingControlTower: React.FC = () => {
           </Section>
         </Stack>
       )}
+
+      <Dialog open={!!editingTrigger} onClose={closeActionEditor} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingTrigger?.actionItem ? 'Edit Trigger Action' : 'Add Trigger Action'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              select
+              label="Action Type"
+              value={actionTypeInput}
+              onChange={(e) => setActionTypeInput(e.target.value)}
+              fullWidth
+            >
+              <MenuItem value="issue_invoice">Issue Invoice</MenuItem>
+              <MenuItem value="follow_up_payment">Follow Up Payment</MenuItem>
+              <MenuItem value="pause_billing">Pause Billing</MenuItem>
+              <MenuItem value="adjust_billing_schedule">Adjust Billing Schedule</MenuItem>
+              <MenuItem value="review_billing_agreement">Review Billing Agreement</MenuItem>
+              <MenuItem value="general_followup">General Follow-up</MenuItem>
+            </TextField>
+            <TextField
+              select
+              label="Action Status"
+              value={actionStatusInput}
+              onChange={(e) => setActionStatusInput(e.target.value as ActionStatus)}
+              fullWidth
+            >
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="cancelled">Cancelled</MenuItem>
+            </TextField>
+            <TextField
+              type="date"
+              label="Action Due Date"
+              value={actionDueDateInput}
+              onChange={(e) => setActionDueDateInput(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <TextField
+              label="Description"
+              value={actionDescriptionInput}
+              onChange={(e) => setActionDescriptionInput(e.target.value)}
+              multiline
+              minRows={3}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeActionEditor} disabled={updateTriggerActionItem.isPending}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSaveActionItem} disabled={updateTriggerActionItem.isPending}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Page>
   );
 };

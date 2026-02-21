@@ -74,6 +74,7 @@ const Projects: React.FC = () => {
   // CSV export columns
   const csvColumns: CsvColumn<Project>[] = [
     { header: 'Project Name', key: 'name' },
+    { header: 'C/M Number', key: 'cmNumber' },
     { header: 'Status', key: 'status' },
     { header: 'Lifecycle Stage', key: 'lifecycleStage', formatter: (v) => formatLifecycleStage(v as string | null) },
     { header: 'Category', key: 'category' },
@@ -122,6 +123,17 @@ const Projects: React.FC = () => {
         >
           {params.value}
         </Box>
+      ),
+    },
+    {
+      field: 'cmNumber',
+      headerName: 'C/M Number',
+      flex: 0.6,
+      minWidth: 130,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {params.row.cmNumber || '—'}
+        </Typography>
       ),
     },
     {
