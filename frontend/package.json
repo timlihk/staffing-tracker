@@ -9,6 +9,7 @@
     "build:check": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start": "serve -s dist -l 8080",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
@@ -35,6 +36,7 @@
     "react-hook-form": "^7.63.0",
     "react-router-dom": "^7.9.3",
     "recharts": "^3.2.1",
+    "serve": "^14.2.5",
     "sonner": "^2.0.7",
     "zod": "^4.1.11"
   },
