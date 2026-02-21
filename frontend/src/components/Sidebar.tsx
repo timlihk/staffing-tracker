@@ -21,7 +21,6 @@ import {
   Dashboard,
   FolderOpen,
   People,
-  BarChart,
   ManageAccounts,
   Logout,
   Menu,
@@ -99,7 +98,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
     { text: 'Projects', icon: <FolderOpen />, path: '/projects' },
     { text: 'Staff', icon: <People />, path: '/staff' },
-    { text: 'Project Report', icon: <BarChart />, path: '/project-report' },
     { text: 'Billing', icon: <AttachMoney />, path: '/billing' },
   ];
 

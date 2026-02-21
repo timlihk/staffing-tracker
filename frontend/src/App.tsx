@@ -22,7 +22,6 @@ const ProjectForm = lazy(() => import('./pages/ProjectForm'));
 const Staff = lazy(() => import('./pages/Staff'));
 const StaffDetail = lazy(() => import('./pages/StaffDetail'));
 const StaffForm = lazy(() => import('./pages/StaffForm'));
-const ProjectReport = lazy(() => import('./pages/ProjectReport'));
 
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -210,18 +209,6 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <StaffDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Reports */}
-            <Route
-              path="/project-report"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ProjectReport />
                   </Layout>
                 </ProtectedRoute>
               }
