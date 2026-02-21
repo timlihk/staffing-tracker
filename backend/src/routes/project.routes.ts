@@ -4,7 +4,7 @@ import * as bcAttorneyController from '../controllers/bcAttorney.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { validate } from '../middleware/validate';
-import { projectSchema, idParamSchema, projectQuerySchema, bcAttorneySchema } from '../schemas/project.schema';
+import { projectSchema, idParamSchema, projectQuerySchema, bcAttorneySchema, projectEventCreateSchema } from '../schemas/project.schema';
 
 const router = Router();
 
@@ -122,6 +122,16 @@ router.get('/needing-attention', authenticate, asyncHandler(projectController.ge
  *         description: Project not found
  */
 router.get('/:id', authenticate, validate(idParamSchema, 'params'), asyncHandler(projectController.getProjectById));
+
+router.get('/:id/events', authenticate, validate(idParamSchema, 'params'), asyncHandler(projectController.getProjectEvents));
+router.post(
+  '/:id/events',
+  authenticate,
+  authorize('admin', 'editor'),
+  validate(idParamSchema, 'params'),
+  validate(projectEventCreateSchema),
+  asyncHandler(projectController.addProjectEvent)
+);
 
 /**
  * @openapi

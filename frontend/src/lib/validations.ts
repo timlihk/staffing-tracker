@@ -13,6 +13,7 @@ export const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
   category: z.string().min(1, 'Category is required'),
   status: z.string().min(1, 'Status is required'),
+  lifecycleStage: z.string().optional(),
   priority: z.string().optional(),
   elStatus: z.string().optional(),
   timetable: z.enum(['PRE_A1', 'A1', 'HEARING', 'LISTING']).optional(),

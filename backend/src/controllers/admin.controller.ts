@@ -8,6 +8,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { Prisma } from '@prisma/client';
 import { logger } from '../utils/logger';
+import { ProjectEventTriggerService } from '../services/project-event-trigger.service';
 
 /**
  * POST /api/admin/recreate-billing-views
@@ -328,5 +329,48 @@ export async function updateBillingFinancials(req: AuthRequest, res: Response) {
   } catch (error) {
     logger.error('Error updating billing financials:', error as any);
     res.status(500).json({ error: 'Failed to update billing financials' });
+  }
+}
+
+/**
+ * POST /api/admin/backfill-milestone-trigger-rules
+ * Infers trigger rules from parsed milestone text and upserts rule records
+ * Requires admin role
+ */
+export async function backfillMilestoneTriggerRules(req: AuthRequest, res: Response) {
+  try {
+    const authUser = req.user;
+    if (authUser?.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const dryRun = req.query.dryRun === 'true';
+    const onlyMissing = req.query.onlyMissing !== 'false';
+    const limit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : undefined;
+    if (limit !== undefined && Number.isNaN(limit)) {
+      return res.status(400).json({ error: 'limit must be a valid integer' });
+    }
+
+    const result = await ProjectEventTriggerService.backfillMilestoneTriggerRules({
+      dryRun,
+      onlyMissing,
+      limit,
+    });
+
+    res.json({
+      success: true,
+      dryRun,
+      onlyMissing,
+      limit: limit || null,
+      result,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error backfilling milestone trigger rules', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to backfill milestone trigger rules',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 }

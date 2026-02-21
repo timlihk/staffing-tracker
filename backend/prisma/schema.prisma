@@ -26,8 +26,10 @@ model User {
   billing_milestone_billing_milestone_payment_received_byTousers billing_milestone[]             @relation("billing_milestone_payment_received_byTousers")
   billing_staffing_project_link                                  billing_staffing_project_link[]
   billing_milestone_trigger_queue                                billing_milestone_trigger_queue[]
+  projectEventsCreated                                           project_event[]                  @relation("ProjectEventCreatedBy")
   projectChanges                                                 ProjectChangeHistory[]          @relation("ProjectChanges")
   projectConfirmations                                           Project[]                       @relation("ProjectConfirmations")
+  projectLifecycleChanges                                        Project[]                       @relation("ProjectLifecycleChanges")
   staffChanges                                                   StaffChangeHistory[]            @relation("StaffChanges")
   refreshTokens                                                  RefreshToken[]
   staff                                                          Staff?                          @relation(fields: [staffId], references: [id])
@@ -80,12 +82,18 @@ model Project {
   side                          String?
   lastConfirmedAt               DateTime?                       @map("last_confirmed_at")
   lastConfirmedBy               Int?                            @map("last_confirmed_by")
+  lifecycleStage                String?                         @map("lifecycle_stage")
+  lifecycleStageChangedAt       DateTime?                       @map("lifecycle_stage_changed_at")
+  lifecycleStageChangedBy       Int?                            @map("lifecycle_stage_changed_by")
+  stageVersion                  Int                             @default(0) @map("stage_version")
   billing_staffing_project_link billing_staffing_project_link[]
   billing_milestone_trigger_queue billing_milestone_trigger_queue[]
+  projectEvents                 project_event[]
   assignments                   ProjectAssignment[]
   bcAttorneys                   ProjectBcAttorney[]
   changeHistory                 ProjectChangeHistory[]          @relation("ProjectChangeHistory")
   confirmedBy                   User?                           @relation("ProjectConfirmations", fields: [lastConfirmedBy], references: [id])
+  lifecycleChangedBy            User?                           @relation("ProjectLifecycleChanges", fields: [lifecycleStageChangedBy], references: [id])
 
   @@index([status])
   @@index([category])
@@ -93,7 +101,34 @@ model Project {
   @@index([timetable])
   @@index([lastConfirmedAt])
   @@index([cmNumber])
+  @@index([lifecycleStage])
+  @@index([stageVersion])
   @@map("projects")
+}
+
+model project_event {
+  id                    Int       @id @default(autoincrement())
+  project_id            Int       @map("project_id")
+  event_type            String    @map("event_type")
+  event_key             String?   @unique @map("event_key")
+  occurred_at           DateTime  @default(now()) @map("occurred_at")
+  status_from           String?   @map("status_from")
+  status_to             String?   @map("status_to")
+  lifecycle_stage_from  String?   @map("lifecycle_stage_from")
+  lifecycle_stage_to    String?   @map("lifecycle_stage_to")
+  source                String    @default("system")
+  payload               Json?
+  created_by            Int?      @map("created_by")
+  created_at            DateTime  @default(now()) @map("created_at")
+  project               Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  createdBy             User?     @relation("ProjectEventCreatedBy", fields: [created_by], references: [id], onDelete: SetNull)
+  billing_milestone_trigger_queue billing_milestone_trigger_queue[]
+
+  @@index([project_id], map: "idx_project_event_project")
+  @@index([event_type], map: "idx_project_event_type")
+  @@index([occurred_at], map: "idx_project_event_occurred")
+  @@index([project_id, occurred_at], map: "idx_project_event_project_occurred")
+  @@map("project_event")
 }
 
 model ProjectAssignment {
@@ -389,6 +424,7 @@ model billing_milestone {
   users_billing_milestone_payment_received_byTousers User?                    @relation("billing_milestone_payment_received_byTousers", fields: [payment_received_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   billing_milestone_trigger_queue billing_milestone_trigger_queue[]
   billing_action_item billing_action_item[]
+  billing_milestone_trigger_rule billing_milestone_trigger_rule[]
 
   @@unique([engagement_id, ordinal], map: "billing_milestone_engagement_ordinal_unique")
   @@index([invoice_sent_date, payment_received_date], map: "idx_billing_milestone_billing_status")
@@ -397,6 +433,33 @@ model billing_milestone {
   @@index([engagement_id, sort_order], map: "idx_billing_milestone_engagement_sort")
   @@index([fee_id, sort_order], map: "idx_billing_milestone_fee_sort")
   @@index([last_reminder_sent_at], map: "idx_billing_milestone_last_reminder_sent")
+}
+
+model billing_milestone_trigger_rule {
+  id                      Int       @id @default(autoincrement())
+  milestone_id            BigInt    @map("milestone_id")
+  trigger_mode            String    @default("manual") @map("trigger_mode") // common, bespoke, manual, legacy_text
+  anchor_event_type       String?   @map("anchor_event_type")
+  requires_invoice_issued Boolean   @default(false) @map("requires_invoice_issued")
+  requires_payment_received Boolean @default(false) @map("requires_payment_received")
+  due_in_business_days    Int?      @map("due_in_business_days")
+  fallback_due_date       DateTime? @db.Date @map("fallback_due_date")
+  recurrence              String?   @default("none")
+  auto_confirm            Boolean   @default(false) @map("auto_confirm")
+  manual_confirm_required Boolean   @default(true) @map("manual_confirm_required")
+  condition_json          Json?     @map("condition_json")
+  confidence              Decimal?  @db.Decimal(3, 2)
+  rule_version            Int       @default(1) @map("rule_version")
+  created_at              DateTime  @default(now()) @map("created_at")
+  updated_at              DateTime  @default(now()) @map("updated_at")
+  milestone               billing_milestone @relation(fields: [milestone_id], references: [milestone_id], onDelete: Cascade)
+  billing_milestone_trigger_queue billing_milestone_trigger_queue[]
+
+  @@index([milestone_id], map: "idx_trigger_rule_milestone")
+  @@index([trigger_mode], map: "idx_trigger_rule_mode")
+  @@index([anchor_event_type], map: "idx_trigger_rule_anchor")
+  @@index([auto_confirm], map: "idx_trigger_rule_auto_confirm")
+  @@map("billing_milestone_trigger_rule")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -545,18 +608,26 @@ model billing_milestone_trigger_queue {
   confirmed_by          Int?      @map("confirmed_by")
   confirmed_at          DateTime? @map("confirmed_at")
   action_taken          String?   @map("action_taken") // invoice_issued, payment_followup, etc.
+  project_event_id      Int?      @map("project_event_id")
+  rule_id               Int?      @map("rule_id")
+  match_method          String?   @map("match_method") // common_rule, bespoke_rule, legacy_text
   created_at            DateTime  @default(now()) @map("created_at")
 
   // Relations
   milestone             billing_milestone @relation(fields: [milestone_id], references: [milestone_id], onDelete: Cascade)
   project               Project           @relation(fields: [staffing_project_id], references: [id], onDelete: Cascade)
   confirmedBy           User?            @relation(fields: [confirmed_by], references: [id], onDelete: SetNull)
+  projectEvent          project_event?   @relation(fields: [project_event_id], references: [id], onDelete: SetNull)
+  rule                  billing_milestone_trigger_rule? @relation(fields: [rule_id], references: [id], onDelete: SetNull)
   billing_action_item  billing_action_item[]
 
   // Unique constraint to prevent duplicate pending triggers
   @@unique([milestone_id, new_status, status], map: "idx_trigger_unique_pending")
+  @@unique([milestone_id, project_event_id], map: "idx_trigger_unique_event")
   @@index([status], map: "idx_trigger_queue_status")
   @@index([staffing_project_id], map: "idx_trigger_queue_project")
+  @@index([project_event_id], map: "idx_trigger_queue_event")
+  @@index([rule_id], map: "idx_trigger_queue_rule")
   @@index([created_at], map: "idx_trigger_queue_created")
   @@map("billing_milestone_trigger_queue")
 }

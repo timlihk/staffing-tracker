@@ -60,6 +60,7 @@ const ProjectForm: React.FC = () => {
       name: '',
       category: '',
       status: 'Active',
+      lifecycleStage: '',
       priority: 'Medium',
       elStatus: '',
       timetable: undefined,
@@ -78,6 +79,7 @@ const ProjectForm: React.FC = () => {
         name: project.name,
         category: project.category,
         status: project.status,
+        lifecycleStage: project.lifecycleStage || '',
         priority: project.priority || 'Medium',
         elStatus: project.elStatus || '',
         timetable: project.timetable,
@@ -120,6 +122,7 @@ const ProjectForm: React.FC = () => {
           : cleanedData.timetable;
       cleanedData.bcAttorney = normalize(cleanedData.bcAttorney);
       cleanedData.elStatus = normalize(cleanedData.elStatus);
+      cleanedData.lifecycleStage = normalize(cleanedData.lifecycleStage);
       cleanedData.filingDate = normalize(cleanedData.filingDate);
       cleanedData.listingDate = normalize(cleanedData.listingDate);
       cleanedData.side = normalize(cleanedData.side);
@@ -254,7 +257,7 @@ const ProjectForm: React.FC = () => {
                   fullWidth
                   label="Status"
                   error={!!errors.status}
-                  helperText={errors.status?.message}
+                  helperText={errors.status?.message || 'Operational state of the project.'}
                   disabled={isSubmitting}
                 >
                   <MenuItem value="Active">Active</MenuItem>
@@ -262,6 +265,35 @@ const ProjectForm: React.FC = () => {
                   <MenuItem value="Suspended">Suspended</MenuItem>
                   <MenuItem value="Closed">Closed</MenuItem>
                   <MenuItem value="Terminated">Terminated</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="lifecycleStage"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="Lifecycle Stage"
+                  error={!!errors.lifecycleStage}
+                  helperText={
+                    errors.lifecycleStage?.message ||
+                    'Phase milestone (separate from operational status).'
+                  }
+                  disabled={isSubmitting}
+                  value={field.value || ''}
+                >
+                  <MenuItem value="">None</MenuItem>
+                  <MenuItem value="signed">Signed</MenuItem>
+                  <MenuItem value="kickoff">Kickoff</MenuItem>
+                  <MenuItem value="confidential_filed">Confidential Filed</MenuItem>
+                  <MenuItem value="a1_filed">A1 Filed</MenuItem>
+                  <MenuItem value="hearing_passed">Hearing Passed</MenuItem>
+                  <MenuItem value="listed">Listed</MenuItem>
+                  <MenuItem value="renewal_cycle">Renewal Cycle</MenuItem>
                 </TextField>
               )}
             />

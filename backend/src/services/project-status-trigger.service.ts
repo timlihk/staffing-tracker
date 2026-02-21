@@ -469,6 +469,17 @@ export class ProjectStatusTriggerService {
       'Suspended': 'pause_billing',
       'Slow-down': 'adjust_billing_schedule',
       'On Hold': 'review_billing_agreement',
+      'PROJECT_CLOSED': 'issue_invoice',
+      'LISTING_COMPLETED': 'issue_invoice',
+      'PROJECT_TERMINATED': 'follow_up_payment',
+      'PROJECT_PAUSED': 'pause_billing',
+      'PROJECT_RESUMED': 'adjust_billing_schedule',
+      'EL_SIGNED': 'review_billing_agreement',
+      'PROJECT_KICKOFF': 'adjust_billing_schedule',
+      'A1_SUBMITTED': 'general_followup',
+      'HEARING_PASSED': 'general_followup',
+      'CONFIDENTIAL_FILING_SUBMITTED': 'general_followup',
+      'RENEWAL_CYCLE_STARTED': 'review_billing_agreement',
     };
 
     return actionMap[status] || 'general_followup';

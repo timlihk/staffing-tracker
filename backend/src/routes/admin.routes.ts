@@ -45,8 +45,6 @@ const router = express.Router();
  */
 router.post('/recreate-billing-views', authenticate, adminController.recreateBillingViews);
 
-export default router;
-
 /**
  * @openapi
  * /admin/update-billing-financials:
@@ -60,5 +58,7 @@ export default router;
  *       200:
  *         description: Update completed
  */
-import { updateBillingFinancials } from '../controllers/admin.controller';
-router.post('/update-billing-financials', authenticate, updateBillingFinancials);
+router.post('/update-billing-financials', authenticate, adminController.updateBillingFinancials);
+router.post('/backfill-milestone-trigger-rules', authenticate, adminController.backfillMilestoneTriggerRules);
+
+export default router;

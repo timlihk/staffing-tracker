@@ -4,6 +4,7 @@ import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../ut
 import { trackFieldChanges } from '../utils/changeTracking';
 import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
 import { ProjectStatusTriggerService } from '../services/project-status-trigger.service';
+import { ProjectEventTriggerService } from '../services/project-event-trigger.service';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { logger } from '../utils/logger';
 import type { Prisma } from '@prisma/client';
@@ -74,6 +75,8 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
           name: true,
           category: true,
           status: true,
+          lifecycleStage: true,
+          stageVersion: true,
           priority: true,
           elStatus: true,
           timetable: true,
@@ -138,6 +141,8 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
         name: true,
         category: true,
         status: true,
+        lifecycleStage: true,
+        stageVersion: true,
         priority: true,
         elStatus: true,
         timetable: true,
@@ -149,6 +154,8 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
         notes: true,
         lastConfirmedAt: true,
         lastConfirmedBy: true,
+        lifecycleStageChangedAt: true,
+        lifecycleStageChangedBy: true,
         createdAt: true,
         updatedAt: true,
         assignments: {
@@ -199,6 +206,83 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getProjectEvents = async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id as string, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const eventType = typeof req.query.eventType === 'string' ? req.query.eventType : undefined;
+    const limit = typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : undefined;
+
+    const events = await ProjectEventTriggerService.getProjectEvents(projectId, {
+      eventType,
+      limit: Number.isNaN(limit as number) ? undefined : limit,
+    });
+
+    res.json(events);
+  } catch (error) {
+    logger.error('Get project events error', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const addProjectEvent = async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id as string, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const {
+      eventType,
+      occurredAt,
+      source,
+      payload,
+      statusFrom,
+      statusTo,
+      lifecycleStageFrom,
+      lifecycleStageTo,
+      eventKey,
+    } = req.body as {
+      eventType: string;
+      occurredAt?: string;
+      source?: string;
+      payload?: Record<string, unknown>;
+      statusFrom?: string;
+      statusTo?: string;
+      lifecycleStageFrom?: string;
+      lifecycleStageTo?: string;
+      eventKey?: string;
+    };
+
+    if (!eventType || !eventType.trim()) {
+      return res.status(400).json({ error: 'eventType is required' });
+    }
+
+    const created = await ProjectEventTriggerService.createProjectEvent({
+      projectId,
+      eventType: eventType.trim(),
+      occurredAt: occurredAt ? new Date(occurredAt) : undefined,
+      source: source || 'manual',
+      payload: payload || null,
+      createdBy: req.user?.userId,
+      statusFrom: statusFrom || null,
+      statusTo: statusTo || null,
+      lifecycleStageFrom: lifecycleStageFrom || null,
+      lifecycleStageTo: lifecycleStageTo || null,
+      eventKey: eventKey || null,
+      processTriggers: true,
+    });
+
+    res.status(201).json(created);
+  } catch (error) {
+    logger.error('Add project event error', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
     const {
@@ -214,6 +298,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       side,
       sector,
       notes,
+      lifecycleStage,
     } = req.body;
 
     if (!name || !category || !status) {
@@ -235,6 +320,8 @@ export const createProject = async (req: AuthRequest, res: Response) => {
           side,
           sector,
           notes,
+          ...(lifecycleStage ? { lifecycleStage, lifecycleStageChangedAt: new Date() } : {}),
+          ...(lifecycleStage && req.user?.userId ? { lifecycleChangedBy: { connect: { id: req.user.userId } } } : {}),
         },
         // Optimized with selective fields for performance
         select: {
@@ -242,6 +329,8 @@ export const createProject = async (req: AuthRequest, res: Response) => {
           name: true,
           category: true,
           status: true,
+          lifecycleStage: true,
+          stageVersion: true,
           priority: true,
           elStatus: true,
           timetable: true,
@@ -317,6 +406,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       side,
       sector,
       notes,
+      lifecycleStage,
     } = req.body;
 
     const existingProject = await prisma.project.findUnique({
@@ -340,6 +430,16 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (side !== undefined) updateData.side = side;
     if (sector !== undefined) updateData.sector = sector;
     if (notes !== undefined) updateData.notes = notes;
+    if (lifecycleStage !== undefined) {
+      updateData.lifecycleStage = lifecycleStage;
+      if (lifecycleStage !== existingProject.lifecycleStage) {
+        updateData.lifecycleStageChangedAt = new Date();
+        if (req.user?.userId) {
+          updateData.lifecycleChangedBy = { connect: { id: req.user.userId } };
+        }
+        updateData.stageVersion = { increment: 1 };
+      }
+    }
 
     // Note: Confirmation metadata (lastConfirmedAt, confirmedBy) is only updated
     // via the dedicated POST /:id/confirm endpoint, not on regular updates
@@ -362,6 +462,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
           name: true,
           category: true,
           status: true,
+          lifecycleStage: true,
+          stageVersion: true,
           priority: true,
           elStatus: true,
           timetable: true,
@@ -373,6 +475,8 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
           notes: true,
           lastConfirmedAt: true,
           lastConfirmedBy: true,
+          lifecycleStageChangedAt: true,
+          lifecycleStageChangedBy: true,
           confirmedBy: {
             select: {
               id: true,
@@ -460,28 +564,50 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     invalidateCache('projects:list');
     invalidateCache('dashboard:summary');
 
-    // Process billing milestone triggers if status changed
-    if (status && status !== existingProject.status) {
+    // Process milestone triggers if status or lifecycle stage changed
+    const statusChanged = status !== undefined && status !== existingProject.status;
+    const lifecycleStageChanged = lifecycleStage !== undefined && lifecycleStage !== existingProject.lifecycleStage;
+    if (statusChanged || lifecycleStageChanged) {
       // Fire and forget - don't block the response
-      ProjectStatusTriggerService.processStatusChange(
+      ProjectEventTriggerService.processProjectTransition({
         projectId,
-        existingProject.status,
-        status
-      ).then((result) => {
-        if (result.triggersCreated > 0) {
-          req.log?.info('Billing triggers created for status change', {
+        oldStatus: existingProject.status,
+        newStatus: status ?? existingProject.status,
+        oldLifecycleStage: existingProject.lifecycleStage,
+        newLifecycleStage: lifecycleStage ?? existingProject.lifecycleStage,
+        userId: req.user?.userId,
+      }).then((result) => {
+        if (result.triggersCreated > 0 || result.eventsCreated > 0) {
+          req.log?.info('Project transition events/triggers processed', {
             projectId,
             oldStatus: existingProject.status,
-            newStatus: status,
+            newStatus: status ?? existingProject.status,
+            oldLifecycleStage: existingProject.lifecycleStage,
+            newLifecycleStage: lifecycleStage ?? existingProject.lifecycleStage,
+            eventsCreated: result.eventsCreated,
             triggersCreated: result.triggersCreated,
           });
         }
       }).catch((err) => {
-        req.log?.error('Failed to process billing triggers', {
+        req.log?.error('Failed to process project transition triggers', {
           projectId,
           error: err,
         });
       });
+
+      // Legacy status trigger compatibility path
+      if (statusChanged) {
+        ProjectStatusTriggerService.processStatusChange(
+          projectId,
+          existingProject.status,
+          status as string
+        ).catch((err) => {
+          req.log?.error('Failed to process legacy status triggers', {
+            projectId,
+            error: err,
+          });
+        });
+      }
     }
 
     req.log?.info('Project updated', { projectId: project.id, changes: changes.length });

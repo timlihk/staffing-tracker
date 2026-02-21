@@ -21,6 +21,13 @@ const statusColors: Record<string, 'success' | 'warning' | 'error' | 'default'> 
   Terminated: 'error',
 };
 
+const formatLifecycleStage = (stage?: string | null) => {
+  if (!stage) return '—';
+  return stage
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const Projects: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,6 +75,7 @@ const Projects: React.FC = () => {
   const csvColumns: CsvColumn<Project>[] = [
     { header: 'Project Name', key: 'name' },
     { header: 'Status', key: 'status' },
+    { header: 'Lifecycle Stage', key: 'lifecycleStage', formatter: (v) => formatLifecycleStage(v as string | null) },
     { header: 'Category', key: 'category' },
     { header: 'Side', key: 'side' },
     { header: 'Sector', key: 'sector' },
@@ -127,6 +135,17 @@ const Projects: React.FC = () => {
           color={statusColors[params.value] || 'default'}
           size="small"
         />
+      ),
+    },
+    {
+      field: 'lifecycleStage',
+      headerName: 'Lifecycle',
+      flex: 0.6,
+      minWidth: 140,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatLifecycleStage(params.row.lifecycleStage)}
+        </Typography>
       ),
     },
     { field: 'category', headerName: 'Category', flex: 0.5, minWidth: 100 },

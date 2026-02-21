@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSmartBack } from '../hooks/useSmartBack';
+import { isAxiosError } from 'axios';
 import {
   Box,
   Paper,
@@ -19,6 +20,12 @@ import {
   Tooltip,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Autocomplete,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -63,6 +70,51 @@ const getActionIcon = (actionType: string) => {
   }
 };
 
+interface ProjectEventRecord {
+  id: number;
+  event_type: string;
+  event_key?: string | null;
+  occurred_at: string;
+  status_from?: string | null;
+  status_to?: string | null;
+  lifecycle_stage_from?: string | null;
+  lifecycle_stage_to?: string | null;
+  source?: string | null;
+  payload?: Record<string, unknown> | null;
+}
+
+interface CreateProjectEventResponse {
+  event: ProjectEventRecord;
+  triggersCreated: number;
+  triggerIds: number[];
+}
+
+const CANONICAL_EVENT_OPTIONS = [
+  'PROJECT_CLOSED',
+  'PROJECT_TERMINATED',
+  'PROJECT_PAUSED',
+  'PROJECT_RESUMED',
+  'EL_SIGNED',
+  'PROJECT_KICKOFF',
+  'CONFIDENTIAL_FILING_SUBMITTED',
+  'A1_SUBMITTED',
+  'HEARING_PASSED',
+  'LISTING_COMPLETED',
+  'RENEWAL_CYCLE_STARTED',
+];
+
+const formatLifecycleStage = (stage?: string | null) => {
+  if (!stage) return '—';
+  return stage
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatEventType = (eventType: string) =>
+  eventType
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -70,10 +122,17 @@ const ProjectDetail: React.FC = () => {
   const permissions = usePermissions();
   const [project, setProject] = useState<Project | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
+  const [projectEvents, setProjectEvents] = useState<ProjectEventRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<ProjectAssignment | null>(null);
   const [savingAssignment, setSavingAssignment] = useState(false);
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [eventTypeInput, setEventTypeInput] = useState('');
+  const [eventOccurredAt, setEventOccurredAt] = useState('');
+  const [eventNotes, setEventNotes] = useState('');
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
   const { data: staffResponse, isLoading: staffLoading } = useStaff({ status: 'active', limit: 100 });
   const staffList = staffResponse?.data || [];
@@ -97,22 +156,94 @@ const ProjectDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!id) return;
+      setEventsLoading(true);
       try {
-        const [projectResponse, changeHistoryResponse] = await Promise.all([
+        const [projectResponse, changeHistoryResponse, eventsResponse] = await Promise.all([
           api.get(`/projects/${id}`),
           api.get(`/projects/${id}/change-history`),
+          api.get<ProjectEventRecord[]>(`/projects/${id}/events`, { params: { limit: 100 } }),
         ]);
         setProject(projectResponse.data);
         setChangeHistory(changeHistoryResponse.data);
+        setProjectEvents(eventsResponse.data);
       } catch (error) {
         toast.error('Failed to load project details', 'Please try again later');
       } finally {
+        setEventsLoading(false);
         setLoading(false);
       }
     };
 
     fetchData();
   }, [id]);
+
+  const refreshProjectEvents = async () => {
+    if (!id) return;
+    setEventsLoading(true);
+    try {
+      const response = await api.get<ProjectEventRecord[]>(`/projects/${id}/events`, {
+        params: { limit: 100 },
+      });
+      setProjectEvents(response.data);
+    } catch (error) {
+      toast.error('Failed to refresh project events', 'Please try again later');
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  const resetEventForm = () => {
+    setEventTypeInput('');
+    setEventOccurredAt('');
+    setEventNotes('');
+  };
+
+  const handleCreateProjectEvent = async () => {
+    if (!id) return;
+    const eventType = eventTypeInput.trim();
+    if (!eventType) {
+      toast.error('Event type is required');
+      return;
+    }
+
+    try {
+      setCreatingEvent(true);
+
+      const payload = eventNotes.trim()
+        ? { notes: eventNotes.trim() }
+        : undefined;
+
+      const occurredAt = eventOccurredAt
+        ? new Date(eventOccurredAt).toISOString()
+        : undefined;
+
+      const response = await api.post<CreateProjectEventResponse>(`/projects/${id}/events`, {
+        eventType,
+        occurredAt,
+        source: 'manual_ui',
+        payload,
+      });
+
+      const triggersCreated = response.data?.triggersCreated ?? 0;
+      const triggerMessage =
+        triggersCreated > 0
+          ? `${triggersCreated} billing trigger${triggersCreated === 1 ? '' : 's'} queued`
+          : 'No milestone trigger matched immediately';
+
+      toast.success('Project event added', triggerMessage);
+      setEventDialogOpen(false);
+      resetEventForm();
+      await refreshProjectEvents();
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error('Failed to add project event', message);
+    } finally {
+      setCreatingEvent(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -389,6 +520,13 @@ const ProjectDetail: React.FC = () => {
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
               <Chip label={project.status} color={statusColor} sx={{ fontWeight: 600 }} />
+              {project.lifecycleStage && (
+                <Chip
+                  label={`Lifecycle: ${formatLifecycleStage(project.lifecycleStage)}`}
+                  variant="outlined"
+                  sx={{ bgcolor: 'white' }}
+                />
+              )}
               {project.priority && (
                 <Chip
                   label={`Priority: ${project.priority}`}
@@ -409,6 +547,21 @@ const ProjectDetail: React.FC = () => {
             </Typography>
             <Stack spacing={1.5}>
               {[{
+                label: 'STATUS',
+                value: project.status || '-',
+              },
+              {
+                label: 'LIFECYCLE STAGE',
+                value: formatLifecycleStage(project.lifecycleStage),
+              },
+              {
+                label: 'LIFECYCLE VERSION',
+                value:
+                  typeof project.stageVersion === 'number'
+                    ? String(project.stageVersion)
+                    : '-',
+              },
+              {
                 label: 'CATEGORY',
                 value: project.category || '-',
               },
@@ -598,6 +751,100 @@ const ProjectDetail: React.FC = () => {
           </Paper>
         </Stack>
 
+        <Paper sx={{ p: 3 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Trigger Events
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Status/lifecycle changes and manual events feed milestone triggers.
+              </Typography>
+            </Box>
+            {permissions.canEditProject && (
+              <Button
+                startIcon={<Add />}
+                variant="outlined"
+                onClick={() => setEventDialogOpen(true)}
+              >
+                Add Trigger Event
+              </Button>
+            )}
+          </Stack>
+
+          {eventsLoading ? (
+            <Box display="flex" justifyContent="center" py={3}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : projectEvents.length > 0 ? (
+            <Stack spacing={1.5}>
+              {projectEvents.map((event) => {
+                const notesValue =
+                  event.payload && typeof event.payload === 'object' && event.payload.notes
+                    ? String(event.payload.notes)
+                    : null;
+
+                return (
+                  <Box
+                    key={event.id}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'grey.50',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        <Chip size="small" color="primary" label={formatEventType(event.event_type)} />
+                        <Chip size="small" variant="outlined" label={event.source || 'system'} />
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(event.occurred_at).toLocaleString()}
+                      </Typography>
+                    </Stack>
+
+                    {(event.status_from || event.status_to) && (
+                      <Typography variant="body2" color="text.secondary" mt={1}>
+                        Status: {event.status_from || '—'} {' -> '} {event.status_to || '—'}
+                      </Typography>
+                    )}
+
+                    {(event.lifecycle_stage_from || event.lifecycle_stage_to) && (
+                      <Typography variant="body2" color="text.secondary" mt={0.5}>
+                        Lifecycle: {formatLifecycleStage(event.lifecycle_stage_from)} {' -> '}{' '}
+                        {formatLifecycleStage(event.lifecycle_stage_to)}
+                      </Typography>
+                    )}
+
+                    {notesValue && (
+                      <Typography variant="body2" mt={0.75}>
+                        {notesValue}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              })}
+            </Stack>
+          ) : (
+            <Box
+              sx={{
+                p: 3,
+                textAlign: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 2,
+                border: '1px dashed',
+                borderColor: 'grey.300',
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                No trigger events recorded yet
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+
         {/* Change History */}
         <Paper sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -658,6 +905,76 @@ const ProjectDetail: React.FC = () => {
           )}
         </Paper>
       </Stack>
+      <Dialog
+        open={eventDialogOpen}
+        onClose={() => {
+          if (!creatingEvent) {
+            setEventDialogOpen(false);
+            resetEventForm();
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Trigger Event</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            <Autocomplete
+              freeSolo
+              options={CANONICAL_EVENT_OPTIONS}
+              value={eventTypeInput}
+              inputValue={eventTypeInput}
+              onInputChange={(_, value) => setEventTypeInput(value)}
+              onChange={(_, value) => setEventTypeInput(typeof value === 'string' ? value : value || '')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Event Type"
+                  required
+                  helperText="Use canonical event names or enter a bespoke event label."
+                />
+              )}
+            />
+
+            <TextField
+              label="Occurred At"
+              type="datetime-local"
+              value={eventOccurredAt}
+              onChange={(e) => setEventOccurredAt(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              label="Notes"
+              multiline
+              minRows={3}
+              value={eventNotes}
+              onChange={(e) => setEventNotes(e.target.value)}
+              placeholder="Optional context for reviewers"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              if (!creatingEvent) {
+                setEventDialogOpen(false);
+                resetEventForm();
+              }
+            }}
+            disabled={creatingEvent}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCreateProjectEvent}
+            disabled={creatingEvent || !eventTypeInput.trim()}
+          >
+            {creatingEvent ? 'Adding...' : 'Add Event'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <TeamMemberDialog
         open={dialogOpen}
         onClose={() => {

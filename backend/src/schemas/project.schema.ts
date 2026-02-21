@@ -30,6 +30,11 @@ export const projectSchema = z.object({
   timetable: z.enum([Timetable.PRE_A1, Timetable.A1, Timetable.HEARING, Timetable.LISTING])
     .optional()
     .nullable(),
+  lifecycleStage: z.string()
+    .max(ValidationLimits.MAX_STATUS_LENGTH, `Lifecycle stage must not exceed ${ValidationLimits.MAX_STATUS_LENGTH} characters`)
+    .trim()
+    .optional()
+    .nullable(),
   filingDate: z.string()
     .datetime()
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
@@ -94,7 +99,29 @@ export const bcAttorneySchema = z.object({
     .positive('Staff ID must be positive'),
 });
 
+export const projectEventCreateSchema = z.object({
+  eventType: z.string()
+    .min(1, 'Event type is required')
+    .max(100, 'Event type must not exceed 100 characters')
+    .trim(),
+  occurredAt: z.string()
+    .datetime()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
+  source: z.string()
+    .max(50, 'Source must not exceed 50 characters')
+    .trim()
+    .optional(),
+  payload: z.record(z.string(), z.any()).optional(),
+  statusFrom: z.string().max(100).optional(),
+  statusTo: z.string().max(100).optional(),
+  lifecycleStageFrom: z.string().max(100).optional(),
+  lifecycleStageTo: z.string().max(100).optional(),
+  eventKey: z.string().max(255).optional(),
+});
+
 export type ProjectInput = z.infer<typeof projectSchema>;
 export type IdParam = z.infer<typeof idParamSchema>;
 export type ProjectQuery = z.infer<typeof projectQuerySchema>;
 export type BcAttorneyInput = z.infer<typeof bcAttorneySchema>;
+export type ProjectEventCreateInput = z.infer<typeof projectEventCreateSchema>;
