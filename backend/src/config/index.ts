@@ -83,7 +83,8 @@ export const config = {
 
   // Email
   email: {
-    apiKey: getEnvVar('RESEND_API_KEY'),
+    // Optional: when missing, email service runs in no-send mode.
+    apiKey: getOptionalEnvVar('RESEND_API_KEY'),
     from: getEnvVar('EMAIL_FROM', 'Asia CM Team <notifications@asia-cm.team>'),
     enabled: getOptionalEnvVar('EMAIL_ENABLED', 'true') === 'true',
   },
