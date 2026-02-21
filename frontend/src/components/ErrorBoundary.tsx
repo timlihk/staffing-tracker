@@ -35,6 +35,22 @@ class ErrorBoundary extends Component<Props, State> {
       error,
       errorInfo,
     });
+
+    // Check if this is a chunk load error (happens after new deployment)
+    // These errors occur when the browser has an old index.html cached but
+    // the JS chunks referenced in it no longer exist on the server
+    const isChunkLoadError = 
+      error.message?.includes('Failed to fetch dynamically imported module') ||
+      error.message?.includes('Loading chunk') ||
+      error.message?.includes('Loading CSS chunk') ||
+      /importScripts failed for|Failed to load module script|Unexpected token/.test(error.message);
+
+    if (isChunkLoadError) {
+      // eslint-disable-next-line no-console
+      console.log('Detected chunk load error, reloading page to get fresh files...');
+      // Force a hard reload to fetch the latest index.html with updated chunk references
+      window.location.reload();
+    }
   }
 
   private handleReset = () => {
@@ -46,8 +62,25 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.href = '/';
   };
 
+  private isChunkLoadError(error: Error | null): boolean {
+    if (!error) return false;
+    return (
+      error.message?.includes('Failed to fetch dynamically imported module') ||
+      error.message?.includes('Loading chunk') ||
+      error.message?.includes('Loading CSS chunk') ||
+      /importScripts failed for|Failed to load module script/.test(error.message)
+    );
+  }
+
+  private handleReload = () => {
+    // Force a hard reload bypassing cache
+    window.location.href = window.location.href;
+  };
+
   public render() {
     if (this.state.hasError) {
+      const isChunkError = this.isChunkLoadError(this.state.error);
+      
       return (
         <Container maxWidth="md">
           <Box
@@ -69,18 +102,20 @@ class ErrorBoundary extends Component<Props, State> {
               <ErrorOutline
                 sx={{
                   fontSize: 80,
-                  color: 'error.main',
+                  color: isChunkError ? 'warning.main' : 'error.main',
                   mb: 2,
                 }}
               />
               <Typography variant="h4" gutterBottom fontWeight={700}>
-                Oops! Something went wrong
+                {isChunkError ? 'App Updated' : 'Oops! Something went wrong'}
               </Typography>
               <Typography color="text.secondary" paragraph>
-                We're sorry for the inconvenience. An unexpected error has occurred.
+                {isChunkError 
+                  ? 'The application has been updated. Please reload the page to get the latest version.'
+                  : "We're sorry for the inconvenience. An unexpected error has occurred."}
               </Typography>
 
-              {this.state.error && (
+              {!isChunkError && this.state.error && (
                 <Box
                   sx={{
                     mt: 3,
@@ -115,11 +150,18 @@ class ErrorBoundary extends Component<Props, State> {
               )}
 
               <Box mt={4} display="flex" gap={2} justifyContent="center">
-                <Button variant="contained" onClick={this.handleReset} size="large">
-                  Return to Home
-                </Button>
-                <Button variant="outlined" onClick={() => window.location.reload()} size="large">
-                  Reload Page
+                {!isChunkError && (
+                  <Button variant="outlined" onClick={this.handleReset} size="large">
+                    Return to Home
+                  </Button>
+                )}
+                <Button 
+                  variant="contained" 
+                  onClick={this.handleReload} 
+                  size="large"
+                  color={isChunkError ? 'primary' : 'primary'}
+                >
+                  {isChunkError ? 'Reload to Update' : 'Reload Page'}
                 </Button>
               </Box>
             </Paper>
