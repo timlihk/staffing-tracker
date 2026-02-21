@@ -47,3 +47,4 @@ test-*.js
 check-*.js
 /Billing/
 scripts/*.py
+backend/exports/
