@@ -62,8 +62,6 @@ const ProjectForm: React.FC = () => {
       status: 'Active',
       lifecycleStage: '',
       priority: 'Medium',
-      elStatus: '',
-      timetable: undefined,
       bcAttorney: '',
       filingDate: '',
       listingDate: '',
@@ -81,8 +79,6 @@ const ProjectForm: React.FC = () => {
         status: project.status,
         lifecycleStage: project.lifecycleStage || '',
         priority: project.priority || 'Medium',
-        elStatus: project.elStatus || '',
-        timetable: project.timetable,
         bcAttorney: project.bcAttorney || '',
         filingDate: project.filingDate ? project.filingDate.slice(0, 10) : '',
         listingDate: project.listingDate ? project.listingDate.slice(0, 10) : '',
@@ -116,12 +112,7 @@ const ProjectForm: React.FC = () => {
       const normalize = (value?: string | null) =>
         value && value.trim().length > 0 ? value.trim() : undefined;
 
-      cleanedData.timetable =
-        typeof cleanedData.timetable === 'string' && cleanedData.timetable.trim() === ''
-          ? undefined
-          : cleanedData.timetable;
       cleanedData.bcAttorney = normalize(cleanedData.bcAttorney);
-      cleanedData.elStatus = normalize(cleanedData.elStatus);
       cleanedData.lifecycleStage = normalize(cleanedData.lifecycleStage);
       cleanedData.filingDate = normalize(cleanedData.filingDate);
       cleanedData.listingDate = normalize(cleanedData.listingDate);
@@ -281,7 +272,7 @@ const ProjectForm: React.FC = () => {
                   error={!!errors.lifecycleStage}
                   helperText={
                     errors.lifecycleStage?.message ||
-                    'Phase milestone (separate from operational status).'
+                    'Single stage source (includes former timetable/EL-signed progression).'
                   }
                   disabled={isSubmitting}
                   value={field.value || ''}
@@ -314,49 +305,6 @@ const ProjectForm: React.FC = () => {
                   <MenuItem value="High">High</MenuItem>
                   <MenuItem value="Medium">Medium</MenuItem>
                   <MenuItem value="Low">Low</MenuItem>
-                </TextField>
-              )}
-            />
-
-            <Controller
-              name="elStatus"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  select
-                  fullWidth
-                  label="EL Status"
-                  error={!!errors.elStatus}
-                  helperText={errors.elStatus?.message}
-                  disabled={isSubmitting}
-                  value={field.value || ''}
-                >
-                  <MenuItem value="Signed">Signed</MenuItem>
-                  <MenuItem value="Not Signed">Not Signed</MenuItem>
-                </TextField>
-              )}
-            />
-
-            <Controller
-              name="timetable"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  value={field.value || ''}
-                  select
-                  fullWidth
-                  label="Timetable"
-                  error={!!errors.timetable}
-                  helperText={errors.timetable?.message}
-                  disabled={isSubmitting}
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="PRE_A1">Pre-A1</MenuItem>
-                  <MenuItem value="A1">A1</MenuItem>
-                  <MenuItem value="HEARING">Hearing</MenuItem>
-                  <MenuItem value="LISTING">Listing</MenuItem>
                 </TextField>
               )}
             />

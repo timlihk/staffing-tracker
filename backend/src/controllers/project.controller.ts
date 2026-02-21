@@ -10,6 +10,47 @@ import { logger } from '../utils/logger';
 import type { Prisma } from '@prisma/client';
 import { ProjectCategory, ProjectStatus, ActionType, EntityType } from '../constants';
 
+const TIMETABLE_TO_LIFECYCLE_STAGE: Record<string, string> = {
+  PRE_A1: 'kickoff',
+  A1: 'a1_filed',
+  HEARING: 'hearing_passed',
+  LISTING: 'listed',
+};
+
+const normalizeOptionalString = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const isElSigned = (value: unknown): boolean => {
+  const normalized = normalizeOptionalString(value)?.toLowerCase();
+  return normalized === 'signed' || normalized === 'yes' || normalized === 'true';
+};
+
+const deriveLifecycleStage = (params: {
+  lifecycleStage?: unknown;
+  timetable?: unknown;
+  elStatus?: unknown;
+  fallbackLifecycleStage?: string | null;
+}): string | null => {
+  if (isElSigned(params.elStatus)) {
+    return 'signed';
+  }
+
+  const explicitLifecycle = normalizeOptionalString(params.lifecycleStage);
+  if (explicitLifecycle) {
+    return explicitLifecycle;
+  }
+
+  const timetable = normalizeOptionalString(params.timetable)?.toUpperCase();
+  if (timetable && TIMETABLE_TO_LIFECYCLE_STAGE[timetable]) {
+    return TIMETABLE_TO_LIFECYCLE_STAGE[timetable];
+  }
+
+  return params.fallbackLifecycleStage ?? null;
+};
+
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
     const { status, category, side, sector, search, staffId, page = '1', limit = '50' } = req.query;
@@ -99,8 +140,18 @@ export const getAllProjects = async (req: AuthRequest, res: Response) => {
       prisma.project.count({ where }),
     ]);
 
+    const projectsWithUnifiedLifecycle = projects.map((project) => ({
+      ...project,
+      lifecycleStage: deriveLifecycleStage({
+        lifecycleStage: project.lifecycleStage,
+        timetable: project.timetable,
+        elStatus: project.elStatus,
+        fallbackLifecycleStage: project.lifecycleStage,
+      }),
+    }));
+
     const response = {
-      data: projects,
+      data: projectsWithUnifiedLifecycle,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -143,6 +194,7 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
         name: true,
         category: true,
         status: true,
+        cmNumber: true,
         lifecycleStage: true,
         stageVersion: true,
         priority: true,
@@ -198,10 +250,20 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Cache the project
-    setCached(cacheKey, project);
+    const projectWithUnifiedLifecycle = {
+      ...project,
+      lifecycleStage: deriveLifecycleStage({
+        lifecycleStage: project.lifecycleStage,
+        timetable: project.timetable,
+        elStatus: project.elStatus,
+        fallbackLifecycleStage: project.lifecycleStage,
+      }),
+    };
 
-    res.json(project);
+    // Cache the project
+    setCached(cacheKey, projectWithUnifiedLifecycle);
+
+    res.json(projectWithUnifiedLifecycle);
   } catch (error) {
     logger.error('Get project by ID error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
@@ -307,6 +369,13 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Project name, category, and status are required' });
     }
 
+    const resolvedLifecycleStage = deriveLifecycleStage({
+      lifecycleStage,
+      timetable,
+      elStatus,
+      fallbackLifecycleStage: null,
+    });
+
     const project = await prisma.$transaction(async (tx) => {
       const newProject = await tx.project.create({
         data: {
@@ -322,13 +391,14 @@ export const createProject = async (req: AuthRequest, res: Response) => {
           side,
           sector,
           notes,
-          ...(lifecycleStage ? { lifecycleStage, lifecycleStageChangedAt: new Date() } : {}),
-          ...(lifecycleStage && req.user?.userId ? { lifecycleChangedBy: { connect: { id: req.user.userId } } } : {}),
+          ...(resolvedLifecycleStage ? { lifecycleStage: resolvedLifecycleStage, lifecycleStageChangedAt: new Date() } : {}),
+          ...(resolvedLifecycleStage && req.user?.userId ? { lifecycleChangedBy: { connect: { id: req.user.userId } } } : {}),
         },
         // Optimized with selective fields for performance
         select: {
           id: true,
           name: true,
+          cmNumber: true,
           category: true,
           status: true,
           lifecycleStage: true,
@@ -419,6 +489,13 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    const nextLifecycleStage = deriveLifecycleStage({
+      lifecycleStage,
+      timetable: timetable !== undefined ? timetable : existingProject.timetable,
+      elStatus: elStatus !== undefined ? elStatus : existingProject.elStatus,
+      fallbackLifecycleStage: existingProject.lifecycleStage,
+    });
+
     const updateData: Prisma.ProjectUpdateInput = {};
     if (name !== undefined) updateData.name = name;
     if (category !== undefined) updateData.category = category;
@@ -432,15 +509,13 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (side !== undefined) updateData.side = side;
     if (sector !== undefined) updateData.sector = sector;
     if (notes !== undefined) updateData.notes = notes;
-    if (lifecycleStage !== undefined) {
-      updateData.lifecycleStage = lifecycleStage;
-      if (lifecycleStage !== existingProject.lifecycleStage) {
-        updateData.lifecycleStageChangedAt = new Date();
-        if (req.user?.userId) {
-          updateData.lifecycleChangedBy = { connect: { id: req.user.userId } };
-        }
-        updateData.stageVersion = { increment: 1 };
+    if (nextLifecycleStage !== existingProject.lifecycleStage) {
+      updateData.lifecycleStage = nextLifecycleStage;
+      updateData.lifecycleStageChangedAt = new Date();
+      if (req.user?.userId) {
+        updateData.lifecycleChangedBy = { connect: { id: req.user.userId } };
       }
+      updateData.stageVersion = { increment: 1 };
     }
 
     // Note: Confirmation metadata (lastConfirmedAt, confirmedBy) is only updated
@@ -462,6 +537,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         select: {
           id: true,
           name: true,
+          cmNumber: true,
           category: true,
           status: true,
           lifecycleStage: true,
@@ -568,7 +644,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     // Process milestone triggers if status or lifecycle stage changed
     const statusChanged = status !== undefined && status !== existingProject.status;
-    const lifecycleStageChanged = lifecycleStage !== undefined && lifecycleStage !== existingProject.lifecycleStage;
+    const lifecycleStageChanged = nextLifecycleStage !== existingProject.lifecycleStage;
     if (statusChanged || lifecycleStageChanged) {
       // Fire and forget - don't block the response
       ProjectEventTriggerService.processProjectTransition({
@@ -576,7 +652,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
         oldStatus: existingProject.status,
         newStatus: status ?? existingProject.status,
         oldLifecycleStage: existingProject.lifecycleStage,
-        newLifecycleStage: lifecycleStage ?? existingProject.lifecycleStage,
+        newLifecycleStage: nextLifecycleStage,
         userId: req.user?.userId,
       }).then((result) => {
         if (result.triggersCreated > 0 || result.eventsCreated > 0) {
@@ -585,7 +661,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
             oldStatus: existingProject.status,
             newStatus: status ?? existingProject.status,
             oldLifecycleStage: existingProject.lifecycleStage,
-            newLifecycleStage: lifecycleStage ?? existingProject.lifecycleStage,
+            newLifecycleStage: nextLifecycleStage,
             eventsCreated: result.eventsCreated,
             triggersCreated: result.triggersCreated,
           });

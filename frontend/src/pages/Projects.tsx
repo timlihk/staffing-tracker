@@ -81,7 +81,6 @@ const Projects: React.FC = () => {
     { header: 'Side', key: 'side' },
     { header: 'Sector', key: 'sector' },
     { header: 'Priority', key: 'priority' },
-    { header: 'EL Status', key: 'elStatus' },
     { header: 'Filing Date', key: 'filingDate', formatter: (v) => Formatters.date(v) },
     { header: 'Listing Date', key: 'listingDate', formatter: (v) => Formatters.date(v) },
     { header: 'Last Confirmed', key: 'lastConfirmedAt', formatter: (v) => Formatters.date(v) },
@@ -164,7 +163,6 @@ const Projects: React.FC = () => {
     { field: 'side', headerName: 'Side', flex: 0.5, minWidth: 100 },
     { field: 'sector', headerName: 'Sector', flex: 0.5, minWidth: 100 },
     { field: 'priority', headerName: 'Priority', flex: 0.4, minWidth: 90 },
-    { field: 'elStatus', headerName: 'EL Status', flex: 0.5, minWidth: 100 },
     {
       field: 'filingDate',
       headerName: 'Filing Date',

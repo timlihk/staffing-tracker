@@ -274,11 +274,6 @@ const ProjectDetail: React.FC = () => {
   };
 
   const formatDate = (value?: string | null) => (value ? value.slice(0, 10) : '-');
-  const formatTimetable = (value?: string | null) => {
-    if (!value) return '-';
-    if (value === 'PRE_A1') return 'Pre-A1';
-    return value.replace('_', ' ');
-  };
 
   const roleOrder = ['Partner', 'Associate', 'Senior FLIC', 'Junior FLIC', 'Intern'];
 
@@ -535,6 +530,7 @@ const ProjectDetail: React.FC = () => {
                 />
               )}
               {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
+              {project.cmNumber && <Chip label={`C/M: ${project.cmNumber}`} variant="outlined" sx={{ bgcolor: 'white' }} />}
             </Stack>
           </Stack>
         </Paper>
@@ -566,6 +562,10 @@ const ProjectDetail: React.FC = () => {
                 value: project.category || '-',
               },
               {
+                label: 'C/M NUMBER',
+                value: project.cmNumber || '-',
+              },
+              {
                 label: 'SIDE',
                 value: project.side || '-',
               },
@@ -576,14 +576,6 @@ const ProjectDetail: React.FC = () => {
               {
                 label: 'PRIORITY',
                 value: project.priority || '-',
-              },
-              {
-                label: 'EL STATUS',
-                value: project.elStatus || '-',
-              },
-              {
-                label: 'TIMETABLE',
-                value: formatTimetable(project.timetable),
               },
               {
                 label: 'FILING DATE',
