@@ -641,3 +641,60 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
     return res.status(500).json({ error: 'Failed to update billing project' });
   }
 }
+
+/**
+ * Lookup billing project info by C/M number
+ * GET /billing/cm-lookup/:cmNo
+ */
+export async function lookupByCmNumber(req: AuthRequest, res: Response): Promise<any> {
+  try {
+    const cmNo = req.params.cmNo as string;
+
+    if (!cmNo || !/^\d{5}-\d{1,5}$/.test(cmNo)) {
+      return res.status(400).json({ error: 'Invalid C/M number format' });
+    }
+
+    const rows = await prisma.$queryRaw<Array<{
+      billing_project_id: number;
+      project_name: string | null;
+      client_name: string | null;
+      attorney_in_charge: string | null;
+      cm_id: number;
+      is_primary: boolean;
+      status: string | null;
+    }>>(Prisma.sql`
+      SELECT
+        bp.project_id AS billing_project_id,
+        bp.project_name,
+        bp.client_name,
+        bp.attorney_in_charge,
+        cm.cm_id,
+        cm.is_primary,
+        bp.status
+      FROM billing_project_cm_no cm
+      JOIN billing_project bp ON bp.project_id = cm.project_id
+      WHERE cm.cm_no = ${cmNo}
+      ORDER BY cm.is_primary DESC, bp.project_id ASC
+      LIMIT 1
+    `);
+
+    if (rows.length === 0) {
+      return res.json({ found: false });
+    }
+
+    const row = rows[0];
+    return res.json({
+      found: true,
+      billingProjectId: Number(row.billing_project_id),
+      projectName: row.project_name,
+      clientName: row.client_name,
+      attorneyInCharge: row.attorney_in_charge,
+      cmId: Number(row.cm_id),
+      isPrimary: row.is_primary,
+      status: row.status,
+    });
+  } catch (error) {
+    logger.error('Error looking up C/M number', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to look up C/M number' });
+  }
+}

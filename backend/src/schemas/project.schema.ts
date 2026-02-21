@@ -65,6 +65,11 @@ export const projectSchema = z.object({
     .trim()
     .optional()
     .nullable(),
+  cmNumber: z.string()
+    .max(20, 'C/M number must not exceed 20 characters')
+    .regex(/^\d{5}-\d{1,5}$/, 'C/M number must be in format XXXXX-XXXXX (e.g. 12345-00001)')
+    .optional()
+    .nullable(),
 });
 
 /**

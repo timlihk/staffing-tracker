@@ -1029,6 +1029,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       sector,
       notes,
       lifecycleStage,
+      cmNumber,
     } = req.body;
 
     const existingProject = await prisma.project.findUnique({
@@ -1059,6 +1060,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (side !== undefined) updateData.side = side;
     if (sector !== undefined) updateData.sector = sector;
     if (notes !== undefined) updateData.notes = notes;
+    if (cmNumber !== undefined) updateData.cmNumber = cmNumber || null;
     if (nextLifecycleStage !== existingProject.lifecycleStage) {
       updateData.lifecycleStage = nextLifecycleStage;
       updateData.lifecycleStageChangedAt = new Date();
@@ -1242,6 +1244,9 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     res.json(project);
   } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      return res.status(409).json({ error: 'This C/M number is already assigned to another project' });
+    }
     logger.error('Update project error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }

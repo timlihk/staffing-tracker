@@ -576,6 +576,36 @@ router.patch(
 router.delete('/milestones/:milestoneId', authenticate, checkBillingAccess, validate(milestoneIdParamSchema, 'params'), billingController.deleteMilestone);
 
 // ============================================================================
+// C/M Number Lookup
+// ============================================================================
+
+/**
+ * @openapi
+ * /billing/cm-lookup/{cmNo}:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Lookup billing project by C/M number
+ *     description: Returns billing project info for a given C/M number
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cmNo
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: C/M number (e.g. 12345-00001)
+ *     responses:
+ *       200:
+ *         description: Lookup result
+ *       400:
+ *         description: Invalid C/M number format
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/cm-lookup/:cmNo', authenticate, billingController.lookupByCmNumber);
+
+// ============================================================================
 // Project Mapping
 // ============================================================================
 

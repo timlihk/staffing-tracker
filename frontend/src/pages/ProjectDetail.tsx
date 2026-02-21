@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSmartBack } from '../hooks/useSmartBack';
 import { isAxiosError } from 'axios';
@@ -142,6 +142,23 @@ const ProjectDetail: React.FC = () => {
   const [eventNotes, setEventNotes] = useState('');
   const [creatingEvent, setCreatingEvent] = useState(false);
 
+  // C/M number edit dialog state
+  const [cmDialogOpen, setCmDialogOpen] = useState(false);
+  const [cmInput, setCmInput] = useState('');
+  const [cmLookup, setCmLookup] = useState<{
+    found: boolean;
+    billingProjectId?: number;
+    projectName?: string | null;
+    clientName?: string | null;
+    attorneyInCharge?: string | null;
+    cmId?: number;
+    isPrimary?: boolean;
+    status?: string | null;
+  } | null>(null);
+  const [cmLookupLoading, setCmLookupLoading] = useState(false);
+  const [cmSaving, setCmSaving] = useState(false);
+  const cmLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { data: staffResponse, isLoading: staffLoading } = useStaff({ status: 'active', limit: 100 });
   const staffList = staffResponse?.data || [];
   const staffOptions = useMemo(
@@ -214,6 +231,67 @@ const ProjectDetail: React.FC = () => {
     setEventTypeInput('');
     setEventOccurredAt('');
     setEventNotes('');
+  };
+
+  const handleCmInputChange = useCallback((value: string) => {
+    setCmInput(value);
+    setCmLookup(null);
+
+    if (cmLookupTimer.current) clearTimeout(cmLookupTimer.current);
+
+    const trimmed = value.trim();
+    if (!trimmed || !/^\d{5}-\d{1,5}$/.test(trimmed)) {
+      setCmLookupLoading(false);
+      return;
+    }
+
+    setCmLookupLoading(true);
+    cmLookupTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/billing/cm-lookup/${trimmed}`);
+        setCmLookup(res.data);
+      } catch {
+        setCmLookup(null);
+      } finally {
+        setCmLookupLoading(false);
+      }
+    }, 500);
+  }, []);
+
+  const handleCmSave = async () => {
+    if (!id) return;
+    const trimmed = cmInput.trim() || null;
+
+    if (trimmed && !/^\d{5}-\d{1,5}$/.test(trimmed)) {
+      toast.error('Invalid format', 'C/M number must be in format XXXXX-XXXXX');
+      return;
+    }
+
+    try {
+      setCmSaving(true);
+      await api.patch(`/projects/${id}`, { cmNumber: trimmed });
+      setProject((prev) => prev ? { ...prev, cmNumber: trimmed } : prev);
+      setCmDialogOpen(false);
+      toast.success('C/M number updated');
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error('Failed to update C/M number', message);
+    } finally {
+      setCmSaving(false);
+    }
+  };
+
+  const openCmDialog = () => {
+    setCmInput(project?.cmNumber || '');
+    setCmLookup(null);
+    setCmLookupLoading(false);
+    setCmDialogOpen(true);
+    // Trigger lookup if there's an existing value
+    if (project?.cmNumber) {
+      handleCmInputChange(project.cmNumber);
+    }
   };
 
   const handleCreateProjectEvent = async () => {
@@ -565,7 +643,7 @@ const ProjectDetail: React.FC = () => {
                 gap: 2,
               }}
             >
-              {[{
+              {([{
                 label: 'STATUS',
                 value: project.status || '-',
               },
@@ -587,6 +665,11 @@ const ProjectDetail: React.FC = () => {
               {
                 label: 'C/M NUMBER',
                 value: project.cmNumber || '-',
+                action: permissions.canEditProject ? (
+                  <IconButton size="small" onClick={openCmDialog} sx={{ ml: 0.5, p: 0.25 }}>
+                    <Edit fontSize="small" />
+                  </IconButton>
+                ) : undefined,
               },
               {
                 label: 'SIDE',
@@ -619,7 +702,7 @@ const ProjectDetail: React.FC = () => {
                 value: project.lastConfirmedAt
                   ? `${formatDate(project.lastConfirmedAt)} by ${project.confirmedBy?.username || 'Unknown'}`
                   : 'Never confirmed',
-              }].map((item) => (
+              }] as Array<{ label: string; value: string; action?: React.ReactNode }>).map((item) => (
                 <Box
                   key={item.label}
                   sx={{
@@ -636,9 +719,12 @@ const ProjectDetail: React.FC = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {item.label}
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {item.value}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {item.value}
+                    </Typography>
+                    {item.action}
+                  </Box>
                 </Box>
               ))}
               {project.notes && (
@@ -1023,6 +1109,82 @@ const ProjectDetail: React.FC = () => {
           </DialogActions>
         </Dialog>
       )}
+      {/* C/M Number Edit Dialog */}
+      <Dialog
+        open={cmDialogOpen}
+        onClose={() => { if (!cmSaving) setCmDialogOpen(false); }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit C/M Number</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            <TextField
+              label="C/M Number"
+              value={cmInput}
+              onChange={(e) => handleCmInputChange(e.target.value)}
+              placeholder="e.g. 12345-00001"
+              helperText="Format: XXXXX-XXXXX"
+              fullWidth
+              disabled={cmSaving}
+            />
+            {cmLookupLoading && (
+              <Box display="flex" alignItems="center" gap={1}>
+                <CircularProgress size={16} />
+                <Typography variant="body2" color="text.secondary">Looking up billing project...</Typography>
+              </Box>
+            )}
+            {cmLookup && cmLookup.found && (
+              <Box sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
+                <Stack spacing={0.5}>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>BILLING PROJECT FOUND</Typography>
+                  {cmLookup.projectName && (
+                    <Typography variant="body2"><strong>Project:</strong> {cmLookup.projectName}</Typography>
+                  )}
+                  {cmLookup.clientName && (
+                    <Typography variant="body2"><strong>Client:</strong> {cmLookup.clientName}</Typography>
+                  )}
+                  {cmLookup.attorneyInCharge && (
+                    <Typography variant="body2"><strong>Attorney in Charge:</strong> {cmLookup.attorneyInCharge}</Typography>
+                  )}
+                  {cmLookup.status && (
+                    <Typography variant="body2"><strong>Status:</strong> {cmLookup.status}</Typography>
+                  )}
+                </Stack>
+              </Box>
+            )}
+            {cmLookup && !cmLookup.found && (
+              <Typography variant="body2" color="text.secondary">
+                No billing project found for this C/M number. You can still save it.
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          {project?.cmNumber && (
+            <Button
+              color="error"
+              onClick={() => {
+                setCmInput('');
+                setCmLookup(null);
+              }}
+              disabled={cmSaving}
+              sx={{ mr: 'auto' }}
+            >
+              Clear
+            </Button>
+          )}
+          <Button onClick={() => setCmDialogOpen(false)} disabled={cmSaving}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleCmSave}
+            disabled={cmSaving}
+          >
+            {cmSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <TeamMemberDialog
         open={dialogOpen}
         onClose={() => {
