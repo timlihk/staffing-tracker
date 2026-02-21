@@ -28,6 +28,7 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
     logger.info('Dropping existing views');
     await prisma.$executeRaw`DROP VIEW IF EXISTS billing_bc_attorney_dashboard CASCADE`;
     await prisma.$executeRaw`DROP VIEW IF EXISTS billing_engagement_financial_summary CASCADE`;
+    await prisma.$executeRaw`DROP VIEW IF EXISTS billing_overdue_by_attorney CASCADE`;
 
     // Step 2: Create billing_engagement_financial_summary view
     logger.info('Creating billing_engagement_financial_summary view');
@@ -155,6 +156,41 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
       ORDER BY bp.project_name
     `;
 
+    // Step 4: Create billing_overdue_by_attorney view
+    logger.info('Creating billing_overdue_by_attorney view');
+    await prisma.$executeRaw`
+      CREATE VIEW billing_overdue_by_attorney AS
+      SELECT
+        s.id AS staff_id,
+        s.name AS attorney_name,
+        s.position AS attorney_position,
+        COUNT(DISTINCT m.milestone_id) AS overdue_milestones,
+        SUM(m.amount_value) AS overdue_amount,
+        MIN(m.due_date) AS next_due_date,
+        bp.project_id AS billing_project_id,
+        bp.project_name,
+        p.id AS staffing_project_id,
+        p.name AS staffing_project_name,
+        p.status AS staffing_project_status,
+        m.milestone_id,
+        m.title AS milestone_title,
+        m.amount_value AS milestone_amount,
+        m.due_date AS milestone_due_date,
+        m.trigger_text AS milestone_trigger_text
+      FROM billing_milestone m
+      JOIN billing_engagement e ON m.engagement_id = e.engagement_id
+      JOIN billing_project_cm_no cm ON e.cm_id = cm.cm_id
+      JOIN billing_project bp ON cm.project_id = bp.project_id
+      JOIN billing_project_bc_attorneys bpa ON bp.project_id = bpa.billing_project_id
+      JOIN staff s ON bpa.staff_id = s.id
+      LEFT JOIN billing_staffing_project_link bspl ON bp.project_id = bspl.billing_project_id
+      LEFT JOIN projects p ON bspl.staffing_project_id = p.id
+      WHERE m.completed = false
+        AND m.due_date < NOW()
+      GROUP BY s.id, s.name, s.position, bp.project_id, bp.project_name, p.id, p.name, p.status, m.milestone_id, m.title, m.amount_value, m.due_date, m.trigger_text
+      ORDER BY overdue_amount DESC
+    `;
+
     logger.info('All views recreated successfully');
 
     res.json({
@@ -162,7 +198,8 @@ export async function recreateBillingViews(req: AuthRequest, res: Response) {
       message: 'Billing views recreated successfully',
       views: [
         'billing_engagement_financial_summary',
-        'billing_bc_attorney_dashboard'
+        'billing_bc_attorney_dashboard',
+        'billing_overdue_by_attorney'
       ],
       timestamp: new Date().toISOString()
     });
@@ -289,7 +326,7 @@ export async function updateBillingFinancials(req: AuthRequest, res: Response) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Error updating billing financials:', error);
+    logger.error('Error updating billing financials:', error as any);
     res.status(500).json({ error: 'Failed to update billing financials' });
   }
 }

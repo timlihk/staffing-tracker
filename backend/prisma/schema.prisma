@@ -25,6 +25,7 @@ model User {
   billing_milestone_billing_milestone_invoice_sent_byTousers     billing_milestone[]             @relation("billing_milestone_invoice_sent_byTousers")
   billing_milestone_billing_milestone_payment_received_byTousers billing_milestone[]             @relation("billing_milestone_payment_received_byTousers")
   billing_staffing_project_link                                  billing_staffing_project_link[]
+  billing_milestone_trigger_queue                                billing_milestone_trigger_queue[]
   projectChanges                                                 ProjectChangeHistory[]          @relation("ProjectChanges")
   projectConfirmations                                           Project[]                       @relation("ProjectConfirmations")
   staffChanges                                                   StaffChangeHistory[]            @relation("StaffChanges")
@@ -48,6 +49,7 @@ model Staff {
   updatedAt                         DateTime                            @updatedAt @map("updated_at")
   billing_bc_attorney_staff_map     billing_bc_attorney_staff_map[]
   billing_project_bc_attorney       billing_project_bc_attorney[]
+  billing_action_item               billing_action_item[]
   assignments                       ProjectAssignment[]
   bcAttorneys                       ProjectBcAttorney[]
   changeHistory                     StaffChangeHistory[]                @relation("StaffChangeHistory")
@@ -70,6 +72,7 @@ model Project {
   updatedAt                     DateTime                        @updatedAt @map("updated_at")
   elStatus                      String?                         @map("el_status")
   bcAttorney                    String?                         @map("bc_attorney")  // Legacy field - keep for migration
+  cmNumber                      String?                         @unique @map("cm_number") // Primary C/M number linked to billing
   timetable                     Timetable?
   filingDate                    DateTime?                       @map("filing_date")
   listingDate                   DateTime?                       @map("listing_date")
@@ -78,6 +81,7 @@ model Project {
   lastConfirmedAt               DateTime?                       @map("last_confirmed_at")
   lastConfirmedBy               Int?                            @map("last_confirmed_by")
   billing_staffing_project_link billing_staffing_project_link[]
+  billing_milestone_trigger_queue billing_milestone_trigger_queue[]
   assignments                   ProjectAssignment[]
   bcAttorneys                   ProjectBcAttorney[]
   changeHistory                 ProjectChangeHistory[]          @relation("ProjectChangeHistory")
@@ -88,6 +92,7 @@ model Project {
   @@index([priority])
   @@index([timetable])
   @@index([lastConfirmedAt])
+  @@index([cmNumber])
   @@map("projects")
 }
 
@@ -193,10 +198,12 @@ model EmailSettings {
 }
 
 model AppSettings {
-  id               Int      @id @default(autoincrement())
-  enableDataExport Boolean  @default(false) @map("enable_data_export")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  updatedBy        Int?     @map("updated_by")
+  id                  Int      @id @default(autoincrement())
+  enableDataExport    Boolean  @default(false) @map("enable_data_export")
+  billingEaUserId     Int?     @map("billing_ea_user_id") // User ID of the EA responsible for billing milestone confirmations
+  billingTriggerEnabled Boolean @default(true) @map("billing_trigger_enabled") // Enable/disable billing milestone trigger system
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  updatedBy           Int?     @map("updated_by")
 
   @@map("app_settings")
 }
@@ -380,6 +387,8 @@ model billing_milestone {
   billing_fee_arrangement                            billing_fee_arrangement? @relation(fields: [fee_id], references: [fee_id], onDelete: Cascade, onUpdate: NoAction)
   users_billing_milestone_invoice_sent_byTousers     User?                    @relation("billing_milestone_invoice_sent_byTousers", fields: [invoice_sent_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_billing_milestone_payment_received_byTousers User?                    @relation("billing_milestone_payment_received_byTousers", fields: [payment_received_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  billing_milestone_trigger_queue billing_milestone_trigger_queue[]
+  billing_action_item billing_action_item[]
 
   @@unique([engagement_id, ordinal], map: "billing_milestone_engagement_ordinal_unique")
   @@index([invoice_sent_date, payment_received_date], map: "idx_billing_milestone_billing_status")
@@ -522,4 +531,54 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model billing_milestone_trigger_queue {
+  id                    Int       @id @default(autoincrement())
+  milestone_id          BigInt    @map("milestone_id")
+  staffing_project_id   Int       @map("staffing_project_id")
+  old_status            String    @map("old_status")
+  new_status            String    @map("new_status")
+  match_confidence      Decimal   @db.Decimal(3, 2) @map("match_confidence")
+  trigger_reason        String?   @map("trigger_reason")
+  status                String    @default("pending") // pending, confirmed, rejected
+  confirmed_by          Int?      @map("confirmed_by")
+  confirmed_at          DateTime? @map("confirmed_at")
+  action_taken          String?   @map("action_taken") // invoice_issued, payment_followup, etc.
+  created_at            DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  milestone             billing_milestone @relation(fields: [milestone_id], references: [milestone_id], onDelete: Cascade)
+  project               Project           @relation(fields: [staffing_project_id], references: [id], onDelete: Cascade)
+  confirmedBy           User?            @relation(fields: [confirmed_by], references: [id], onDelete: SetNull)
+  billing_action_item  billing_action_item[]
+
+  // Unique constraint to prevent duplicate pending triggers
+  @@unique([milestone_id, new_status, status], map: "idx_trigger_unique_pending")
+  @@index([status], map: "idx_trigger_queue_status")
+  @@index([staffing_project_id], map: "idx_trigger_queue_project")
+  @@index([created_at], map: "idx_trigger_queue_created")
+  @@map("billing_milestone_trigger_queue")
+}
+
+model billing_action_item {
+  id                    Int       @id @default(autoincrement())
+  trigger_queue_id      Int?      @map("trigger_queue_id")
+  milestone_id          BigInt    @map("milestone_id")
+  action_type           String    @map("action_type") // issue_invoice, follow_up_payment, etc.
+  description           String
+  due_date              DateTime? @map("due_date")
+  assigned_to           Int?      @map("assigned_to")
+  status                String    @default("pending") // pending, completed, cancelled
+  completed_at          DateTime? @map("completed_at")
+  created_at            DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  trigger_queue         billing_milestone_trigger_queue? @relation(fields: [trigger_queue_id], references: [id], onDelete: SetNull)
+  milestone             billing_milestone @relation(fields: [milestone_id], references: [milestone_id], onDelete: Cascade)
+  assignedTo           Staff?            @relation(fields: [assigned_to], references: [id], onDelete: SetNull)
+
+  @@index([status], map: "idx_action_item_status")
+  @@index([assigned_to], map: "idx_action_item_assigned")
+  @@map("billing_action_item")
 }

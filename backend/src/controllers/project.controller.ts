@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
+import { ProjectStatusTriggerService } from '../services/project-status-trigger.service';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { logger } from '../utils/logger';
 import type { Prisma } from '@prisma/client';
@@ -458,6 +459,30 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     invalidateCache(`project:change-history:v2:${projectId}`); // All limits for this project
     invalidateCache('projects:list');
     invalidateCache('dashboard:summary');
+
+    // Process billing milestone triggers if status changed
+    if (status && status !== existingProject.status) {
+      // Fire and forget - don't block the response
+      ProjectStatusTriggerService.processStatusChange(
+        projectId,
+        existingProject.status,
+        status
+      ).then((result) => {
+        if (result.triggersCreated > 0) {
+          req.log?.info('Billing triggers created for status change', {
+            projectId,
+            oldStatus: existingProject.status,
+            newStatus: status,
+            triggersCreated: result.triggersCreated,
+          });
+        }
+      }).catch((err) => {
+        req.log?.error('Failed to process billing triggers', {
+          projectId,
+          error: err,
+        });
+      });
+    }
 
     req.log?.info('Project updated', { projectId: project.id, changes: changes.length });
 

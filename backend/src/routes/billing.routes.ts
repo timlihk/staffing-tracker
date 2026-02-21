@@ -7,6 +7,7 @@
 import express, { Response, NextFunction } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import * as billingController from '../controllers/billing.controller';
+import * as billingTriggerController from '../controllers/billing-trigger.controller';
 import prisma from '../utils/prisma';
 import { validate } from '../middleware/validate';
 import {
@@ -830,5 +831,149 @@ router.get('/settings/access', authenticate, adminOnly, billingController.getBil
  *         description: Forbidden (admin only)
  */
 router.patch('/settings/access', authenticate, adminOnly, validate(updateBillingAccessSettingsSchema), billingController.updateBillingAccessSettings);
+
+// ============================================================================
+// Billing Trigger Queue Routes
+// ============================================================================
+
+/**
+ * @openapi
+ * /billing/triggers/pending:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get pending triggers for admin review
+ *     description: Retrieve all pending billing milestone triggers that need admin confirmation
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending triggers
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/triggers/pending', authenticate, checkBillingAccess, billingTriggerController.getPendingTriggers);
+
+/**
+ * @openapi
+ * /billing/triggers:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get all triggers
+ *     description: Retrieve all billing milestone triggers with optional filters
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, confirmed, rejected]
+ *       - in: query
+ *         name: staffingProjectId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: List of triggers
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/triggers', authenticate, checkBillingAccess, billingTriggerController.getTriggers);
+
+/**
+ * @openapi
+ * /billing/triggers/{id}/confirm:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Confirm a trigger
+ *     description: Confirm a pending billing milestone trigger, marking the milestone as complete
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Trigger confirmed successfully
+ *       400:
+ *         description: Invalid trigger or already processed
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/triggers/:id/confirm', authenticate, adminOnly, billingTriggerController.confirmTrigger);
+
+/**
+ * @openapi
+ * /billing/triggers/{id}/reject:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Reject a trigger
+ *     description: Reject a pending billing milestone trigger
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Trigger rejected successfully
+ *       400:
+ *         description: Invalid trigger or already processed
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/triggers/:id/reject', authenticate, adminOnly, billingTriggerController.rejectTrigger);
+
+/**
+ * @openapi
+ * /billing/overdue-by-attorney:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get overdue billing by attorney
+ *     description: Retrieve overdue billing milestones grouped by B&C attorney
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: attorneyId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: minAmount
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: List of overdue milestones by attorney
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/overdue-by-attorney', authenticate, checkBillingAccess, billingTriggerController.getOverdueByAttorney);
 
 export default router;

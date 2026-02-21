@@ -23,7 +23,10 @@
     "billing:parse": "ts-node src/scripts/parse-billing-source-data.ts",
     "billing:map-attorneys": "ts-node src/scripts/auto-map-bc-attorneys.ts",
     "billing:parse-fees": "ts-node src/scripts/parse-fee-arrangements.ts",
-    "billing:parse-completion": "ts-node src/scripts/parse-fee-with-strikethrough.ts"
+    "billing:parse-completion": "ts-node src/scripts/parse-fee-with-strikethrough.ts",
+    "billing:update-financials": "python3 src/scripts/update-billing-from-excel.py",
+    "billing:update-master": "ts-node src/scripts/update-billing-master.ts",
+    "billing:update-all": "npm run billing:update-master"
   },
   "keywords": [],
   "author": "",
