@@ -104,6 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   if (user?.role === 'admin') {
+    menuItems.push({ text: 'Billing Control', icon: <DevicesOther />, path: '/billing/control-tower' });
     menuItems.push({ text: 'Admin', icon: <ManageAccounts />, path: '/users' });
   }
 

@@ -29,6 +29,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 const BillingMatters = lazy(() => import('./pages/BillingMatters'));
 const BillingMatterDetail = lazy(() => import('./pages/BillingMatterDetail'));
+const BillingControlTower = lazy(() => import('./pages/BillingControlTower'));
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -244,6 +245,18 @@ function App() {
                   <Layout>
                     <BillingMatterDetail />
                   </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/control-tower"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <Layout>
+                      <BillingControlTower />
+                    </Layout>
+                  </AdminRoute>
                 </ProtectedRoute>
               }
             />

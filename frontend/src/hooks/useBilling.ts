@@ -34,6 +34,8 @@ export const billingKeys = {
   settings: () => [...billingKeys.all, 'settings'] as const,
   mappingSuggestions: () => [...billingKeys.all, 'mapping-suggestions'] as const,
   unmappedAttorneys: () => [...billingKeys.all, 'unmapped-attorneys'] as const,
+  triggers: (params?: Record<string, unknown>) => [...billingKeys.all, 'triggers', params ?? {}] as const,
+  overdueByAttorney: (params?: Record<string, unknown>) => [...billingKeys.all, 'overdue-by-attorney', params ?? {}] as const,
 };
 
 // Get all billing projects
@@ -328,6 +330,85 @@ export function useUnmappedAttorneys() {
     queryKey: billingKeys.unmappedAttorneys(),
     queryFn: billingApi.getUnmappedAttorneys,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useBillingTriggers(params?: {
+  status?: 'pending' | 'confirmed' | 'rejected';
+  staffingProjectId?: number;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const stableParams = useMemo(
+    () => ({
+      status: params?.status ?? null,
+      staffingProjectId: params?.staffingProjectId ?? null,
+      startDate: params?.startDate ?? null,
+      endDate: params?.endDate ?? null,
+    }),
+    [params?.status, params?.staffingProjectId, params?.startDate, params?.endDate]
+  );
+
+  return useQuery({
+    queryKey: billingKeys.triggers(stableParams),
+    queryFn: () => billingApi.getBillingTriggers(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useOverdueByAttorney(params?: {
+  attorneyId?: number;
+  minAmount?: number;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const stableParams = useMemo(
+    () => ({
+      attorneyId: params?.attorneyId ?? null,
+      minAmount: params?.minAmount ?? null,
+      startDate: params?.startDate ?? null,
+      endDate: params?.endDate ?? null,
+    }),
+    [params?.attorneyId, params?.minAmount, params?.startDate, params?.endDate]
+  );
+
+  return useQuery({
+    queryKey: billingKeys.overdueByAttorney(stableParams),
+    queryFn: () => billingApi.getOverdueByAttorney(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useConfirmBillingTrigger() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: billingApi.confirmBillingTrigger,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.overdueByAttorney() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.projects() });
+      toast.success('Trigger confirmed');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to confirm trigger'));
+    },
+  });
+}
+
+export function useRejectBillingTrigger() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: billingApi.rejectBillingTrigger,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.overdueByAttorney() });
+      toast.success('Trigger rejected');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to reject trigger'));
+    },
   });
 }
 

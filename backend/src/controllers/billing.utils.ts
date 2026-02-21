@@ -5,6 +5,7 @@
  */
 
 import { Prisma } from '@prisma/client';
+import prisma from '../utils/prisma';
 
 export const NUMERIC_ID_REGEX = /^\d+$/;
 
@@ -57,6 +58,58 @@ export const buildStaffCondition = (staffId?: bigint | null) => (
       )`
     : null
 );
+
+interface BillingAuthUser {
+  role?: string;
+  userId?: number;
+}
+
+export async function resolveBillingAccessScope(authUser?: BillingAuthUser | null): Promise<{
+  isAdmin: boolean;
+  staffId: number | null;
+}> {
+  const isAdmin = authUser?.role === 'admin';
+  if (isAdmin) {
+    return { isAdmin: true, staffId: null };
+  }
+
+  if (!authUser?.userId) {
+    return { isAdmin: false, staffId: null };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: authUser.userId },
+    select: { staffId: true },
+  });
+
+  return {
+    isAdmin: false,
+    staffId: user?.staffId ?? null,
+  };
+}
+
+export async function canAccessBillingProject(
+  projectId: bigint,
+  authUser?: BillingAuthUser | null
+): Promise<boolean> {
+  const scope = await resolveBillingAccessScope(authUser);
+  if (scope.isAdmin) {
+    return true;
+  }
+  if (!scope.staffId) {
+    return false;
+  }
+
+  const mapping = await prisma.billing_project_bc_attorney.findFirst({
+    where: {
+      billing_project_id: projectId,
+      staff_id: scope.staffId,
+    },
+    select: { id: true },
+  });
+
+  return !!mapping;
+}
 
 export const parseNumericIdParam = (value: string | string[] | undefined, label: string) => {
   if (typeof value !== 'string' || !NUMERIC_ID_REGEX.test(value.trim())) {

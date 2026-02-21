@@ -12,8 +12,10 @@ import { logger } from '../utils/logger';
 import {
   BILLING_DASHBOARD_SELECT,
   buildStaffCondition,
+  canAccessBillingProject,
   parseNumericIdParam,
   parseOptionalQueryId,
+  resolveBillingAccessScope,
   toSafeNumber,
   convertBigIntToNumber,
 } from './billing.utils';
@@ -105,7 +107,8 @@ interface FinanceCommentRow {
 export async function getBillingProjects(req: AuthRequest, res: Response) {
   try {
     const authUser = req.user;
-    const isAdmin = authUser?.role === 'admin';
+    const scope = await resolveBillingAccessScope(authUser);
+    const isAdmin = scope.isAdmin;
     const pageParam = typeof req.query.page === 'string' ? Number.parseInt(req.query.page, 10) : 1;
     const limitParam = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
     const searchParam = typeof req.query.search === 'string' ? req.query.search.trim() : '';
@@ -114,23 +117,15 @@ export async function getBillingProjects(req: AuthRequest, res: Response) {
     const limit = Math.max(1, Math.min(250, Number.isFinite(limitParam) ? Math.floor(limitParam) : 100));
     const offset = Math.max(0, Math.floor((page - 1) * limit));
 
-    // Get full user record with staffId
-    const user = authUser?.userId
-      ? await prisma.user.findUnique({
-          where: { id: authUser.userId },
-          select: { staffId: true },
-        })
-      : null;
-
     let staffFilter: bigint | null = null;
     if (!isAdmin) {
-      if (!user?.staffId) {
+      if (!scope.staffId) {
         return res.json({
           data: [],
           pagination: { page, limit, total: 0, totalPages: 0 },
         });
       }
-      staffFilter = BigInt(user.staffId);
+      staffFilter = BigInt(scope.staffId);
     }
 
     const searchValue = searchParam.toLowerCase();
@@ -224,6 +219,11 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
       engagementIdFilter = parseOptionalQueryId(engagementId, 'engagementId parameter');
     } catch (err) {
       return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
     }
 
     // Get project basic info from the view
@@ -455,6 +455,11 @@ export async function getBillingProjectActivity(req: AuthRequest, res: Response)
       return res.status(400).json({ error: (err as Error).message });
     }
 
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
+    }
+
     const events = await prisma.$queryRaw<BillingEventRow[]>`
       SELECT *
       FROM billing_event
@@ -504,6 +509,11 @@ export async function getBillingProjectBCAttorneys(req: AuthRequest, res: Respon
       projectIdBigInt = parseNumericIdParam(id, 'project ID');
     } catch (err) {
       return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
     }
 
     const bcAttorneys = await prisma.billing_project_bc_attorney.findMany({

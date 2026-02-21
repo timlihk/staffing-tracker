@@ -851,7 +851,7 @@ router.patch('/settings/access', authenticate, adminOnly, validate(updateBilling
  *       401:
  *         description: Unauthorized
  */
-router.get('/triggers/pending', authenticate, checkBillingAccess, billingTriggerController.getPendingTriggers);
+router.get('/triggers/pending', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getPendingTriggers);
 
 /**
  * @openapi
@@ -888,7 +888,7 @@ router.get('/triggers/pending', authenticate, checkBillingAccess, billingTrigger
  *       401:
  *         description: Unauthorized
  */
-router.get('/triggers', authenticate, checkBillingAccess, billingTriggerController.getTriggers);
+router.get('/triggers', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getTriggers);
 
 /**
  * @openapi
@@ -974,6 +974,6 @@ router.post('/triggers/:id/reject', authenticate, adminOnly, billingTriggerContr
  *       401:
  *         description: Unauthorized
  */
-router.get('/overdue-by-attorney', authenticate, checkBillingAccess, billingTriggerController.getOverdueByAttorney);
+router.get('/overdue-by-attorney', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getOverdueByAttorney);
 
 export default router;

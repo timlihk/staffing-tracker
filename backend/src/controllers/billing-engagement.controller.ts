@@ -9,6 +9,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
 import {
+  canAccessBillingProject,
   parseNumericIdParam,
   convertBigIntToNumber,
   parseDate,
@@ -77,6 +78,11 @@ export async function getEngagementDetail(req: AuthRequest, res: Response) {
       engagementIdBigInt = parseNumericIdParam(engagementId, 'engagement ID');
     } catch (err) {
       return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
     }
 
     // Get engagement details with JSON aggregation
@@ -239,6 +245,11 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
       cmIdBigInt = parseNumericIdParam(cmId, 'CM ID');
     } catch (err) {
       return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
     }
 
     const engagements = await prisma.$queryRaw<CMEngagementRow[]>`

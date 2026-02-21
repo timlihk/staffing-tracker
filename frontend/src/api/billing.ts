@@ -172,6 +172,49 @@ export interface BillingAccessSettings {
   updated_at: string | null;
 }
 
+export interface BillingTriggerRow {
+  id: number;
+  milestoneId: BigIntLike;
+  staffingProjectId: number;
+  oldStatus: string;
+  newStatus: string;
+  matchConfidence: number;
+  triggerReason: string | null;
+  status: 'pending' | 'confirmed' | 'rejected';
+  confirmedBy?: number | null;
+  confirmedAt?: string | null;
+  actionTaken?: string | null;
+  createdAt: string;
+  milestone?: {
+    title: string | null;
+    triggerText: string | null;
+    amountValue: number | null;
+    dueDate: string | null;
+  } | null;
+  project?: {
+    name: string;
+    status: string;
+  } | null;
+}
+
+export interface BillingOverdueRow {
+  staffId: number;
+  attorneyName: string;
+  attorneyPosition: string | null;
+  overdueMilestones: number;
+  overdueAmount: number;
+  nextDueDate: string | null;
+  billingProjectId: BigIntLike;
+  billingProjectName: string;
+  staffingProjectId: number | null;
+  staffingProjectName: string | null;
+  staffingProjectStatus: string | null;
+  milestoneId: BigIntLike;
+  milestoneTitle: string | null;
+  milestoneAmount: number | null;
+  milestoneDueDate: string | null;
+}
+
 // Get all billing projects
 export interface BillingProjectsResponse {
   data: BillingProject[];
@@ -341,5 +384,40 @@ export const linkProjects = async (data: {
 // Get unmapped B&C attorneys
 export const getUnmappedAttorneys = async () => {
   const response = await apiClient.get('/billing/bc-attorneys/unmapped');
+  return response.data;
+};
+
+export const getBillingTriggers = async (params?: {
+  status?: 'pending' | 'confirmed' | 'rejected';
+  staffingProjectId?: number;
+  startDate?: string;
+  endDate?: string;
+}): Promise<BillingTriggerRow[]> => {
+  const response = await apiClient.get('/billing/triggers', { params });
+  return response.data;
+};
+
+export const getPendingBillingTriggers = async (): Promise<BillingTriggerRow[]> => {
+  const response = await apiClient.get('/billing/triggers/pending');
+  return response.data;
+};
+
+export const confirmBillingTrigger = async (id: number) => {
+  const response = await apiClient.post(`/billing/triggers/${id}/confirm`);
+  return response.data;
+};
+
+export const rejectBillingTrigger = async (id: number) => {
+  const response = await apiClient.post(`/billing/triggers/${id}/reject`);
+  return response.data;
+};
+
+export const getOverdueByAttorney = async (params?: {
+  attorneyId?: number;
+  minAmount?: number;
+  startDate?: string;
+  endDate?: string;
+}): Promise<BillingOverdueRow[]> => {
+  const response = await apiClient.get('/billing/overdue-by-attorney', { params });
   return response.data;
 };
