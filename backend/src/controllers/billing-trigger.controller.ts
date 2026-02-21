@@ -186,22 +186,20 @@ export const getOverdueByAttorney = async (req: AuthRequest, res: Response) => {
 
     // Format the results
     const formattedOverdue = (overdue as any[]).map(item => ({
-      staffId: item.staff_id,
+      staffId: Number(item.staff_id ?? 0),
       attorneyName: item.attorney_name,
       attorneyPosition: item.attorney_position,
-      overdueMilestones: parseInt(item.overdue_milestones, 10),
-      overdueAmount: parseFloat(item.overdue_amount),
+      overdueMilestones: Number(item.overdue_milestones ?? 0),
+      overdueAmount: Number(item.overdue_amount ?? 0),
       nextDueDate: item.next_due_date,
-      billingProjectId: item.billing_project_id,
+      billingProjectId: Number(item.billing_project_id),
       billingProjectName: item.project_name,
-      staffingProjectId: item.staffing_project_id,
+      staffingProjectId: item.staffing_project_id ? Number(item.staffing_project_id) : null,
       staffingProjectName: item.staffing_project_name,
       staffingProjectStatus: item.staffing_project_status,
-      milestoneId: item.milestone_id,
+      milestoneId: Number(item.milestone_id),
       milestoneTitle: item.milestone_title,
-      milestoneAmount: item.milestone_amount
-        ? parseFloat(item.milestone_amount.toString())
-        : null,
+      milestoneAmount: item.milestone_amount ? Number(item.milestone_amount) : null,
       milestoneDueDate: item.milestone_due_date,
     }));
 

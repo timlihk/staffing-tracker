@@ -530,16 +530,16 @@ export class ProjectStatusTriggerService {
     endDate?: Date;
   }) {
     // Build WHERE clause dynamically
-    const conditions: string[] = ['m.completed = false', 'm.due_date < NOW()'];
+    const conditions: string[] = ['m.completed IS NOT TRUE', 'm.due_date IS NOT NULL', 'm.due_date < CURRENT_DATE'];
     const params: any[] = [];
     let paramIndex = 1;
 
-    if (filters?.attorneyId) {
-      conditions.push(`s.id = $${paramIndex++}`);
+    if (filters?.attorneyId !== undefined && filters.attorneyId !== null) {
+      conditions.push(`COALESCE(s.id, 0) = $${paramIndex++}`);
       params.push(filters.attorneyId);
     }
 
-    if (filters?.minAmount) {
+    if (filters?.minAmount !== undefined && filters.minAmount !== null) {
       conditions.push(`m.amount_value >= $${paramIndex++}`);
       params.push(filters.minAmount);
     }
@@ -558,11 +558,11 @@ export class ProjectStatusTriggerService {
 
     const query = `
       SELECT
-        s.id AS staff_id,
-        s.name AS attorney_name,
+        COALESCE(s.id, 0) AS staff_id,
+        COALESCE(s.name, 'Unassigned') AS attorney_name,
         s.position AS attorney_position,
         COUNT(DISTINCT m.milestone_id) AS overdue_milestones,
-        SUM(m.amount_value::numeric) AS overdue_amount,
+        COALESCE(SUM(COALESCE(m.amount_value, 0)::numeric), 0) AS overdue_amount,
         MIN(m.due_date) AS next_due_date,
         bp.project_id AS billing_project_id,
         bp.project_name,
@@ -577,13 +577,13 @@ export class ProjectStatusTriggerService {
       JOIN billing_engagement e ON m.engagement_id = e.engagement_id
       JOIN billing_project_cm_no cm ON e.cm_id = cm.cm_id
       JOIN billing_project bp ON cm.project_id = bp.project_id
-      JOIN billing_project_bc_attorneys bpa ON bp.project_id = bpa.billing_project_id
-      JOIN staff s ON bpa.staff_id = s.id
+      LEFT JOIN billing_project_bc_attorneys bpa ON bp.project_id = bpa.billing_project_id
+      LEFT JOIN staff s ON bpa.staff_id = s.id
       LEFT JOIN billing_staffing_project_link bspl ON bp.project_id = bspl.billing_project_id
       LEFT JOIN projects p ON bspl.staffing_project_id = p.id
       ${whereClause}
-      GROUP BY s.id, s.name, s.position, bp.project_id, bp.project_name, p.id, p.name, p.status, m.milestone_id, m.title, m.amount_value, m.due_date
-      ORDER BY overdue_amount DESC
+      GROUP BY COALESCE(s.id, 0), COALESCE(s.name, 'Unassigned'), s.position, bp.project_id, bp.project_name, p.id, p.name, p.status, m.milestone_id, m.title, m.amount_value, m.due_date
+      ORDER BY overdue_amount DESC, attorney_name ASC
     `;
 
     const result = await prisma.$queryRawUnsafe(query, ...params);

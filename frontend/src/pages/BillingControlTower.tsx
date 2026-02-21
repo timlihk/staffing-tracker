@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -14,6 +15,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { isAxiosError } from 'axios';
 import { Page, PageHeader, Section } from '../components/ui';
 import {
   useBillingTriggers,
@@ -57,6 +59,15 @@ const daysOverdue = (dueDate?: string | null) => {
 };
 
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
+const getErrorMessage = (error: unknown) => {
+  if (isAxiosError<{ error?: string }>(error)) {
+    return error.response?.data?.error || error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Failed to load billing control tower data';
+};
 
 const BillingControlTower: React.FC = () => {
   const [attorneyFilter, setAttorneyFilter] = useState<number | undefined>(undefined);
@@ -186,6 +197,7 @@ const BillingControlTower: React.FC = () => {
   }, [overdueRows, attorneyFilter]);
 
   const isLoading = overdueQuery.isLoading || triggersQuery.isLoading;
+  const loadError = overdueQuery.error || triggersQuery.error;
 
   const handleConfirm = async (trigger: BillingTriggerRow) => {
     await confirmTrigger.mutateAsync(trigger.id);
@@ -207,6 +219,12 @@ const BillingControlTower: React.FC = () => {
           <Box display="flex" justifyContent="center" py={6}>
             <CircularProgress />
           </Box>
+        </Section>
+      ) : loadError ? (
+        <Section>
+          <Alert severity="error">
+            {getErrorMessage(loadError)}
+          </Alert>
         </Section>
       ) : (
         <Stack spacing={2.5}>
@@ -297,17 +315,25 @@ const BillingControlTower: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortedAttorneySummary.map((row) => (
-                  <TableRow key={row.staffId} hover>
-                    <TableCell>{row.attorneyName}</TableCell>
-                    <TableCell>{row.attorneyPosition || '—'}</TableCell>
-                    <TableCell align="right">{row.projectCount}</TableCell>
-                    <TableCell align="right">{row.overdueCount}</TableCell>
-                    <TableCell align="right">{row.avgDaysOverdue.toFixed(1)}</TableCell>
-                    <TableCell align="right">{currencyFormatter.format(row.overdueAmount)}</TableCell>
-                    <TableCell>{formatDate(row.nextDueDate)}</TableCell>
+                {sortedAttorneySummary.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      No overdue milestones found
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  sortedAttorneySummary.map((row) => (
+                    <TableRow key={row.staffId} hover>
+                      <TableCell>{row.attorneyName}</TableCell>
+                      <TableCell>{row.attorneyPosition || '—'}</TableCell>
+                      <TableCell align="right">{row.projectCount}</TableCell>
+                      <TableCell align="right">{row.overdueCount}</TableCell>
+                      <TableCell align="right">{row.avgDaysOverdue.toFixed(1)}</TableCell>
+                      <TableCell align="right">{currencyFormatter.format(row.overdueAmount)}</TableCell>
+                      <TableCell>{formatDate(row.nextDueDate)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </Section>
@@ -329,42 +355,50 @@ const BillingControlTower: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {triggerRows.map((row) => (
-                  <TableRow key={row.id} hover>
-                    <TableCell>{row.status}</TableCell>
-                    <TableCell>{row.project?.name || '—'}</TableCell>
-                    <TableCell>{row.milestone?.title || '—'}</TableCell>
-                    <TableCell>{row.triggerReason || '—'}</TableCell>
-                    <TableCell align="right">{(row.matchConfidence * 100).toFixed(0)}%</TableCell>
-                    <TableCell>{formatDate(row.createdAt)}</TableCell>
-                    <TableCell align="right">
-                      {row.status === 'pending' ? (
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            onClick={() => handleConfirm(row)}
-                            disabled={confirmTrigger.isPending || rejectTrigger.isPending}
-                          >
-                            Confirm
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            onClick={() => handleReject(row)}
-                            disabled={confirmTrigger.isPending || rejectTrigger.isPending}
-                          >
-                            Reject
-                          </Button>
-                        </Stack>
-                      ) : (
-                        '—'
-                      )}
+                {triggerRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      No triggers found for the selected filter
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  triggerRows.map((row) => (
+                    <TableRow key={row.id} hover>
+                      <TableCell>{row.status}</TableCell>
+                      <TableCell>{row.project?.name || '—'}</TableCell>
+                      <TableCell>{row.milestone?.title || '—'}</TableCell>
+                      <TableCell>{row.triggerReason || '—'}</TableCell>
+                      <TableCell align="right">{(row.matchConfidence * 100).toFixed(0)}%</TableCell>
+                      <TableCell>{formatDate(row.createdAt)}</TableCell>
+                      <TableCell align="right">
+                        {row.status === 'pending' ? (
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              onClick={() => handleConfirm(row)}
+                              disabled={confirmTrigger.isPending || rejectTrigger.isPending}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleReject(row)}
+                              disabled={confirmTrigger.isPending || rejectTrigger.isPending}
+                            >
+                              Reject
+                            </Button>
+                          </Stack>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </Section>
@@ -385,18 +419,26 @@ const BillingControlTower: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredOverdueRows.map((row) => (
-                  <TableRow key={`${row.staffId}-${row.milestoneId}`} hover>
-                    <TableCell>{row.attorneyName}</TableCell>
-                    <TableCell>{row.billingProjectName}</TableCell>
-                    <TableCell>{row.milestoneTitle || '—'}</TableCell>
-                    <TableCell>{formatDate(row.milestoneDueDate)}</TableCell>
-                    <TableCell align="right">{daysOverdue(row.milestoneDueDate)}</TableCell>
-                    <TableCell align="right">
-                      {currencyFormatter.format(toNumber(row.milestoneAmount ?? row.overdueAmount))}
+                {filteredOverdueRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      No overdue milestones found
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredOverdueRows.map((row) => (
+                    <TableRow key={`${row.staffId}-${row.milestoneId}`} hover>
+                      <TableCell>{row.attorneyName}</TableCell>
+                      <TableCell>{row.billingProjectName}</TableCell>
+                      <TableCell>{row.milestoneTitle || '—'}</TableCell>
+                      <TableCell>{formatDate(row.milestoneDueDate)}</TableCell>
+                      <TableCell align="right">{daysOverdue(row.milestoneDueDate)}</TableCell>
+                      <TableCell align="right">
+                        {currencyFormatter.format(toNumber(row.milestoneAmount ?? row.overdueAmount))}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </Section>
