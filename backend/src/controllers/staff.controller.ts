@@ -149,7 +149,10 @@ export const getStaffById = async (req: AuthRequest, res: Response) => {
           select: {
             id: true,
             jurisdiction: true,
+            startDate: true,
+            endDate: true,
             createdAt: true,
+            updatedAt: true,
             project: {
               select: {
                 id: true,

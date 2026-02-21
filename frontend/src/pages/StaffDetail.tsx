@@ -32,7 +32,7 @@ import { Page, Section, PageHeader, StyledDataGrid } from '../components/ui';
 import { GridColDef } from '@mui/x-data-grid';
 import { usePermissions } from '../hooks/usePermissions';
 import { useConfirmProject } from '../hooks/useProjects';
-import { Time, DateHelpers } from '../lib/date';
+import { DateHelpers } from '../lib/date';
 import { toast } from '../lib/toast';
 
 const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -57,6 +57,43 @@ const getActionIcon = (actionType: string) => {
       return <ChangeCircle />;
   }
 };
+
+const TIMELINE_WEEKS_BACK = 6;
+const TIMELINE_WEEKS_FORWARD = 6;
+
+type AssignmentLike = {
+  id: number;
+  jurisdiction?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  projectId?: number | null;
+  project?: Project | null;
+};
+
+const parseDateValue = (value?: string | Date | null): Date | null => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const startOfWeek = (value: Date): Date => {
+  const date = new Date(value);
+  const weekday = (date.getDay() + 6) % 7; // Monday as start
+  date.setDate(date.getDate() - weekday);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const addDays = (value: Date, days: number): Date => {
+  const date = new Date(value);
+  date.setDate(date.getDate() + days);
+  return date;
+};
+
+const formatCompactDate = (value: Date): string =>
+  value.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +135,10 @@ const StaffDetail: React.FC = () => {
     });
   }, [loadStaff]);
 
-  const assignments = useMemo(() => staff?.assignments ?? [], [staff]);
+  const assignments = useMemo<AssignmentLike[]>(
+    () => ((staff?.assignments ?? []) as AssignmentLike[]),
+    [staff]
+  );
 
   // Group assignments by project
   const groupedAssignments = assignments.reduce((acc, assignment) => {
@@ -110,13 +150,15 @@ const StaffDetail: React.FC = () => {
         project: assignment.project,
         projectId,
         jurisdictions: [],
+        assignments: [] as AssignmentLike[],
       };
     }
     if (assignment.jurisdiction) {
       acc[projectId].jurisdictions.push(assignment.jurisdiction);
     }
+    acc[projectId].assignments.push(assignment);
     return acc;
-  }, {} as Record<number, { project: Project | null | undefined; projectId: number; jurisdictions: string[] }>);
+  }, {} as Record<number, { project: Project | null | undefined; projectId: number; jurisdictions: string[]; assignments: AssignmentLike[] }>);
 
   const groupedList = Object.values(groupedAssignments);
 
@@ -129,18 +171,35 @@ const StaffDetail: React.FC = () => {
     side: string;
     sector: string;
     priority: string;
-    elStatus: string;
-    timetable: string;
-    lastConfirmedAt: string | null | undefined;
-    updatedAt: string | null | undefined;
-    confirmedByName: string | null;
     jurisdictions: string[];
+    assignmentWindow: string;
   };
 
   const projectRows: ProjectRow[] = useMemo(() => {
     return groupedList
       .map((item) => {
         if (!item.project) return null;
+
+        const assignmentStarts = item.assignments
+          .map((assignment) => parseDateValue(assignment.startDate) ?? parseDateValue(assignment.createdAt))
+          .filter((value): value is Date => value !== null);
+        const assignmentEnds = item.assignments
+          .map((assignment) => parseDateValue(assignment.endDate))
+          .filter((value): value is Date => value !== null);
+
+        const firstAssignedAt = assignmentStarts.length
+          ? new Date(Math.min(...assignmentStarts.map((date) => date.getTime())))
+          : null;
+        const lastAssignedAt = assignmentEnds.length
+          ? new Date(Math.max(...assignmentEnds.map((date) => date.getTime())))
+          : null;
+
+        const assignmentWindow = firstAssignedAt
+          ? (lastAssignedAt
+            ? `${formatCompactDate(firstAssignedAt)} - ${formatCompactDate(lastAssignedAt)}`
+            : `Since ${formatCompactDate(firstAssignedAt)}`)
+          : 'Ongoing';
+
         return {
           id: item.projectId,
           projectId: item.projectId,
@@ -150,16 +209,86 @@ const StaffDetail: React.FC = () => {
           side: item.project.side ?? '—',
           sector: item.project.sector ?? '—',
           priority: item.project.priority ?? '—',
-          elStatus: item.project.elStatus ?? '—',
-          timetable: item.project.timetable ?? '—',
-          lastConfirmedAt: item.project.lastConfirmedAt ?? null,
-          updatedAt: item.project.updatedAt ?? null,
-          confirmedByName: item.project.confirmedBy?.staff?.name || item.project.confirmedBy?.username || null,
           jurisdictions: item.jurisdictions ?? [],
+          assignmentWindow,
         } as ProjectRow;
       })
       .filter((row): row is ProjectRow => row !== null);
   }, [groupedList]);
+
+  const workloadTimeline = useMemo(() => {
+    const currentWeekStart = startOfWeek(new Date());
+    const dedupedProjectWindows = groupedList
+      .map((item) => {
+        if (!item.project) return null;
+
+        const starts = item.assignments
+          .map((assignment) => parseDateValue(assignment.startDate) ?? parseDateValue(assignment.createdAt))
+          .filter((value): value is Date => value !== null);
+        const explicitEnds = item.assignments
+          .map((assignment) => parseDateValue(assignment.endDate))
+          .filter((value): value is Date => value !== null);
+
+        if (starts.length === 0) return null;
+
+        const start = new Date(Math.min(...starts.map((date) => date.getTime())));
+        const status = item.project.status ?? '';
+        const fallbackEnd =
+          status === 'Closed' || status === 'Terminated'
+            ? parseDateValue(item.project.updatedAt ?? null)
+            : null;
+        const end =
+          explicitEnds.length > 0
+            ? new Date(Math.max(...explicitEnds.map((date) => date.getTime())))
+            : fallbackEnd;
+
+        return {
+          projectId: item.projectId,
+          start,
+          end,
+        };
+      })
+      .filter((value): value is { projectId: number; start: Date; end: Date | null } => value !== null);
+
+    const points = [];
+    for (let offset = -TIMELINE_WEEKS_BACK; offset <= TIMELINE_WEEKS_FORWARD; offset += 1) {
+      const weekStart = addDays(currentWeekStart, offset * 7);
+      const weekEnd = addDays(weekStart, 6);
+      const count = dedupedProjectWindows.filter((window) => {
+        const startsBeforeWeekEnds = window.start.getTime() <= weekEnd.getTime();
+        const hasNotEndedBeforeWeek = !window.end || window.end.getTime() >= weekStart.getTime();
+        return startsBeforeWeekEnds && hasNotEndedBeforeWeek;
+      }).length;
+
+      points.push({
+        key: weekStart.toISOString(),
+        offset,
+        weekStart,
+        weekEnd,
+        count,
+        isCurrent: offset === 0,
+        shortLabel: offset === 0 ? 'Now' : offset < 0 ? `${Math.abs(offset)}w` : `+${offset}w`,
+      });
+    }
+    return points;
+  }, [groupedList]);
+
+  const workloadStats = useMemo(() => {
+    if (!workloadTimeline.length) {
+      return { now: 0, peak: 0, avgPast: 0, avgForward: 0 };
+    }
+
+    const now = workloadTimeline.find((point) => point.isCurrent)?.count ?? 0;
+    const peak = Math.max(...workloadTimeline.map((point) => point.count), 0);
+
+    const past = workloadTimeline.filter((point) => point.offset < 0);
+    const forward = workloadTimeline.filter((point) => point.offset > 0);
+
+    const avgPast = past.length ? past.reduce((sum, point) => sum + point.count, 0) / past.length : now;
+    const avgForward = forward.length ? forward.reduce((sum, point) => sum + point.count, 0) / forward.length : now;
+
+    return { now, peak, avgPast, avgForward };
+  }, [workloadTimeline]);
 
   const handleConfirmProject = useCallback(
     async (projectId: number) => {
@@ -206,46 +335,6 @@ const StaffDetail: React.FC = () => {
       { field: 'side', headerName: 'Side', flex: 0.4, minWidth: 100 },
       { field: 'sector', headerName: 'Sector', flex: 0.5, minWidth: 120 },
       { field: 'priority', headerName: 'Priority', flex: 0.4, minWidth: 100 },
-      { field: 'elStatus', headerName: 'EL Status', flex: 0.5, minWidth: 110 },
-      { field: 'timetable', headerName: 'Timetable', flex: 0.5, minWidth: 110 },
-      {
-        field: 'lastConfirmedAt',
-        headerName: 'Last Confirmed',
-        flex: 0.8,
-        minWidth: 170,
-        renderCell: (params) => {
-          const lastActivity = params.row.lastConfirmedAt ?? params.row.updatedAt ?? null;
-          const isOverdue = !lastActivity
-            ? true
-            : Date.now() - new Date(lastActivity).getTime() > 7 * Time.DAY;
-          const label = lastActivity ? DateHelpers.formatDaysAgo(lastActivity) : '—';
-          return (
-            <Stack direction="row" spacing={1} alignItems="center">
-              {isOverdue && (
-                <Box
-                  component="span"
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: 'error.main',
-                  }}
-                />
-              )}
-              <Box>
-                <Typography variant="body2" fontWeight={500}>
-                  {label}
-                </Typography>
-                {params.row.confirmedByName && (
-                  <Typography variant="caption" color="text.secondary">
-                    {params.row.confirmedByName}
-                  </Typography>
-                )}
-              </Box>
-            </Stack>
-          );
-        },
-      },
       {
         field: 'jurisdictions',
         headerName: 'Jurisdictions',
@@ -259,6 +348,12 @@ const StaffDetail: React.FC = () => {
               : '—'}
           </Typography>
         ),
+      },
+      {
+        field: 'assignmentWindow',
+        headerName: 'Assignment Window',
+        flex: 0.8,
+        minWidth: 170,
       },
       {
         field: 'actions',
@@ -299,11 +394,8 @@ const StaffDetail: React.FC = () => {
   );
 
   const activeProjects = useMemo(
-    () =>
-      assignments.filter(
-        (a) => a.project?.status === 'Active' || a.project?.status === 'Slow-down'
-      ),
-    [assignments]
+    () => groupedList.filter((item) => item.project?.status === 'Active' || item.project?.status === 'Slow-down'),
+    [groupedList]
   );
 
   if (loading) {
@@ -382,6 +474,84 @@ const StaffDetail: React.FC = () => {
             </Grid>
           </Grid>
         </Paper>
+
+        <Section title="Project Load Timeline">
+          <Stack spacing={2}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
+              {[
+                { label: 'Now', value: workloadStats.now.toFixed(0) },
+                { label: 'Peak (13 weeks)', value: workloadStats.peak.toFixed(0) },
+                { label: 'Avg Past', value: workloadStats.avgPast.toFixed(1) },
+                { label: 'Avg Forward', value: workloadStats.avgForward.toFixed(1) },
+              ].map((item) => (
+                <Paper key={item.label} variant="outlined" sx={{ p: 1.5, flex: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.label}
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                    {item.value}
+                  </Typography>
+                </Paper>
+              ))}
+            </Stack>
+
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              {workloadTimeline.length > 0 ? (
+                <>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${workloadTimeline.length}, minmax(0, 1fr))`,
+                      gap: 1,
+                      alignItems: 'end',
+                      height: 170,
+                    }}
+                  >
+                    {(() => {
+                      const maxCount = Math.max(...workloadTimeline.map((point) => point.count), 1);
+
+                      return workloadTimeline.map((point) => {
+                        const barHeight = Math.max(10, (point.count / maxCount) * 95);
+                        return (
+                          <Stack key={point.key} spacing={0.5} alignItems="center" justifyContent="flex-end">
+                            <Typography variant="caption" color="text.secondary">
+                              {point.count}
+                            </Typography>
+                            <Tooltip title={`${formatCompactDate(point.weekStart)} - ${formatCompactDate(point.weekEnd)}: ${point.count} projects`}>
+                              <Box
+                                sx={{
+                                  width: { xs: 10, sm: 14 },
+                                  height: `${barHeight}px`,
+                                  borderRadius: 1.5,
+                                  bgcolor: point.isCurrent ? 'primary.main' : 'grey.400',
+                                  opacity: point.isCurrent ? 1 : 0.85,
+                                  transition: 'all 0.2s ease',
+                                }}
+                              />
+                            </Tooltip>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: point.isCurrent ? 'primary.main' : 'text.secondary', fontWeight: point.isCurrent ? 700 : 500 }}
+                            >
+                              {point.shortLabel}
+                            </Typography>
+                          </Stack>
+                        );
+                      });
+                    })()}
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+                    Weekly distinct project count. Forward view assumes ongoing assignments unless an assignment end date is set.
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No assignment history available to render timeline.
+                </Typography>
+              )}
+            </Paper>
+          </Stack>
+        </Section>
 
         {/* Projects Table and Change History */}
         <Box>
