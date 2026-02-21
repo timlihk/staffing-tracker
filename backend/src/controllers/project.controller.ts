@@ -358,11 +358,13 @@ export const getProjectBillingMilestones = async (req: AuthRequest, res: Respons
         m.invoice_sent_date,
         m.payment_received_date,
         m.notes,
-        m.sort_order
+        m.sort_order,
+        fa.raw_text AS fee_arrangement_text
       FROM billing_milestone m
       JOIN billing_engagement e ON e.engagement_id = m.engagement_id
       JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
       JOIN billing_project bp ON bp.project_id = cm.project_id
+      LEFT JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
       WHERE cm.cm_no IN (${Prisma.join(cmSql)})
       ORDER BY bp.project_name, cm.cm_no, e.engagement_id, m.sort_order NULLS LAST, m.milestone_id
     `);
@@ -549,6 +551,7 @@ export const getProjectBillingMilestones = async (req: AuthRequest, res: Respons
         invoiceSentDate: row.invoice_sent_date,
         paymentReceivedDate: row.payment_received_date,
         notes: row.notes,
+        feeArrangementText: row.fee_arrangement_text ?? null,
         milestoneStatus: deriveMilestoneBillingStatus(row),
       };
     });
