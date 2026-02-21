@@ -35,6 +35,9 @@ import {
   Delete as DeleteIcon,
   ChangeCircle,
   CheckCircleOutline,
+  Timeline,
+  History,
+  Group,
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Project, ChangeHistory, ProjectAssignment, ProjectBcAttorney } from '../types';
@@ -541,7 +544,13 @@ const ProjectDetail: React.FC = () => {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Project Information
             </Typography>
-            <Stack spacing={1.5}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
+                gap: 2,
+              }}
+            >
               {[{
                 label: 'STATUS',
                 value: project.status || '-',
@@ -600,20 +609,20 @@ const ProjectDetail: React.FC = () => {
                 <Box
                   key={item.label}
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
                     p: 1.5,
                     borderRadius: 2,
                     bgcolor: 'grey.50',
                     border: '1px solid',
                     borderColor: 'grey.200',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.5,
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, minWidth: 120 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {item.label}
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {item.value}
                   </Typography>
                 </Box>
@@ -621,32 +630,36 @@ const ProjectDetail: React.FC = () => {
               {project.notes && (
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
+                    gridColumn: { xs: '1', sm: '1 / -1' },
                     p: 1.5,
                     borderRadius: 2,
                     bgcolor: 'grey.50',
                     border: '1px solid',
                     borderColor: 'grey.200',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.5,
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, minWidth: 120, pt: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     NOTES
                   </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600, whiteSpace: 'pre-wrap', flex: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'pre-wrap' }}>
                     {project.notes}
                   </Typography>
                 </Box>
               )}
-            </Stack>
+            </Box>
           </Paper>
 
           <Paper sx={{ p: 3 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Team Members
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Group color="action" />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Team Members
+                </Typography>
+              </Box>
               {permissions.canCreateAssignment && (
                 <Button
                   startIcon={<Add />}
@@ -660,7 +673,7 @@ const ProjectDetail: React.FC = () => {
                     updateAssignment.isPending
                   }
                 >
-                  Add team member
+                  Add
                 </Button>
               )}
             </Stack>
@@ -745,21 +758,20 @@ const ProjectDetail: React.FC = () => {
 
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-            <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Timeline color="primary" />
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 Trigger Events
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Status/lifecycle changes and manual events feed milestone triggers.
               </Typography>
             </Box>
             {permissions.canEditProject && (
               <Button
                 startIcon={<Add />}
                 variant="outlined"
+                size="small"
                 onClick={() => setEventDialogOpen(true)}
               >
-                Add Trigger Event
+                Add
               </Button>
             )}
           </Stack>
@@ -769,8 +781,8 @@ const ProjectDetail: React.FC = () => {
               <CircularProgress size={24} />
             </Box>
           ) : projectEvents.length > 0 ? (
-            <Stack spacing={1.5}>
-              {projectEvents.map((event) => {
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {projectEvents.slice(0, 10).map((event) => {
                 const notesValue =
                   event.payload && typeof event.payload === 'object' && event.payload.notes
                     ? String(event.payload.notes)
@@ -780,52 +792,61 @@ const ProjectDetail: React.FC = () => {
                   <Box
                     key={event.id}
                     sx={{
-                      p: 2,
-                      borderRadius: 2,
+                      display: 'flex',
+                      gap: 2,
+                      p: 1.5,
+                      borderRadius: 1,
                       bgcolor: 'grey.50',
                       border: '1px solid',
-                      borderColor: 'grey.200',
+                      borderColor: 'grey.100',
+                      alignItems: 'flex-start',
                     }}
                   >
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
-                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        <Chip size="small" color="primary" label={formatEventType(event.event_type)} />
-                        <Chip size="small" variant="outlined" label={event.source || 'system'} />
-                      </Stack>
+                    <Box sx={{ minWidth: 90, flexShrink: 0 }}>
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(event.occurred_at).toLocaleString()}
+                        {new Date(event.occurred_at).toLocaleDateString()}
                       </Typography>
-                    </Stack>
-
-                    {(event.status_from || event.status_to) && (
-                      <Typography variant="body2" color="text.secondary" mt={1}>
-                        Status: {event.status_from || '—'} {' -> '} {event.status_to || '—'}
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {new Date(event.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
-                    )}
-
-                    {(event.lifecycle_stage_from || event.lifecycle_stage_to) && (
-                      <Typography variant="body2" color="text.secondary" mt={0.5}>
-                        Lifecycle: {formatLifecycleStage(event.lifecycle_stage_from)} {' -> '}{' '}
-                        {formatLifecycleStage(event.lifecycle_stage_to)}
-                      </Typography>
-                    )}
-
-                    {notesValue && (
-                      <Typography variant="body2" mt={0.75}>
-                        {notesValue}
-                      </Typography>
-                    )}
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
+                        <Chip size="small" color="primary" label={formatEventType(event.event_type)} sx={{ height: 20 }} />
+                        <Chip size="small" variant="outlined" label={event.source || 'system'} sx={{ height: 20 }} />
+                      </Stack>
+                      {(event.status_from || event.status_to) && (
+                        <Typography variant="caption" color="text.secondary">
+                          Status: {event.status_from || '—'} → {event.status_to || '—'}
+                        </Typography>
+                      )}
+                      {(event.lifecycle_stage_from || event.lifecycle_stage_to) && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Lifecycle: {formatLifecycleStage(event.lifecycle_stage_from)} → {formatLifecycleStage(event.lifecycle_stage_to)}
+                        </Typography>
+                      )}
+                      {notesValue && (
+                        <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                          {notesValue}
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 );
               })}
-            </Stack>
+              {projectEvents.length > 10 && (
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
+                  +{projectEvents.length - 10} more events
+                </Typography>
+              )}
+            </Box>
           ) : (
             <Box
               sx={{
-                p: 3,
+                p: 2,
                 textAlign: 'center',
                 bgcolor: 'grey.50',
-                borderRadius: 2,
+                borderRadius: 1,
                 border: '1px dashed',
                 borderColor: 'grey.300',
               }}
@@ -839,53 +860,62 @@ const ProjectDetail: React.FC = () => {
 
         {/* Change History */}
         <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-            Change History
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <History color="action" />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Change History
+            </Typography>
+          </Box>
           {changeHistory.length > 0 ? (
-            <Stack spacing={1}>
-              {changeHistory.map((change) => (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              {changeHistory.slice(0, 10).map((change) => (
                 <Box
                   key={change.id}
                   sx={{
-                    p: 2,
-                    borderRadius: 2,
+                    display: 'flex',
+                    gap: 1.5,
+                    p: 1,
+                    borderRadius: 1,
                     bgcolor: 'grey.50',
                     border: '1px solid',
-                    borderColor: 'grey.200',
+                    borderColor: 'grey.100',
+                    alignItems: 'center',
                   }}
                 >
-                  <Stack direction="row" spacing={2} alignItems="flex-start">
-                    <Box sx={{ mt: 0.5 }}>{getActionIcon(change.changeType)}</Box>
-                    <Box flex={1}>
-                      <Box display="flex" gap={1} flexWrap="wrap" alignItems="baseline">
-                        <Typography variant="body2" fontWeight={600}>
-                          {change.fieldName}:
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {change.oldValue || '(empty)'}
-                        </Typography>
-                        <Typography variant="body2">→</Typography>
-                        <Typography variant="body2" color="primary.main" fontWeight={600}>
-                          {change.newValue || '(empty)'}
-                        </Typography>
-                      </Box>
+                  <Box sx={{ minWidth: 32, flexShrink: 0 }}>{getActionIcon(change.changeType)}</Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box display="flex" gap={1} flexWrap="wrap" alignItems="baseline">
+                      <Typography variant="caption" fontWeight={600}>
+                        {change.fieldName}:
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(change.changedAt).toLocaleString()}
-                        {change.username && ` • by ${change.username}`}
+                        {change.oldValue || '(empty)'}
+                      </Typography>
+                      <Typography variant="caption">→</Typography>
+                      <Typography variant="caption" color="primary.main" fontWeight={600}>
+                        {change.newValue || '(empty)'}
                       </Typography>
                     </Box>
-                  </Stack>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+                      {new Date(change.changedAt).toLocaleDateString()} {new Date(change.changedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {change.username && ` • ${change.username}`}
+                    </Typography>
+                  </Box>
                 </Box>
               ))}
-            </Stack>
+              {changeHistory.length > 10 && (
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
+                  +{changeHistory.length - 10} more changes
+                </Typography>
+              )}
+            </Box>
           ) : (
             <Box
               sx={{
-                p: 3,
+                p: 2,
                 textAlign: 'center',
                 bgcolor: 'grey.50',
-                borderRadius: 2,
+                borderRadius: 1,
                 border: '1px dashed',
                 borderColor: 'grey.300',
               }}
