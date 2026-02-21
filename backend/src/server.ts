@@ -27,19 +27,37 @@ import { queryPerformanceMonitor } from './middleware/queryPerformance';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { logger } from './utils/logger';
 
+// Startup debugging
+console.log('Starting server...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+
 // Global error handlers for uncaught exceptions
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', { error });
+  // Log to console first in case logger isn't ready
+  console.error('UNCAUGHT EXCEPTION:', error);
+  try {
+    logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  } catch (e) {
+    // Logger might not be initialized yet
+  }
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection', { reason, promise });
+  console.error('UNHANDLED REJECTION:', reason);
+  try {
+    logger.error('Unhandled Rejection', { reason, promise });
+  } catch (e) {
+    // Logger might not be initialized yet
+  }
   process.exit(1);
 });
 
 // Validate configuration on startup
+console.log('Validating config...');
 validateConfig();
+console.log('Config validated successfully');
 
 const app = express();
 const PORT = config.port;
