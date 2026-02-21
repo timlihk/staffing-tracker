@@ -142,6 +142,8 @@ const ProjectDetail: React.FC = () => {
   const [eventNotes, setEventNotes] = useState('');
   const [creatingEvent, setCreatingEvent] = useState(false);
 
+  const [milestoneRefreshKey, setMilestoneRefreshKey] = useState(0);
+
   // C/M number edit dialog state
   const [cmDialogOpen, setCmDialogOpen] = useState(false);
   const [cmInput, setCmInput] = useState('');
@@ -271,6 +273,7 @@ const ProjectDetail: React.FC = () => {
       setCmSaving(true);
       await api.patch(`/projects/${id}`, { cmNumber: trimmed });
       setProject((prev) => prev ? { ...prev, cmNumber: trimmed } : prev);
+      setMilestoneRefreshKey((k) => k + 1);
       setCmDialogOpen(false);
       toast.success('C/M number updated');
     } catch (error) {
@@ -862,6 +865,7 @@ const ProjectDetail: React.FC = () => {
             isAdmin: permissions.isAdmin,
             canEditBillingMilestones: permissions.canEditBillingMilestones,
           }}
+          refreshKey={milestoneRefreshKey}
         />
 
         {permissions.isAdmin && (

@@ -38,6 +38,7 @@ interface ProjectMilestonesSectionProps {
     isAdmin: boolean;
     canEditBillingMilestones: boolean;
   };
+  refreshKey?: number;
   onDataLoaded?: (data: ProjectBillingMilestoneResponse | null) => void;
 }
 
@@ -59,6 +60,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 const ProjectMilestonesSection: React.FC<ProjectMilestonesSectionProps> = ({
   projectId,
   permissions,
+  refreshKey,
   onDataLoaded,
 }) => {
   const [data, setData] = useState<ProjectBillingMilestoneResponse | null>(null);
@@ -94,7 +96,7 @@ const ProjectMilestonesSection: React.FC<ProjectMilestonesSectionProps> = ({
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshKey]);
 
   // Summary
   const summary = useMemo(() => {
