@@ -26,6 +26,7 @@ import {
   DialogActions,
   TextField,
   Autocomplete,
+  MenuItem,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -111,6 +112,48 @@ interface ProjectBillingMilestoneRow {
   paymentReceivedDate: string | null;
   notes: string | null;
   milestoneStatus: 'pending' | 'overdue' | 'completed' | 'invoiced' | 'collected';
+  triggerStats: {
+    total: number;
+    pending: number;
+    confirmed: number;
+    rejected: number;
+  };
+  triggerRule: {
+    id: number;
+    triggerMode: string;
+    anchorEventType: string | null;
+    autoConfirm: boolean;
+    manualConfirmRequired: boolean;
+    dueInBusinessDays: number | null;
+    recurrence: string | null;
+    confidence: number | null;
+    updatedAt: string;
+  } | null;
+  latestTrigger: {
+    id: number;
+    status: 'pending' | 'confirmed' | 'rejected';
+    oldStatus: string;
+    newStatus: string;
+    matchConfidence: number;
+    matchMethod: string | null;
+    triggerReason: string | null;
+    createdAt: string;
+    confirmedAt: string | null;
+    actionTaken: string | null;
+    actionItem: {
+      id: number;
+      actionType: string;
+      description: string;
+      dueDate: string | null;
+      status: 'pending' | 'completed' | 'cancelled';
+      completedAt: string | null;
+      assignedTo: {
+        id: number;
+        name: string;
+        position: string | null;
+      } | null;
+    } | null;
+  } | null;
 }
 
 interface ProjectBillingMilestoneResponse {
@@ -127,6 +170,15 @@ interface MilestoneEdit {
   invoiceSentDate?: string;
   paymentReceivedDate?: string;
   notes?: string;
+}
+
+interface MilestoneCreateFormState {
+  engagementId: string;
+  title: string;
+  dueDate: string;
+  amountValue: string;
+  amountCurrency: string;
+  notes: string;
 }
 
 const CANONICAL_EVENT_OPTIONS = [
@@ -151,6 +203,18 @@ const BILLING_STATUS_COLORS: Record<ProjectBillingMilestoneRow['milestoneStatus'
   collected: 'info',
 };
 
+const TRIGGER_STATUS_COLORS: Record<'pending' | 'confirmed' | 'rejected', 'warning' | 'success' | 'error'> = {
+  pending: 'warning',
+  confirmed: 'success',
+  rejected: 'error',
+};
+
+const ACTION_STATUS_COLORS: Record<'pending' | 'completed' | 'cancelled', 'default' | 'success' | 'warning'> = {
+  pending: 'warning',
+  completed: 'success',
+  cancelled: 'default',
+};
+
 const formatLifecycleStage = (stage?: string | null) => {
   if (!stage) return '—';
   return stage
@@ -163,6 +227,27 @@ const formatEventType = (eventType: string) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return `${parsed.toLocaleDateString()} ${parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+};
+
+const truncateText = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 3)}...`;
+};
+
+const createMilestoneFormState = (): MilestoneCreateFormState => ({
+  engagementId: '',
+  title: '',
+  dueDate: '',
+  amountValue: '',
+  amountCurrency: 'USD',
+  notes: '',
+});
+
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -174,6 +259,11 @@ const ProjectDetail: React.FC = () => {
   const [billingMilestoneData, setBillingMilestoneData] = useState<ProjectBillingMilestoneResponse | null>(null);
   const [milestoneEdits, setMilestoneEdits] = useState<Record<number, MilestoneEdit>>({});
   const [savingMilestoneIds, setSavingMilestoneIds] = useState<number[]>([]);
+  const [deletingMilestoneIds, setDeletingMilestoneIds] = useState<number[]>([]);
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
+  const [creatingMilestone, setCreatingMilestone] = useState(false);
+  const [newMilestoneForm, setNewMilestoneForm] = useState<MilestoneCreateFormState>(() => createMilestoneFormState());
+  const [processingTriggerIds, setProcessingTriggerIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [billingMilestonesLoading, setBillingMilestonesLoading] = useState(false);
@@ -199,6 +289,45 @@ const ProjectDetail: React.FC = () => {
     [staffList]
   );
 
+  const billingSummary = useMemo(() => {
+    const milestones = billingMilestoneData?.milestones ?? [];
+    return milestones.reduce(
+      (summary, milestone) => {
+        summary.total += 1;
+        if (milestone.milestoneStatus === 'overdue') {
+          summary.overdue += 1;
+          summary.overdueAmount += milestone.amountValue ?? 0;
+        }
+        summary.pendingTriggers += milestone.triggerStats?.pending ?? 0;
+        if (milestone.latestTrigger?.actionItem?.status === 'pending') {
+          summary.openActions += 1;
+        }
+        return summary;
+      },
+      {
+        total: 0,
+        overdue: 0,
+        overdueAmount: 0,
+        pendingTriggers: 0,
+        openActions: 0,
+      }
+    );
+  }, [billingMilestoneData]);
+
+  const engagementOptions = useMemo(() => {
+    const milestones = billingMilestoneData?.milestones ?? [];
+    const map = new Map<number, { id: number; label: string }>();
+    for (const item of milestones) {
+      if (!map.has(item.engagementId)) {
+        const label = item.engagementTitle
+          ? `${item.engagementTitle} (${item.cmNumber || 'C/M —'})`
+          : `Engagement ${item.engagementId} (${item.cmNumber || 'C/M —'})`;
+        map.set(item.engagementId, { id: item.engagementId, label });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [billingMilestoneData]);
+
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
@@ -209,13 +338,17 @@ const ProjectDetail: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-      setEventsLoading(true);
+      setEventsLoading(permissions.isAdmin);
       setBillingMilestonesLoading(true);
       try {
+        const eventsRequest = permissions.isAdmin
+          ? api.get<ProjectEventRecord[]>(`/projects/${id}/events`, { params: { limit: 100 } })
+          : Promise.resolve({ data: [] as ProjectEventRecord[] });
+
         const [projectResponse, changeHistoryResponse, eventsResponse, billingMilestonesResponse] = await Promise.all([
           api.get(`/projects/${id}`),
           api.get(`/projects/${id}/change-history`),
-          api.get<ProjectEventRecord[]>(`/projects/${id}/events`, { params: { limit: 100 } }),
+          eventsRequest,
           api.get<ProjectBillingMilestoneResponse>(`/projects/${id}/billing-milestones`),
         ]);
         setProject(projectResponse.data);
@@ -232,10 +365,13 @@ const ProjectDetail: React.FC = () => {
     };
 
     fetchData();
-  }, [id]);
+  }, [id, permissions.isAdmin]);
 
   const refreshProjectEvents = async () => {
-    if (!id) return;
+    if (!id || !permissions.isAdmin) {
+      setProjectEvents([]);
+      return;
+    }
     setEventsLoading(true);
     try {
       const response = await api.get<ProjectEventRecord[]>(`/projects/${id}/events`, {
@@ -376,7 +512,10 @@ const ProjectDetail: React.FC = () => {
         milestones: [payload],
       });
       clearMilestoneEdit(milestone.milestoneId);
-      await Promise.all([refreshBillingMilestones(), refreshProjectEvents()]);
+      await Promise.all([
+        refreshBillingMilestones(),
+        permissions.isAdmin ? refreshProjectEvents() : Promise.resolve(),
+      ]);
       toast.success('Milestone updated');
     } catch (error) {
       const message = isAxiosError<{ error?: string }>(error)
@@ -385,6 +524,124 @@ const ProjectDetail: React.FC = () => {
       toast.error('Failed to update milestone', message);
     } finally {
       setSavingMilestoneIds((prev) => prev.filter((item) => item !== milestone.milestoneId));
+    }
+  };
+
+  const handleOpenCreateMilestoneDialog = () => {
+    const defaultEngagementId = engagementOptions[0]?.id;
+    setNewMilestoneForm({
+      ...createMilestoneFormState(),
+      engagementId: defaultEngagementId ? String(defaultEngagementId) : '',
+    });
+    setMilestoneDialogOpen(true);
+  };
+
+  const handleCreateMilestone = async () => {
+    const engagementId = Number(newMilestoneForm.engagementId);
+    if (!Number.isFinite(engagementId) || engagementId <= 0) {
+      toast.error('Engagement is required');
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      title: newMilestoneForm.title.trim() || null,
+      due_date: newMilestoneForm.dueDate || null,
+      notes: newMilestoneForm.notes.trim() || null,
+      amount_currency: newMilestoneForm.amountCurrency.trim() || null,
+    };
+
+    if (newMilestoneForm.amountValue.trim().length > 0) {
+      const amount = Number(newMilestoneForm.amountValue);
+      if (!Number.isFinite(amount)) {
+        toast.error('Invalid amount value', 'Please enter a valid number');
+        return;
+      }
+      payload.amount_value = amount;
+    } else {
+      payload.amount_value = null;
+    }
+
+    setCreatingMilestone(true);
+    try {
+      await api.post(`/billing/engagements/${engagementId}/milestones`, payload);
+      setMilestoneDialogOpen(false);
+      setNewMilestoneForm(createMilestoneFormState());
+      await Promise.all([
+        refreshBillingMilestones(),
+        permissions.isAdmin ? refreshProjectEvents() : Promise.resolve(),
+      ]);
+      toast.success('Milestone added');
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error('Failed to add milestone', message);
+    } finally {
+      setCreatingMilestone(false);
+    }
+  };
+
+  const handleDeleteMilestone = async (milestoneId: number) => {
+    const confirmed = window.confirm('Remove this billing milestone?');
+    if (!confirmed) return;
+
+    setDeletingMilestoneIds((prev) => [...prev, milestoneId]);
+    try {
+      await api.delete(`/billing/milestones/${milestoneId}`);
+      clearMilestoneEdit(milestoneId);
+      await Promise.all([
+        refreshBillingMilestones(),
+        permissions.isAdmin ? refreshProjectEvents() : Promise.resolve(),
+      ]);
+      toast.success('Milestone removed');
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error('Failed to remove milestone', message);
+    } finally {
+      setDeletingMilestoneIds((prev) => prev.filter((item) => item !== milestoneId));
+    }
+  };
+
+  const handleTriggerDecision = async (triggerId: number, decision: 'confirm' | 'reject') => {
+    setProcessingTriggerIds((prev) => [...prev, triggerId]);
+    try {
+      await api.post(`/billing/triggers/${triggerId}/${decision}`);
+      await Promise.all([
+        refreshBillingMilestones(),
+        permissions.isAdmin ? refreshProjectEvents() : Promise.resolve(),
+      ]);
+      toast.success(decision === 'confirm' ? 'Trigger confirmed' : 'Trigger rejected');
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error(
+        decision === 'confirm' ? 'Failed to confirm trigger' : 'Failed to reject trigger',
+        message
+      );
+    } finally {
+      setProcessingTriggerIds((prev) => prev.filter((item) => item !== triggerId));
+    }
+  };
+
+  const handleUpdateTriggerActionStatus = async (
+    triggerId: number,
+    status: 'pending' | 'completed' | 'cancelled'
+  ) => {
+    setProcessingTriggerIds((prev) => [...prev, triggerId]);
+    try {
+      await api.patch(`/billing/triggers/${triggerId}/action-item`, { status });
+      await refreshBillingMilestones();
+      toast.success('Action status updated');
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error('Failed to update action status', message);
+    } finally {
+      setProcessingTriggerIds((prev) => prev.filter((item) => item !== triggerId));
     }
   };
 
@@ -417,8 +674,14 @@ const ProjectDetail: React.FC = () => {
   };
 
   const formatDate = (value?: string | null) => (value ? value.slice(0, 10) : '-');
+  const currencyFormatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  });
 
   const roleOrder = ['Partner', 'Associate', 'Senior FLIC', 'Junior FLIC', 'Intern'];
+  const canEditBillingMilestones = permissions.canEditBillingMilestones;
 
   const teamAssignments = (project.assignments ?? [])
     .filter((assignment) => assignment.jurisdiction !== 'B&C' && assignment.staff?.position !== 'B&C Working Attorney')
@@ -905,7 +1168,27 @@ const ProjectDetail: React.FC = () => {
               <Typography variant="caption" color="text.secondary">
                 Linked by C/M: {billingMilestoneData?.cmNumbers?.length ? billingMilestoneData.cmNumbers.join(', ') : 'Not linked'}
               </Typography>
+              {billingMilestoneData?.linked && (
+                <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap>
+                  <Chip size="small" label={`${billingSummary.total} milestones`} variant="outlined" />
+                  <Chip size="small" label={`${billingSummary.overdue} overdue`} color={billingSummary.overdue > 0 ? 'error' : 'default'} variant={billingSummary.overdue > 0 ? 'filled' : 'outlined'} />
+                  <Chip size="small" label={`${billingSummary.pendingTriggers} pending triggers`} color={billingSummary.pendingTriggers > 0 ? 'warning' : 'default'} variant={billingSummary.pendingTriggers > 0 ? 'filled' : 'outlined'} />
+                  <Chip size="small" label={`${billingSummary.openActions} open actions`} color={billingSummary.openActions > 0 ? 'warning' : 'default'} variant={billingSummary.openActions > 0 ? 'filled' : 'outlined'} />
+                  <Chip size="small" label={`Overdue: ${currencyFormatter.format(billingSummary.overdueAmount)}`} variant="outlined" />
+                </Stack>
+              )}
             </Box>
+            {canEditBillingMilestones && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={handleOpenCreateMilestoneDialog}
+                disabled={engagementOptions.length === 0}
+              >
+                Add Milestone
+              </Button>
+            )}
           </Stack>
 
           {billingMilestonesLoading ? (
@@ -954,6 +1237,7 @@ const ProjectDetail: React.FC = () => {
                     <TableCell>Invoice Sent</TableCell>
                     <TableCell>Payment Received</TableCell>
                     <TableCell>Status</TableCell>
+                    <TableCell>Workflow</TableCell>
                     <TableCell>Notes</TableCell>
                     <TableCell align="right">Action</TableCell>
                   </TableRow>
@@ -969,6 +1253,7 @@ const ProjectDetail: React.FC = () => {
                     const completedValue = edit.completed ?? milestone.completed;
                     const hasChanges = Object.keys(edit).length > 0;
                     const isSaving = savingMilestoneIds.includes(milestone.milestoneId);
+                    const isDeleting = deletingMilestoneIds.includes(milestone.milestoneId);
 
                     return (
                       <TableRow key={milestone.milestoneId} hover>
@@ -977,8 +1262,13 @@ const ProjectDetail: React.FC = () => {
                             {milestone.title || `Milestone #${milestone.milestoneId}`}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {milestone.billingProjectName || 'Billing project'} · {milestone.cmNumber || '—'}
+                            {milestone.billingProjectName || 'Billing project'} · {milestone.cmNumber || '—'} · {milestone.engagementTitle || `Engagement ${milestone.engagementId}`}
                           </Typography>
+                          {milestone.triggerText && (
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+                              Trigger: {truncateText(milestone.triggerText, 120)}
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>
                           <TextField
@@ -986,7 +1276,7 @@ const ProjectDetail: React.FC = () => {
                             size="small"
                             value={dueDateValue}
                             onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { dueDate: e.target.value })}
-                            disabled={!permissions.canEditProject || isSaving}
+                            disabled={!canEditBillingMilestones || isSaving}
                             InputLabelProps={{ shrink: true }}
                           />
                         </TableCell>
@@ -996,7 +1286,7 @@ const ProjectDetail: React.FC = () => {
                             type="number"
                             value={amountValue}
                             onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { amountValue: e.target.value })}
-                            disabled={!permissions.canEditProject || isSaving}
+                            disabled={!canEditBillingMilestones || isSaving}
                             inputProps={{ step: '0.01', min: 0 }}
                           />
                         </TableCell>
@@ -1004,7 +1294,7 @@ const ProjectDetail: React.FC = () => {
                           <Switch
                             checked={completedValue}
                             onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { completed: e.target.checked })}
-                            disabled={!permissions.canEditProject || isSaving}
+                            disabled={!canEditBillingMilestones || isSaving}
                             size="small"
                           />
                         </TableCell>
@@ -1014,7 +1304,7 @@ const ProjectDetail: React.FC = () => {
                             size="small"
                             value={invoiceDateValue}
                             onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { invoiceSentDate: e.target.value })}
-                            disabled={!permissions.canEditProject || isSaving}
+                            disabled={!canEditBillingMilestones || isSaving}
                             InputLabelProps={{ shrink: true }}
                           />
                         </TableCell>
@@ -1024,7 +1314,7 @@ const ProjectDetail: React.FC = () => {
                             size="small"
                             value={paymentDateValue}
                             onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { paymentReceivedDate: e.target.value })}
-                            disabled={!permissions.canEditProject || isSaving}
+                            disabled={!canEditBillingMilestones || isSaving}
                             InputLabelProps={{ shrink: true }}
                           />
                         </TableCell>
@@ -1036,24 +1326,171 @@ const ProjectDetail: React.FC = () => {
                             variant={milestone.milestoneStatus === 'pending' ? 'outlined' : 'filled'}
                           />
                         </TableCell>
+                        <TableCell sx={{ minWidth: 280 }}>
+                          {permissions.isAdmin ? (
+                            <Stack spacing={0.75}>
+                              {milestone.triggerRule ? (
+                                <Typography variant="caption" color="text.secondary">
+                                  Rule: {formatEventType(milestone.triggerRule.triggerMode)}
+                                  {milestone.triggerRule.anchorEventType
+                                    ? ` · ${formatEventType(milestone.triggerRule.anchorEventType)}`
+                                    : ''}
+                                </Typography>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                  Rule: Not configured
+                                </Typography>
+                              )}
+
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                {milestone.latestTrigger ? (
+                                  <>
+                                    <Chip
+                                      size="small"
+                                      label={`Trigger ${milestone.latestTrigger.status}`}
+                                      color={TRIGGER_STATUS_COLORS[milestone.latestTrigger.status]}
+                                    />
+                                    <Chip
+                                      size="small"
+                                      variant="outlined"
+                                      label={formatEventType(milestone.latestTrigger.newStatus || 'STATUS_CHANGE')}
+                                    />
+                                  </>
+                                ) : (
+                                  <Chip size="small" variant="outlined" label="No trigger yet" />
+                                )}
+                                {milestone.latestTrigger?.actionItem && (
+                                  <Chip
+                                    size="small"
+                                    label={`${formatEventType(milestone.latestTrigger.actionItem.actionType || 'ACTION')} · ${milestone.latestTrigger.actionItem.status}`}
+                                    color={ACTION_STATUS_COLORS[milestone.latestTrigger.actionItem.status]}
+                                    variant={milestone.latestTrigger.actionItem.status === 'pending' ? 'outlined' : 'filled'}
+                                  />
+                                )}
+                              </Stack>
+
+                              <Typography variant="caption" color="text.secondary">
+                                Trigger history: {milestone.triggerStats.total} total · {milestone.triggerStats.pending} pending
+                                {milestone.latestTrigger ? ` · latest ${formatDateTime(milestone.latestTrigger.createdAt)}` : ''}
+                              </Typography>
+
+                              {milestone.latestTrigger?.actionItem && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Action owner: {milestone.latestTrigger.actionItem.assignedTo?.name || 'Unassigned'}
+                                  {milestone.latestTrigger.actionItem.dueDate ? ` · due ${formatDate(milestone.latestTrigger.actionItem.dueDate)}` : ''}
+                                </Typography>
+                              )}
+
+                              {milestone.latestTrigger && (
+                                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                                  {milestone.latestTrigger.status === 'pending' && (
+                                    <>
+                                      <Button
+                                        size="small"
+                                        color="success"
+                                        variant="outlined"
+                                        onClick={() => handleTriggerDecision(milestone.latestTrigger!.id, 'confirm')}
+                                        disabled={processingTriggerIds.includes(milestone.latestTrigger.id)}
+                                      >
+                                        Confirm Trigger
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        color="error"
+                                        variant="outlined"
+                                        onClick={() => handleTriggerDecision(milestone.latestTrigger!.id, 'reject')}
+                                        disabled={processingTriggerIds.includes(milestone.latestTrigger.id)}
+                                      >
+                                        Reject
+                                      </Button>
+                                    </>
+                                  )}
+                                  {milestone.latestTrigger.actionItem && milestone.latestTrigger.actionItem.status !== 'completed' && (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      onClick={() => handleUpdateTriggerActionStatus(milestone.latestTrigger!.id, 'completed')}
+                                      disabled={processingTriggerIds.includes(milestone.latestTrigger.id)}
+                                    >
+                                      Mark Action Completed
+                                    </Button>
+                                  )}
+                                  {milestone.latestTrigger.actionItem && milestone.latestTrigger.actionItem.status === 'completed' && (
+                                    <Button
+                                      size="small"
+                                      variant="text"
+                                      onClick={() => handleUpdateTriggerActionStatus(milestone.latestTrigger!.id, 'pending')}
+                                      disabled={processingTriggerIds.includes(milestone.latestTrigger.id)}
+                                    >
+                                      Reopen Action
+                                    </Button>
+                                  )}
+                                </Stack>
+                              )}
+                            </Stack>
+                          ) : (
+                            <Stack spacing={0.75}>
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                                {milestone.latestTrigger ? (
+                                  <Chip
+                                    size="small"
+                                    label={milestone.latestTrigger.status === 'pending' ? 'In Review' : 'Workflow Updated'}
+                                    color={milestone.latestTrigger.status === 'pending' ? 'warning' : 'default'}
+                                    variant="outlined"
+                                  />
+                                ) : (
+                                  <Chip size="small" variant="outlined" label="Workflow pending" />
+                                )}
+                                {milestone.latestTrigger?.actionItem && (
+                                  <Chip
+                                    size="small"
+                                    label={`${formatEventType(milestone.latestTrigger.actionItem.actionType || 'ACTION')} · ${milestone.latestTrigger.actionItem.status}`}
+                                    color={ACTION_STATUS_COLORS[milestone.latestTrigger.actionItem.status]}
+                                    variant={milestone.latestTrigger.actionItem.status === 'pending' ? 'outlined' : 'filled'}
+                                  />
+                                )}
+                              </Stack>
+
+                              {milestone.latestTrigger?.actionItem ? (
+                                <Typography variant="caption" color="text.secondary">
+                                  Owner: {milestone.latestTrigger.actionItem.assignedTo?.name || 'Unassigned'}
+                                  {milestone.latestTrigger.actionItem.dueDate ? ` · due ${formatDate(milestone.latestTrigger.actionItem.dueDate)}` : ''}
+                                </Typography>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                  No action item created yet.
+                                </Typography>
+                              )}
+                            </Stack>
+                          )}
+                        </TableCell>
                         <TableCell sx={{ minWidth: 220 }}>
                           <TextField
                             size="small"
                             value={notesValue}
                             onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { notes: e.target.value })}
-                            disabled={!permissions.canEditProject || isSaving}
+                            disabled={!canEditBillingMilestones || isSaving}
                             placeholder="Notes"
                             fullWidth
                           />
                         </TableCell>
                         <TableCell align="right">
-                          {permissions.canEditProject ? (
+                          {canEditBillingMilestones ? (
                             <Stack direction="row" spacing={1} justifyContent="flex-end">
+                              <Button
+                                size="small"
+                                color="error"
+                                variant="text"
+                                onClick={() => handleDeleteMilestone(milestone.milestoneId)}
+                                disabled={isSaving || isDeleting}
+                              >
+                                Delete
+                              </Button>
                               <Button
                                 size="small"
                                 variant="contained"
                                 onClick={() => handleSaveMilestone(milestone)}
-                                disabled={!hasChanges || isSaving}
+                                disabled={!hasChanges || isSaving || isDeleting}
                               >
                                 Save
                               </Button>
@@ -1061,7 +1498,7 @@ const ProjectDetail: React.FC = () => {
                                 size="small"
                                 variant="text"
                                 onClick={() => clearMilestoneEdit(milestone.milestoneId)}
-                                disabled={!hasChanges || isSaving}
+                                disabled={!hasChanges || isSaving || isDeleting}
                               >
                                 Reset
                               </Button>
@@ -1079,107 +1516,109 @@ const ProjectDetail: React.FC = () => {
           )}
         </Paper>
 
-        <Paper sx={{ p: 3 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Timeline color="primary" />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Trigger Events
-              </Typography>
-            </Box>
-            {permissions.canEditProject && (
-              <Button
-                startIcon={<Add />}
-                variant="outlined"
-                size="small"
-                onClick={() => setEventDialogOpen(true)}
-              >
-                Add
-              </Button>
-            )}
-          </Stack>
-
-          {eventsLoading ? (
-            <Box display="flex" justifyContent="center" py={3}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : projectEvents.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {projectEvents.slice(0, 10).map((event) => {
-                const notesValue =
-                  event.payload && typeof event.payload === 'object' && event.payload.notes
-                    ? String(event.payload.notes)
-                    : null;
-
-                return (
-                  <Box
-                    key={event.id}
-                    sx={{
-                      display: 'flex',
-                      gap: 2,
-                      p: 1.5,
-                      borderRadius: 1,
-                      bgcolor: 'grey.50',
-                      border: '1px solid',
-                      borderColor: 'grey.100',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <Box sx={{ minWidth: 90, flexShrink: 0 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(event.occurred_at).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="caption" display="block" color="text.secondary">
-                        {new Date(event.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
-                        <Chip size="small" color="primary" label={formatEventType(event.event_type)} sx={{ height: 20 }} />
-                        <Chip size="small" variant="outlined" label={event.source || 'system'} sx={{ height: 20 }} />
-                      </Stack>
-                      {(event.status_from || event.status_to) && (
-                        <Typography variant="caption" color="text.secondary">
-                          Status: {event.status_from || '—'} → {event.status_to || '—'}
-                        </Typography>
-                      )}
-                      {(event.lifecycle_stage_from || event.lifecycle_stage_to) && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Lifecycle: {formatLifecycleStage(event.lifecycle_stage_from)} → {formatLifecycleStage(event.lifecycle_stage_to)}
-                        </Typography>
-                      )}
-                      {notesValue && (
-                        <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
-                          {notesValue}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                );
-              })}
-              {projectEvents.length > 10 && (
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
-                  +{projectEvents.length - 10} more events
+        {permissions.isAdmin && (
+          <Paper sx={{ p: 3 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Timeline color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Project Event Diagnostics
                 </Typography>
+              </Box>
+              {permissions.canEditProject && (
+                <Button
+                  startIcon={<Add />}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setEventDialogOpen(true)}
+                >
+                  Add
+                </Button>
               )}
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                p: 2,
-                textAlign: 'center',
-                bgcolor: 'grey.50',
-                borderRadius: 1,
-                border: '1px dashed',
-                borderColor: 'grey.300',
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                No trigger events recorded yet
-              </Typography>
-            </Box>
-          )}
-        </Paper>
+            </Stack>
+
+            {eventsLoading ? (
+              <Box display="flex" justifyContent="center" py={3}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : projectEvents.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {projectEvents.slice(0, 10).map((event) => {
+                  const notesValue =
+                    event.payload && typeof event.payload === 'object' && event.payload.notes
+                      ? String(event.payload.notes)
+                      : null;
+
+                  return (
+                    <Box
+                      key={event.id}
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: 'grey.50',
+                        border: '1px solid',
+                        borderColor: 'grey.100',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <Box sx={{ minWidth: 90, flexShrink: 0 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(event.occurred_at).toLocaleDateString()}
+                        </Typography>
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {new Date(event.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
+                          <Chip size="small" color="primary" label={formatEventType(event.event_type)} sx={{ height: 20 }} />
+                          <Chip size="small" variant="outlined" label={event.source || 'system'} sx={{ height: 20 }} />
+                        </Stack>
+                        {(event.status_from || event.status_to) && (
+                          <Typography variant="caption" color="text.secondary">
+                            Status: {event.status_from || '—'} → {event.status_to || '—'}
+                          </Typography>
+                        )}
+                        {(event.lifecycle_stage_from || event.lifecycle_stage_to) && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Lifecycle: {formatLifecycleStage(event.lifecycle_stage_from)} → {formatLifecycleStage(event.lifecycle_stage_to)}
+                          </Typography>
+                        )}
+                        {notesValue && (
+                          <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                            {notesValue}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })}
+                {projectEvents.length > 10 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
+                    +{projectEvents.length - 10} more events
+                  </Typography>
+                )}
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  p: 2,
+                  textAlign: 'center',
+                  bgcolor: 'grey.50',
+                  borderRadius: 1,
+                  border: '1px dashed',
+                  borderColor: 'grey.300',
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  No trigger events recorded yet
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        )}
 
         {/* Change History */}
         <Paper sx={{ p: 3 }}>
@@ -1251,75 +1690,174 @@ const ProjectDetail: React.FC = () => {
         </Paper>
       </Stack>
       <Dialog
-        open={eventDialogOpen}
+        open={milestoneDialogOpen}
         onClose={() => {
-          if (!creatingEvent) {
-            setEventDialogOpen(false);
-            resetEventForm();
+          if (!creatingMilestone) {
+            setMilestoneDialogOpen(false);
+            setNewMilestoneForm(createMilestoneFormState());
           }
         }}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add Trigger Event</DialogTitle>
+        <DialogTitle>Add Billing Milestone</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <Autocomplete
-              freeSolo
-              options={CANONICAL_EVENT_OPTIONS}
-              value={eventTypeInput}
-              inputValue={eventTypeInput}
-              onInputChange={(_, value) => setEventTypeInput(value)}
-              onChange={(_, value) => setEventTypeInput(typeof value === 'string' ? value : value || '')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Event Type"
-                  required
-                  helperText="Use canonical event names or enter a bespoke event label."
-                />
-              )}
-            />
+            <TextField
+              select
+              label="Engagement"
+              value={newMilestoneForm.engagementId}
+              onChange={(e) => setNewMilestoneForm((prev) => ({ ...prev, engagementId: e.target.value }))}
+              fullWidth
+              disabled={creatingMilestone}
+            >
+              {engagementOptions.map((option) => (
+                <MenuItem key={option.id} value={String(option.id)}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
 
             <TextField
-              label="Occurred At"
-              type="datetime-local"
-              value={eventOccurredAt}
-              onChange={(e) => setEventOccurredAt(e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              label="Title"
+              value={newMilestoneForm.title}
+              onChange={(e) => setNewMilestoneForm((prev) => ({ ...prev, title: e.target.value }))}
+              disabled={creatingMilestone}
+              fullWidth
             />
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="Due Date"
+                type="date"
+                value={newMilestoneForm.dueDate}
+                onChange={(e) => setNewMilestoneForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                disabled={creatingMilestone}
+                fullWidth
+              />
+              <TextField
+                label="Amount"
+                type="number"
+                value={newMilestoneForm.amountValue}
+                onChange={(e) => setNewMilestoneForm((prev) => ({ ...prev, amountValue: e.target.value }))}
+                inputProps={{ step: '0.01', min: 0 }}
+                disabled={creatingMilestone}
+                fullWidth
+              />
+              <TextField
+                label="Currency"
+                value={newMilestoneForm.amountCurrency}
+                onChange={(e) => setNewMilestoneForm((prev) => ({ ...prev, amountCurrency: e.target.value }))}
+                disabled={creatingMilestone}
+                fullWidth
+              />
+            </Stack>
 
             <TextField
               label="Notes"
+              value={newMilestoneForm.notes}
+              onChange={(e) => setNewMilestoneForm((prev) => ({ ...prev, notes: e.target.value }))}
               multiline
-              minRows={3}
-              value={eventNotes}
-              onChange={(e) => setEventNotes(e.target.value)}
-              placeholder="Optional context for reviewers"
+              minRows={2}
+              disabled={creatingMilestone}
+              fullWidth
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button
             onClick={() => {
-              if (!creatingEvent) {
-                setEventDialogOpen(false);
-                resetEventForm();
+              if (!creatingMilestone) {
+                setMilestoneDialogOpen(false);
+                setNewMilestoneForm(createMilestoneFormState());
               }
             }}
-            disabled={creatingEvent}
+            disabled={creatingMilestone}
           >
             Cancel
           </Button>
           <Button
             variant="contained"
-            onClick={handleCreateProjectEvent}
-            disabled={creatingEvent || !eventTypeInput.trim()}
+            onClick={handleCreateMilestone}
+            disabled={creatingMilestone || !newMilestoneForm.engagementId}
           >
-            {creatingEvent ? 'Adding...' : 'Add Event'}
+            {creatingMilestone ? 'Adding...' : 'Add Milestone'}
           </Button>
         </DialogActions>
       </Dialog>
+      {permissions.isAdmin && (
+        <Dialog
+          open={eventDialogOpen}
+          onClose={() => {
+            if (!creatingEvent) {
+              setEventDialogOpen(false);
+              resetEventForm();
+            }
+          }}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Add Project Event</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} mt={1}>
+              <Autocomplete
+                freeSolo
+                options={CANONICAL_EVENT_OPTIONS}
+                value={eventTypeInput}
+                inputValue={eventTypeInput}
+                onInputChange={(_, value) => setEventTypeInput(value)}
+                onChange={(_, value) => setEventTypeInput(typeof value === 'string' ? value : value || '')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Event Type"
+                    required
+                    helperText="Use canonical event names or enter a bespoke event label."
+                  />
+                )}
+              />
+
+              <TextField
+                label="Occurred At"
+                type="datetime-local"
+                value={eventOccurredAt}
+                onChange={(e) => setEventOccurredAt(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+
+              <TextField
+                label="Notes"
+                multiline
+                minRows={3}
+                value={eventNotes}
+                onChange={(e) => setEventNotes(e.target.value)}
+                placeholder="Optional context for reviewers"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                if (!creatingEvent) {
+                  setEventDialogOpen(false);
+                  resetEventForm();
+                }
+              }}
+              disabled={creatingEvent}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCreateProjectEvent}
+              disabled={creatingEvent || !eventTypeInput.trim()}
+            >
+              {creatingEvent ? 'Adding...' : 'Add Event'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
       <TeamMemberDialog
         open={dialogOpen}
         onClose={() => {

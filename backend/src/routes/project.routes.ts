@@ -98,7 +98,6 @@ router.get('/:id/billing-milestones', authenticate, validate(idParamSchema, 'par
 router.patch(
   '/:id/billing-milestones',
   authenticate,
-  authorize('admin', 'editor'),
   express.json({ limit: '2mb' }),
   validate(idParamSchema, 'params'),
   validate(updateMilestonesSchema),

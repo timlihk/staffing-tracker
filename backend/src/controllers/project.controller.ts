@@ -367,26 +367,191 @@ export const getProjectBillingMilestones = async (req: AuthRequest, res: Respons
       ORDER BY bp.project_name, cm.cm_no, e.engagement_id, m.sort_order NULLS LAST, m.milestone_id
     `);
 
-    const milestones = milestoneRows.map((row) => ({
-      billingProjectId: Number(row.billing_project_id),
-      billingProjectName: row.billing_project_name,
-      cmNumber: row.cm_no,
-      engagementId: Number(row.engagement_id),
-      engagementTitle: row.engagement_title,
-      milestoneId: Number(row.milestone_id),
-      ordinal: row.ordinal,
-      title: row.title,
-      triggerText: row.trigger_text,
-      dueDate: row.due_date,
-      amountValue: row.amount_value !== null ? Number(row.amount_value) : null,
-      amountCurrency: row.amount_currency,
-      completed: Boolean(row.completed),
-      completionDate: row.completion_date,
-      invoiceSentDate: row.invoice_sent_date,
-      paymentReceivedDate: row.payment_received_date,
-      notes: row.notes,
-      milestoneStatus: deriveMilestoneBillingStatus(row),
-    }));
+    const milestoneIds = milestoneRows
+      .map((row) => Number(row.milestone_id))
+      .filter((value) => Number.isFinite(value));
+    const milestoneIdBigInts = milestoneIds.map((value) => BigInt(value));
+
+    const triggerRows = milestoneIdBigInts.length > 0
+      ? await prisma.billing_milestone_trigger_queue.findMany({
+        where: {
+          staffing_project_id: projectId,
+          milestone_id: { in: milestoneIdBigInts },
+        },
+        orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+        include: {
+          billing_action_item: {
+            orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+            take: 1,
+            include: {
+              assignedTo: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                },
+              },
+            },
+          },
+        },
+      })
+      : [];
+
+    const triggerRules = milestoneIdBigInts.length > 0
+      ? await prisma.billing_milestone_trigger_rule.findMany({
+        where: {
+          milestone_id: { in: milestoneIdBigInts },
+        },
+        orderBy: [{ milestone_id: 'asc' }, { updated_at: 'desc' }, { id: 'desc' }],
+      })
+      : [];
+
+    const triggerStatsByMilestone = new Map<number, {
+      total: number;
+      pending: number;
+      confirmed: number;
+      rejected: number;
+    }>();
+    const latestTriggerByMilestone = new Map<number, (typeof triggerRows)[number]>();
+
+    for (const trigger of triggerRows) {
+      const milestoneId = Number(trigger.milestone_id);
+      if (!Number.isFinite(milestoneId)) continue;
+
+      const existingStats = triggerStatsByMilestone.get(milestoneId) ?? {
+        total: 0,
+        pending: 0,
+        confirmed: 0,
+        rejected: 0,
+      };
+
+      existingStats.total += 1;
+      if (trigger.status === 'pending') existingStats.pending += 1;
+      if (trigger.status === 'confirmed') existingStats.confirmed += 1;
+      if (trigger.status === 'rejected') existingStats.rejected += 1;
+      triggerStatsByMilestone.set(milestoneId, existingStats);
+
+      if (!latestTriggerByMilestone.has(milestoneId)) {
+        latestTriggerByMilestone.set(milestoneId, trigger);
+      }
+    }
+
+    const triggerRuleByMilestone = new Map<number, (typeof triggerRules)[number]>();
+    for (const rule of triggerRules) {
+      const milestoneId = Number(rule.milestone_id);
+      if (!Number.isFinite(milestoneId)) continue;
+      if (!triggerRuleByMilestone.has(milestoneId)) {
+        triggerRuleByMilestone.set(milestoneId, rule);
+      }
+    }
+
+    const isAdmin = req.user?.role === 'admin';
+
+    const milestones = milestoneRows.map((row) => {
+      const milestoneId = Number(row.milestone_id);
+      const stats = triggerStatsByMilestone.get(milestoneId) ?? {
+        total: 0,
+        pending: 0,
+        confirmed: 0,
+        rejected: 0,
+      };
+
+      const trigger = latestTriggerByMilestone.get(milestoneId);
+      const actionItem = trigger && Array.isArray(trigger.billing_action_item)
+        ? trigger.billing_action_item[0]
+        : null;
+
+      const triggerRule = (() => {
+        if (!isAdmin) return null;
+        const rule = triggerRuleByMilestone.get(milestoneId);
+        if (!rule) return null;
+        return {
+          id: rule.id,
+          triggerMode: rule.trigger_mode,
+          anchorEventType: rule.anchor_event_type,
+          autoConfirm: rule.auto_confirm,
+          manualConfirmRequired: rule.manual_confirm_required,
+          dueInBusinessDays: rule.due_in_business_days,
+          recurrence: rule.recurrence,
+          confidence: rule.confidence !== null ? Number(rule.confidence) : null,
+          updatedAt: rule.updated_at,
+        };
+      })();
+
+      const latestTrigger = (() => {
+        if (!trigger) return null;
+
+        const formattedActionItem = actionItem
+          ? {
+            id: actionItem.id,
+            actionType: actionItem.action_type,
+            description: actionItem.description,
+            dueDate: actionItem.due_date,
+            status: actionItem.status,
+            completedAt: actionItem.completed_at,
+            assignedTo: actionItem.assignedTo
+              ? {
+                id: actionItem.assignedTo.id,
+                name: actionItem.assignedTo.name,
+                position: actionItem.assignedTo.position,
+              }
+              : null,
+          }
+          : null;
+
+        if (!isAdmin) {
+          return {
+            status: trigger.status,
+            actionItem: formattedActionItem,
+          };
+        }
+
+        return {
+          id: trigger.id,
+          status: trigger.status,
+          oldStatus: trigger.old_status,
+          newStatus: trigger.new_status,
+          matchConfidence: Number(trigger.match_confidence),
+          matchMethod: trigger.match_method,
+          triggerReason: trigger.trigger_reason,
+          createdAt: trigger.created_at,
+          confirmedAt: trigger.confirmed_at,
+          actionTaken: trigger.action_taken,
+          actionItem: formattedActionItem,
+        };
+      })();
+
+      return {
+        milestoneId,
+        triggerStats: isAdmin
+          ? stats
+          : {
+            total: stats.pending,
+            pending: stats.pending,
+            confirmed: 0,
+            rejected: 0,
+          },
+        triggerRule,
+        latestTrigger,
+        billingProjectId: Number(row.billing_project_id),
+        billingProjectName: row.billing_project_name,
+        cmNumber: row.cm_no,
+        engagementId: Number(row.engagement_id),
+        engagementTitle: row.engagement_title,
+        ordinal: row.ordinal,
+        title: row.title,
+        triggerText: row.trigger_text,
+        dueDate: row.due_date,
+        amountValue: row.amount_value !== null ? Number(row.amount_value) : null,
+        amountCurrency: row.amount_currency,
+        completed: Boolean(row.completed),
+        completionDate: row.completion_date,
+        invoiceSentDate: row.invoice_sent_date,
+        paymentReceivedDate: row.payment_received_date,
+        notes: row.notes,
+        milestoneStatus: deriveMilestoneBillingStatus(row),
+      };
+    });
 
     res.json({
       projectId,
@@ -432,6 +597,45 @@ export const updateProjectBillingMilestones = async (req: AuthRequest, res: Resp
     });
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const isAdmin = req.user?.role === 'admin';
+
+    if (!isAdmin) {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { staffId: true },
+      });
+
+      if (!dbUser?.staffId) {
+        return res.status(403).json({ error: 'Access denied - No staff record' });
+      }
+
+      const staff = await prisma.staff.findUnique({
+        where: { id: dbUser.staffId },
+        select: { position: true },
+      });
+
+      if (staff?.position !== 'B&C Working Attorney') {
+        return res.status(403).json({ error: 'Access denied - Not a B&C attorney' });
+      }
+
+      const assignment = await prisma.projectBcAttorney.findFirst({
+        where: {
+          projectId,
+          staffId: dbUser.staffId,
+        },
+        select: { id: true },
+      });
+
+      if (!assignment) {
+        return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
+      }
     }
 
     const linkedCms = await prisma.$queryRaw<{ cm_no: string | null }[]>`

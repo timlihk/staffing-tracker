@@ -10,6 +10,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
 import {
+  canAccessBillingProject,
   parseNumericIdParam,
   convertBigIntToNumber,
   parseDate,
@@ -17,6 +18,44 @@ import {
   parseNullableNumber,
   toSafeNumber,
 } from './billing.utils';
+
+const verifyMilestoneProjectAccess = async (
+  milestoneIds: number[],
+  authUser: AuthRequest['user']
+) => {
+  if (!milestoneIds.length) {
+    return { ok: true as const };
+  }
+
+  const milestoneIdValues = milestoneIds
+    .filter((id) => Number.isFinite(id))
+    .map((id) => BigInt(id));
+
+  if (milestoneIdValues.length === 0) {
+    return { ok: false as const, status: 400, error: 'Invalid milestone IDs' };
+  }
+
+  const rows = await prisma.$queryRaw<{ project_id: bigint }[]>(Prisma.sql`
+    SELECT DISTINCT cm.project_id
+    FROM billing_milestone m
+    JOIN billing_engagement e ON e.engagement_id = m.engagement_id
+    JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+    WHERE m.milestone_id IN (${Prisma.join(milestoneIdValues.map((id) => Prisma.sql`${id}`))})
+  `);
+
+  if (rows.length === 0) {
+    return { ok: false as const, status: 404, error: 'No matching milestones found' };
+  }
+
+  for (const row of rows) {
+    const hasAccess = await canAccessBillingProject(row.project_id, authUser);
+    if (!hasAccess) {
+      return { ok: false as const, status: 403, error: 'Access denied - Project not assigned to you' };
+    }
+  }
+
+  return { ok: true as const };
+};
 
 /**
  * PATCH /api/billing/milestones
@@ -42,6 +81,14 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
 
     if (!Array.isArray(milestones) || milestones.length === 0) {
       return res.status(400).json({ error: 'Milestones payload is required' });
+    }
+
+    const milestoneIds = milestones
+      .map((item) => Number(item.milestone_id))
+      .filter((id) => Number.isFinite(id));
+    const accessCheck = await verifyMilestoneProjectAccess(milestoneIds, req.user);
+    if (!accessCheck.ok) {
+      return res.status(accessCheck.status).json({ error: accessCheck.error });
     }
 
     // Process each milestone update sequentially to avoid transaction timeout
@@ -175,6 +222,23 @@ export async function createMilestone(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'Engagement not found' });
     }
 
+    const engagementProject = await prisma.$queryRaw<{ project_id: bigint }[]>`
+      SELECT cm.project_id
+      FROM billing_engagement e
+      JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      WHERE e.engagement_id = ${engagementIdBigInt}
+      LIMIT 1
+    `;
+
+    if (!engagementProject.length) {
+      return res.status(404).json({ error: 'Engagement project mapping not found' });
+    }
+
+    const hasAccess = await canAccessBillingProject(engagementProject[0].project_id, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
+    }
+
     const feeRecord = await prisma.$queryRaw<{ fee_id: bigint }[]>`
       SELECT fee_id
       FROM billing_fee_arrangement
@@ -283,6 +347,24 @@ export async function deleteMilestone(req: AuthRequest, res: Response) {
       milestoneIdBigInt = parseNumericIdParam(req.params.milestoneId, 'milestone ID');
     } catch (err) {
       return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const milestoneProject = await prisma.$queryRaw<{ project_id: bigint }[]>(Prisma.sql`
+      SELECT cm.project_id
+      FROM billing_milestone m
+      JOIN billing_engagement e ON e.engagement_id = m.engagement_id
+      JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      WHERE m.milestone_id = ${milestoneIdBigInt}
+      LIMIT 1
+    `);
+
+    if (!milestoneProject.length) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    const hasAccess = await canAccessBillingProject(milestoneProject[0].project_id, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
     }
 
     const deleted = await prisma.$queryRaw<{ milestone_id: bigint }[]>`

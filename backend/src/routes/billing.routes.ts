@@ -502,7 +502,7 @@ router.patch(
 router.post(
   '/engagements/:engagementId/milestones',
   authenticate,
-  adminOnly,
+  checkBillingAccess,
   express.json({ limit: '500kb' }),
   validate(engagementIdParamSchema, 'params'),
   validate(createMilestoneSchema),
@@ -541,7 +541,7 @@ router.post(
 router.patch(
   '/milestones',
   authenticate,
-  adminOnly,
+  checkBillingAccess,
   express.json({ limit: '500kb' }),
   validate(updateMilestonesSchema),
   billingController.updateMilestones
@@ -573,7 +573,7 @@ router.patch(
  *       404:
  *         description: Milestone not found
  */
-router.delete('/milestones/:milestoneId', authenticate, adminOnly, validate(milestoneIdParamSchema, 'params'), billingController.deleteMilestone);
+router.delete('/milestones/:milestoneId', authenticate, checkBillingAccess, validate(milestoneIdParamSchema, 'params'), billingController.deleteMilestone);
 
 // ============================================================================
 // Project Mapping

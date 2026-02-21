@@ -6,6 +6,7 @@ export const usePermissions = () => {
   const isAdmin = user?.role === 'admin';
   const isEditor = user?.role === 'editor';
   const isViewer = user?.role === 'viewer';
+  const isBcAttorney = user?.staff?.position === 'B&C Working Attorney';
   const isAuthenticated = !!user;
 
   return {
@@ -22,11 +23,13 @@ export const usePermissions = () => {
     canCreateAssignment: isAdmin || isEditor,
     canEditAssignment: isAdmin || isEditor,
     canDeleteAssignment: isAdmin || isEditor,
+    canEditBillingMilestones: isAdmin || isBcAttorney,
 
     canManageUsers: isAdmin,
 
     isAdmin,
     isEditor,
     isViewer,
+    isBcAttorney,
   };
 };
