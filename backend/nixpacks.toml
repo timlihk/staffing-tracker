@@ -1,2 +1,6 @@
 [nixpacks]
 node_version = "20"
+
+[inputs]
+# Force fresh install
+npm = "latest"
