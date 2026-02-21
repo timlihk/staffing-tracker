@@ -5,6 +5,7 @@ import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { validate } from '../middleware/validate';
 import { projectSchema, idParamSchema, projectQuerySchema, bcAttorneySchema, projectEventCreateSchema } from '../schemas/project.schema';
+import { updateMilestonesSchema } from '../schemas/billing.schema';
 
 const router = Router();
 
@@ -92,6 +93,17 @@ router.get('/categories', authenticate, asyncHandler(projectController.getProjec
  *         description: Unauthorized
  */
 router.get('/needing-attention', authenticate, asyncHandler(projectController.getProjectsNeedingAttention));
+
+router.get('/:id/billing-milestones', authenticate, validate(idParamSchema, 'params'), asyncHandler(projectController.getProjectBillingMilestones));
+router.patch(
+  '/:id/billing-milestones',
+  authenticate,
+  authorize('admin', 'editor'),
+  express.json({ limit: '2mb' }),
+  validate(idParamSchema, 'params'),
+  validate(updateMilestonesSchema),
+  asyncHandler(projectController.updateProjectBillingMilestones)
+);
 
 /**
  * @openapi

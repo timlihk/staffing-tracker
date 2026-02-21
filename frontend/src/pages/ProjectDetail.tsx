@@ -92,6 +92,43 @@ interface CreateProjectEventResponse {
   triggerIds: number[];
 }
 
+interface ProjectBillingMilestoneRow {
+  billingProjectId: number;
+  billingProjectName: string | null;
+  cmNumber: string | null;
+  engagementId: number;
+  engagementTitle: string | null;
+  milestoneId: number;
+  ordinal: string | null;
+  title: string | null;
+  triggerText: string | null;
+  dueDate: string | null;
+  amountValue: number | null;
+  amountCurrency: string | null;
+  completed: boolean;
+  completionDate: string | null;
+  invoiceSentDate: string | null;
+  paymentReceivedDate: string | null;
+  notes: string | null;
+  milestoneStatus: 'pending' | 'overdue' | 'completed' | 'invoiced' | 'collected';
+}
+
+interface ProjectBillingMilestoneResponse {
+  projectId: number;
+  linked: boolean;
+  cmNumbers: string[];
+  milestones: ProjectBillingMilestoneRow[];
+}
+
+interface MilestoneEdit {
+  completed?: boolean;
+  dueDate?: string;
+  amountValue?: string;
+  invoiceSentDate?: string;
+  paymentReceivedDate?: string;
+  notes?: string;
+}
+
 const CANONICAL_EVENT_OPTIONS = [
   'PROJECT_CLOSED',
   'PROJECT_TERMINATED',
@@ -105,6 +142,14 @@ const CANONICAL_EVENT_OPTIONS = [
   'LISTING_COMPLETED',
   'RENEWAL_CYCLE_STARTED',
 ];
+
+const BILLING_STATUS_COLORS: Record<ProjectBillingMilestoneRow['milestoneStatus'], 'default' | 'error' | 'warning' | 'success' | 'info'> = {
+  pending: 'default',
+  overdue: 'error',
+  completed: 'success',
+  invoiced: 'warning',
+  collected: 'info',
+};
 
 const formatLifecycleStage = (stage?: string | null) => {
   if (!stage) return '—';
@@ -126,8 +171,12 @@ const ProjectDetail: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
   const [projectEvents, setProjectEvents] = useState<ProjectEventRecord[]>([]);
+  const [billingMilestoneData, setBillingMilestoneData] = useState<ProjectBillingMilestoneResponse | null>(null);
+  const [milestoneEdits, setMilestoneEdits] = useState<Record<number, MilestoneEdit>>({});
+  const [savingMilestoneIds, setSavingMilestoneIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(false);
+  const [billingMilestonesLoading, setBillingMilestonesLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<ProjectAssignment | null>(null);
   const [savingAssignment, setSavingAssignment] = useState(false);
@@ -161,19 +210,23 @@ const ProjectDetail: React.FC = () => {
     const fetchData = async () => {
       if (!id) return;
       setEventsLoading(true);
+      setBillingMilestonesLoading(true);
       try {
-        const [projectResponse, changeHistoryResponse, eventsResponse] = await Promise.all([
+        const [projectResponse, changeHistoryResponse, eventsResponse, billingMilestonesResponse] = await Promise.all([
           api.get(`/projects/${id}`),
           api.get(`/projects/${id}/change-history`),
           api.get<ProjectEventRecord[]>(`/projects/${id}/events`, { params: { limit: 100 } }),
+          api.get<ProjectBillingMilestoneResponse>(`/projects/${id}/billing-milestones`),
         ]);
         setProject(projectResponse.data);
         setChangeHistory(changeHistoryResponse.data);
         setProjectEvents(eventsResponse.data);
+        setBillingMilestoneData(billingMilestonesResponse.data);
       } catch (error) {
         toast.error('Failed to load project details', 'Please try again later');
       } finally {
         setEventsLoading(false);
+        setBillingMilestonesLoading(false);
         setLoading(false);
       }
     };
@@ -193,6 +246,19 @@ const ProjectDetail: React.FC = () => {
       toast.error('Failed to refresh project events', 'Please try again later');
     } finally {
       setEventsLoading(false);
+    }
+  };
+
+  const refreshBillingMilestones = async () => {
+    if (!id) return;
+    setBillingMilestonesLoading(true);
+    try {
+      const response = await api.get<ProjectBillingMilestoneResponse>(`/projects/${id}/billing-milestones`);
+      setBillingMilestoneData(response.data);
+    } catch (error) {
+      toast.error('Failed to refresh billing milestones', 'Please try again later');
+    } finally {
+      setBillingMilestonesLoading(false);
     }
   };
 
@@ -245,6 +311,80 @@ const ProjectDetail: React.FC = () => {
       toast.error('Failed to add project event', message);
     } finally {
       setCreatingEvent(false);
+    }
+  };
+
+  const handleMilestoneFieldChange = (milestoneId: number, changes: MilestoneEdit) => {
+    setMilestoneEdits((prev) => ({
+      ...prev,
+      [milestoneId]: {
+        ...(prev[milestoneId] || {}),
+        ...changes,
+      },
+    }));
+  };
+
+  const clearMilestoneEdit = (milestoneId: number) => {
+    setMilestoneEdits((prev) => {
+      const next = { ...prev };
+      delete next[milestoneId];
+      return next;
+    });
+  };
+
+  const handleSaveMilestone = async (milestone: ProjectBillingMilestoneRow) => {
+    if (!id) return;
+    const edit = milestoneEdits[milestone.milestoneId];
+    if (!edit) return;
+
+    const payload: Record<string, unknown> = {
+      milestone_id: milestone.milestoneId,
+    };
+
+    if (Object.prototype.hasOwnProperty.call(edit, 'completed')) {
+      payload.completed = Boolean(edit.completed);
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, 'dueDate')) {
+      payload.due_date = edit.dueDate ? edit.dueDate : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, 'invoiceSentDate')) {
+      payload.invoice_sent_date = edit.invoiceSentDate ? edit.invoiceSentDate : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, 'paymentReceivedDate')) {
+      payload.payment_received_date = edit.paymentReceivedDate ? edit.paymentReceivedDate : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, 'notes')) {
+      const note = edit.notes?.trim();
+      payload.notes = note ? note : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(edit, 'amountValue')) {
+      if (edit.amountValue === '' || edit.amountValue === undefined) {
+        payload.amount_value = null;
+      } else {
+        const amount = Number(edit.amountValue);
+        if (!Number.isFinite(amount)) {
+          toast.error('Invalid amount value', 'Please enter a valid number');
+          return;
+        }
+        payload.amount_value = amount;
+      }
+    }
+
+    setSavingMilestoneIds((prev) => [...prev, milestone.milestoneId]);
+    try {
+      await api.patch(`/projects/${id}/billing-milestones`, {
+        milestones: [payload],
+      });
+      clearMilestoneEdit(milestone.milestoneId);
+      await Promise.all([refreshBillingMilestones(), refreshProjectEvents()]);
+      toast.success('Milestone updated');
+    } catch (error) {
+      const message = isAxiosError<{ error?: string }>(error)
+        ? (error.response?.data?.error ?? 'Please try again')
+        : 'Please try again';
+      toast.error('Failed to update milestone', message);
+    } finally {
+      setSavingMilestoneIds((prev) => prev.filter((item) => item !== milestone.milestoneId));
     }
   };
 
@@ -755,6 +895,189 @@ const ProjectDetail: React.FC = () => {
             )}
           </Paper>
         </Stack>
+
+        <Paper sx={{ p: 3 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Billing Milestones
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Linked by C/M: {billingMilestoneData?.cmNumbers?.length ? billingMilestoneData.cmNumbers.join(', ') : 'Not linked'}
+              </Typography>
+            </Box>
+          </Stack>
+
+          {billingMilestonesLoading ? (
+            <Box display="flex" justifyContent="center" py={3}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : !billingMilestoneData?.linked ? (
+            <Box
+              sx={{
+                p: 2,
+                textAlign: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 1,
+                border: '1px dashed',
+                borderColor: 'grey.300',
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                No linked billing milestones yet. Link this project to billing by C/M first.
+              </Typography>
+            </Box>
+          ) : billingMilestoneData.milestones.length === 0 ? (
+            <Box
+              sx={{
+                p: 2,
+                textAlign: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 1,
+                border: '1px dashed',
+                borderColor: 'grey.300',
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                No billing milestones found for linked C/M numbers.
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Milestone</TableCell>
+                    <TableCell>Due Date</TableCell>
+                    <TableCell align="right">Amount</TableCell>
+                    <TableCell>Completed</TableCell>
+                    <TableCell>Invoice Sent</TableCell>
+                    <TableCell>Payment Received</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Notes</TableCell>
+                    <TableCell align="right">Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {billingMilestoneData.milestones.map((milestone) => {
+                    const edit = milestoneEdits[milestone.milestoneId] || {};
+                    const dueDateValue = edit.dueDate ?? (milestone.dueDate ? milestone.dueDate.slice(0, 10) : '');
+                    const amountValue = edit.amountValue ?? (milestone.amountValue !== null ? String(milestone.amountValue) : '');
+                    const invoiceDateValue = edit.invoiceSentDate ?? (milestone.invoiceSentDate ? milestone.invoiceSentDate.slice(0, 10) : '');
+                    const paymentDateValue = edit.paymentReceivedDate ?? (milestone.paymentReceivedDate ? milestone.paymentReceivedDate.slice(0, 10) : '');
+                    const notesValue = edit.notes ?? (milestone.notes || '');
+                    const completedValue = edit.completed ?? milestone.completed;
+                    const hasChanges = Object.keys(edit).length > 0;
+                    const isSaving = savingMilestoneIds.includes(milestone.milestoneId);
+
+                    return (
+                      <TableRow key={milestone.milestoneId} hover>
+                        <TableCell sx={{ minWidth: 260 }}>
+                          <Typography variant="body2" fontWeight={600}>
+                            {milestone.title || `Milestone #${milestone.milestoneId}`}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {milestone.billingProjectName || 'Billing project'} · {milestone.cmNumber || '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            size="small"
+                            value={dueDateValue}
+                            onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { dueDate: e.target.value })}
+                            disabled={!permissions.canEditProject || isSaving}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={{ minWidth: 130 }}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={amountValue}
+                            onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { amountValue: e.target.value })}
+                            disabled={!permissions.canEditProject || isSaving}
+                            inputProps={{ step: '0.01', min: 0 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={completedValue}
+                            onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { completed: e.target.checked })}
+                            disabled={!permissions.canEditProject || isSaving}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            size="small"
+                            value={invoiceDateValue}
+                            onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { invoiceSentDate: e.target.value })}
+                            disabled={!permissions.canEditProject || isSaving}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            size="small"
+                            value={paymentDateValue}
+                            onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { paymentReceivedDate: e.target.value })}
+                            disabled={!permissions.canEditProject || isSaving}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={milestone.milestoneStatus}
+                            color={BILLING_STATUS_COLORS[milestone.milestoneStatus]}
+                            variant={milestone.milestoneStatus === 'pending' ? 'outlined' : 'filled'}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 220 }}>
+                          <TextField
+                            size="small"
+                            value={notesValue}
+                            onChange={(e) => handleMilestoneFieldChange(milestone.milestoneId, { notes: e.target.value })}
+                            disabled={!permissions.canEditProject || isSaving}
+                            placeholder="Notes"
+                            fullWidth
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          {permissions.canEditProject ? (
+                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => handleSaveMilestone(milestone)}
+                                disabled={!hasChanges || isSaving}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => clearMilestoneEdit(milestone.milestoneId)}
+                                disabled={!hasChanges || isSaving}
+                              >
+                                Reset
+                              </Button>
+                            </Stack>
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
 
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>

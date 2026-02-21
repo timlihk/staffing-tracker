@@ -7,7 +7,7 @@ import { ProjectStatusTriggerService } from '../services/project-status-trigger.
 import { ProjectEventTriggerService } from '../services/project-event-trigger.service';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { logger } from '../utils/logger';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { ProjectCategory, ProjectStatus, ActionType, EntityType } from '../constants';
 
 const TIMETABLE_TO_LIFECYCLE_STAGE: Record<string, string> = {
@@ -49,6 +49,34 @@ const deriveLifecycleStage = (params: {
   }
 
   return params.fallbackLifecycleStage ?? null;
+};
+
+const normalizeDateInput = (value: unknown): Date | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const normalizeNumberInput = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const deriveMilestoneBillingStatus = (milestone: {
+  completed?: boolean | null;
+  invoice_sent_date?: Date | string | null;
+  payment_received_date?: Date | string | null;
+  due_date?: Date | string | null;
+}): 'pending' | 'overdue' | 'completed' | 'invoiced' | 'collected' => {
+  if (milestone.payment_received_date) return 'collected';
+  if (milestone.invoice_sent_date) return 'invoiced';
+  if (milestone.completed) return 'completed';
+  if (milestone.due_date && new Date(milestone.due_date).getTime() < Date.now()) return 'overdue';
+  return 'pending';
 };
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
@@ -266,6 +294,321 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
     res.json(projectWithUnifiedLifecycle);
   } catch (error) {
     logger.error('Get project by ID error', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getProjectBillingMilestones = async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id as string, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, cmNumber: true },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const linkedCms = await prisma.$queryRaw<{ cm_no: string | null }[]>`
+      SELECT DISTINCT cm.cm_no
+      FROM billing_staffing_project_link l
+      JOIN billing_project_cm_no cm ON cm.project_id = l.billing_project_id
+      WHERE l.staffing_project_id = ${projectId}
+    `;
+
+    const cmNumbers = Array.from(
+      new Set(
+        [project.cmNumber, ...linkedCms.map((row) => row.cm_no)]
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+          .map((value) => value.trim())
+      )
+    );
+
+    if (cmNumbers.length === 0) {
+      return res.json({
+        projectId,
+        linked: false,
+        cmNumbers: [],
+        milestones: [],
+      });
+    }
+
+    const cmSql = cmNumbers.map((value) => Prisma.sql`${value}`);
+    const milestoneRows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT
+        bp.project_id AS billing_project_id,
+        bp.project_name AS billing_project_name,
+        cm.cm_no,
+        e.engagement_id,
+        COALESCE(e.engagement_title, e.name) AS engagement_title,
+        m.milestone_id,
+        m.ordinal,
+        m.title,
+        m.trigger_text,
+        m.due_date,
+        m.amount_value,
+        m.amount_currency,
+        m.completed,
+        m.completion_date,
+        m.invoice_sent_date,
+        m.payment_received_date,
+        m.notes,
+        m.sort_order
+      FROM billing_milestone m
+      JOIN billing_engagement e ON e.engagement_id = m.engagement_id
+      JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      JOIN billing_project bp ON bp.project_id = cm.project_id
+      WHERE cm.cm_no IN (${Prisma.join(cmSql)})
+      ORDER BY bp.project_name, cm.cm_no, e.engagement_id, m.sort_order NULLS LAST, m.milestone_id
+    `);
+
+    const milestones = milestoneRows.map((row) => ({
+      billingProjectId: Number(row.billing_project_id),
+      billingProjectName: row.billing_project_name,
+      cmNumber: row.cm_no,
+      engagementId: Number(row.engagement_id),
+      engagementTitle: row.engagement_title,
+      milestoneId: Number(row.milestone_id),
+      ordinal: row.ordinal,
+      title: row.title,
+      triggerText: row.trigger_text,
+      dueDate: row.due_date,
+      amountValue: row.amount_value !== null ? Number(row.amount_value) : null,
+      amountCurrency: row.amount_currency,
+      completed: Boolean(row.completed),
+      completionDate: row.completion_date,
+      invoiceSentDate: row.invoice_sent_date,
+      paymentReceivedDate: row.payment_received_date,
+      notes: row.notes,
+      milestoneStatus: deriveMilestoneBillingStatus(row),
+    }));
+
+    res.json({
+      projectId,
+      linked: true,
+      cmNumbers,
+      milestones,
+    });
+  } catch (error) {
+    logger.error('Get project billing milestones error', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateProjectBillingMilestones = async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id as string, 10);
+    if (Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const { milestones } = req.body as {
+      milestones?: Array<{
+        milestone_id: number;
+        completed?: boolean;
+        invoice_sent_date?: string | null;
+        payment_received_date?: string | null;
+        notes?: string | null;
+        due_date?: string | null;
+        title?: string | null;
+        trigger_text?: string | null;
+        amount_value?: number | null;
+        amount_currency?: string | null;
+      }>;
+    };
+
+    if (!Array.isArray(milestones) || milestones.length === 0) {
+      return res.status(400).json({ error: 'Milestones payload is required' });
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, name: true, cmNumber: true },
+    });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const linkedCms = await prisma.$queryRaw<{ cm_no: string | null }[]>`
+      SELECT DISTINCT cm.cm_no
+      FROM billing_staffing_project_link l
+      JOIN billing_project_cm_no cm ON cm.project_id = l.billing_project_id
+      WHERE l.staffing_project_id = ${projectId}
+    `;
+    const cmNumbers = Array.from(
+      new Set(
+        [project.cmNumber, ...linkedCms.map((row) => row.cm_no)]
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+          .map((value) => value.trim())
+      )
+    );
+
+    if (cmNumbers.length === 0) {
+      return res.status(400).json({ error: 'Project has no linked C/M number' });
+    }
+
+    const milestoneIds = milestones
+      .map((m) => Number(m.milestone_id))
+      .filter((value) => Number.isFinite(value));
+    if (milestoneIds.length !== milestones.length) {
+      return res.status(400).json({ error: 'Invalid milestone_id in payload' });
+    }
+
+    const allowedMilestones = await prisma.$queryRaw<{ milestone_id: bigint }[]>(Prisma.sql`
+      SELECT DISTINCT m.milestone_id
+      FROM billing_milestone m
+      JOIN billing_engagement e ON e.engagement_id = m.engagement_id
+      JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      WHERE cm.cm_no IN (${Prisma.join(cmNumbers.map((value) => Prisma.sql`${value}`))})
+        AND m.milestone_id IN (${Prisma.join(milestoneIds.map((value) => Prisma.sql`${BigInt(value)}`))})
+    `);
+
+    const allowedIds = new Set(allowedMilestones.map((row) => Number(row.milestone_id)));
+    const unauthorized = milestoneIds.filter((id) => !allowedIds.has(id));
+    if (unauthorized.length > 0) {
+      return res.status(403).json({ error: `Milestones not linked to project C/M: ${unauthorized.join(', ')}` });
+    }
+
+    const updatedMilestones: Array<{ milestoneId: number; changed: string[] }> = [];
+    for (const milestone of milestones) {
+      const milestoneId = Number(milestone.milestone_id);
+      const existing = await prisma.billing_milestone.findUnique({
+        where: { milestone_id: BigInt(milestoneId) },
+        select: {
+          milestone_id: true,
+          completed: true,
+          completion_date: true,
+          invoice_sent_date: true,
+          payment_received_date: true,
+          notes: true,
+          due_date: true,
+          title: true,
+          trigger_text: true,
+          amount_value: true,
+          amount_currency: true,
+        },
+      });
+
+      if (!existing) continue;
+
+      const data: any = {};
+      const changed: string[] = [];
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'completed')) {
+        const completed = Boolean(milestone.completed);
+        data.completed = completed;
+        data.completion_date = completed ? (existing.completion_date || new Date()) : null;
+        data.completion_source = completed ? 'project_detail_update' : null;
+        if (completed !== existing.completed) changed.push('completed');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'invoice_sent_date')) {
+        const value = normalizeDateInput(milestone.invoice_sent_date);
+        data.invoice_sent_date = value;
+        if (String(value) !== String(existing.invoice_sent_date)) changed.push('invoice_sent_date');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'payment_received_date')) {
+        const value = normalizeDateInput(milestone.payment_received_date);
+        data.payment_received_date = value;
+        if (String(value) !== String(existing.payment_received_date)) changed.push('payment_received_date');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'notes')) {
+        const value = normalizeOptionalString(milestone.notes);
+        data.notes = value;
+        if (value !== existing.notes) changed.push('notes');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'due_date')) {
+        const value = normalizeDateInput(milestone.due_date);
+        data.due_date = value;
+        if (String(value) !== String(existing.due_date)) changed.push('due_date');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'title')) {
+        const value = normalizeOptionalString(milestone.title);
+        data.title = value;
+        data.description = value;
+        if (value !== existing.title) changed.push('title');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'trigger_text')) {
+        const value = normalizeOptionalString(milestone.trigger_text);
+        data.trigger_text = value;
+        if (value !== existing.trigger_text) changed.push('trigger_text');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'amount_value')) {
+        const value = normalizeNumberInput(milestone.amount_value);
+        data.amount_value = value;
+        if (String(value) !== String(existing.amount_value ?? null)) changed.push('amount_value');
+      }
+
+      if (Object.prototype.hasOwnProperty.call(milestone, 'amount_currency')) {
+        const value = normalizeOptionalString(milestone.amount_currency);
+        data.amount_currency = value;
+        if (value !== existing.amount_currency) changed.push('amount_currency');
+      }
+
+      if (changed.length === 0) continue;
+
+      await prisma.billing_milestone.update({
+        where: { milestone_id: BigInt(milestoneId) },
+        data,
+      });
+
+      updatedMilestones.push({ milestoneId, changed });
+
+      await ProjectEventTriggerService.createProjectEvent({
+        projectId,
+        eventType: 'BILLING_MILESTONE_UPDATED',
+        source: 'project_detail',
+        createdBy: req.user?.userId,
+        payload: {
+          milestoneId,
+          changedFields: changed,
+          completed: Object.prototype.hasOwnProperty.call(milestone, 'completed')
+            ? Boolean(milestone.completed)
+            : existing.completed,
+          invoiceSentDate: Object.prototype.hasOwnProperty.call(milestone, 'invoice_sent_date')
+            ? milestone.invoice_sent_date
+            : existing.invoice_sent_date,
+          paymentReceivedDate: Object.prototype.hasOwnProperty.call(milestone, 'payment_received_date')
+            ? milestone.payment_received_date
+            : existing.payment_received_date,
+        },
+        processTriggers: true,
+      });
+    }
+
+    if (req.user?.userId && updatedMilestones.length > 0) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: ActionType.UPDATE,
+          entityType: 'billing_milestone',
+          entityId: updatedMilestones[0].milestoneId,
+          description: `Updated ${updatedMilestones.length} billing milestones from project ${project.name}`,
+        },
+      });
+    }
+
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.json({
+      success: true,
+      updated: updatedMilestones.length,
+      milestones: updatedMilestones,
+    });
+  } catch (error) {
+    logger.error('Update project billing milestones error', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({ error: 'Internal server error' });
   }
 };
