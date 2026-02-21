@@ -9,6 +9,16 @@ import { AuthRequest } from '../middleware/auth';
 import { ProjectStatusTriggerService } from '../services/project-status-trigger.service';
 import { logger } from '../utils/logger';
 
+const toSafeNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'bigint') {
+    const numeric = Number(value);
+    return Number.isSafeInteger(numeric) ? numeric : null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
 const formatActionItem = (actionItem: any) => {
   if (!actionItem) {
     return null;
@@ -36,14 +46,14 @@ const formatTrigger = (trigger: any) => {
 
   return {
     id: trigger.id,
-    milestoneId: trigger.milestone_id,
-    staffingProjectId: trigger.staffing_project_id,
+    milestoneId: toSafeNumber(trigger.milestone_id),
+    staffingProjectId: toSafeNumber(trigger.staffing_project_id),
     oldStatus: trigger.old_status,
     newStatus: trigger.new_status,
     matchConfidence: parseFloat(trigger.match_confidence?.toString() || '0'),
     triggerReason: trigger.trigger_reason,
     status: trigger.status,
-    confirmedBy: trigger.confirmed_by,
+    confirmedBy: toSafeNumber(trigger.confirmed_by),
     confirmedAt: trigger.confirmed_at,
     actionTaken: trigger.action_taken,
     createdAt: trigger.created_at,
