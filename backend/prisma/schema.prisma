@@ -531,6 +531,12 @@ model billing_project_cm_no {
   billing_credit_cny     Decimal?             @default(0) @db.Decimal(18, 2)
   financials_updated_at  DateTime?            @db.Timestamptz(6)
   financials_updated_by  Int?
+  agreed_fee_usd         Decimal?             @db.Decimal(18, 2)
+  ar_usd                 Decimal?             @db.Decimal(18, 2)
+  billed_but_unpaid      Decimal?             @db.Decimal(18, 2)
+  unbilled_per_el        Decimal?             @db.Decimal(18, 2)
+  finance_remarks        String?
+  matter_notes           String?
   billing_engagement     billing_engagement[]
   billing_project        billing_project      @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction)
 

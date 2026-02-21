@@ -441,6 +441,45 @@ export const updateTriggerActionItem = async (
   return response.data;
 };
 
+// Excel sync (finance upload)
+export interface ExcelSyncPreview {
+  totalExcelRows: number;
+  matchedCmNumbers: number;
+  unmatchedCmNumbers: string[];
+  projectsToUpdate: number;
+  milestonesToCreate: number;
+  milestonesToMarkCompleted: number;
+  financialsToUpdate: number;
+  matched: Array<{
+    cmNo: string;
+    projectName: string;
+    engagementCount: number;
+    milestoneCount: number;
+    completedCount: number;
+    financialChanges: string[];
+  }>;
+}
+
+export interface ExcelSyncResult {
+  projectsUpdated: number;
+  financialsUpdated: number;
+  engagementsUpserted: number;
+  milestonesCreated: number;
+  milestonesUpdated: number;
+  milestonesMarkedCompleted: number;
+  unmatchedCmNumbers: string[];
+}
+
+export const previewExcelSync = async (fileBase64: string): Promise<ExcelSyncPreview> => {
+  const response = await apiClient.post('/billing/excel-sync/preview', { file: fileBase64 });
+  return response.data;
+};
+
+export const applyExcelSync = async (fileBase64: string): Promise<ExcelSyncResult> => {
+  const response = await apiClient.post('/billing/excel-sync/apply', { file: fileBase64 });
+  return response.data;
+};
+
 export const getOverdueByAttorney = async (params?: {
   attorneyId?: number;
   minAmount?: number;

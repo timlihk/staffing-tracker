@@ -27,15 +27,19 @@ async function recreateViews() {
           cm.collected_to_date_cny AS collection_cny,
           cm.billing_credit_cny,
           cm.ubt_cny,
-          COALESCE(ms.agreed_fee_usd, 0)::numeric AS agreed_fee_usd,
+          COALESCE(cm.agreed_fee_usd, 0)::numeric AS agreed_fee_usd,
           COALESCE(ms.agreed_fee_cny, 0)::numeric AS agreed_fee_cny,
+          cm.ar_usd,
+          cm.billed_but_unpaid,
+          cm.unbilled_per_el,
+          cm.finance_remarks,
+          cm.matter_notes,
           cm.financials_updated_at AS financials_last_updated_at,
           cm.financials_updated_by AS financials_last_updated_by
       FROM billing_project_cm_no cm
       LEFT JOIN (
           SELECT
               e.cm_id,
-              SUM(CASE WHEN m.amount_currency = 'USD' THEN m.amount_value ELSE 0 END) AS agreed_fee_usd,
               SUM(CASE WHEN m.amount_currency = 'CNY' THEN m.amount_value ELSE 0 END) AS agreed_fee_cny
           FROM billing_engagement e
           LEFT JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id

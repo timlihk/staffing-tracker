@@ -8,6 +8,7 @@ import express, { Response, NextFunction } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import * as billingController from '../controllers/billing.controller';
 import * as billingTriggerController from '../controllers/billing-trigger.controller';
+import * as billingExcelSyncController from '../controllers/billing-excel-sync.controller';
 import prisma from '../utils/prisma';
 import { validate } from '../middleware/validate';
 import {
@@ -1039,5 +1040,25 @@ router.patch(
  *         description: Unauthorized
  */
 router.get('/overdue-by-attorney', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getOverdueByAttorney);
+
+// ============================================================================
+// Excel Sync (Finance Upload)
+// ============================================================================
+
+router.post(
+  '/excel-sync/preview',
+  authenticate,
+  adminOnly,
+  express.json({ limit: '10mb' }),
+  billingExcelSyncController.previewExcelSync
+);
+
+router.post(
+  '/excel-sync/apply',
+  authenticate,
+  adminOnly,
+  express.json({ limit: '10mb' }),
+  billingExcelSyncController.applyExcelSync
+);
 
 export default router;
