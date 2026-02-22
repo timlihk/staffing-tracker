@@ -502,22 +502,40 @@ const ProjectDetail: React.FC = () => {
               {project.name}
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Chip label={project.status} color={statusColor} sx={{ fontWeight: 600 }} />
+              <Chip
+                label={project.status}
+                sx={{
+                  fontWeight: 600,
+                  bgcolor: 'white',
+                  color: statusColor === 'success' ? tokens.colors.success :
+                         statusColor === 'error' ? tokens.colors.error :
+                         statusColor === 'warning' ? tokens.colors.warning :
+                         tokens.colors.slate[600],
+                  border: 'none',
+                }}
+              />
               {project.lifecycleStage && (
                 <Chip
                   label={`Lifecycle: ${formatLifecycleStage(project.lifecycleStage)}`}
                   variant="outlined"
-                  sx={{ bgcolor: 'white' }}
+                  sx={{ bgcolor: 'white', fontWeight: 500 }}
                 />
               )}
               {project.priority && (
                 <Chip
                   label={`Priority: ${project.priority}`}
-                  color={getPriorityColor(project.priority)}
-                  sx={{ fontWeight: 600 }}
+                  sx={{
+                    fontWeight: 600,
+                    bgcolor: 'white',
+                    color: project.priority === 'High' ? tokens.colors.error :
+                           project.priority === 'Medium' ? tokens.colors.warning :
+                           project.priority === 'Low' ? tokens.colors.success :
+                           tokens.colors.slate[600],
+                    border: 'none',
+                  }}
                 />
               )}
-              {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
+              {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white', fontWeight: 500 }} />}
               {project.cmNumber && (
                 <Chip
                   label={`C/M: ${project.cmNumber}`}
