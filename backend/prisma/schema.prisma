@@ -238,6 +238,13 @@ model AppSettings {
   enableDataExport    Boolean  @default(false) @map("enable_data_export")
   billingEaUserId     Int?     @map("billing_ea_user_id") // User ID of the EA responsible for billing milestone confirmations
   billingTriggerEnabled Boolean @default(true) @map("billing_trigger_enabled") // Enable/disable billing milestone trigger system
+  billingDateSweepEnabled Boolean @default(false) @map("billing_date_sweep_enabled")
+  billingDateSweepLimit Int @default(2000) @map("billing_date_sweep_limit")
+  billingAiSweepEnabled Boolean @default(false) @map("billing_ai_sweep_enabled")
+  billingAiSweepLimit Int @default(300) @map("billing_ai_sweep_limit")
+  billingAiSweepBatchSize Int @default(20) @map("billing_ai_sweep_batch_size")
+  billingAiSweepMinConfidence Float @default(0.75) @map("billing_ai_sweep_min_confidence")
+  billingAiSweepAutoConfirmConfidence Float @default(0.92) @map("billing_ai_sweep_auto_confirm_confidence")
   updatedAt           DateTime @updatedAt @map("updated_at")
   updatedBy           Int?     @map("updated_by")
 

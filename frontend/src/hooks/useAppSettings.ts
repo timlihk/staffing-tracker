@@ -1,16 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/client';
-import { toast } from '../lib/toast';
 
 export interface AppSettings {
   id: number;
   enableDataExport: boolean;
+  billingDateSweepEnabled: boolean;
+  billingDateSweepLimit: number;
+  billingAiSweepEnabled: boolean;
+  billingAiSweepLimit: number;
+  billingAiSweepBatchSize: number;
+  billingAiSweepMinConfidence: number;
+  billingAiSweepAutoConfirmConfidence: number;
   updatedAt: string;
   updatedBy: number | null;
 }
 
 export interface UpdateAppSettingsData {
   enableDataExport?: boolean;
+  billingDateSweepEnabled?: boolean;
+  billingDateSweepLimit?: number;
+  billingAiSweepEnabled?: boolean;
+  billingAiSweepLimit?: number;
+  billingAiSweepBatchSize?: number;
+  billingAiSweepMinConfidence?: number;
+  billingAiSweepAutoConfirmConfidence?: number;
 }
 
 const APP_SETTINGS_KEY = ['app-settings'];
@@ -40,15 +53,8 @@ export const useUpdateAppSettings = () => {
       const response = await api.patch<AppSettings>('/app-settings', data);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: APP_SETTINGS_KEY });
-      toast.success(
-        'Settings updated',
-        `Data export is now ${data.enableDataExport ? 'enabled' : 'disabled'}`
-      );
-    },
-    onError: () => {
-      toast.error('Failed to update settings', 'Please try again');
     },
   });
 };

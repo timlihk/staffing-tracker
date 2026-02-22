@@ -11,6 +11,7 @@ import { BillingMilestoneDateSweepService } from '../services/billing-milestone-
 import { BillingMilestoneAISweepService } from '../services/billing-milestone-ai-sweep.service';
 import { BillingPipelineInsightsService } from '../services/billing-pipeline-insights.service';
 import { logger } from '../utils/logger';
+import prisma from '../utils/prisma';
 
 const toSafeNumber = (value: unknown): number | null => {
   if (value === null || value === undefined) return null;
@@ -261,7 +262,10 @@ export const runDueDateSweep = async (req: AuthRequest, res: Response) => {
   try {
     const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
     const parsedLimit = Number(req.query?.limit);
-    const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+    const settings = await prisma.appSettings.findFirst();
+    const limit = Number.isFinite(parsedLimit)
+      ? parsedLimit
+      : settings?.billingDateSweepLimit;
 
     const result = await BillingMilestoneDateSweepService.runDailySweep({
       dryRun,
@@ -290,13 +294,20 @@ export const runAIDueSweep = async (req: AuthRequest, res: Response) => {
     const parsedBatchSize = Number(req.query?.batchSize);
     const parsedMinConfidence = Number(req.query?.minConfidence);
     const parsedAutoConfirmConfidence = Number(req.query?.autoConfirmConfidence);
+    const settings = await prisma.appSettings.findFirst();
 
-    const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
-    const batchSize = Number.isFinite(parsedBatchSize) ? parsedBatchSize : undefined;
-    const minConfidence = Number.isFinite(parsedMinConfidence) ? parsedMinConfidence : undefined;
+    const limit = Number.isFinite(parsedLimit)
+      ? parsedLimit
+      : settings?.billingAiSweepLimit;
+    const batchSize = Number.isFinite(parsedBatchSize)
+      ? parsedBatchSize
+      : settings?.billingAiSweepBatchSize;
+    const minConfidence = Number.isFinite(parsedMinConfidence)
+      ? parsedMinConfidence
+      : settings?.billingAiSweepMinConfidence;
     const autoConfirmConfidence = Number.isFinite(parsedAutoConfirmConfidence)
       ? parsedAutoConfirmConfidence
-      : undefined;
+      : settings?.billingAiSweepAutoConfirmConfidence;
 
     const result = await BillingMilestoneAISweepService.runDailySweep({
       dryRun,
