@@ -38,12 +38,13 @@ import {
   Timeline,
   History,
   Group,
+  OpenInNew,
 } from '@mui/icons-material';
 import api from '../api/client';
 import { Project, ChangeHistory, ProjectAssignment, ProjectBcAttorney } from '../types';
 import { Page, PageHeader } from '../components/ui';
 import { TeamMemberDialog, type TeamMemberFormValues } from '../components/projects';
-import ProjectMilestonesSection from '../components/projects/ProjectMilestonesSection';
+
 import { useStaff } from '../hooks/useStaff';
 import { usePermissions } from '../hooks/usePermissions';
 import { useConfirmProject } from '../hooks/useProjects';
@@ -143,7 +144,8 @@ const ProjectDetail: React.FC = () => {
   const [eventNotes, setEventNotes] = useState('');
   const [creatingEvent, setCreatingEvent] = useState(false);
 
-  const [milestoneRefreshKey, setMilestoneRefreshKey] = useState(0);
+  // Billing project ID for C/M link
+  const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
 
   // C/M number edit dialog state
   const [cmDialogOpen, setCmDialogOpen] = useState(false);
@@ -211,6 +213,25 @@ const ProjectDetail: React.FC = () => {
     fetchData();
   }, [id, permissions.isAdmin]);
 
+  // Look up billing project ID when project has a C/M number
+  useEffect(() => {
+    if (!project?.cmNumber) {
+      setBillingProjectId(null);
+      return;
+    }
+    let cancelled = false;
+    api.get(`/billing/cm-lookup/${project.cmNumber}`)
+      .then((res) => {
+        if (!cancelled && res.data.found) {
+          setBillingProjectId(res.data.billingProjectId);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBillingProjectId(null);
+      });
+    return () => { cancelled = true; };
+  }, [project?.cmNumber]);
+
   const refreshProjectEvents = async () => {
     if (!id || !permissions.isAdmin) {
       setProjectEvents([]);
@@ -274,7 +295,6 @@ const ProjectDetail: React.FC = () => {
       setCmSaving(true);
       await api.patch(`/projects/${id}`, { cmNumber: trimmed });
       setProject((prev) => prev ? { ...prev, cmNumber: trimmed } : prev);
-      setMilestoneRefreshKey((k) => k + 1);
       setCmDialogOpen(false);
       toast.success('C/M number updated');
     } catch (error) {
@@ -629,7 +649,14 @@ const ProjectDetail: React.FC = () => {
                 />
               )}
               {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
-              {project.cmNumber && <Chip label={`C/M: ${project.cmNumber}`} variant="outlined" sx={{ bgcolor: 'white' }} />}
+              {project.cmNumber && (
+                <Chip
+                  label={`C/M: ${project.cmNumber}`}
+                  variant="outlined"
+                  sx={{ bgcolor: 'white', ...(billingProjectId ? { cursor: 'pointer' } : {}) }}
+                  onClick={billingProjectId ? () => navigate(`/billing/${billingProjectId}`) : undefined}
+                />
+              )}
             </Stack>
           </Stack>
         </Paper>
@@ -669,11 +696,22 @@ const ProjectDetail: React.FC = () => {
               {
                 label: 'C/M NUMBER',
                 value: project.cmNumber || '-',
-                action: permissions.canEditProject ? (
-                  <IconButton size="small" onClick={openCmDialog} sx={{ ml: 0.5, p: 0.25 }}>
-                    <Edit fontSize="small" />
-                  </IconButton>
-                ) : undefined,
+                action: (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {billingProjectId && (
+                      <Tooltip title="Open billing detail">
+                        <IconButton size="small" onClick={() => navigate(`/billing/${billingProjectId}`)} sx={{ p: 0.25 }}>
+                          <OpenInNew fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {permissions.canEditProject && (
+                      <IconButton size="small" onClick={openCmDialog} sx={{ p: 0.25 }}>
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Stack>
+                ),
               },
               {
                 label: 'SIDE',
@@ -859,15 +897,6 @@ const ProjectDetail: React.FC = () => {
             )}
           </Paper>
         </Stack>
-
-        <ProjectMilestonesSection
-          projectId={Number(id)}
-          permissions={{
-            isAdmin: permissions.isAdmin,
-            canEditBillingMilestones: permissions.canEditBillingMilestones,
-          }}
-          refreshKey={milestoneRefreshKey}
-        />
 
         {permissions.isAdmin && (
           <Paper sx={{ p: 3 }}>
