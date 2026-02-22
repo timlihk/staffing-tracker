@@ -36,6 +36,7 @@ export const billingKeys = {
   unmappedAttorneys: () => [...billingKeys.all, 'unmapped-attorneys'] as const,
   triggers: (params?: Record<string, unknown>) => [...billingKeys.all, 'triggers', params ?? {}] as const,
   overdueByAttorney: (params?: Record<string, unknown>) => [...billingKeys.all, 'overdue-by-attorney', params ?? {}] as const,
+  pipelineInsights: () => [...billingKeys.all, 'pipeline-insights'] as const,
 };
 
 // Get all billing projects
@@ -402,6 +403,14 @@ export function useOverdueByAttorney(params?: {
   return useQuery({
     queryKey: billingKeys.overdueByAttorney(stableParams),
     queryFn: () => billingApi.getOverdueByAttorney(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useBillingPipelineInsights() {
+  return useQuery({
+    queryKey: billingKeys.pipelineInsights(),
+    queryFn: () => billingApi.getBillingPipelineInsights(),
     staleTime: 30 * 1000,
   });
 }

@@ -232,6 +232,33 @@ export interface BillingOverdueRow {
   milestoneDueDate: string | null;
 }
 
+export interface BillingPipelineInsights {
+  asOf: string;
+  totals: {
+    invoicableAmount: number;
+    invoicableCount: number;
+    outstandingArAmount: number;
+    outstandingArCount: number;
+    overdueAr30Amount: number;
+    overdueAr30Count: number;
+    collectedYtdAmount: number;
+    collectedYtdCount: number;
+    upcoming30Amount: number;
+    upcoming30Count: number;
+    pendingActionItems: number;
+    pendingTriggers: number;
+  };
+  byAttorney: Array<{
+    staffId: number;
+    attorneyName: string;
+    attorneyPosition: string | null;
+    invoicableAmount: number;
+    outstandingArAmount: number;
+    overdueAr30Amount: number;
+    upcoming30Amount: number;
+  }>;
+}
+
 // Get all billing projects
 export interface BillingProjectsResponse {
   data: BillingProject[];
@@ -603,5 +630,10 @@ export const getOverdueByAttorney = async (params?: {
   endDate?: string;
 }): Promise<BillingOverdueRow[]> => {
   const response = await apiClient.get('/billing/overdue-by-attorney', { params });
+  return response.data;
+};
+
+export const getBillingPipelineInsights = async (): Promise<BillingPipelineInsights> => {
+  const response = await apiClient.get('/billing/pipeline-insights');
   return response.data;
 };
