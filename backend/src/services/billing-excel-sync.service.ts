@@ -150,7 +150,9 @@ const EL_PREFIX_REGEX = /^(?:(?:Original|Supplemental|Supplementary|Suppl\.?|Upd
 // These indicate the start of a new engagement period within a single cell.
 
 // Period range: (自2023年9月至2024年9月) or (自2022年12月30日至2023年12月29日止)
-const PERIOD_RANGE_REGEX = /^[\s(（]*自\d{4}年\d{1,2}月(?:\d{1,2}日)?(?:起?至)\d{4}\s*年?\d{1,2}月(?:\d{1,2}\s*日)?(?:止)?[)）]?/;
+// Also matches without 自: (2024年7月9日起至2025年7月8日)
+// Also tolerates 的 instead of 年: (2025的7月8日)
+const PERIOD_RANGE_REGEX = /^[\s(（]*自?\d{4}[年的]\d{1,2}月(?:\d{1,2}日)?(?:起?至)\d{4}\s*[年的]?\d{1,2}月(?:\d{1,2}\s*日)?(?:止)?[)）]?/;
 
 // Period start-only: (自2021年2月26日計) or (自2023年6月27日起計)
 const PERIOD_START_REGEX = /^[\s(（]*自\d{4}年\d{1,2}月\d{1,2}日(?:起)?計[)）]/;
@@ -377,8 +379,8 @@ interface ElSection {
  */
 function matchPeriodHeader(trimmed: string): string | null {
   if (PERIOD_RANGE_REGEX.test(trimmed)) {
-    // Extract the period text, e.g. "自2023年9月至2024年9月"
-    const m = trimmed.match(/自[\d年月日起至止\s]*/);
+    // Extract the period text, e.g. "自2023年9月至2024年9月" or "2024年7月9日起至2025年7月8日"
+    const m = trimmed.match(/自?(\d{4}[年的][\d年的月日起至止\s]*)/);
     return m ? m[0].replace(/[()（）\s]+$/g, '').trim() : trimmed.slice(0, 40);
   }
   if (PERIOD_START_REGEX.test(trimmed)) {
