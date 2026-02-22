@@ -19,6 +19,12 @@ The backend controllers are organized into modular files for better maintainabil
   - `billing-mapping.controller.ts` - Project mapping
   - `billing-settings.controller.ts` - Billing settings
   - `billing-attorney.controller.ts` - B&C attorneys
+  - `billing-excel-sync.controller.ts` - Excel upload, sync, history, download
+  - `billing-trigger.controller.ts` - Billing milestone triggers
+
+- **Services**:
+  - `billing-excel-sync.service.ts` - Excel parser + sync engine (~1,200 lines)
+  - `ai-validation.service.ts` - AI-powered milestone validation (optional)
 
 All controllers maintain backwards compatibility through re-export files.
 
@@ -38,6 +44,8 @@ All controllers maintain backwards compatibility through re-export files.
    - [Reports](#reports-endpoints)
    - [Users](#users-endpoints)
    - [Billing](#billing-endpoints)
+   - [Billing Excel Sync](#billing-excel-sync-endpoints)
+   - [Billing Triggers](#billing-trigger-endpoints)
    - [Settings](#settings-endpoints)
 7. [Interactive Documentation](#interactive-documentation)
 
@@ -1990,6 +1998,125 @@ Update billing module access settings.
   "updatedAt": "2025-10-14T13:00:00Z"
 }
 ```
+
+---
+
+### Billing Excel Sync Endpoints
+
+**Note:** All Excel sync endpoints require Admin role.
+
+#### POST /billing/excel-sync/preview
+Preview what changes an Excel upload would make (dry run).
+
+**Authorization:** Admin only
+
+**Request Body:**
+```json
+{
+  "file": "<base64-encoded Excel file>"
+}
+```
+
+**Response:**
+```json
+{
+  "totalExcelRows": 212,
+  "matchedCmNumbers": 165,
+  "unmatchedCmNumbers": ["TBC"],
+  "newCmNumbers": ["51499-000001", "49050-00006", "..."],
+  "projectsToUpdate": 165,
+  "milestonesToCreate": 266,
+  "milestonesToMarkCompleted": 345,
+  "financialsToUpdate": 165,
+  "matched": [
+    {
+      "cmNo": "12345-00001",
+      "projectName": "Project Alpha",
+      "engagementCount": 2,
+      "milestoneCount": 5,
+      "completedCount": 3,
+      "financialChanges": ["Billing (USD): 100000 → 150000"]
+    }
+  ],
+  "aiValidation": {
+    "validated": true,
+    "issues": []
+  }
+}
+```
+
+#### POST /billing/excel-sync/apply
+Apply the Excel sync to the database. Stores the sync run with full audit trail.
+
+**Authorization:** Admin only
+
+**Request Body:**
+```json
+{
+  "file": "<base64-encoded Excel file>",
+  "filename": "HKCM Project List (2026.02.12).xlsx"
+}
+```
+
+**Response:**
+```json
+{
+  "projectsUpdated": 210,
+  "financialsUpdated": 210,
+  "engagementsUpserted": 261,
+  "milestonesCreated": 266,
+  "milestonesUpdated": 0,
+  "milestonesMarkedCompleted": 345,
+  "unmatchedCmNumbers": ["TBC"],
+  "syncRunId": 1,
+  "syncRunData": { "..." }
+}
+```
+
+#### GET /billing/excel-sync/history
+List all past sync runs (without Excel file binary).
+
+**Authorization:** Admin only
+
+**Response:** Array of sync run summaries with id, uploaded_at, filename, status, summary_json, username.
+
+#### GET /billing/excel-sync/history/:id
+Get full sync run detail including changes JSON.
+
+**Authorization:** Admin only
+
+**Response:** Sync run with summary_json, changes_json (updatedCms, newCms, staffingLinks, unmatchedNewCms, skippedCms), username.
+
+#### GET /billing/excel-sync/history/:id/download
+Download the stored Excel file from a past sync run.
+
+**Authorization:** Admin only
+
+**Response:** Binary Excel file with Content-Disposition attachment header.
+
+---
+
+### Billing Trigger Endpoints
+
+**Note:** All trigger endpoints require Admin role with billing access.
+
+#### GET /billing/triggers/pending
+Get pending billing triggers needing admin review.
+
+#### GET /billing/triggers
+Get all triggers with optional filters (status, staffingProjectId, startDate, endDate).
+
+#### POST /billing/triggers/:id/confirm
+Confirm a pending trigger, marking the associated milestone as complete.
+
+#### POST /billing/triggers/:id/reject
+Reject a pending trigger.
+
+#### PATCH /billing/triggers/:id/action-item
+Add or update action item for a trigger.
+
+#### GET /billing/overdue-by-attorney
+Get overdue billing milestones grouped by B&C attorney.
 
 ---
 

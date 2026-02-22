@@ -1,7 +1,7 @@
 # Billing Module - Implementation Progress
 
-**Last Updated:** October 7, 2025 (22:26)
-**Status:** Phase 6 Complete - Milestone Update Functionality Fully Operational
+**Last Updated:** February 22, 2026
+**Status:** Phase 7 Complete - Finance Excel Sync Engine Fully Operational (v5.0.0)
 
 ---
 
@@ -193,64 +193,130 @@
   - `frontend/src/pages/BillingMatterDetail.tsx` - Added delay after save (lines 333-339)
   - `backend/src/controllers/billing.controller.ts` - Added cache headers (lines 399-402)
 
+### Phase 7: Finance Excel Sync Engine ✅ (Feb 2026, v5.0.0)
+
+- [x] **Excel Parser** (`billing-excel-sync.service.ts`, ~1,200 lines)
+  - Parses HKCM Project List Excel (data starts row 5, 20+ columns)
+  - XML namespace preprocessing for ExcelJS compatibility
+  - Full-width CJK character normalization
+  - Sub-row inheritance (empty C/M inherits from parent row)
+  - Milestone extraction with 3 amount regex strategies
+  - Strikethrough completion detection from rich text font data
+  - EL section splitting with ordinal restart per section
+  - Period/commencement header detection (5 regex patterns)
+  - LSD parsing from 4 date formats with typo handling
+  - Currency and percentage detection
+
+- [x] **Unmatched C/M Creation**
+  - Auto-creates `billing_project` + `billing_project_cm_no` for new C/M numbers
+  - Skips TBC placeholders
+  - 45 new billing projects created from Excel upload
+
+- [x] **Auto-linking to Staffing Projects**
+  - 3-strategy matching: exact cm_number → C/M prefix → name similarity
+  - 34 projects auto-linked, 11 unmatched
+  - Sets `cm_number` on staffing project record if not already set
+  - Creates `billing_staffing_project_link` record
+
+- [x] **Detailed Change Tracking**
+  - Financial field diffs (12 fields) captured before/after for each updated C/M
+  - New CMs, staffing links, unmatched entries, skipped CMs recorded
+  - `SyncRunChanges` interface with typed arrays for each category
+
+- [x] **Sync Run Persistence** (`billing_sync_run` table)
+  - Stores Excel file (BYTEA), summary JSON, changes JSON, staffing links JSON
+  - Indexed by `uploaded_at DESC`
+  - API endpoints: list history, get detail, download stored Excel
+
+- [x] **Sync Report Page** (`/billing/sync-report/:id`)
+  - Print-friendly layout with `@media print` CSS
+  - Summary chips, unmatched projects warning, staffing links table
+  - New billing projects table, financial update diffs
+  - Collapsible sections, Print/Download/Back buttons
+
+- [x] **Sync History Page** (`/billing/sync-history`)
+  - Lists all past sync runs with summary stats
+  - Click to view full report, clickable rows
+
+- [x] **Frontend Integration**
+  - `BillingExcelSyncPanel` passes filename, shows "View Full Sync Report" link
+  - "Sync History" button added
+  - New API types: `SyncRunSummary`, `SyncRunDetail`
+
+- [x] **AI Validation** (optional)
+  - Reviews parsed milestones against raw text using Claude API
+  - Flags missing milestones, ordinal gaps, amount mismatches
+  - Configured via `ANTHROPIC_API_KEY` env var
+
+- [x] **Dry-run Scripts**
+  - `dry-run-updates.ts` — Shows all DB updates with staffing matches
+  - `dry-run-excel-sync.ts` — Shows raw parsing results
+  - `apply-sync.ts` — Applies sync and stores run via CLI
+
+- [x] **Applied Sync Results**
+  - 210 projects updated (165 existing + 45 new)
+  - 261 engagements, 266 milestones created, 345 marked completed
+  - 34 staffing projects auto-linked
+  - Sync run stored as ID 1
+
+- [x] **Comprehensive Documentation**
+  - `Billing/PARSING-GUIDE.md` — Complete parser reference (290 lines)
+  - Covers: column mapping, row types, milestone parsing, EL sections, LSD parsing
+  - Validation checklist for AI review (true issues vs false positives)
+  - Known limitations documented
+
 ---
 
 ## Current Status
 
 ### ✅ Fully Operational Features
 
-1. **Billing Dashboard**
-   - View all 177 billing projects
+1. **Finance Excel Sync Engine** (NEW in v5.0.0)
+   - Upload HKCM Project List Excel → auto-sync all billing data
+   - 210 projects synced (165 updated + 45 newly created)
+   - 261 engagements, 611 milestones (345 completed via strikethrough)
+   - 34 staffing projects auto-linked by C/M number matching
+   - Detailed sync reports with financial diffs
+   - Upload history with stored Excel files
+   - Print-friendly report pages
+
+2. **Billing Dashboard**
+   - View all 210+ billing projects
    - Multi-currency financial data (USD/CNY)
-   - Auto-calculated agreed fees from milestones
-   - UBT and Billing Credits tracking
-   - Bonus amounts displayed
+   - Financial fields synced directly from Excel (verbatim)
    - B&C attorney assignments
    - Link status to staffing projects
 
-2. **Access Control**
+3. **Milestone Completion Detection** (RESOLVED in v5.0.0)
+   - ✅ Excel strikethrough auto-detected from rich text formatting
+   - 345 milestones auto-marked completed from strikethrough data
+   - Completion is a one-way latch (won't unmark on re-upload)
+   - Manual UI updates also supported
+
+4. **Access Control**
    - Admin-only mode working
    - Admin + B&C attorney mode working
    - B&C attorneys filtered to see only their projects
 
-3. **Data Import & Parsing**
-   - CSV import completed
-   - Fee arrangements parsed (134/134)
-   - Milestones extracted with amounts
-   - LSD dates extracted
-   - Bonus amounts extracted (1 found)
+5. **Financial Tracking**
+   - All financial fields synced from Excel: agreed fees, billing, collection, billing credit, UBT, AR
+   - USD and CNY variants for all fields
+   - Billed but unpaid and unbilled per EL
+   - Finance remarks and matter notes
 
-4. **Financial Tracking**
-   - UBT (Unbilled Time) - imported (126 entries)
-   - Billing Credits - imported (32 entries)
-   - Agreed fees - calculated from milestones
-   - Bonuses - parsed from fee arrangements
-   - Billing invoices - imported (112 records, $85.5M)
-   - Collection payments - imported (107 records, $80.8M)
-   - Finance comments - imported (250 detailed records)
-
-5. **Milestone Update Functionality**
+6. **Milestone Management**
    - Full CRUD operations for milestone tracking
    - Completion status with checkbox interface
    - Invoice sent and payment received date tracking
    - Notes field for additional documentation
    - Real-time updates with proper cache management
-   - All changes persist to database correctly
 
-### ⚠️ Partially Working Features
-
-1. **Milestone Completion Detection (Excel Import)**
-   - Database structure ready
-   - Manual UI update functionality working ✅
-   - **Remaining Issue**: Excel strikethrough not auto-detected
-   - **Current Status**: Manual updates working, auto-detection pending
-   - **Workaround Available**: Use UI to manually mark completed milestones
-
-2. **Data Reconciliation**
-   - Successfully imported billing and collection data from JSON
-   - **Note**: Some discrepancies may exist between Excel source and parsed JSON
-   - Finance comments provide detailed transaction history for verification
-   - Manual review recommended for critical decisions
+7. **Sync Report & History**
+   - Each sync stored with Excel file, changes JSON, and summary
+   - Print-friendly report page with collapsible sections
+   - Financial diffs showing old vs new values
+   - Unmatched projects highlighted for manual linking
+   - Staffing links with match method details
 
 ---
 
@@ -271,10 +337,11 @@
   - Tracks invoice sent and payment received dates
   - Fixed cache management issue for real-time updates
 
-- [ ] **Strikethrough Detection**
-  - Option 1: Create Python script using `openpyxl` library
-  - Option 2: Add manual UI for completion tracking
-  - Option 3: Export Excel to XML format for better parsing
+- [x] **Strikethrough Detection** ✅ (Completed Feb 2026, v5.0.0)
+  - Implemented in `billing-excel-sync.service.ts` using ExcelJS rich text character-level font data
+  - If >50% of non-whitespace characters struck through → milestone marked completed
+  - 345 milestones auto-detected as completed
+  - One-way latch: once marked completed, stays completed on re-upload
 
 - [ ] **Bonus Display Enhancement**
   - Show bonus in project detail page
@@ -329,14 +396,10 @@
 
 ## Known Issues
 
-### 1. Strikethrough Detection Failure
-**Issue**: Excel strikethrough formatting not detected by parser
-**Impact**: No milestones automatically marked as completed
-**Cause**: `xlsx` Node.js library has limited formatting support
-**Solutions**:
-- Use Python `openpyxl` library for better formatting detection
-- Add manual UI for completion tracking
-- Request Excel export in different format
+### 1. Strikethrough Detection ✅ RESOLVED (v5.0.0)
+**Previous Issue**: Excel strikethrough formatting not detected by `xlsx` library
+**Resolution**: Switched to ExcelJS with XML namespace preprocessing. Rich text character-level font data used to detect strikethrough. If >50% of non-whitespace characters are struck through, milestone is marked completed.
+**Result**: 345 milestones auto-detected as completed from strikethrough formatting.
 
 ### 2. Data Source Reconciliation ✅ (Improved)
 **Previous Issue**: ~40 projects showed mismatch between Excel and parsed fees
@@ -448,17 +511,20 @@
 ### Database Schema
 
 **Main Tables:**
-- `billing_project` (177 rows) - Project information
-- `billing_engagement` (177 rows) - Engagement with financial fields
-- `billing_fee_arrangement` (134 rows) - Fee agreements with LSD
-- `billing_milestone` (~400 rows) - Parsed payment milestones
+- `billing_project` (210+ rows) - Project information
+- `billing_project_cm_no` (210+ rows) - C/M numbers with financials
+- `billing_engagement` (261 rows) - Engagement records
+- `billing_fee_arrangement` (261 rows) - Fee agreements with LSD and raw text
+- `billing_milestone` (611 rows, 345 completed) - Parsed milestones
 - `billing_bc_attorney_staff_map` (59 rows) - Attorney mappings
+- `billing_staffing_project_link` (34+ rows) - Billing-to-staffing project links
+- `billing_sync_run` - Excel sync audit trail
 
 **Key Fields:**
 - Multi-currency: All financial fields have `_usd` and `_cny` variants
 - LSD tracking: `lsd_date` and `lsd_raw` in fee_arrangement
-- Bonus: `bonus_usd`, `bonus_cny` in engagement
 - Completion: `completed`, `completion_date`, `completion_source` in milestone
+- Sync tracking: `summary_json`, `changes_json`, `excel_file` in sync_run
 
 ### Parser Algorithms
 
@@ -492,33 +558,40 @@
 ### File Locations
 
 **Backend:**
-- Controllers: `backend/src/controllers/billing.controller.ts`
+- Controllers:
+  - `backend/src/controllers/billing-excel-sync.controller.ts` — Excel sync + history
+  - `backend/src/controllers/billing-trigger.controller.ts` — Billing triggers
+  - `backend/src/controllers/billing*.controller.ts` — Modular billing controllers
+- Services:
+  - `backend/src/services/billing-excel-sync.service.ts` — Excel parser + sync engine (~1,200 lines)
+  - `backend/src/services/ai-validation.service.ts` — AI-powered milestone validation
 - Routes: `backend/src/routes/billing.routes.ts`
-- Scripts: `backend/src/scripts/`
-  - `import-billing-data.ts`
-  - `parse-billing-source-data.ts`
-  - `auto-map-bc-attorneys.ts`
-  - `parse-fee-arrangements.ts`
-  - `parse-fee-with-strikethrough.ts`
-  - `import-json-financial-data.py` (UBT, Billing Credit)
-  - `import-billing-collection-data.py` (Invoices, Payments, Comments)
-  - `compare-json-with-db.py` (Data verification)
-- Migration: `backend/prisma/migrations/20251007_add_billing_schema/migration.sql`
+- Scripts:
+  - `backend/scripts/apply-sync.ts` — Apply Excel sync via CLI
+  - `backend/scripts/dry-run-updates.ts` — Preview all DB changes
+  - `backend/scripts/dry-run-excel-sync.ts` — Preview raw parsing results
+- Migrations:
+  - `backend/prisma/migrations/20251007_add_billing_schema/migration.sql`
+  - `backend/prisma/migrations/20260222000000_add_billing_sync_run/migration.sql`
 
 **Frontend:**
 - Pages: `frontend/src/pages/`
-  - `BillingMatters.tsx`
-  - `BillingMatterDetail.tsx`
-- API: `frontend/src/api/billing.ts`
+  - `BillingMatters.tsx` — Billing projects list
+  - `BillingMatterDetail.tsx` — Project detail with milestones
+  - `BillingControlTower.tsx` — Admin billing dashboard
+  - `SyncReport.tsx` — Print-friendly sync report
+  - `SyncHistory.tsx` — Upload history list
+- Components:
+  - `frontend/src/components/admin/BillingExcelSyncPanel.tsx` — Upload UI
+- API: `frontend/src/api/billing.ts` — Types + API functions
 - Hooks: `frontend/src/hooks/useBilling.ts`
-- Components: `frontend/src/components/Sidebar.tsx` (menu item)
-- Admin: `frontend/src/pages/UserManagement.tsx` (Billing Settings tab)
+
+**Documentation:**
+- `Billing/PARSING-GUIDE.md` — Complete parser reference (290 lines)
+- `BILLING_MODULE_PROGRESS.md` — This document
 
 **Data:**
-- Excel Source: `/home/timlihk/staffing-tracker/billing-matter/HKCM Project List(81764217.1)_6Oct25.xlsx`
-- CSV Data: `billing-matter/parsed_tables/`
-- JSON Source: `billing-matter/parsed_html/merged_full_plus_milestones.json`
-- Comparison Results: `backend/data-comparison-results.json`
+- Excel Source: `Billing/HKCM Project List (2026.02.12).xlsx`
 
 ---
 
@@ -580,24 +653,24 @@
 ## Success Metrics
 
 ### Current Achievement
-- ✅ 177 projects imported (100%)
-- ✅ 134 fee arrangements parsed (100%)
-- ✅ 9 attorneys auto-mapped (15%)
-- ✅ 1 bonus detected (manual review needed for more)
-- ✅ 100% backend API coverage
+- ✅ 210 projects synced from Excel (100%)
+- ✅ 261 engagements upserted (100%)
+- ✅ 611 milestones parsed (100%)
+- ✅ 345 milestones auto-completed from strikethrough (100%)
+- ✅ 34 staffing projects auto-linked (76% of new CMs)
+- ✅ 100% backend API coverage (75+ endpoints total)
 - ✅ 100% frontend UI coverage for core features
-- ✅ 112 billing invoices imported ($85.5M)
-- ✅ 107 collection payments imported ($80.8M)
-- ✅ 126 UBT entries imported
-- ✅ 32 billing credit entries imported
-- ✅ 250 finance comments imported
+- ✅ Sync history with Excel file storage
+- ✅ Print-friendly sync reports
+- ✅ AI validation service (optional)
 
 ### Target Metrics
 - ✅ 100% project data import (achieved!)
+- ✅ All completed milestones marked from strikethrough (achieved!)
+- ✅ Auto-linking to staffing projects (34/45 = 76%)
 - 🎯 100% attorney mapping (currently 15% auto + manual review needed)
+- 🎯 11 unmatched new projects need manual linking
 - 🎯 All bonuses detected and tracked
-- 🎯 All completed milestones marked (currently 0%)
-- 🎯 100% project linking for applicable projects
 
 ---
 
@@ -612,38 +685,33 @@
 
 ---
 
-**Document Version:** 1.2
-**Last Updated:** October 7, 2025 (22:26)
+**Document Version:** 2.0
+**Last Updated:** February 22, 2026
 **Status:** Living Document - Update as progress is made
 
 ---
 
-## Recent Updates (v1.2 - Oct 7, 2025 22:26)
+## Recent Updates (v2.0 - Feb 22, 2026)
 
-### What Changed
-- ✅ **Fixed Milestone Update Display Issue**
-  - Resolved React Query cache management conflict
-  - Milestone updates now immediately reflected in UI
-  - Added proper cache invalidation and fresh data fetching
-  - Implemented cache-control headers to prevent stale reads
-
-- ✅ **Enhanced Milestone Management**
-  - Full CRUD operations working for milestones
-  - Completion checkbox with real-time updates
-  - Invoice sent and payment received date tracking
-  - Notes field for additional documentation
-
-### Previous Updates (v1.1 - Oct 7, 2025 16:30)
-- ✅ Completed Phase 5: Enhanced Data Import
-- ✅ Imported $85.5M billing and $80.8M collection data from JSON
-- ✅ Imported 250 detailed finance comments with transaction history
-- ✅ Fixed duplicate payment records (removed 82 duplicates)
-- ✅ Implemented fuzzy name matching for project variations
-- ✅ Added success banner on frontend showing import summary
-- ✅ Verified sample data matches source JSON
+### What Changed — Phase 7: Finance Excel Sync Engine (v5.0.0)
+- ✅ **Complete Excel Sync Engine** — Parses HKCM Project List Excel and syncs all billing data
+- ✅ **Strikethrough Detection Resolved** — 345 milestones auto-completed using character-level font data
+- ✅ **Period/Commencement Headers** — 5 regex patterns for engagement section detection
+- ✅ **Unmatched C/M Creation** — 45 new billing projects auto-created
+- ✅ **Auto-linking** — 34 staffing projects linked via C/M number matching
+- ✅ **Sync Report Page** — Print-friendly report with financial diffs
+- ✅ **Sync History** — Each upload stored with Excel file for audit trail
+- ✅ **AI Validation** — Optional Claude-powered milestone review
 
 ### Impact
-- Milestone tracking now fully operational
-- All financial data available with real-time updates
-- Complete transaction history visible
-- Ready for production use with manual verification recommended
+- Finance department can now upload Excel directly via web UI
+- All billing data synced automatically (no manual entry)
+- Changes tracked with detailed before/after diffs
+- Staffing projects auto-linked for cross-system visibility
+- Full audit trail of every sync operation
+
+### Previous Updates (v1.2 - Oct 7, 2025)
+- ✅ Fixed Milestone Update Display Issue (React Query cache)
+- ✅ Enhanced Milestone Management (CRUD, completion, dates)
+- ✅ Phase 5: Enhanced Data Import ($85.5M billing, $80.8M collection)
+- ✅ Phase 6: Milestone Update Functionality

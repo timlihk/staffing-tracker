@@ -2,6 +2,107 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [5.0.0] - 2026-02-22
+
+### Major Feature: Billing Excel Sync Engine
+
+#### Finance Excel Upload & Sync
+- **Excel Parser** (`billing-excel-sync.service.ts`) — Comprehensive parser for the HKCM Project List Excel:
+  - Column mapping for 20+ fields (financials, milestones, metadata)
+  - Milestone extraction with ordinal detection (`(a)`, `(b)`, `1.`, `2.`, `(i)`, `(ii)`)
+  - Amount parsing via 3 regex strategies: end-of-line dash, inline currency, bare number
+  - Currency detection (USD default, CNY for RMB/人民币/¥)
+  - Percentage extraction alongside amounts
+  - Strikethrough completion detection from Excel rich text character-level font data
+  - Full-width CJK character normalization (（→(, ）→), etc.)
+  - XML namespace preprocessing (`x:`, `ap:`, `vt:` prefix stripping) for ExcelJS compatibility
+
+- **EL Section Splitting** — Single milestone cells split into multiple engagement sections:
+  - EL header patterns: `Original EL:`, `Supplemental EL:`, `Updated EL:`, `EL2:`, etc.
+  - Ordinals restart per section with suffix deduplication (`(a)`, `(a-2)`, `(a-3)`)
+
+- **Period/Commencement Headers** — 5 new engagement section separators:
+  - Chinese date ranges: `(自2023年9月至2024年9月)`
+  - Chinese start-only: `(自2021年2月26日計)`
+  - English commencement: `(Commencement date: Nov 9, 2021)`
+  - Signed-on patterns: `NEW EL signed on Nov 8, 2022`
+  - Narrative periods: `本协议的有效期限自2026年1月10日至2027年1月9日`
+
+- **LSD Parsing** — Multiple date format support:
+  - English day-first: `31 Mar 2025`
+  - English month-first: `Dec 31, 2021`
+  - Chinese: `2024年1月31日`
+  - ISO: `2024-01-31`
+  - Typo handling: `Seo` → September, `Decmeber` → December
+
+#### Unmatched C/M Creation
+- New billing projects + C/M records auto-created for Excel rows with unrecognized C/M numbers
+- TBC placeholders skipped (not created)
+- 45 new billing projects created from Excel
+
+#### Auto-linking to Staffing Projects
+- 3-strategy matching for new billing projects:
+  1. Exact `cm_number` match on staffing `projects` table
+  2. C/M prefix match (e.g., `51251-00002` matches project with `51251-00001`)
+  3. PostgreSQL `similarity()` name matching (requires pg_trgm, graceful fallback)
+- 34 staffing projects auto-linked, C/M numbers set on staffing project records
+- 11 unmatched projects highlighted for manual review
+
+#### Sync Report & History
+- **Sync Report Page** (`/billing/sync-report/:id`) — Print-friendly web page:
+  - Summary stats (updated, new, skipped, engagements, milestones, staffing links)
+  - Unmatched projects section with warning highlight
+  - Staffing links table with match method details
+  - New billing projects table
+  - Financial update diffs with old/new values per field
+  - Print CSS with `@media print` rules
+- **Sync History Page** (`/billing/sync-history`) — Lists all past sync runs
+- **Sync Run Persistence** (`billing_sync_run` table):
+  - Stores Excel file (BYTEA), summary JSON, detailed changes JSON
+  - Excel file downloadable from any past sync run
+  - Indexed by `uploaded_at DESC`
+
+#### Detailed Change Tracking
+- Financial field diffs captured before/after for every updated C/M (12 fields tracked)
+- New CMs recorded with project name, client, engagement counts
+- Staffing link results recorded with match method and whether C/M was set
+- Unmatched and skipped CMs tracked for reporting
+
+#### AI Validation (Optional)
+- `ai-validation.service.ts` — Reviews parsed milestones against raw text using Claude API
+- Flags: missing milestones, ordinal gaps, amount mismatches, unparsed amounts
+- Configured via `ANTHROPIC_API_KEY` environment variable (optional)
+
+#### Backend Changes
+- New controller: `billing-excel-sync.controller.ts` (preview, apply, history, detail, download)
+- New service: `billing-excel-sync.service.ts` (~1,200 lines)
+- New service: `ai-validation.service.ts`
+- New routes: 5 Excel sync endpoints added to `billing.routes.ts`
+- New migration: `20260222000000_add_billing_sync_run`
+- New Prisma model: `billing_sync_run` with User relation
+- New scripts: `apply-sync.ts`, `dry-run-updates.ts`, `dry-run-excel-sync.ts`
+
+#### Frontend Changes
+- New page: `SyncReport.tsx` — Print-friendly sync report with collapsible sections
+- New page: `SyncHistory.tsx` — Upload history list with summary stats
+- Updated: `BillingExcelSyncPanel.tsx` — Passes filename, shows "View Full Sync Report" link and "Sync History" button
+- Updated: `billing.ts` API — Added `SyncRunSummary`, `SyncRunDetail` types and history API functions
+- Updated: `App.tsx` — Registered `/billing/sync-report/:id` and `/billing/sync-history` routes
+
+#### Applied Sync Results
+- 210 projects updated (165 existing + 45 new)
+- 261 engagements upserted
+- 266 milestones created, 345 marked completed (strikethrough)
+- 34 staffing projects auto-linked
+- 11 unmatched new projects (need manual linking)
+- 1 skipped (TBC placeholder)
+
+### Files Changed
+- 16 files changed (9 modified, 7 new)
+- 2,456 lines added, 94 lines removed
+
+---
+
 ## [1.6.0] - 2025-01-27
 
 ### Code Quality Improvements

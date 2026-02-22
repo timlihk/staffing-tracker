@@ -38,32 +38,45 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 - Hot module replacement for development
 - **Status**: ✅ Deployed and running in production
 
-### 🎉 Recent Updates (Jan 2026)
+### 🎉 Recent Updates (Feb 2026)
 
-**Latest Release v1.6.0:**
+**Latest Release v5.0.0 — Billing Excel Sync Engine:**
+- ✅ **Finance Excel Upload & Sync** — Parses the HKCM Project List Excel and syncs all billing data to the database
+  - Milestone extraction with ordinal detection, amount parsing, and currency detection
+  - Strikethrough-based completion detection from Excel rich text formatting
+  - Period/commencement engagement header detection (Chinese and English date ranges)
+  - EL (Engagement Letter) section splitting with ordinal restart per section
+  - LSD (Last Service Date) parsing from multiple date formats
+  - Full-width CJK character normalization
+  - XML namespace preprocessing for ExcelJS compatibility
+- ✅ **Unmatched C/M Creation** — New billing projects auto-created for Excel rows with C/M numbers not in the database
+- ✅ **Auto-linking to Staffing Projects** — 3-strategy matching: exact C/M → prefix match → name similarity (pg_trgm)
+  - 34 staffing projects auto-linked, C/M numbers set on staffing project records
+- ✅ **Sync Report Page** — Print-friendly web page at `/billing/sync-report/:id` showing:
+  - Summary stats (updated, new, skipped, engagements, milestones, staffing links)
+  - Unmatched projects highlighted for manual linking
+  - Staffing link details with match method
+  - Financial field diffs (old vs new values) for every updated C/M
+  - Collapsible sections, print CSS for clean output
+- ✅ **Sync History** — Each upload stores the Excel file, changes JSON, and summary in `billing_sync_run` table
+  - History list page at `/billing/sync-history`
+  - Excel file download from any past sync run
+- ✅ **AI Validation** — Optional AI-powered review of parsed milestones (requires Anthropic API key)
+- ✅ **Dry-run Scripts** — `dry-run-updates.ts` and `dry-run-excel-sync.ts` for previewing changes before applying
+
+**Applied Sync Results (v5.0.0):**
+- 210 projects updated (165 existing + 45 new)
+- 261 engagements upserted, 266 milestones created, 345 marked completed
+- 34 staffing projects auto-linked, 11 unmatched (need manual linking)
+
+### Previous Updates (Jan 2026)
+
+**Release v1.6.0:**
 - ✅ **Controller Architecture Refactoring** - Split monolithic controllers for better maintainability
-  - Billing controller split from 1,592 lines into 8 focused modules
-  - Dashboard controller split from 926 lines into 6 modules
-  - Improved code organization and testability
-
 - ✅ **Type Safety Improvements** - Enhanced TypeScript coverage
-  - Fixed JWT type safety (removed 'as any' casts)
-  - Added proper types for Prisma raw queries
-  - Standardized parseInt usage across codebase
-
 - ✅ **API Health Monitoring** - Frontend health check system
-  - Real-time server connection monitoring
-  - Visual alerts for connection issues
-  - Automatic retry functionality
-
 - ✅ **Frontend Date Utilities** - Centralized date handling
-  - Time constants (DAY, WEEK, etc.)
-  - DateHelpers for common operations
-  - Consistent date formatting across components
-
 - ✅ **Comprehensive Test Coverage** - Added billing controller tests
-  - 3 new test files for billing modules
-  - Fixed test file type definitions
 
 ### 🎉 Recent Updates (Oct 2025)
 
@@ -350,27 +363,46 @@ staffing-tracker/
 │   │   │   ├── project.controller.ts
 │   │   │   ├── staff.controller.ts
 │   │   │   ├── assignment.controller.ts
-│   │   │   ├── dashboard*.controller.ts  # Dashboard modules
-│   │   │   ├── billing*.controller.ts    # Billing modules
-│   │   │   └── billing.utils.ts          # Shared utilities
+│   │   │   ├── dashboard*.controller.ts      # Dashboard modules
+│   │   │   ├── billing*.controller.ts        # Billing modules
+│   │   │   ├── billing-excel-sync.controller.ts  # Excel sync + history
+│   │   │   ├── billing-trigger.controller.ts     # Billing triggers
+│   │   │   └── billing.utils.ts              # Shared utilities
+│   │   ├── services/
+│   │   │   ├── billing-excel-sync.service.ts # Excel parser + sync engine
+│   │   │   └── ai-validation.service.ts      # AI-powered milestone validation
 │   │   ├── routes/               # API routes
 │   │   ├── middleware/           # Auth & validation
 │   │   ├── utils/
 │   │   ├── constants/            # Application-wide constants
 │   │   └── server.ts
+│   ├── scripts/
+│   │   ├── dry-run-updates.ts    # Preview Excel sync changes
+│   │   ├── dry-run-excel-sync.ts # Preview raw parsing results
+│   │   └── apply-sync.ts         # Apply sync via CLI
 │   ├── prisma/
-│   │   └── schema.prisma         # Database schema
+│   │   └── schema.prisma         # Database schema (incl. billing_sync_run)
 │   └── package.json
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/                # Page components (TO BUILD)
-│   │   ├── components/           # Reusable components (TO BUILD)
+│   │   ├── pages/
+│   │   │   ├── BillingMatters.tsx       # Billing projects list
+│   │   │   ├── BillingMatterDetail.tsx  # Project detail with milestones
+│   │   │   ├── BillingControlTower.tsx  # Admin billing dashboard
+│   │   │   ├── SyncReport.tsx           # Sync report (print-friendly)
+│   │   │   ├── SyncHistory.tsx          # Upload history list
+│   │   │   └── ...                      # Other pages
+│   │   ├── components/
+│   │   │   └── admin/BillingExcelSyncPanel.tsx  # Upload UI
+│   │   ├── api/billing.ts        # Billing API client + types
 │   │   ├── context/              # React contexts
-│   │   ├── api/                  # API client
-│   │   ├── types/                # TypeScript types
-│   │   └── App.tsx               # Main app component
+│   │   └── App.tsx               # Main app with routes
 │   └── package.json
+│
+├── Billing/
+│   ├── PARSING-GUIDE.md          # Excel parser reference documentation
+│   └── HKCM Project List (*.xlsx)  # Finance Excel source files
 │
 ├── IMPLEMENTATION_PLAN.md         # Detailed implementation plan
 ├── DEPLOYMENT_GUIDE.md            # Railway deployment guide
@@ -458,13 +490,16 @@ POST   /api/users/:id/reset-password  - Reset user password
 DELETE /api/users/:id                 - Delete user
 ```
 
-#### Billing Module (17 endpoints)
+#### Billing Module (22 endpoints)
 ```
 GET    /api/billing/projects                         - List billing projects
 GET    /api/billing/projects/:id                     - Get billing project detail
+PUT    /api/billing/projects/:id                     - Update billing project (admin)
 GET    /api/billing/projects/:id/engagement/:engagementId - Get engagement detail
 GET    /api/billing/projects/:id/cm/:cmId/engagements    - Get client matter engagements
 GET    /api/billing/projects/:id/activity            - Get billing project activity
+GET    /api/billing/projects/:id/bc-attorneys         - Get B&C attorneys for project
+GET    /api/billing/bc-attorneys                      - List distinct B&C attorneys
 PATCH  /api/billing/projects/:id/financials          - Update financials (admin)
 PATCH  /api/billing/engagements/:engagementId/fee-arrangement - Update fee arrangement (admin)
 POST   /api/billing/engagements/:engagementId/milestones    - Create milestone (admin)
@@ -472,11 +507,31 @@ PATCH  /api/billing/milestones                       - Update milestones (admin)
 DELETE /api/billing/milestones/:milestoneId          - Delete milestone (admin)
 GET    /api/billing/mapping/suggestions              - Get mapping suggestions (admin)
 POST   /api/billing/mapping/link                     - Link projects (admin)
+GET    /api/billing/mapping/suggest/:billingProjectId - Get suggested matches (admin)
 DELETE /api/billing/mapping/unlink/:linkId           - Unlink projects (admin)
 GET    /api/billing/bc-attorneys/unmapped            - Get unmapped attorneys (admin)
 POST   /api/billing/bc-attorneys/map                 - Map attorney (admin)
 GET    /api/billing/settings/access                  - Get access settings (admin)
 PATCH  /api/billing/settings/access                  - Update access settings (admin)
+```
+
+#### Billing Excel Sync (5 endpoints)
+```
+POST   /api/billing/excel-sync/preview               - Preview Excel sync (admin)
+POST   /api/billing/excel-sync/apply                  - Apply Excel sync (admin)
+GET    /api/billing/excel-sync/history                - List sync history (admin)
+GET    /api/billing/excel-sync/history/:id            - Get sync run detail (admin)
+GET    /api/billing/excel-sync/history/:id/download   - Download stored Excel (admin)
+```
+
+#### Billing Triggers (6 endpoints)
+```
+GET    /api/billing/triggers/pending                  - Get pending triggers (admin)
+GET    /api/billing/triggers                           - Get all triggers (admin)
+POST   /api/billing/triggers/:id/confirm               - Confirm trigger (admin)
+POST   /api/billing/triggers/:id/reject                - Reject trigger (admin)
+PATCH  /api/billing/triggers/:id/action-item           - Update trigger action (admin)
+GET    /api/billing/overdue-by-attorney                - Get overdue by attorney (admin)
 ```
 
 > ℹ️ `GET /api/billing/projects` supports `page`, `limit`, `search`, and `bcAttorney` query parameters (defaults: `page=1`, `limit=100`, max `limit=250`). Responses are shaped as `{ data, pagination }`, where `pagination` exposes `page`, `limit`, `total`, and `totalPages`.
@@ -487,7 +542,7 @@ GET    /api/email-settings  - Get email settings
 PATCH  /api/email-settings  - Update email settings (admin only)
 ```
 
-**Total: 60+ documented API endpoints**
+**Total: 75+ documented API endpoints**
 
 For detailed request/response schemas, authentication flows, and code examples, see the [Complete API Documentation](backend/API_DOCUMENTATION.md).
 
@@ -499,22 +554,44 @@ For detailed request/response schemas, authentication flows, and code examples, 
 - id, username, email, password_hash, role, staff_id, last_login
 
 **staff** - Law firm staff members
-- id, name, email, role, department, status, notes
+- id, name, email, position, department, status, notes
 
-**projects** - Client projects
-- id, name, project_code, category, status, priority
-- el_status, start_date, timetable, actual_filing_date
-- notes
+**projects** - Client projects (staffing)
+- id, name, project_code, category, status, priority, cm_number
+- el_status, start_date, timetable, actual_filing_date, notes
 
 **project_assignments** - Staff-to-project assignments
-- id, project_id, staff_id, role_in_project, jurisdiction
-- allocation_percentage, is_lead, start_date, end_date
+- id, project_id, staff_id, jurisdiction, start_date, end_date
 
 **project_status_history** - Audit trail
 - id, project_id, old_status, new_status, changed_by, change_reason
 
 **activity_log** - System activity
 - id, user_id, action_type, entity_type, entity_id, description
+
+### Billing Tables
+
+**billing_project** - Billing project information (210+ rows)
+- project_id, project_name, client_name, attorney_in_charge, sca
+
+**billing_project_cm_no** - C/M numbers with financials
+- cm_id, project_id, cm_no, agreed_fee_usd, billing_to_date_usd, etc.
+
+**billing_engagement** - Engagement records (261 rows)
+- engagement_id, project_id, cm_id, engagement_code, engagement_title
+
+**billing_fee_arrangement** - Fee agreement text and LSD
+- fee_id, engagement_id, raw_text, lsd_date, lsd_raw
+
+**billing_milestone** - Parsed milestones (611 rows)
+- milestone_id, fee_id, engagement_id, ordinal, title, amount_value, completed
+
+**billing_sync_run** - Excel sync audit trail
+- id, uploaded_at, uploaded_by, excel_filename, excel_file (BYTEA)
+- summary_json, changes_json, staffing_links_json, status
+
+**billing_staffing_project_link** - Billing-to-staffing project mapping
+- billing_project_id, staffing_project_id, auto_match_score, notes
 
 ## 🌐 Deployment to Railway.app
 
@@ -655,6 +732,16 @@ npm run preview
 
 ## 📊 Features
 
+### Completed - Billing Excel Sync (v5.0.0)
+- ✅ Finance Excel parser with milestone, engagement, and financial extraction
+- ✅ Period/commencement header detection (6 regex patterns)
+- ✅ Unmatched C/M auto-creation with staffing project linking
+- ✅ Detailed change tracking with financial diffs
+- ✅ Sync run persistence with Excel file storage
+- ✅ Print-friendly sync report page
+- ✅ Sync history with download capability
+- ✅ AI validation service (optional)
+
 ### Completed - Backend (v1.6.0)
 - ✅ Structured logging with request tracing
 - ✅ Centralized configuration management
@@ -769,8 +856,9 @@ The application uses Prisma for database migrations. Current migrations:
 5. `20251002210638_remove_allocation_percentage` - Removed allocation field
 6. `20251002214500_rename_ip_to_partner` - Renamed Income Partner → Partner
 7. `add_change_history` - Added audit trail tables
-
 8. `20251003034500_remove_is_lead` - Removed isLead field from ProjectAssignment
+9. `20251007_add_billing_schema` - Billing module (13 tables + 2 views)
+10. `20260222000000_add_billing_sync_run` - Sync run audit table for Excel uploads
 
 **All migrations deployed to production.**
 
@@ -786,10 +874,15 @@ The application uses Prisma for database migrations. Current migrations:
 - `Projects.tsx` - Project list with filters ✅
 - `ProjectDetail.tsx` - Project detail view ✅
 - `ProjectForm.tsx` - Create/edit project form ✅
-- `ProjectReport.tsx` - Comprehensive report with filtering and sorting ✅
 - `Staff.tsx` - Staff list with filters ✅
 - `StaffDetail.tsx` - Staff detail view ✅
 - `StaffForm.tsx` - Create/edit staff form ✅
+- `WeeklyReview.tsx` - Partner weekly project confirmation ✅
+- `BillingMatters.tsx` - Billing projects list ✅
+- `BillingMatterDetail.tsx` - Billing project detail with milestones ✅
+- `BillingControlTower.tsx` - Admin billing dashboard ✅
+- `SyncReport.tsx` - Print-friendly Excel sync report ✅
+- `SyncHistory.tsx` - Excel upload history list ✅
 
 
 **Components:**
