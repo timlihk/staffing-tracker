@@ -41,7 +41,7 @@ export function EmailSettingsPanel({ emailSettings, loading, onUpdate, extractEr
             justifyContent: 'space-between',
             p: 2,
             bgcolor: 'grey.50',
-            borderRadius: 1,
+            borderRadius: 2,
           }}
         >
           <Stack>
@@ -67,7 +67,7 @@ export function EmailSettingsPanel({ emailSettings, loading, onUpdate, extractEr
           />
         </Box>
 
-        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             Position-Based Notifications
           </Typography>
@@ -180,7 +180,7 @@ export function EmailSettingsPanel({ emailSettings, loading, onUpdate, extractEr
           </Box>
         </Box>
 
-        <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
+        <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 2, borderLeft: 4, borderColor: 'info.main' }}>
           <Typography variant="body2" color="info.dark">
             <strong>Note:</strong> When a project is updated, only staff members assigned to that project with
             positions that have notifications enabled will receive email updates.

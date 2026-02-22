@@ -25,6 +25,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import { Page, PageHeader } from '../components/ui';
 import {
   ArrowBack,
   Download,
@@ -121,32 +122,27 @@ export default function SyncReport() {
         }
       `}</style>
 
-      <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 2, md: 4 } }}>
-        {/* Header */}
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }} flexWrap="wrap" gap={2}>
-          <Box>
-            <Typography variant="h5" fontWeight={700}>
-              Finance Excel Sync Report
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Uploaded: {formatDate(run.uploaded_at)} &middot; By: {run.username || 'System'} &middot; File: {run.excel_filename}
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1} className="no-print">
-            <Button size="small" variant="outlined" startIcon={<Print />} onClick={() => window.print()}>
-              Print
-            </Button>
-            <Button size="small" variant="outlined" startIcon={<Download />} onClick={handleDownload}>
-              Download Excel
-            </Button>
-            <Button size="small" variant="outlined" startIcon={<ArrowBack />} onClick={() => navigate('/billing/control-tower')}>
-              Back to Billing
-            </Button>
-          </Stack>
-        </Stack>
+      <Page>
+        <PageHeader
+          title="Finance Excel Sync Report"
+          subtitle={`Uploaded: ${formatDate(run.uploaded_at)} · By: ${run.username || 'System'} · File: ${run.excel_filename}`}
+          actions={
+            <Stack direction="row" spacing={1} className="no-print">
+              <Button size="small" variant="outlined" startIcon={<Print />} onClick={() => window.print()}>
+                Print
+              </Button>
+              <Button size="small" variant="outlined" startIcon={<Download />} onClick={handleDownload}>
+                Download Excel
+              </Button>
+              <Button size="small" variant="outlined" startIcon={<ArrowBack />} onClick={() => navigate('/billing/control-tower')}>
+                Back to Billing
+              </Button>
+            </Stack>
+          }
+        />
 
         {/* Summary chips */}
-        <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+        <Paper sx={{ p: 2.5, mb: 3 }}>
           <Typography variant="subtitle2" fontWeight={600} gutterBottom>
             Summary
           </Typography>
@@ -170,7 +166,7 @@ export default function SyncReport() {
 
         {/* Unmatched New Projects */}
         {changes.unmatchedNewCms.length > 0 && (
-          <Paper variant="outlined" sx={{ p: 2.5, mb: 3, borderColor: 'warning.main' }}>
+          <Paper sx={{ p: 2.5, mb: 3, borderColor: 'warning.main' }}>
             <Button
               onClick={() => setShowUnmatched(!showUnmatched)}
               endIcon={showUnmatched ? <ExpandLess /> : <ExpandMore />}
@@ -207,7 +203,7 @@ export default function SyncReport() {
 
         {/* Staffing Project Links */}
         {changes.staffingLinks.length > 0 && (
-          <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+          <Paper sx={{ p: 2.5, mb: 3 }}>
             <Button
               onClick={() => setShowLinks(!showLinks)}
               endIcon={showLinks ? <ExpandLess /> : <ExpandMore />}
@@ -255,7 +251,7 @@ export default function SyncReport() {
 
         {/* New Billing Projects */}
         {changes.newCms.length > 0 && (
-          <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+          <Paper sx={{ p: 2.5, mb: 3 }}>
             <Button
               onClick={() => setShowNew(!showNew)}
               endIcon={showNew ? <ExpandLess /> : <ExpandMore />}
@@ -297,7 +293,7 @@ export default function SyncReport() {
 
         {/* Financial Updates */}
         {changes.updatedCms.length > 0 && (
-          <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+          <Paper sx={{ p: 2.5, mb: 3 }}>
             <Button
               onClick={() => setShowUpdated(!showUpdated)}
               endIcon={showUpdated ? <ExpandLess /> : <ExpandMore />}
@@ -369,7 +365,7 @@ export default function SyncReport() {
 
         {/* Skipped */}
         {changes.skippedCms.length > 0 && (
-          <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+          <Paper sx={{ p: 2.5, mb: 3 }}>
             <Typography variant="subtitle2" gutterBottom>
               Skipped C/M Numbers
             </Typography>
@@ -384,7 +380,7 @@ export default function SyncReport() {
           Sync Run #{run.id} &middot; Status: {run.status}
           {run.error_message && ` &middot; Error: ${run.error_message}`}
         </Typography>
-      </Box>
+      </Page>
     </>
   );
 }

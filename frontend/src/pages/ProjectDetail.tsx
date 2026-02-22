@@ -50,6 +50,7 @@ import { useConfirmProject } from '../hooks/useProjects';
 import { useCreateAssignment, useUpdateAssignment, useDeleteAssignment } from '../hooks/useAssignments';
 import { useAddBcAttorney, useRemoveBcAttorney } from '../hooks/useBcAttorneys';
 import { toast } from '../lib/toast';
+import { tokens } from '../theme';
 
 const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
   Active: 'success',
@@ -606,7 +607,7 @@ const ProjectDetail: React.FC = () => {
       />
       <Stack spacing={3}>
         {/* Project Header */}
-        <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+        <Paper sx={{ p: 3, background: tokens.gradients.primary }}>
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
             <Typography variant="h4" sx={{ fontWeight: 800, color: 'white', lineHeight: 1 }}>
               {project.name}

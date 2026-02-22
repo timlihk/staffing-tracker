@@ -8,11 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
-  Box,
   Button,
   Chip,
   Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -22,6 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 import { ArrowBack, Visibility } from '@mui/icons-material';
+import { Page, PageHeader } from '../components/ui';
 import { getSyncHistory } from '../api/billing';
 
 function formatDate(dateStr: string) {
@@ -43,15 +42,15 @@ export default function SyncHistory() {
   });
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 2, md: 4 } }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          Excel Sync History
-        </Typography>
-        <Button size="small" variant="outlined" startIcon={<ArrowBack />} onClick={() => navigate('/billing/control-tower')}>
-          Back to Billing
-        </Button>
-      </Stack>
+    <Page>
+      <PageHeader
+        title="Excel Sync History"
+        actions={
+          <Button size="small" variant="outlined" startIcon={<ArrowBack />} onClick={() => navigate('/billing/control-tower')}>
+            Back to Billing
+          </Button>
+        }
+      />
 
       {isLoading && (
         <Typography color="text.secondary">Loading...</Typography>
@@ -68,7 +67,7 @@ export default function SyncHistory() {
       )}
 
       {runs && runs.length > 0 && (
-        <Paper variant="outlined">
+        <Paper>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -117,6 +116,6 @@ export default function SyncHistory() {
           </TableContainer>
         </Paper>
       )}
-    </Box>
+    </Page>
   );
 }

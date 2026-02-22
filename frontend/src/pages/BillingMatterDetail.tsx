@@ -22,11 +22,6 @@ import api from '../api/client';
 import { toast } from '../lib/toast';
 import type { EngagementDetailResponse } from '../api/billing';
 
-const cardSx = {
-  p: { xs: 2.5, md: 3 },
-  borderRadius: 1,
-};
-
 export default function BillingMatterDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -117,7 +112,7 @@ export default function BillingMatterDetail() {
           </Stack>
 
           {engagementDetails.length === 0 ? (
-            <Paper sx={cardSx}>
+            <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
               <Alert severity="info">No engagements are linked to this client matter yet.</Alert>
             </Paper>
           ) : (
@@ -167,7 +162,7 @@ export default function BillingMatterDetail() {
 
 function CardMessage({ title, description }: { title: string; description: string }) {
   return (
-    <Paper sx={cardSx}>
+    <Paper sx={{ p: { xs: 2.5, md: 3 } }}>
       <Stack spacing={1.5}>
         <Typography variant="h6">{title}</Typography>
         <Typography variant="body2" color="text.secondary">

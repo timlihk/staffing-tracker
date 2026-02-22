@@ -127,7 +127,7 @@ export function TeamMemberDialog({
               sx={{
                 p: 2,
                 bgcolor: 'primary.50',
-                borderRadius: 1,
+                borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'primary.200',
               }}

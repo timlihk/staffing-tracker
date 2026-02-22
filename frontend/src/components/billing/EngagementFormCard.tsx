@@ -23,7 +23,6 @@ interface MilestoneEntry {
 
 const cardSx = {
   p: { xs: 2.5, md: 3 },
-  borderRadius: 1,
 };
 
 let milestoneKeyCounter = 0;

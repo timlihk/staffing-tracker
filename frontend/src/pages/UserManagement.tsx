@@ -32,7 +32,7 @@ import { useAppSettings, useUpdateAppSettings } from '../hooks/useAppSettings';
 import type { ManagedUser, Staff } from '../types';
 import { toast } from '../lib/toast';
 import { DateHelpers } from '../lib/date';
-
+import { tokens } from '../theme';
 
 
 const extractUserError = (error: unknown, fallback: string): string => {
@@ -669,7 +669,7 @@ const UserManagement: React.FC = () => {
             <Typography variant="body1" sx={{ mb: 1 }}>
               Provide this password to <strong>{passwordDialog.username}</strong>. They will be asked to create a new one on login.
             </Typography>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: tokens.colors.slate[50], fontFamily: 'monospace', wordBreak: 'break-all' }}>
               {passwordDialog.tempPassword}
             </Paper>
           </DialogContent>

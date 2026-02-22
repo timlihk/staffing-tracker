@@ -13,7 +13,6 @@ import type {
 
 const cardSx = {
   p: { xs: 2.5, md: 3 },
-  borderRadius: 1,
 };
 
 const summaryCardSx = (theme: Theme) => ({

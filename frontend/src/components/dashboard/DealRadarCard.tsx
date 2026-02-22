@@ -361,7 +361,7 @@ const DealRadarCard = ({
                   minWidth: 220,
                   border: 1,
                   borderColor: 'divider',
-                  borderRadius: 1.5,
+                  borderRadius: 2,
                   bgcolor: 'grey.50',
                   p: 0.75,
                 }}

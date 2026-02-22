@@ -196,7 +196,7 @@ const StaffingHeatmapCard = ({ days, onSelectStaff }: StaffingHeatmapCardProps) 
               onChange={(_, expanded) => setExpandedGroups((prev) => ({ ...prev, [group.label]: expanded }))}
               sx={{
                 '&:before': { display: 'none' },
-                borderRadius: 1,
+                borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'divider',
               }}

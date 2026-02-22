@@ -42,7 +42,7 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
             justifyContent: 'space-between',
             p: 2,
             bgcolor: 'grey.50',
-            borderRadius: 1,
+            borderRadius: 2,
           }}
         >
           <Stack>
@@ -72,7 +72,7 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
           />
         </Box>
 
-        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             Access Control
           </Typography>
@@ -125,7 +125,7 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
           </Stack>
         </Box>
 
-        <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, borderLeft: 4, borderColor: 'info.main' }}>
+        <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 2, borderLeft: 4, borderColor: 'info.main' }}>
           <Typography variant="body2" color="info.dark">
             <strong>Note:</strong> When set to "Admin and B&C Attorneys", B&C attorneys will only see billing projects
             they are assigned to. Admins always have full access to all billing data.

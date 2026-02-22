@@ -42,7 +42,6 @@ import type { CMEngagementSummary, EngagementDetailResponse } from '../../api/bi
 
 const cardSx = {
   p: { xs: 2.5, md: 3 },
-  borderRadius: 1,
 };
 
 export interface FeeMilestonesCardProps {

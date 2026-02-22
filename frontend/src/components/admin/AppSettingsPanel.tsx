@@ -85,7 +85,7 @@ export function AppSettingsPanel({ appSettings, loading, onUpdate, extractError 
             justifyContent: 'space-between',
             p: 2,
             bgcolor: 'grey.50',
-            borderRadius: 1,
+            borderRadius: 2,
           }}
         >
           <Stack>
@@ -121,7 +121,7 @@ export function AppSettingsPanel({ appSettings, loading, onUpdate, extractError 
           sx={{
             p: 2,
             bgcolor: appSettings?.enableDataExport ? 'warning.50' : 'success.50',
-            borderRadius: 1,
+            borderRadius: 2,
             borderLeft: 4,
             borderColor: appSettings?.enableDataExport ? 'warning.main' : 'success.main',
           }}
@@ -140,7 +140,7 @@ export function AppSettingsPanel({ appSettings, loading, onUpdate, extractError 
           </Typography>
         </Box>
 
-        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+        <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Stack spacing={2}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <SweepIcon fontSize="small" color="action" />
@@ -161,7 +161,7 @@ export function AppSettingsPanel({ appSettings, loading, onUpdate, extractError 
                 p: 1.5,
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: 1,
+                borderRadius: 2,
               }}
             >
               <Box>
@@ -197,7 +197,7 @@ export function AppSettingsPanel({ appSettings, loading, onUpdate, extractError 
                 p: 1.5,
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: 1,
+                borderRadius: 2,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
