@@ -216,23 +216,13 @@ function App() {
               }
             />
 
-            {/* Billing */}
+            {/* Billing - specific routes must come before :id wildcard */}
             <Route
               path="/billing"
               element={
                 <ProtectedRoute>
                   <Layout>
                     <BillingMatters />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/billing/:id"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <BillingMatterDetail />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -270,6 +260,16 @@ function App() {
                       <SyncHistory />
                     </Layout>
                   </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/:id"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BillingMatterDetail />
+                  </Layout>
                 </ProtectedRoute>
               }
             />

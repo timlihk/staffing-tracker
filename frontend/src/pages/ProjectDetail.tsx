@@ -145,6 +145,9 @@ const ProjectDetail: React.FC = () => {
 
   const [milestoneRefreshKey, setMilestoneRefreshKey] = useState(0);
 
+  // Billing project ID for C/M number navigation
+  const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
+
   // C/M number edit dialog state
   const [cmDialogOpen, setCmDialogOpen] = useState(false);
   const [cmInput, setCmInput] = useState('');
@@ -210,6 +213,27 @@ const ProjectDetail: React.FC = () => {
 
     fetchData();
   }, [id, permissions.isAdmin]);
+
+  // Look up billing project ID when project's C/M number is available
+  useEffect(() => {
+    if (!project?.cmNumber) {
+      setBillingProjectId(null);
+      return;
+    }
+    let cancelled = false;
+    api.get(`/billing/cm-lookup/${project.cmNumber}`)
+      .then((res) => {
+        if (!cancelled && res.data.found) {
+          setBillingProjectId(res.data.billingProjectId);
+        } else if (!cancelled) {
+          setBillingProjectId(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBillingProjectId(null);
+      });
+    return () => { cancelled = true; };
+  }, [project?.cmNumber]);
 
   const refreshProjectEvents = async () => {
     if (!id || !permissions.isAdmin) {
@@ -629,7 +653,14 @@ const ProjectDetail: React.FC = () => {
                 />
               )}
               {project.category && <Chip label={project.category} variant="outlined" sx={{ bgcolor: 'white' }} />}
-              {project.cmNumber && <Chip label={`C/M: ${project.cmNumber}`} variant="outlined" sx={{ bgcolor: 'white' }} />}
+              {project.cmNumber && (
+                <Chip
+                  label={`C/M: ${project.cmNumber}`}
+                  variant="outlined"
+                  sx={{ bgcolor: 'white', ...(billingProjectId ? { cursor: 'pointer' } : {}) }}
+                  onClick={billingProjectId ? () => navigate(`/billing/${billingProjectId}`) : undefined}
+                />
+              )}
             </Stack>
           </Stack>
         </Paper>
@@ -668,7 +699,16 @@ const ProjectDetail: React.FC = () => {
               },
               {
                 label: 'C/M NUMBER',
-                value: project.cmNumber || '-',
+                value: project.cmNumber && billingProjectId ? (
+                  <Typography
+                    variant="body1"
+                    component="span"
+                    sx={{ color: 'primary.main', cursor: 'pointer', textDecoration: 'underline', '&:hover': { color: 'primary.dark' } }}
+                    onClick={() => navigate(`/billing/${billingProjectId}`)}
+                  >
+                    {project.cmNumber}
+                  </Typography>
+                ) : (project.cmNumber || '-'),
                 action: permissions.canEditProject ? (
                   <IconButton size="small" onClick={openCmDialog} sx={{ ml: 0.5, p: 0.25 }}>
                     <Edit fontSize="small" />
