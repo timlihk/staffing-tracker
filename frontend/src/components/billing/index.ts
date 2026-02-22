@@ -3,6 +3,7 @@ export { CmSummaryCard, type CmSummaryCardProps } from './CmSummaryCard';
 export { FeeMilestonesCard, type FeeMilestonesCardProps } from './FeeMilestonesCard';
 export { EngagementCard, type EngagementCardProps } from './EngagementCard';
 export { EngagementFormDialog, type EngagementFormDialogProps } from './EngagementFormDialog';
+export { EngagementFormCard, type EngagementFormCardProps } from './EngagementFormCard';
 export { MilestoneReferenceSection, type MilestoneReferenceSectionProps } from './MilestoneReferenceSection';
 export { MilestoneTable, type MilestoneTableProps } from './MilestoneTable';
 export { MilestoneReferenceDialog, type MilestoneReferenceDialogProps } from './MilestoneReferenceDialog';
