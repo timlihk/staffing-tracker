@@ -1,5 +1,6 @@
 import { Box, Paper, Stack, Chip, Divider, Typography, IconButton, Tooltip } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
+import { alpha, type Theme } from '@mui/material/styles';
 import { InfoField } from './InfoField';
 import { formatDate, formatDateYmd, formatCurrencyWholeWithFallback } from '../../lib/billing/utils';
 import { formatCurrency } from '../../lib/currency';
@@ -14,6 +15,16 @@ const cardSx = {
   p: { xs: 2.5, md: 3 },
   borderRadius: 1,
 };
+
+const summaryCardSx = (theme: Theme) => ({
+  ...cardSx,
+  border: `1px solid ${alpha(theme.palette.info.main, theme.palette.mode === 'dark' ? 0.45 : 0.2)}`,
+  background:
+    theme.palette.mode === 'dark'
+      ? `linear-gradient(135deg, ${alpha(theme.palette.info.dark, 0.35)} 0%, ${alpha(theme.palette.background.paper, 0.97)} 60%)`
+      : `linear-gradient(135deg, ${alpha(theme.palette.info.light, 0.26)} 0%, ${alpha(theme.palette.success.light, 0.14)} 42%, ${theme.palette.background.paper} 100%)`,
+  boxShadow: `0 10px 24px ${alpha(theme.palette.info.main, theme.palette.mode === 'dark' ? 0.22 : 0.12)}`,
+});
 
 export interface CmSummaryCardProps {
   project: BillingProjectSummaryResponse['project'];
@@ -58,11 +69,11 @@ export function CmSummaryCard({
     (project.agreed_fee_usd ? 'USD' : project.agreed_fee_cny ? 'CNY' : undefined);
 
   return (
-    <Paper sx={cardSx}>
+    <Paper sx={summaryCardSx}>
       <Stack spacing={2.5}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', md: 'center' }}>
           <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
-            <Typography variant="h6">Client Matter Summary</Typography>
+            <Typography variant="h6" sx={{ color: 'info.dark' }}>Client Matter Summary</Typography>
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             {cm?.status && <Chip label={cm.status} color={statusColor} size="small" />}

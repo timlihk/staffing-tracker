@@ -101,6 +101,7 @@ export interface CMEngagementSummary {
   name: string | null;
   start_date: string | null;
   end_date: string | null;
+  signed_date: string | null;
   total_agreed_fee_value: number | null;
   total_agreed_fee_currency: string | null;
   milestone_count: number;
@@ -115,6 +116,7 @@ export interface EngagementDetailResponse {
   name: string | null;
   start_date: string | null;
   end_date: string | null;
+  signed_date: string | null;
   total_agreed_fee_value: number | null;
   total_agreed_fee_currency: string | null;
   ubt_usd: number | null;
@@ -282,6 +284,7 @@ export interface CreateEngagementPayload {
   engagement_code?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  signed_date?: string | null;
   fee_arrangement_text?: string | null;
 }
 
@@ -291,6 +294,23 @@ export const createEngagement = async (
   data: CreateEngagementPayload
 ): Promise<{ success: boolean; engagement_id: number }> => {
   const response = await apiClient.post(`/billing/projects/${projectId}/cm/${cmId}/engagements`, data);
+  return response.data;
+};
+
+// Lookup billing project by C/M number
+export interface CmLookupResult {
+  found: boolean;
+  billingProjectId?: number;
+  projectName?: string | null;
+  clientName?: string | null;
+  attorneyInCharge?: string | null;
+  cmId?: number;
+  isPrimary?: boolean;
+  status?: string | null;
+}
+
+export const lookupByCmNumber = async (cmNo: string): Promise<CmLookupResult> => {
+  const response = await apiClient.get(`/billing/cm-lookup/${cmNo}`);
   return response.data;
 };
 

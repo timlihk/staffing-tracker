@@ -25,7 +25,7 @@ interface BillingProjectRow {
   project_name: string;
   client_name: string;
   attorney_in_charge: string | null;
-  bc_attorney_staff_id: bigint | null;
+  bc_attorney_staff_id: string | null;
   bc_attorney_name: string | null;
   bc_attorney_position: string | null;
   bc_attorney_status: string | null;
@@ -250,7 +250,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
     // Merge B&C attorney info into project data
     if (bcAttorneys && bcAttorneys.length > 0) {
       projectData[0].bc_attorney_name = bcAttorneys[0].bc_attorney_name || null;
-      projectData[0].bc_attorney_staff_id = bcAttorneys[0].bc_attorney_staff_id ? BigInt(bcAttorneys[0].bc_attorney_staff_id) : null;
+      projectData[0].bc_attorney_staff_id = bcAttorneys[0].bc_attorney_staff_id || null;
     }
 
     // For summary view, return minimal data without nested details
@@ -333,6 +333,7 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
                 'name', e.name,
                 'start_date', e.start_date,
                 'end_date', e.end_date,
+                'signed_date', e.signed_date,
                 'feeArrangement', (
                   SELECT JSON_BUILD_OBJECT(
                     'fee_id', fa.fee_id,

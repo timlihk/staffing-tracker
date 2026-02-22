@@ -28,6 +28,20 @@ const formatLifecycleStage = (stage?: string | null) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
+const cellBoxSx = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  height: '100%',
+} as const;
+
+const cellTextSx = {
+  width: '100%',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
+
 const Projects: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,96 +136,123 @@ const Projects: React.FC = () => {
     {
       field: 'name',
       headerName: 'Project Name',
+      align: 'left',
+      headerAlign: 'left',
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
-        <Box
-          sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
-          onClick={() => navigate(`/projects/${params.row.id}`)}
-        >
-          {params.value}
+        <Box sx={cellBoxSx}>
+          <Typography
+            variant="body2"
+            sx={{ ...cellTextSx, fontWeight: 600, color: 'primary.main', cursor: 'pointer' }}
+            onClick={() => navigate(`/projects/${params.row.id}`)}
+          >
+            {params.value}
+          </Typography>
         </Box>
       ),
     },
     {
       field: 'cmNumber',
       headerName: 'C/M Number',
+      align: 'left',
+      headerAlign: 'left',
       flex: 0.6,
       minWidth: 130,
       renderCell: (params) => (
-        <Typography variant="body2" color="text.secondary">
-          {params.row.cmNumber || '—'}
-        </Typography>
+        <Box sx={cellBoxSx}>
+          <Typography variant="body2" color="text.secondary" sx={cellTextSx}>
+            {params.row.cmNumber || '—'}
+          </Typography>
+        </Box>
       ),
     },
     {
       field: 'status',
       headerName: 'Status',
+      align: 'left',
+      headerAlign: 'left',
       flex: 0.5,
       minWidth: 120,
       renderCell: (params) => (
-        <Chip
-          label={params.value}
-          color={statusColors[params.value] || 'default'}
-          size="small"
-        />
+        <Box sx={cellBoxSx}>
+          <Chip
+            label={params.value}
+            color={statusColors[params.value] || 'default'}
+            size="small"
+          />
+        </Box>
       ),
     },
     {
       field: 'lifecycleStage',
       headerName: 'Lifecycle',
+      align: 'left',
+      headerAlign: 'left',
       flex: 0.6,
       minWidth: 140,
       renderCell: (params) => (
-        <Typography variant="body2" color="text.secondary">
-          {formatLifecycleStage(params.row.lifecycleStage)}
-        </Typography>
+        <Box sx={cellBoxSx}>
+          <Typography variant="body2" color="text.secondary" sx={cellTextSx}>
+            {formatLifecycleStage(params.row.lifecycleStage)}
+          </Typography>
+        </Box>
       ),
     },
-    { field: 'category', headerName: 'Category', flex: 0.5, minWidth: 100 },
-    { field: 'side', headerName: 'Side', flex: 0.5, minWidth: 100 },
-    { field: 'sector', headerName: 'Sector', flex: 0.5, minWidth: 100 },
-    { field: 'priority', headerName: 'Priority', flex: 0.4, minWidth: 90 },
+    { field: 'category', headerName: 'Category', align: 'left', headerAlign: 'left', flex: 0.5, minWidth: 100 },
+    { field: 'side', headerName: 'Side', align: 'left', headerAlign: 'left', flex: 0.5, minWidth: 100 },
+    { field: 'sector', headerName: 'Sector', align: 'left', headerAlign: 'left', flex: 0.5, minWidth: 100 },
+    { field: 'priority', headerName: 'Priority', align: 'left', headerAlign: 'left', flex: 0.4, minWidth: 90 },
     {
       field: 'filingDate',
       headerName: 'Filing Date',
+      align: 'left',
+      headerAlign: 'left',
       flex: 0.6,
       minWidth: 120,
       renderCell: (params) => (
-        <Typography variant="body2" color="text.secondary">
-          {DateHelpers.formatDate(params.row.filingDate)}
-        </Typography>
+        <Box sx={cellBoxSx}>
+          <Typography variant="body2" color="text.secondary" sx={cellTextSx}>
+            {DateHelpers.formatDate(params.row.filingDate)}
+          </Typography>
+        </Box>
       ),
     },
     {
       field: 'listingDate',
       headerName: 'Listing Date',
+      align: 'left',
+      headerAlign: 'left',
       flex: 0.6,
       minWidth: 120,
       renderCell: (params) => (
-        <Typography variant="body2" color="text.secondary">
-          {DateHelpers.formatDate(params.row.listingDate)}
-        </Typography>
+        <Box sx={cellBoxSx}>
+          <Typography variant="body2" color="text.secondary" sx={cellTextSx}>
+            {DateHelpers.formatDate(params.row.listingDate)}
+          </Typography>
+        </Box>
       ),
     },
     {
       field: 'lastConfirmedAt',
       headerName: 'Last Confirmed',
+      align: 'left',
+      headerAlign: 'left',
       flex: 0.7,
       minWidth: 150,
       renderCell: (params) => {
         if (!params.row.lastConfirmedAt) {
           return (
-            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              <Typography variant="body2" color="warning.main" fontWeight={600}>Never confirmed</Typography>
+            <Box sx={cellBoxSx}>
+              <Typography variant="body2" color="warning.main" fontWeight={600} sx={cellTextSx}>Never confirmed</Typography>
             </Box>
           );
         }
         const daysAgo = DateHelpers.daysAgo(params.row.lastConfirmedAt);
         const color = daysAgo && daysAgo > 14 ? 'error.main' : daysAgo && daysAgo > 7 ? 'warning.main' : 'text.secondary';
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-            <Typography variant="body2" color={color}>
+          <Box sx={cellBoxSx}>
+            <Typography variant="body2" color={color} sx={cellTextSx}>
               {DateHelpers.formatDaysAgo(params.row.lastConfirmedAt)}
             </Typography>
           </Box>
@@ -221,10 +262,12 @@ const Projects: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
+      align: 'center',
+      headerAlign: 'center',
       width: 80,
       sortable: false,
       renderCell: (params) => (
-        <Box onClick={(e) => e.stopPropagation()}>
+        <Box sx={{ ...cellBoxSx, justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}>
           {permissions.canEditProject && (
             <IconButton size="small" onClick={() => navigate(`/projects/${params.row.id}/edit`)}>
               <Edit fontSize="small" />

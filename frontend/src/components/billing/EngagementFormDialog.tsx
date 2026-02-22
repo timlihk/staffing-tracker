@@ -15,14 +15,16 @@ export interface EngagementFormDialogProps {
   saving: boolean;
   onClose: () => void;
   onSave: (data: CreateEngagementPayload) => void;
+  requireSignedDate?: boolean;
 }
 
-export function EngagementFormDialog({ open, saving, onClose, onSave }: EngagementFormDialogProps) {
+export function EngagementFormDialog({ open, saving, onClose, onSave, requireSignedDate = false }: EngagementFormDialogProps) {
   const [form, setForm] = useState({
     engagement_title: '',
     engagement_code: '',
     start_date: '',
     end_date: '',
+    signed_date: '',
     fee_arrangement_text: '',
   });
 
@@ -33,12 +35,16 @@ export function EngagementFormDialog({ open, saving, onClose, onSave }: Engageme
         engagement_code: '',
         start_date: '',
         end_date: '',
+        signed_date: '',
         fee_arrangement_text: '',
       });
     }
   }, [open]);
 
-  const canSave = form.engagement_title.trim().length > 0 && !saving;
+  const canSave =
+    form.engagement_title.trim().length > 0 &&
+    (!requireSignedDate || form.signed_date.length > 0) &&
+    !saving;
 
   const handleSave = () => {
     onSave({
@@ -46,6 +52,7 @@ export function EngagementFormDialog({ open, saving, onClose, onSave }: Engageme
       engagement_code: form.engagement_code.trim() || null,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
+      signed_date: form.signed_date || null,
       fee_arrangement_text: form.fee_arrangement_text.trim() || null,
     });
   };
@@ -74,20 +81,21 @@ export function EngagementFormDialog({ open, saving, onClose, onSave }: Engageme
           />
           <Stack direction="row" spacing={2}>
             <TextField
+              label="Signed Date"
+              type="date"
+              fullWidth
+              required={requireSignedDate}
+              value={form.signed_date}
+              onChange={(e) => setForm((prev) => ({ ...prev, signed_date: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
+              size="small"
+            />
+            <TextField
               label="Start Date"
               type="date"
               fullWidth
               value={form.start_date}
               onChange={(e) => setForm((prev) => ({ ...prev, start_date: e.target.value }))}
-              slotProps={{ inputLabel: { shrink: true } }}
-              size="small"
-            />
-            <TextField
-              label="End Date"
-              type="date"
-              fullWidth
-              value={form.end_date}
-              onChange={(e) => setForm((prev) => ({ ...prev, end_date: e.target.value }))}
               slotProps={{ inputLabel: { shrink: true } }}
               size="small"
             />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -7,8 +7,6 @@ import {
   CircularProgress,
   Paper,
   Stack,
-  Tab,
-  Tabs,
   Typography,
 } from '@mui/material';
 import {
@@ -23,7 +21,6 @@ import { usePermissions } from '../hooks/usePermissions';
 import api from '../api/client';
 import { toast } from '../lib/toast';
 import type {
-  BillingProjectCM,
   CreateEngagementPayload,
   EngagementDetailResponse,
 } from '../api/billing';
@@ -45,10 +42,9 @@ export default function BillingMatterDetail() {
   const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useBillingProjectSummary(projectId, { view: 'full' });
 
   const project = summary?.project;
-  const cmNumbers = useMemo(() => summary?.cmNumbers ?? [], [summary?.cmNumbers]);
 
-  const [selectedCmIndex, setSelectedCmIndex] = useState(0);
-  const selectedCm: BillingProjectCM | null = cmNumbers[selectedCmIndex] ?? null;
+  // Always use the first (and only) C/M number
+  const selectedCm = useMemo(() => summary?.cmNumbers?.[0] ?? null, [summary?.cmNumbers]);
   const selectedCmId = parseEngagementId(selectedCm?.cm_id);
 
   // All engagement details come from the full summary response
@@ -56,14 +52,6 @@ export default function BillingMatterDetail() {
     const list = selectedCm?.engagements;
     return Array.isArray(list) ? list : [];
   }, [selectedCm?.engagements]);
-
-  useEffect(() => {
-    if (!cmNumbers.length) {
-      setSelectedCmIndex(0);
-      return;
-    }
-    setSelectedCmIndex((prev) => (prev < cmNumbers.length ? prev : 0));
-  }, [cmNumbers]);
 
   const createEngagementMutation = useCreateEngagement();
 
@@ -123,37 +111,13 @@ export default function BillingMatterDetail() {
         </Box>
       ) : !project ? (
         <Alert severity="warning">We could not load this billing matter.</Alert>
-      ) : cmNumbers.length === 0 ? (
+      ) : !selectedCm ? (
         <CardMessage
-          title="No C/M numbers linked"
-          description="Add a C/M number to this project to see billing activity and milestones."
+          title="No C/M number linked"
+          description="Link a C/M number to this project to view billing activity and milestones."
         />
       ) : (
         <Stack spacing={3}>
-          <Paper sx={{ p: { xs: 1, md: 1.5 }, borderRadius: 1 }}>
-            <Tabs
-              value={selectedCmIndex}
-              onChange={(_, value) => setSelectedCmIndex(value)}
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              {cmNumbers.map((cm, index) => (
-                <Tab
-                  key={String(cm.cm_id ?? cm.cm_no ?? index)}
-                  value={index}
-                  label={
-                    <Stack spacing={0.25} alignItems="flex-start">
-                      <Typography variant="body2" fontWeight={600}>
-                        {cm.cm_no || 'CM \u2014'}
-                      </Typography>
-                    </Stack>
-                  }
-                  sx={{ alignItems: 'flex-start' }}
-                />
-              ))}
-            </Tabs>
-          </Paper>
-
           <CmSummaryCard
             project={project}
             cm={selectedCm}
@@ -164,12 +128,16 @@ export default function BillingMatterDetail() {
             canEdit={permissions.isAdmin}
           />
 
+          <Stack spacing={0.5}>
+            <Typography variant="h6">Engagements ({engagementDetails.length})</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Each card below is a separate engagement under this client matter. Click the header to expand or collapse details.
+            </Typography>
+          </Stack>
+
           {engagementDetails.length === 0 ? (
             <Paper sx={cardSx}>
-              <Stack spacing={1.5}>
-                <Typography variant="h6">Engagements</Typography>
-                <Alert severity="info">No engagements are linked to this C/M yet.</Alert>
-              </Stack>
+              <Alert severity="info">No engagements are linked to this client matter yet.</Alert>
             </Paper>
           ) : (
             engagementDetails.map((engagement) => (

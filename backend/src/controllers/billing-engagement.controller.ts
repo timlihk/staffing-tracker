@@ -24,6 +24,7 @@ interface EngagementDetailRow {
   name: string | null;
   start_date: Date | null;
   end_date: Date | null;
+  signed_date: Date | null;
   billing_to_date_usd: number | null;
   billing_to_date_cny: number | null;
   collected_to_date_usd: number | null;
@@ -60,6 +61,7 @@ interface CMEngagementRow {
   name: string | null;
   start_date: Date | null;
   end_date: Date | null;
+  signed_date: Date | null;
   milestone_count: bigint;
   completed_milestone_count: bigint;
 }
@@ -95,6 +97,7 @@ export async function getEngagementDetail(req: AuthRequest, res: Response) {
         e.name,
         e.start_date,
         e.end_date,
+        e.signed_date,
         cm.billing_to_date_usd,
         cm.billing_to_date_cny,
         cm.collected_to_date_usd,
@@ -261,6 +264,7 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
         e.name,
         e.start_date,
         e.end_date,
+        e.signed_date,
         COUNT(m.milestone_id) as milestone_count,
         COUNT(CASE WHEN M.completed THEN 1 END) as completed_milestone_count
       FROM billing_engagement e
@@ -270,7 +274,7 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
         AND cm.cm_id = ${cmIdBigInt}
       GROUP BY
         e.engagement_id, e.cm_id, e.engagement_code, e.engagement_title,
-        e.name, e.start_date, e.end_date
+        e.name, e.start_date, e.end_date, e.signed_date
       ORDER BY e.start_date DESC NULLS LAST, e.engagement_id
     `;
 
@@ -312,7 +316,7 @@ export async function createEngagement(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'C/M not found for this project' });
     }
 
-    const { engagement_title, engagement_code, start_date, end_date, fee_arrangement_text } = req.body;
+    const { engagement_title, engagement_code, start_date, end_date, fee_arrangement_text, signed_date } = req.body;
 
     // Auto-generate engagement_code if not provided
     let code = engagement_code;
@@ -326,10 +330,11 @@ export async function createEngagement(req: AuthRequest, res: Response) {
 
     const startDateVal = start_date ? parseDate(start_date) : null;
     const endDateVal = end_date ? parseDate(end_date) : null;
+    const signedDateVal = signed_date ? parseDate(signed_date) : null;
 
     const inserted = await prisma.$queryRaw<{ engagement_id: bigint }[]>`
-      INSERT INTO billing_engagement (project_id, cm_id, engagement_code, engagement_title, start_date, end_date, created_at, updated_at)
-      VALUES (${projectIdBigInt}, ${cmIdBigInt}, ${code}, ${engagement_title}, ${startDateVal}, ${endDateVal}, NOW(), NOW())
+      INSERT INTO billing_engagement (project_id, cm_id, engagement_code, engagement_title, start_date, end_date, signed_date, created_at, updated_at)
+      VALUES (${projectIdBigInt}, ${cmIdBigInt}, ${code}, ${engagement_title}, ${startDateVal}, ${endDateVal}, ${signedDateVal}, NOW(), NOW())
       RETURNING engagement_id
     `;
 

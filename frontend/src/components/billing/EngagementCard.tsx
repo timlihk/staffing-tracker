@@ -2,11 +2,17 @@ import { type ChangeEvent, useMemo, useState } from 'react';
 import {
   Box,
   Chip,
+  Collapse,
   Divider,
+  IconButton,
   Paper,
   Stack,
   Typography,
 } from '@mui/material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+} from '@mui/icons-material';
 import { InfoField } from './InfoField';
 import { MilestoneReferenceSection } from './MilestoneReferenceSection';
 import { MilestoneTable } from './MilestoneTable';
@@ -45,6 +51,8 @@ export interface EngagementCardProps {
 }
 
 export function EngagementCard({ projectId, cmId, engagement }: EngagementCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const sortedMilestones = useMemo<Milestone[]>(() => {
     if (!engagement.milestones) return [];
     return [...engagement.milestones].sort((a, b) => {
@@ -62,6 +70,7 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
 
   const completedCount = sortedMilestones.filter((m) => m.completed).length;
   const totalCount = sortedMilestones.length;
+  const toggleExpanded = () => setExpanded((prev) => !prev);
 
   // Mutations
   const updateFeeArrangement = useUpdateFeeArrangement();
@@ -230,15 +239,36 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
   return (
     <>
       <Paper sx={cardSx}>
-        <Stack spacing={2.5}>
-          {/* Header */}
+        <Stack spacing={0}>
+          {/* Header — always visible, clickable to toggle */}
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1.5}
             alignItems={{ xs: 'flex-start', sm: 'center' }}
             justifyContent="space-between"
+            onClick={toggleExpanded}
+            sx={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              borderRadius: 1,
+              px: 1,
+              py: 0.75,
+              border: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'action.hover',
+            }}
           >
-            <Typography variant="h6">{engagementLabel}</Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <IconButton size="small" sx={{ p: 0.25 }} aria-label={expanded ? 'Collapse engagement' : 'Expand engagement'}>
+                {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+              <Stack spacing={0.25}>
+                <Typography variant="h6">{engagementLabel}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {expanded ? 'Click to collapse details' : 'Click to expand details'}
+                </Typography>
+              </Stack>
+            </Stack>
             {totalCount > 0 && (
               <Chip
                 label={`${completedCount}/${totalCount} milestones`}
@@ -249,55 +279,59 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
             )}
           </Stack>
 
-          <Divider />
+          <Collapse in={expanded}>
+            <Stack spacing={2.5} sx={{ mt: 2.5 }}>
+              <Divider />
 
-          {/* Reference text */}
-          <MilestoneReferenceSection
-            referenceText={engagement.feeArrangement?.raw_text}
-            saving={isReferenceSaving}
-            onEdit={handleOpenReferenceEditor}
-          />
+              {/* Reference text */}
+              <MilestoneReferenceSection
+                referenceText={engagement.feeArrangement?.raw_text}
+                saving={isReferenceSaving}
+                onEdit={handleOpenReferenceEditor}
+              />
 
-          {/* Info fields */}
-          <Box
-            sx={{
-              display: 'grid',
-              gap: 2.5,
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                lg: 'repeat(4, minmax(0, 1fr))',
-              },
-            }}
-          >
-            <InfoField
-              label="Agreed Fee"
-              value={formatCurrency(engagement.total_agreed_fee_value, engagement.total_agreed_fee_currency)}
-            />
-            <InfoField label="Long Stop Date" value={formatDateYmd(engagement.feeArrangement?.lsd_date)} />
-            <InfoField label="Start Date" value={formatDate(engagement.start_date)} />
-            <InfoField label="Target Completion" value={formatDate(engagement.end_date)} />
-            <InfoField
-              label="Billing To Date"
-              value={formatCurrencyWholeWithFallback(engagement.billing_usd, engagement.billing_cny)}
-            />
-            <InfoField
-              label="Collected"
-              value={formatCurrencyWholeWithFallback(engagement.collection_usd, engagement.collection_cny)}
-            />
-          </Box>
+              {/* Info fields */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 2.5,
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                    lg: 'repeat(4, minmax(0, 1fr))',
+                  },
+                }}
+              >
+                <InfoField
+                  label="Agreed Fee"
+                  value={formatCurrency(engagement.total_agreed_fee_value, engagement.total_agreed_fee_currency)}
+                />
+                <InfoField label="Long Stop Date" value={formatDateYmd(engagement.feeArrangement?.lsd_date)} />
+                <InfoField label="Start Date" value={formatDate(engagement.start_date)} />
+                <InfoField label="Target Completion" value={formatDate(engagement.end_date)} />
+                <InfoField
+                  label="Billing To Date"
+                  value={formatCurrencyWholeWithFallback(engagement.billing_usd, engagement.billing_cny)}
+                />
+                <InfoField
+                  label="Collected"
+                  value={formatCurrencyWholeWithFallback(engagement.collection_usd, engagement.collection_cny)}
+                />
+              </Box>
 
-          <Divider />
+              <Divider />
 
-          {/* Milestone table */}
-          <MilestoneTable
-            milestones={sortedMilestones}
-            saving={isMilestoneSaving}
-            deleting={isDeletingMilestone}
-            onAdd={() => handleOpenMilestoneDialog('add')}
-            onEdit={(milestone) => handleOpenMilestoneDialog('edit', milestone)}
-            onDelete={handleOpenDeleteDialog}
-          />
+              {/* Milestone table */}
+              <MilestoneTable
+                milestones={sortedMilestones}
+                saving={isMilestoneSaving}
+                deleting={isDeletingMilestone}
+                onAdd={() => handleOpenMilestoneDialog('add')}
+                onEdit={(milestone) => handleOpenMilestoneDialog('edit', milestone)}
+                onDelete={handleOpenDeleteDialog}
+              />
+            </Stack>
+          </Collapse>
         </Stack>
       </Paper>
 

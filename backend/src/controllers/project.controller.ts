@@ -23,7 +23,7 @@ const normalizeOptionalString = (value: unknown): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const isElSigned = (value: unknown): boolean => {
+const isNewEngagement = (value: unknown): boolean => {
   const normalized = normalizeOptionalString(value)?.toLowerCase();
   return normalized === 'signed' || normalized === 'yes' || normalized === 'true';
 };
@@ -34,8 +34,8 @@ const deriveLifecycleStage = (params: {
   elStatus?: unknown;
   fallbackLifecycleStage?: string | null;
 }): string | null => {
-  if (isElSigned(params.elStatus)) {
-    return 'signed';
+  if (isNewEngagement(params.elStatus)) {
+    return 'new_engagement';
   }
 
   const explicitLifecycle = normalizeOptionalString(params.lifecycleStage);
