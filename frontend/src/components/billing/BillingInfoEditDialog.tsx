@@ -66,8 +66,8 @@ export function BillingInfoEditDialog({
   const { data: staffList = [] } = useQuery<StaffMember[]>({
     queryKey: ['staff-list'],
     queryFn: async () => {
-      const response = await api.get('/staff');
-      return response.data;
+      const response = await api.get<{ data: StaffMember[]; pagination: unknown }>('/staff');
+      return response.data.data ?? [];
     },
     enabled: open,
   });
