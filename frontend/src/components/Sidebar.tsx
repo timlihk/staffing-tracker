@@ -109,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
+    return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   const drawerContent = (
