@@ -264,11 +264,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                   color: active ? '#FFFFFF' : 'inherit',
                   display: 'flex',
                   justifyContent: 'center',
+                  '& .MuiSvgIcon-root': { fontSize: 22 },
                 }}
               >
-                {React.cloneElement(item.icon as React.ReactElement, {
-                  sx: { fontSize: 22 },
-                })}
+                {item.icon}
               </ListItemIcon>
               {!collapsed && (
                 <ListItemText

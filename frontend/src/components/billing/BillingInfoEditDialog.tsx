@@ -63,7 +63,7 @@ export function BillingInfoEditDialog({
   loading = false,
 }: BillingInfoEditDialogProps) {
   // Fetch staff list for B&C attorney dropdown
-  const { data: staffList = [] } = useQuery<StaffMember[]>({
+  const { data: rawStaffList } = useQuery<StaffMember[]>({
     queryKey: ['staff-list'],
     queryFn: async () => {
       const response = await api.get<{ data: StaffMember[]; pagination: unknown }>('/staff');
@@ -71,9 +71,10 @@ export function BillingInfoEditDialog({
     },
     enabled: open,
   });
+  const staffList = Array.isArray(rawStaffList) ? rawStaffList : [];
 
   // Fetch current B&C attorneys for this project
-  const { data: currentBcAttorneys = [] } = useQuery<Array<{ staff_id: number; staff: { id: number; name: string; position: string } }>>({
+  const { data: rawBcAttorneys } = useQuery<Array<{ staff_id: number; staff: { id: number; name: string; position: string } }>>({
     queryKey: ['billing-project-bc-attorneys', String(project.project_id)],
     queryFn: async () => {
       const response = await api.get(`/billing/projects/${project.project_id}/bc-attorneys`);
@@ -81,6 +82,7 @@ export function BillingInfoEditDialog({
     },
     enabled: open,
   });
+  const currentBcAttorneys = Array.isArray(rawBcAttorneys) ? rawBcAttorneys : [];
 
   const [formData, setFormData] = useState<BillingInfoFormData>({
     project_name: project.project_name ?? '',
