@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSmartBack } from '../hooks/useSmartBack';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import {
   Box,
   Paper,
@@ -18,7 +19,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Save, PersonAdd } from '@mui/icons-material';
 import { Page } from '../components/ui';
-
+import { LifecycleChangeDialog } from '../components/projects';
 import { projectSchema, type ProjectFormData } from '../lib/validations';
 import { useProject, useCreateProject, useUpdateProject } from '../hooks/useProjects';
 import { useStaff } from '../hooks/useStaff';
@@ -48,6 +49,11 @@ const ProjectForm: React.FC = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [jurisdiction, setJurisdiction] = useState('HK Law');
+
+  // Lifecycle change dialog state
+  const [lifecycleDialogOpen, setLifecycleDialogOpen] = useState(false);
+  const [lifecycleDialogCmNumber, setLifecycleDialogCmNumber] = useState('');
+  const [lifecycleDialogIsNewEngagement, setLifecycleDialogIsNewEngagement] = useState(false);
 
   const {
     register,
@@ -130,6 +136,23 @@ const ProjectForm: React.FC = () => {
       if (isEdit) {
         await updateProject.mutateAsync({ id: Number(id), data: cleanedData });
         projectId = Number(id);
+
+        // Check if lifecycle/status changed and project has a C/M number
+        const previousLifecycle = (project?.lifecycleStage || '').trim();
+        const newLifecycle = (cleanedData.lifecycleStage || '').trim();
+        const lifecycleChanged = newLifecycle !== previousLifecycle;
+        const previousStatus = (project?.status || '').trim();
+        const newStatus = (cleanedData.status || '').trim();
+        const statusChanged = newStatus !== previousStatus;
+        const cmNumber = project?.cmNumber;
+
+        if ((lifecycleChanged || statusChanged) && cmNumber) {
+          // Show lifecycle change dialog instead of navigating
+          setLifecycleDialogCmNumber(cmNumber);
+          setLifecycleDialogIsNewEngagement(newLifecycle === 'new_engagement');
+          setLifecycleDialogOpen(true);
+          return; // Don't navigate yet
+        }
       } else {
         const createdProject = await createProject.mutateAsync(cleanedData);
         projectId = createdProject.id;
@@ -156,11 +179,13 @@ const ProjectForm: React.FC = () => {
               );
             }
             // Note: No toast for all-success case since useCreateProject already shows "Project created" toast
-          } catch (bulkError: any) {
+          } catch (bulkError: unknown) {
             // Handle 400 error when all assignments fail
-            if (bulkError.response?.status === 400) {
+            if (isAxiosError<{ errors?: unknown[] }>(bulkError) && bulkError.response?.status === 400) {
               const errorData = bulkError.response.data;
-              const errorCount = errorData.errors?.length || teamMembers.length;
+              const errorCount = Array.isArray(errorData?.errors)
+                ? errorData.errors.length
+                : teamMembers.length;
 
               toast.error('Failed to add team members',
                 `All ${errorCount} team member assignments failed. Please add them manually from the project detail page.`
@@ -176,10 +201,15 @@ const ProjectForm: React.FC = () => {
         }
       }
       navigate('/projects');
-    } catch (error) {
+    } catch {
       // Error is handled by mutation hooks with toast notifications
       // No additional action needed - error is logged for debugging only
     }
+  };
+
+  const handleLifecycleDialogClose = () => {
+    setLifecycleDialogOpen(false);
+    navigate('/projects');
   };
 
   if (projectLoading) {
@@ -498,6 +528,12 @@ const ProjectForm: React.FC = () => {
         </form>
       </Paper>
 
+      <LifecycleChangeDialog
+        open={lifecycleDialogOpen}
+        cmNumber={lifecycleDialogCmNumber}
+        isNewEngagement={lifecycleDialogIsNewEngagement}
+        onClose={handleLifecycleDialogClose}
+      />
     </Page>
   );
 };

@@ -1276,6 +1276,105 @@ router.get('/overdue-by-attorney', authenticate, checkBillingAccess, adminOnly, 
  */
 router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getPipelineInsights);
 
+/**
+ * @openapi
+ * /billing/finance-summary:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get billing finance summary
+ *     description: Returns total billing/collection/UBT with attorney-level breakdown for control tower KPI cards.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: attorneyId
+ *         schema:
+ *           type: integer
+ *         description: Optional B&C attorney staff ID to scope totals
+ *     responses:
+ *       200:
+ *         description: Finance summary payload
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
+router.get('/finance-summary', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getFinanceSummary);
+
+/**
+ * @openapi
+ * /billing/long-stop-risks:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get long stop date risk queue
+ *     description: Returns engagements/projects with long stop dates that are approaching or already past due.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: attorneyId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: windowDays
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *       - in: query
+ *         name: minUbtAmount
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Long stop risk queue rows
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
+router.get('/long-stop-risks', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getLongStopRisks);
+
+/**
+ * @openapi
+ * /billing/unpaid-invoices:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get unpaid invoice alerts
+ *     description: Returns invoice rows that remain unpaid after threshold days for management escalation.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: attorneyId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: thresholdDays
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *       - in: query
+ *         name: minAmount
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Unpaid invoice alert rows
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
+router.get('/unpaid-invoices', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getUnpaidInvoices);
+
 // ============================================================================
 // Excel Sync (Finance Upload)
 // ============================================================================

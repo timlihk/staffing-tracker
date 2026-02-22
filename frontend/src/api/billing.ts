@@ -259,6 +259,62 @@ export interface BillingPipelineInsights {
   }>;
 }
 
+export interface BillingFinanceSummary {
+  asOf: string;
+  totals: {
+    billingUsd: number;
+    collectionUsd: number;
+    ubtUsd: number;
+    projectCount: number;
+  };
+  byAttorney: Array<{
+    staffId: number;
+    attorneyName: string;
+    attorneyPosition: string | null;
+    billingUsd: number;
+    collectionUsd: number;
+    ubtUsd: number;
+    projectCount: number;
+  }>;
+}
+
+export interface BillingLongStopRiskRow {
+  billingProjectId: number;
+  billingProjectName: string;
+  clientName: string | null;
+  staffId: number;
+  attorneyName: string;
+  attorneyPosition: string | null;
+  staffingProjectId: number | null;
+  staffingProjectName: string | null;
+  staffingProjectStatus: string | null;
+  lsdDate: string;
+  daysToLongStop: number;
+  riskLevel: 'past_due' | 'due_14' | 'due_30' | 'watch';
+  billingUsd: number;
+  collectionUsd: number;
+  ubtUsd: number;
+}
+
+export interface BillingUnpaidInvoiceRow {
+  staffId: number;
+  attorneyName: string;
+  attorneyPosition: string | null;
+  billingProjectId: number;
+  billingProjectName: string;
+  clientName: string | null;
+  staffingProjectId: number | null;
+  staffingProjectName: string | null;
+  staffingProjectStatus: string | null;
+  engagementId: number;
+  engagementTitle: string | null;
+  milestoneId: number;
+  milestoneTitle: string | null;
+  milestoneAmount: number;
+  invoiceSentDate: string;
+  daysSinceInvoice: number;
+}
+
 // Get all billing projects
 export interface BillingProjectsResponse {
   data: BillingProject[];
@@ -501,6 +557,7 @@ export const getUnmappedAttorneys = async () => {
 export const getBillingTriggers = async (params?: {
   status?: 'pending' | 'confirmed' | 'rejected';
   staffingProjectId?: number;
+  attorneyId?: number;
   startDate?: string;
   endDate?: string;
 }): Promise<BillingTriggerRow[]> => {
@@ -666,5 +723,32 @@ export const getOverdueByAttorney = async (params?: {
 
 export const getBillingPipelineInsights = async (): Promise<BillingPipelineInsights> => {
   const response = await apiClient.get('/billing/pipeline-insights');
+  return response.data;
+};
+
+export const getBillingFinanceSummary = async (params?: {
+  attorneyId?: number;
+}): Promise<BillingFinanceSummary> => {
+  const response = await apiClient.get('/billing/finance-summary', { params });
+  return response.data;
+};
+
+export const getLongStopRisks = async (params?: {
+  attorneyId?: number;
+  windowDays?: number;
+  minUbtAmount?: number;
+  limit?: number;
+}): Promise<BillingLongStopRiskRow[]> => {
+  const response = await apiClient.get('/billing/long-stop-risks', { params });
+  return response.data;
+};
+
+export const getUnpaidInvoices = async (params?: {
+  attorneyId?: number;
+  thresholdDays?: number;
+  minAmount?: number;
+  limit?: number;
+}): Promise<BillingUnpaidInvoiceRow[]> => {
+  const response = await apiClient.get('/billing/unpaid-invoices', { params });
   return response.data;
 };
