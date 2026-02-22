@@ -26,6 +26,8 @@ import { requestLogger } from './middleware/requestLogger';
 import { queryPerformanceMonitor } from './middleware/queryPerformance';
 import { apiLimiter, authLimiter } from './middleware/rateLimiter';
 import { logger } from './utils/logger';
+import './worker/billing-date-sweep-cron';
+import './worker/billing-ai-sweep-cron';
 
 // Startup debugging
 console.log('Starting server...');

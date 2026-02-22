@@ -990,6 +990,74 @@ router.get('/triggers', authenticate, checkBillingAccess, adminOnly, billingTrig
 
 /**
  * @openapi
+ * /billing/triggers/sweep-due-milestones:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Run due-date milestone sweep
+ *     description: Scans date-based milestones that are due/past due, auto-triggers billing actions, and marks them completed.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: dryRun
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sweep finished
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
+router.post('/triggers/sweep-due-milestones', authenticate, adminOnly, billingTriggerController.runDueDateSweep);
+
+/**
+ * @openapi
+ * /billing/triggers/sweep-ai-milestones:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Run AI milestone due-date sweep
+ *     description: Uses DeepSeek/OpenAI-compatible model to detect due milestones from difficult trigger text and enqueue billing actions.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: dryRun
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: batchSize
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: minConfidence
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: autoConfirmConfidence
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Sweep finished
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
+router.post('/triggers/sweep-ai-milestones', authenticate, adminOnly, billingTriggerController.runAIDueSweep);
+
+/**
+ * @openapi
  * /billing/triggers/{id}/confirm:
  *   post:
  *     tags: [Billing]
@@ -1106,6 +1174,25 @@ router.patch(
  *         description: Unauthorized
  */
 router.get('/overdue-by-attorney', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getOverdueByAttorney);
+
+/**
+ * @openapi
+ * /billing/pipeline-insights:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get pipeline insights
+ *     description: Returns real-time billing pipeline totals and B&C attorney breakdown for control tower analytics.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pipeline insight payload
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ */
+router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getPipelineInsights);
 
 // ============================================================================
 // Excel Sync (Finance Upload)
