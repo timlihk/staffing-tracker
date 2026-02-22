@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
+  Link as MuiLink,
   Paper,
   Stack,
   Typography,
@@ -128,6 +130,22 @@ export default function BillingMatterDetail() {
             onEdit={() => setEditDialogOpen(true)}
             canEdit={permissions.isAdmin}
           />
+
+          {project.staffing_project_id && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2" color="text.secondary">Staffing Project:</Typography>
+              <MuiLink
+                component={RouterLink}
+                to={`/projects/${project.staffing_project_id}`}
+                sx={{ fontWeight: 500, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+              >
+                {project.staffing_project_name || `Project ${project.staffing_project_id}`}
+              </MuiLink>
+              {project.staffing_project_status && (
+                <Chip label={project.staffing_project_status} size="small" variant="outlined" />
+              )}
+            </Stack>
+          )}
 
           <Stack spacing={0.5}>
             <Typography variant="h6">Engagements ({engagementDetails.length})</Typography>

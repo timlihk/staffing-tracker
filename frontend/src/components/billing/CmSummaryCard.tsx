@@ -71,8 +71,13 @@ export function CmSummaryCard({
     <Paper sx={summaryCardSx}>
       <Stack spacing={2.5}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', md: 'center' }}>
-          <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" sx={{ color: 'info.dark' }}>Client Matter Summary</Typography>
+          <Stack spacing={0.25} sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" sx={{ color: 'info.dark' }}>
+              {cm?.cm_no ? `C/M ${cm.cm_no}` : 'Client Matter Summary'}
+            </Typography>
+            {project.project_name && (
+              <Typography variant="body2" color="text.secondary">{project.project_name}</Typography>
+            )}
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             {cm?.status && <Chip label={cm.status} color={statusColor} size="small" />}
@@ -99,7 +104,6 @@ export function CmSummaryCard({
             },
           }}
         >
-          <InfoField label="C/M Number" value={cm?.cm_no || '—'} loading={loading && !cm} />
           <InfoField label="B&C Attorney" value={project.bc_attorney_name || '—'} loading={loading} />
           <InfoField label="Opened" value={formatDate(cm?.open_date)} loading={loading} />
           <InfoField label="Closed" value={formatDate(cm?.closed_date)} loading={loading} />
