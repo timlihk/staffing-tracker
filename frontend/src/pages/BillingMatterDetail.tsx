@@ -14,16 +14,13 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
-import { CmSummaryCard, EngagementCard, EngagementFormDialog, BillingInfoEditDialog, type BillingInfoFormData } from '../components/billing';
-import { useBillingProjectSummary, useCreateEngagement } from '../hooks/useBilling';
+import { CmSummaryCard, EngagementCard, EngagementFormCard, BillingInfoEditDialog, type BillingInfoFormData } from '../components/billing';
+import { useBillingProjectSummary } from '../hooks/useBilling';
 import { parseEngagementId } from '../lib/billing/utils';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../api/client';
 import { toast } from '../lib/toast';
-import type {
-  CreateEngagementPayload,
-  EngagementDetailResponse,
-} from '../api/billing';
+import type { EngagementDetailResponse } from '../api/billing';
 
 const cardSx = {
   p: { xs: 2.5, md: 3 },
@@ -37,7 +34,7 @@ export default function BillingMatterDetail() {
   const permissions = usePermissions();
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [engagementDialogOpen, setEngagementDialogOpen] = useState(false);
+  const [showEngagementForm, setShowEngagementForm] = useState(false);
 
   const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useBillingProjectSummary(projectId, { view: 'full' });
 
@@ -53,8 +50,6 @@ export default function BillingMatterDetail() {
     return Array.isArray(list) ? list : [];
   }, [selectedCm?.engagements]);
 
-  const createEngagementMutation = useCreateEngagement();
-
   const handleSaveBillingInfo = async (data: BillingInfoFormData) => {
     try {
       await api.put(`/billing/projects/${projectId}`, data);
@@ -62,20 +57,6 @@ export default function BillingMatterDetail() {
     } catch (error) {
       toast.error('Failed to update billing information', 'Please try again later');
       throw error;
-    }
-  };
-
-  const handleCreateEngagement = async (data: CreateEngagementPayload) => {
-    if (!selectedCmId) return;
-    try {
-      await createEngagementMutation.mutateAsync({
-        projectId,
-        cmId: selectedCmId,
-        data,
-      });
-      setEngagementDialogOpen(false);
-    } catch {
-      // handled by mutation toast
     }
   };
 
@@ -151,14 +132,22 @@ export default function BillingMatterDetail() {
           )}
 
           {permissions.isAdmin && selectedCmId && (
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => setEngagementDialogOpen(true)}
-              sx={{ alignSelf: 'flex-start' }}
-            >
-              Add Engagement
-            </Button>
+            showEngagementForm ? (
+              <EngagementFormCard
+                projectId={projectId}
+                cmId={selectedCmId}
+                onClose={() => setShowEngagementForm(false)}
+              />
+            ) : (
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setShowEngagementForm(true)}
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Add Engagement
+              </Button>
+            )
           )}
         </Stack>
       )}
@@ -172,12 +161,6 @@ export default function BillingMatterDetail() {
         />
       )}
 
-      <EngagementFormDialog
-        open={engagementDialogOpen}
-        saving={createEngagementMutation.isPending}
-        onClose={() => setEngagementDialogOpen(false)}
-        onSave={handleCreateEngagement}
-      />
     </Page>
   );
 }
