@@ -1061,4 +1061,25 @@ router.post(
   billingExcelSyncController.applyExcelSync
 );
 
+router.get(
+  '/excel-sync/history',
+  authenticate,
+  adminOnly,
+  billingExcelSyncController.getSyncHistory
+);
+
+router.get(
+  '/excel-sync/history/:id',
+  authenticate,
+  adminOnly,
+  billingExcelSyncController.getSyncRunDetail
+);
+
+router.get(
+  '/excel-sync/history/:id/download',
+  authenticate,
+  adminOnly,
+  billingExcelSyncController.downloadSyncExcel
+);
+
 export default router;

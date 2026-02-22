@@ -29,6 +29,8 @@ const WeeklyReview = lazy(() => import('./pages/WeeklyReview'));
 const BillingMatters = lazy(() => import('./pages/BillingMatters'));
 const BillingMatterDetail = lazy(() => import('./pages/BillingMatterDetail'));
 const BillingControlTower = lazy(() => import('./pages/BillingControlTower'));
+const SyncReport = lazy(() => import('./pages/SyncReport'));
+const SyncHistory = lazy(() => import('./pages/SyncHistory'));
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -242,6 +244,30 @@ function App() {
                   <AdminRoute>
                     <Layout>
                       <BillingControlTower />
+                    </Layout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/sync-report/:id"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <Layout>
+                      <SyncReport />
+                    </Layout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/sync-history"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <Layout>
+                      <SyncHistory />
                     </Layout>
                   </AdminRoute>
                 </ProtectedRoute>

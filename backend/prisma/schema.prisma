@@ -32,6 +32,7 @@ model User {
   projectLifecycleChanges                                        Project[]                       @relation("ProjectLifecycleChanges")
   staffChanges                                                   StaffChangeHistory[]            @relation("StaffChanges")
   refreshTokens                                                  RefreshToken[]
+  billing_sync_run                                               billing_sync_run[]
   staff                                                          Staff?                          @relation(fields: [staffId], references: [id])
 
   @@index([role])
@@ -658,4 +659,20 @@ model billing_action_item {
   @@index([status], map: "idx_action_item_status")
   @@index([assigned_to], map: "idx_action_item_assigned")
   @@map("billing_action_item")
+}
+
+model billing_sync_run {
+  id                  Int       @id @default(autoincrement())
+  uploaded_at         DateTime  @default(now()) @db.Timestamptz(6)
+  uploaded_by         Int?
+  excel_filename      String
+  excel_file          Bytes
+  status              String    @default("completed")
+  summary_json        Json
+  changes_json        Json
+  staffing_links_json Json?
+  error_message       String?
+  user                User?     @relation(fields: [uploaded_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([uploaded_at(sort: Desc)], map: "idx_sync_run_uploaded")
 }

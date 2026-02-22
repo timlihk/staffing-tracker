@@ -108,6 +108,14 @@ export const config = {
     enableQueryLogging: getOptionalEnvVar('ENABLE_QUERY_LOGGING', 'false') === 'true',
   },
 
+  // AI (optional, for milestone parsing validation)
+  ai: {
+    apiKey: getOptionalEnvVar('AI_API_KEY'),
+    baseUrl: getOptionalEnvVar('AI_BASE_URL', 'https://api.deepseek.com'),
+    model: getOptionalEnvVar('AI_MODEL', 'deepseek-chat'),
+    enabled: !!getOptionalEnvVar('AI_API_KEY'),
+  },
+
   // Redis (optional, for future caching implementation)
   redis: {
     url: getOptionalEnvVar('REDIS_URL'),

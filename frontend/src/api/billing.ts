@@ -442,6 +442,14 @@ export const updateTriggerActionItem = async (
 };
 
 // Excel sync (finance upload)
+export interface ExcelSyncValidationIssue {
+  cmNo: string;
+  engagementTitle: string;
+  severity: 'warning' | 'error';
+  issue: string;
+  suggestion: string;
+}
+
 export interface ExcelSyncPreview {
   totalExcelRows: number;
   matchedCmNumbers: number;
@@ -458,6 +466,10 @@ export interface ExcelSyncPreview {
     completedCount: number;
     financialChanges: string[];
   }>;
+  aiValidation?: {
+    validated: boolean;
+    issues: ExcelSyncValidationIssue[];
+  };
 }
 
 export interface ExcelSyncResult {
@@ -468,6 +480,58 @@ export interface ExcelSyncResult {
   milestonesUpdated: number;
   milestonesMarkedCompleted: number;
   unmatchedCmNumbers: string[];
+  syncRunId?: number;
+}
+
+export interface SyncRunSummary {
+  id: number;
+  uploaded_at: string;
+  uploaded_by: number | null;
+  excel_filename: string;
+  status: string;
+  summary_json: {
+    projectsUpdated: number;
+    financialsUpdated: number;
+    engagementsUpserted: number;
+    milestonesCreated: number;
+    milestonesUpdated: number;
+    milestonesMarkedCompleted: number;
+    newCmCount: number;
+    updatedCmCount: number;
+    staffingLinksCount: number;
+    unmatchedCount: number;
+    skippedCount: number;
+  };
+  username: string | null;
+}
+
+export interface SyncRunDetail extends SyncRunSummary {
+  changes_json: {
+    updatedCms: Array<{
+      cmNo: string;
+      projectName: string;
+      financialChanges: Array<{ field: string; oldValue: string | null; newValue: string | null }>;
+      engagements: Array<{ title: string; milestoneCount: number; completedCount: number }>;
+    }>;
+    newCms: Array<{
+      cmNo: string;
+      projectName: string;
+      clientName: string;
+      engagements: Array<{ title: string; milestoneCount: number }>;
+    }>;
+    staffingLinks: Array<{
+      cmNo: string;
+      billingProjectName: string;
+      staffingProjectId: number;
+      staffingProjectName: string;
+      matchMethod: string;
+      cmNumberSet: boolean;
+    }>;
+    unmatchedNewCms: Array<{ cmNo: string; projectName: string }>;
+    skippedCms: string[];
+  };
+  staffing_links_json: unknown;
+  error_message: string | null;
 }
 
 export const previewExcelSync = async (fileBase64: string): Promise<ExcelSyncPreview> => {
@@ -475,9 +539,23 @@ export const previewExcelSync = async (fileBase64: string): Promise<ExcelSyncPre
   return response.data;
 };
 
-export const applyExcelSync = async (fileBase64: string): Promise<ExcelSyncResult> => {
-  const response = await apiClient.post('/billing/excel-sync/apply', { file: fileBase64 });
+export const applyExcelSync = async (fileBase64: string, filename?: string): Promise<ExcelSyncResult> => {
+  const response = await apiClient.post('/billing/excel-sync/apply', { file: fileBase64, filename });
   return response.data;
+};
+
+export const getSyncHistory = async (): Promise<SyncRunSummary[]> => {
+  const response = await apiClient.get('/billing/excel-sync/history');
+  return response.data;
+};
+
+export const getSyncRunDetail = async (id: number): Promise<SyncRunDetail> => {
+  const response = await apiClient.get(`/billing/excel-sync/history/${id}`);
+  return response.data;
+};
+
+export const getSyncExcelDownloadUrl = (id: number): string => {
+  return `/billing/excel-sync/history/${id}/download`;
 };
 
 export const getOverdueByAttorney = async (params?: {

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -18,7 +19,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { CloudUpload, CheckCircle, Warning, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { CloudUpload, CheckCircle, Warning, ExpandMore, ExpandLess, SmartToy, Error as ErrorIcon, History } from '@mui/icons-material';
 import { isAxiosError } from 'axios';
 import * as billingApi from '../../api/billing';
 import type { ExcelSyncPreview, ExcelSyncResult } from '../../api/billing';
@@ -26,6 +27,7 @@ import type { ExcelSyncPreview, ExcelSyncResult } from '../../api/billing';
 type Phase = 'idle' | 'uploading' | 'previewing' | 'previewed' | 'applying' | 'done' | 'error';
 
 export function BillingExcelSyncPanel() {
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [fileName, setFileName] = useState('');
@@ -34,6 +36,7 @@ export function BillingExcelSyncPanel() {
   const [result, setResult] = useState<ExcelSyncResult | null>(null);
   const [error, setError] = useState('');
   const [showMatched, setShowMatched] = useState(false);
+  const [showAiIssues, setShowAiIssues] = useState(true);
 
   const extractError = (err: unknown, fallback: string): string => {
     if (isAxiosError<{ error?: string }>(err)) {
@@ -78,14 +81,14 @@ export function BillingExcelSyncPanel() {
     setError('');
 
     try {
-      const res = await billingApi.applyExcelSync(fileBase64);
+      const res = await billingApi.applyExcelSync(fileBase64, fileName);
       setResult(res);
       setPhase('done');
     } catch (err) {
       setError(extractError(err, 'Failed to apply Excel sync'));
       setPhase('error');
     }
-  }, [fileBase64]);
+  }, [fileBase64, fileName]);
 
   const handleReset = () => {
     setPhase('idle');
@@ -269,6 +272,61 @@ export function BillingExcelSyncPanel() {
             </>
           )}
 
+          {/* AI Validation */}
+          {preview.aiValidation && (
+            <>
+              <Divider sx={{ my: 2 }} />
+              {preview.aiValidation.validated ? (
+                preview.aiValidation.issues.length > 0 ? (
+                  <>
+                    <Button
+                      size="small"
+                      onClick={() => setShowAiIssues(!showAiIssues)}
+                      startIcon={<SmartToy />}
+                      endIcon={showAiIssues ? <ExpandLess /> : <ExpandMore />}
+                      color="warning"
+                      sx={{ mb: 1 }}
+                    >
+                      AI Review: {preview.aiValidation.issues.length} issue{preview.aiValidation.issues.length !== 1 ? 's' : ''} found
+                    </Button>
+                    <Collapse in={showAiIssues}>
+                      <Stack spacing={1} sx={{ mb: 2 }}>
+                        {preview.aiValidation.issues.map((issue, idx) => (
+                          <Alert
+                            key={idx}
+                            severity={issue.severity === 'error' ? 'error' : 'warning'}
+                            icon={issue.severity === 'error' ? <ErrorIcon /> : <Warning />}
+                            sx={{ '& .MuiAlert-message': { width: '100%' } }}
+                          >
+                            <Typography variant="body2" fontWeight={600}>
+                              {issue.cmNo} — {issue.engagementTitle}
+                            </Typography>
+                            <Typography variant="body2">{issue.issue}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Suggestion: {issue.suggestion}
+                            </Typography>
+                          </Alert>
+                        ))}
+                      </Stack>
+                    </Collapse>
+                  </>
+                ) : (
+                  <Alert severity="success" icon={<SmartToy />} sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      AI validation passed — no parsing issues detected.
+                    </Typography>
+                  </Alert>
+                )
+              ) : (
+                <Alert severity="info" icon={<SmartToy />} sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    AI validation unavailable (no API key configured). Parsing was done with regex only.
+                  </Typography>
+                </Alert>
+              )}
+            </>
+          )}
+
           <Divider sx={{ my: 2 }} />
 
           <Stack direction="row" spacing={2}>
@@ -306,8 +364,30 @@ export function BillingExcelSyncPanel() {
               </Typography>
             )}
           </Stack>
+          {result.syncRunId && (
+            <Box sx={{ mt: 1.5 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => navigate(`/billing/sync-report/${result.syncRunId}`)}
+              >
+                View Full Sync Report
+              </Button>
+            </Box>
+          )}
         </Alert>
       )}
+
+      {/* Sync History link */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          size="small"
+          startIcon={<History />}
+          onClick={() => navigate('/billing/sync-history')}
+        >
+          Sync History
+        </Button>
+      </Box>
     </Stack>
   );
 }
