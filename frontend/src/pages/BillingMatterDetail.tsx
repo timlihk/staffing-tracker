@@ -180,6 +180,7 @@ export default function BillingMatterDetail() {
           onClose={() => setEditDialogOpen(false)}
           onSave={handleSaveBillingInfo}
           project={project}
+          cmNo={selectedCm?.cm_no}
         />
       )}
 

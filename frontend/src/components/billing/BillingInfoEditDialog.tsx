@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -13,7 +13,6 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Chip,
   Box,
   IconButton,
   Typography,
@@ -29,12 +28,14 @@ export interface BillingInfoEditDialogProps {
   onClose: () => void;
   onSave: (data: BillingInfoFormData) => Promise<void>;
   project: BillingProjectSummaryResponse['project'];
+  cmNo?: string | null;
   loading?: boolean;
 }
 
 export interface BillingInfoFormData {
   project_name?: string;
   client_name?: string;
+  cm_no?: string;
   bc_attorney_staff_ids?: number[];
   agreed_fee_usd?: number | null;
   agreed_fee_cny?: number | null;
@@ -55,11 +56,19 @@ interface StaffMember {
   position: string;
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
 export function BillingInfoEditDialog({
   open,
   onClose,
   onSave,
   project,
+  cmNo,
   loading = false,
 }: BillingInfoEditDialogProps) {
   // Fetch staff list for B&C attorney dropdown
@@ -82,11 +91,15 @@ export function BillingInfoEditDialog({
     },
     enabled: open,
   });
-  const currentBcAttorneys = Array.isArray(rawBcAttorneys) ? rawBcAttorneys : [];
+  const currentBcAttorneys = useMemo(
+    () => (Array.isArray(rawBcAttorneys) ? rawBcAttorneys : []),
+    [rawBcAttorneys]
+  );
 
   const [formData, setFormData] = useState<BillingInfoFormData>({
     project_name: project.project_name ?? '',
     client_name: project.client_name ?? '',
+    cm_no: cmNo ?? '',
     bc_attorney_staff_ids: [],
     agreed_fee_usd: project.agreed_fee_usd ?? null,
     agreed_fee_cny: project.agreed_fee_cny ?? null,
@@ -112,6 +125,7 @@ export function BillingInfoEditDialog({
       setFormData({
         project_name: project.project_name ?? '',
         client_name: project.client_name ?? '',
+        cm_no: cmNo ?? '',
         bc_attorney_staff_ids: bcAttorneyIds,
         agreed_fee_usd: project.agreed_fee_usd ?? null,
         agreed_fee_cny: project.agreed_fee_cny ?? null,
@@ -128,7 +142,7 @@ export function BillingInfoEditDialog({
       setNewAttorneyId('');
       setError(null);
     }
-  }, [open, project, currentBcAttorneys]);
+  }, [open, project, cmNo, currentBcAttorneys]);
 
   const handleChange = (field: keyof BillingInfoFormData) => (
     event: React.ChangeEvent<HTMLInputElement>
@@ -136,7 +150,7 @@ export function BillingInfoEditDialog({
     const value = event.target.value;
 
     // Handle text fields
-    if (field === 'project_name' || field === 'client_name') {
+    if (field === 'project_name' || field === 'client_name' || field === 'cm_no') {
       setFormData((prev) => ({
         ...prev,
         [field]: value,
@@ -176,10 +190,22 @@ export function BillingInfoEditDialog({
     try {
       setError(null);
       setSubmitting(true);
-      await onSave(formData);
+      const normalizedCmNo = (formData.cm_no ?? '').trim();
+      if (!normalizedCmNo) {
+        setError('C/M number is required');
+        return;
+      }
+      if (!/^\d{5}-\d{1,5}$/.test(normalizedCmNo)) {
+        setError('C/M number must be in format XXXXX-XXXXX');
+        return;
+      }
+      await onSave({
+        ...formData,
+        cm_no: normalizedCmNo,
+      });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to update billing information');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to update billing information'));
     } finally {
       setSubmitting(false);
     }
@@ -212,6 +238,16 @@ export function BillingInfoEditDialog({
             value={formData.client_name ?? ''}
             onChange={handleChange('client_name')}
             fullWidth
+          />
+
+          <TextField
+            label="C/M Number"
+            value={formData.cm_no ?? ''}
+            onChange={handleChange('cm_no')}
+            fullWidth
+            required
+            helperText="Format: XXXXX-XXXXX"
+            inputProps={{ maxLength: 20 }}
           />
 
           <Box>

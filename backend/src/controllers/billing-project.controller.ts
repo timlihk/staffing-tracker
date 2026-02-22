@@ -557,6 +557,7 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
     const {
       project_name,
       client_name,
+      cm_no,
       bc_attorney_staff_ids,
       agreed_fee_usd,
       agreed_fee_cny,
@@ -570,6 +571,21 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
       billing_credit_cny,
       bonus_usd,
     } = req.body;
+
+    let normalizedCmNo: string | undefined;
+    if (cm_no !== undefined) {
+      if (typeof cm_no !== 'string') {
+        return res.status(400).json({ error: 'C/M number must be a string' });
+      }
+      const trimmedCmNo = cm_no.trim();
+      if (!trimmedCmNo) {
+        return res.status(400).json({ error: 'C/M number is required' });
+      }
+      if (!/^\d{5}-\d{1,5}$/.test(trimmedCmNo)) {
+        return res.status(400).json({ error: 'C/M number must be in format XXXXX-XXXXX' });
+      }
+      normalizedCmNo = trimmedCmNo;
+    }
 
     // Verify project exists
     const project = await prisma.billing_project.findUnique({
@@ -604,6 +620,41 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
       where: { project_id: projectIdBigInt },
       data: updateData,
     });
+
+    // Update the primary C/M number if provided.
+    if (normalizedCmNo !== undefined) {
+      const primaryCm = await prisma.billing_project_cm_no.findFirst({
+        where: { project_id: projectIdBigInt },
+        select: { cm_id: true },
+        orderBy: [
+          { is_primary: 'desc' },
+          { cm_id: 'asc' },
+        ],
+      });
+
+      try {
+        if (primaryCm) {
+          await prisma.billing_project_cm_no.update({
+            where: { cm_id: primaryCm.cm_id },
+            data: { cm_no: normalizedCmNo },
+          });
+        } else {
+          await prisma.billing_project_cm_no.create({
+            data: {
+              project_id: projectIdBigInt,
+              cm_no: normalizedCmNo,
+              is_primary: true,
+              status: 'active',
+            },
+          });
+        }
+      } catch (cmError: any) {
+        if (cmError?.code === 'P2002') {
+          return res.status(409).json({ error: 'C/M number already exists for this project' });
+        }
+        throw cmError;
+      }
+    }
 
     // Update B&C attorneys if provided
     if (bc_attorney_staff_ids !== undefined && Array.isArray(bc_attorney_staff_ids)) {
