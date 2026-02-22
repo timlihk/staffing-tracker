@@ -754,6 +754,26 @@ router.delete('/milestones/:milestoneId', authenticate, checkBillingAccess, vali
  */
 router.get('/cm-lookup/:cmNo', authenticate, billingController.lookupByCmNumber);
 
+/**
+ * @openapi
+ * /billing/mapping/by-staffing-project/{staffingProjectId}:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Look up billing project linked to a staffing project
+ *     parameters:
+ *       - in: path
+ *         name: staffingProjectId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Billing project ID if linked
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/mapping/by-staffing-project/:staffingProjectId', authenticate, billingController.getBillingProjectByStaffingId);
+
 // ============================================================================
 // Project Mapping
 // ============================================================================
