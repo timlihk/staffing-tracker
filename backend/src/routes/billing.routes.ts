@@ -464,6 +464,32 @@ router.get('/projects/:id/activity', authenticate, checkBillingAccess, validate(
 
 /**
  * @openapi
+ * /billing/projects/{id}/change-log:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get billing project change log
+ *     description: Retrieve audit trail of all actions taken on a billing project and its child entities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     responses:
+ *       200:
+ *         description: Change log entries
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get('/projects/:id/change-log', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectChangeLog);
+
+/**
+ * @openapi
  * /billing/projects/{id}/financials:
  *   patch:
  *     tags: [Billing]

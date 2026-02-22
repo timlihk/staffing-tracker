@@ -694,6 +694,87 @@ export async function deleteProject(req: AuthRequest, res: Response) {
 }
 
 /**
+ * GET /api/billing/projects/:id/change-log
+ * Get audit trail for a billing project and all its child entities
+ */
+export async function getBillingProjectChangeLog(req: AuthRequest, res: Response) {
+  try {
+    let projectIdBigInt: bigint;
+    try {
+      projectIdBigInt = parseNumericIdParam(req.params.id, 'project ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
+    }
+
+    const projectIdNum = toSafeNumber(projectIdBigInt);
+
+    const logs = await prisma.$queryRaw<Array<{
+      id: number;
+      action_type: string;
+      entity_type: string;
+      entity_id: number | null;
+      description: string | null;
+      username: string | null;
+      created_at: Date;
+    }>>(Prisma.sql`
+      SELECT
+        al.id,
+        al.action_type,
+        al.entity_type,
+        al.entity_id,
+        al.description,
+        u.username,
+        al.created_at
+      FROM activity_log al
+      LEFT JOIN users u ON u.id = al.user_id
+      WHERE (
+        (al.entity_type = 'billing_project' AND al.entity_id = ${projectIdNum})
+        OR (al.entity_type = 'billing_financials' AND al.entity_id = ${projectIdNum})
+        OR (al.entity_type = 'billing_engagement' AND al.entity_id IN (
+          SELECT CAST(e.engagement_id AS INTEGER)
+          FROM billing_engagement e
+          WHERE e.project_id = ${projectIdBigInt}
+        ))
+        OR (al.entity_type = 'billing_milestone' AND al.entity_id IN (
+          SELECT CAST(m.milestone_id AS INTEGER)
+          FROM billing_milestone m
+          JOIN billing_engagement e ON e.engagement_id = m.engagement_id
+          WHERE e.project_id = ${projectIdBigInt}
+        ))
+        OR (al.entity_type = 'billing_fee_arrangement' AND al.entity_id IN (
+          SELECT CAST(e.engagement_id AS INTEGER)
+          FROM billing_engagement e
+          WHERE e.project_id = ${projectIdBigInt}
+        ))
+      )
+      ORDER BY al.created_at DESC
+      LIMIT 100
+    `);
+
+    res.json({
+      data: logs.map((log) => ({
+        id: log.id,
+        actionType: log.action_type,
+        entityType: log.entity_type,
+        entityId: log.entity_id,
+        description: log.description,
+        username: log.username || 'System',
+        createdAt: log.created_at,
+      })),
+      total: logs.length,
+    });
+  } catch (error) {
+    logger.error('Error fetching billing change log', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to fetch change log' });
+  }
+}
+
+/**
  * Lookup billing project info by C/M number
  * GET /billing/cm-lookup/:cmNo
  */
