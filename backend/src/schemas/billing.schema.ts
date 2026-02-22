@@ -25,6 +25,40 @@ export const updateFeeArrangementSchema = z.object({
 });
 
 /**
+ * Create engagement schema
+ */
+export const createEngagementSchema = z.object({
+  engagement_title: z.string()
+    .min(1, 'Engagement title is required')
+    .max(500, 'Title must not exceed 500 characters')
+    .trim(),
+  engagement_code: z.string()
+    .max(100, 'Engagement code must not exceed 100 characters')
+    .trim()
+    .optional()
+    .nullable(),
+  start_date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be in YYYY-MM-DD format')
+    .optional()
+    .nullable(),
+  end_date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be in YYYY-MM-DD format')
+    .optional()
+    .nullable(),
+  fee_arrangement_text: z.string()
+    .max(10000, 'Fee arrangement text must not exceed 10,000 characters')
+    .trim()
+    .optional()
+    .nullable(),
+});
+
+export const cmIdParamSchema = z.object({
+  cmId: z.string()
+    .regex(/^\d+$/, 'CM ID must be a positive integer')
+    .transform(Number),
+});
+
+/**
  * Create milestone schema
  */
 export const createMilestoneSchema = z.object({
@@ -210,6 +244,7 @@ export const linkIdParamSchema = z.object({
     .transform(Number),
 });
 
+export type CreateEngagementInput = z.infer<typeof createEngagementSchema>;
 export type UpdateFinancialsInput = z.infer<typeof updateFinancialsSchema>;
 export type UpdateFeeArrangementInput = z.infer<typeof updateFeeArrangementSchema>;
 export type CreateMilestoneInput = z.infer<typeof createMilestoneSchema>;

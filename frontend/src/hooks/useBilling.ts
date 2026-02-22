@@ -241,6 +241,33 @@ export function useCreateMilestone() {
   });
 }
 
+type CreateEngagementArgs = {
+  projectId: number;
+  cmId: number;
+  data: billingApi.CreateEngagementPayload;
+};
+
+export function useCreateEngagement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, cmId, data }: CreateEngagementArgs) =>
+      billingApi.createEngagement(projectId, cmId, data),
+    onSuccess: async (_result, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: billingKeys.projectSummary(variables.projectId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId),
+      });
+      toast.success('Engagement created successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to create engagement'));
+    },
+  });
+}
+
 type DeleteMilestoneArgs = {
   projectId: number;
   cmId?: number;

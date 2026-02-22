@@ -276,6 +276,24 @@ export const getBillingProjectActivity = async (id: number): Promise<ProjectActi
   return response.data;
 };
 
+// Create engagement under a CM
+export interface CreateEngagementPayload {
+  engagement_title: string;
+  engagement_code?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  fee_arrangement_text?: string | null;
+}
+
+export const createEngagement = async (
+  projectId: number,
+  cmId: number,
+  data: CreateEngagementPayload
+): Promise<{ success: boolean; engagement_id: number }> => {
+  const response = await apiClient.post(`/billing/projects/${projectId}/cm/${cmId}/engagements`, data);
+  return response.data;
+};
+
 // Get engagements for a CM (lazy-loaded)
 export const getProjectCMEngagements = async (
   projectId: number,

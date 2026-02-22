@@ -282,6 +282,88 @@ export async function getCMEngagements(req: AuthRequest, res: Response) {
 }
 
 /**
+ * POST /api/billing/projects/:id/cm/:cmId/engagements
+ * Create a new engagement under a C/M number
+ */
+export async function createEngagement(req: AuthRequest, res: Response) {
+  try {
+    const { id, cmId } = req.params;
+    let projectIdBigInt: bigint;
+    let cmIdBigInt: bigint;
+    try {
+      projectIdBigInt = parseNumericIdParam(id, 'project ID');
+      cmIdBigInt = parseNumericIdParam(cmId, 'CM ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Verify CM belongs to project
+    const cm = await prisma.$queryRaw<{ cm_id: bigint }[]>`
+      SELECT cm_id FROM billing_project_cm_no
+      WHERE cm_id = ${cmIdBigInt} AND project_id = ${projectIdBigInt}
+      LIMIT 1
+    `;
+    if (!cm.length) {
+      return res.status(404).json({ error: 'C/M not found for this project' });
+    }
+
+    const { engagement_title, engagement_code, start_date, end_date, fee_arrangement_text } = req.body;
+
+    // Auto-generate engagement_code if not provided
+    let code = engagement_code;
+    if (!code) {
+      const existing = await prisma.$queryRaw<{ cnt: bigint }[]>`
+        SELECT COUNT(*) as cnt FROM billing_engagement WHERE cm_id = ${cmIdBigInt}
+      `;
+      const count = Number(existing[0]?.cnt ?? 0);
+      code = `manual_${count + 1}`;
+    }
+
+    const startDateVal = start_date ? parseDate(start_date) : null;
+    const endDateVal = end_date ? parseDate(end_date) : null;
+
+    const inserted = await prisma.$queryRaw<{ engagement_id: bigint }[]>`
+      INSERT INTO billing_engagement (project_id, cm_id, engagement_code, engagement_title, start_date, end_date, created_at, updated_at)
+      VALUES (${projectIdBigInt}, ${cmIdBigInt}, ${code}, ${engagement_title}, ${startDateVal}, ${endDateVal}, NOW(), NOW())
+      RETURNING engagement_id
+    `;
+
+    const engagementId = inserted[0]?.engagement_id;
+    if (!engagementId) throw new Error('Failed to create engagement');
+
+    // Create fee arrangement if text provided
+    if (fee_arrangement_text && fee_arrangement_text.trim()) {
+      await prisma.$executeRaw`
+        INSERT INTO billing_fee_arrangement (engagement_id, raw_text, created_at, updated_at)
+        VALUES (${engagementId}, ${fee_arrangement_text.trim()}, NOW(), NOW())
+      `;
+    }
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'create',
+          entityType: 'billing_engagement',
+          entityId: toSafeNumber(engagementId),
+          description: `Created engagement "${engagement_title}" for CM ${cmIdBigInt.toString()}`,
+        },
+      });
+    }
+
+    res.status(201).json(convertBigIntToNumber({ success: true, engagement_id: engagementId }));
+  } catch (error) {
+    logger.error('Error creating engagement', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to create engagement' });
+  }
+}
+
+/**
  * PATCH /api/billing/engagements/:engagementId/fee-arrangement
  * Update fee arrangement reference text and LSD date for an engagement
  */

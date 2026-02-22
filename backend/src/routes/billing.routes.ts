@@ -24,6 +24,8 @@ import {
   engagementIdParamSchema,
   milestoneIdParamSchema,
   linkIdParamSchema,
+  createEngagementSchema,
+  cmIdParamSchema,
 } from '../schemas/billing.schema';
 
 const router = express.Router();
@@ -341,6 +343,70 @@ router.get('/projects/:id/engagement/:engagementId', authenticate, checkBillingA
  *         description: Forbidden
  */
 router.get('/projects/:id/cm/:cmId/engagements', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getCMEngagements);
+
+/**
+ * @openapi
+ * /billing/projects/{id}/cm/{cmId}/engagements:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Create engagement
+ *     description: Create a new engagement under a specific C/M number (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *       - in: path
+ *         name: cmId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client matter ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - engagement_title
+ *             properties:
+ *               engagement_title:
+ *                 type: string
+ *               engagement_code:
+ *                 type: string
+ *               start_date:
+ *                 type: string
+ *                 format: date
+ *               end_date:
+ *                 type: string
+ *                 format: date
+ *               fee_arrangement_text:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Engagement created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.post(
+  '/projects/:id/cm/:cmId/engagements',
+  authenticate,
+  adminOnly,
+  express.json({ limit: '500kb' }),
+  validate(billingIdParamSchema, 'params'),
+  validate(cmIdParamSchema, 'params'),
+  validate(createEngagementSchema),
+  billingController.createEngagement
+);
 
 /**
  * @openapi
