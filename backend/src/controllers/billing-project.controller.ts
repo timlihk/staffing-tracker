@@ -644,6 +644,56 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
 }
 
 /**
+ * DELETE /api/billing/projects/:id
+ * Delete a billing project and all related data (cascades)
+ */
+export async function deleteProject(req: AuthRequest, res: Response) {
+  try {
+    let projectIdBigInt: bigint;
+    try {
+      projectIdBigInt = parseNumericIdParam(req.params.id, 'project ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const project = await prisma.billing_project.findUnique({
+      where: { project_id: projectIdBigInt },
+      select: { project_id: true, project_name: true },
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: 'Billing project not found' });
+    }
+
+    const hasAccess = await canAccessBillingProject(projectIdBigInt, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
+    }
+
+    await prisma.billing_project.delete({
+      where: { project_id: projectIdBigInt },
+    });
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'delete',
+          entityType: 'billing_project',
+          entityId: toSafeNumber(projectIdBigInt),
+          description: `Deleted billing project "${project.project_name}"`,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error deleting billing project', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to delete billing project' });
+  }
+}
+
+/**
  * Lookup billing project info by C/M number
  * GET /billing/cm-lookup/:cmNo
  */

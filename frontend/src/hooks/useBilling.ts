@@ -300,6 +300,56 @@ export function useDeleteMilestone() {
   });
 }
 
+type DeleteProjectArgs = {
+  projectId: number;
+};
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId }: DeleteProjectArgs) => billingApi.deleteProject(projectId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: billingKeys.projects() });
+      toast.success('Project deleted successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to delete project'));
+    },
+  });
+}
+
+type DeleteEngagementArgs = {
+  projectId: number;
+  cmId?: number;
+  engagementId: number;
+};
+
+export function useDeleteEngagement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ engagementId }: DeleteEngagementArgs) => billingApi.deleteEngagement(engagementId),
+    onSuccess: async (_result, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: billingKeys.projectSummary(variables.projectId),
+      });
+      if (variables.cmId) {
+        await queryClient.invalidateQueries({
+          queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId),
+        });
+      }
+      await queryClient.invalidateQueries({
+        queryKey: billingKeys.projects(),
+      });
+      toast.success('Engagement deleted successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to delete engagement'));
+    },
+  });
+}
+
 // Get billing access settings
 export function useBillingSettings() {
   return useQuery({
