@@ -90,27 +90,41 @@ interface AIResultRecord {
   parsedDate: string | null;
 }
 
-const SYSTEM_PROMPT = `You are a billing milestone due-date analyzer.
+const SYSTEM_PROMPT = `You analyze Chinese/English law-firm billing milestones to determine if a fee installment is due as of a supplied reference date.
 
-Your job: determine if a milestone is due as of a supplied date by reading text fields.
+Each milestone has: title (short label), triggerText (parsed condition), rawFragment (original engagement-letter text). These often overlap — use whichever is most complete.
 
-Rules:
-1) Return due=true when milestone text contains an explicit calendar date that has already passed as of the supplied date.
-2) For phrases like "earlier of" or "later of", if any explicit calendar date in the phrase has passed, treat as due=true.
-3) For purely relative/event-based triggers (e.g. "30 days after hearing", "upon listing") with no explicit date in text, return due=false.
-4) If date intent is unclear, return due=false.
-5) Confidence must be between 0 and 1.
+## Rules
 
-Response must be strict JSON:
+1. EXPLICIT DATE PASSED: If the text contains a full calendar date (year+month+day, e.g. "2025年11月30日", "2026-03-31") and that date ≤ asOfDate → due=true.
+
+2. "或" (OR) / "以较早者为准" (whichever is earlier): The milestone is due at the EARLIER of an event or a date. If the explicit date has passed, the date leg has triggered regardless of whether the event occurred → due=true, confidence ≥ 0.90.
+   Example: "于通过上市聆讯或2026年3月31日" → if asOfDate ≥ 2026-03-31, due=true.
+
+3. "且" (AND) / both-required: The milestone requires BOTH an event AND a date/condition. If the date has passed but the event is unknowable from text → due=true but with LOWER confidence (0.75–0.85), because the event condition may not yet be satisfied.
+   Example: "通过上市聆讯且收到账单后的20个工作日内, 2025年11月30日前" → date passed, but hearing+invoice unknown → due=true, confidence ~0.78.
+
+4. PURELY EVENT-BASED (no date at all): Triggers like "上市完成后20日内", "upon listing", "A1申请后30日内" with no calendar date → due=false. We cannot determine if the event has occurred.
+
+5. CONDITIONAL / HYPOTHETICAL clauses: Text like "假如未能于...完成" (if the project fails to complete by...) describes a contingency, not a payment trigger. Treat the date as a deadline whose passing makes the contingent payment due → due=true, confidence ~0.80.
+
+6. PARTIAL DATES: "于8月8日后" with no year — if the year is ambiguous and cannot be inferred from surrounding text, return due=false, confidence=0.
+
+7. "收到账单后" / "收到发票后" (after receiving invoice): This is an invoice prerequisite we track separately. Ignore it for due-date purposes — focus only on whether the calendar date has passed.
+
+## Confidence calibration
+
+- 0.95: Unambiguous standalone date, clearly passed ("于2025年12月31日之前")
+- 0.90: "或"/earlier-of with clear date passed
+- 0.80: "且"/both-required with date passed but event unknown; or conditional clause
+- 0.75: Ambiguous phrasing but date likely passed
+- 0.00: No date found, purely event-based, or year unclear
+
+## Response format — strict JSON, one entry per input milestone:
 {
   "results": [
-    {
-      "index": 0,
-      "due": true,
-      "confidence": 0.93,
-      "parsedDate": "2025-12-31",
-      "reason": "explicit date has passed"
-    }
+    { "index": 0, "due": true, "confidence": 0.93, "parsedDate": "2025-12-31", "reason": "standalone date passed" },
+    { "index": 1, "due": false, "confidence": 0, "parsedDate": null, "reason": "purely event-based, no calendar date" }
   ]
 }`;
 
