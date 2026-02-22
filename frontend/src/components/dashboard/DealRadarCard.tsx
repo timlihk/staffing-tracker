@@ -117,7 +117,7 @@ const DealRadarCard = ({
     const map = new Map<string, DealRadarEvent>();
     groups.forEach((group) => {
       group.items.forEach((event) => {
-        if (!event.date) return;
+        if (!event || !event.date) return;
         // Extract date string directly without timezone conversion
         const dateKey = event.date.split('T')[0];
         if (!map.has(dateKey)) {
@@ -164,20 +164,20 @@ const DealRadarCard = ({
           {formatDate(dateKey)}
         </Typography>
         <Stack spacing={0.5}>
-          {eventData.events.map((event, idx) => (
+          {eventData.events.filter(Boolean).map((event, idx) => (
             <Box key={idx}>
               <Typography variant="caption" display="block" sx={{ fontWeight: 600 }}>
                 <Chip
-                  label={event.type}
+                  label={event?.type || 'Unknown'}
                   size="small"
-                  color={event.type === 'Filing' ? 'info' : 'secondary'}
+                  color={event?.type === 'Filing' ? 'info' : 'secondary'}
                   sx={{ height: 16, fontSize: '0.65rem', mr: 0.5 }}
                 />
-                {event.projectName}
+                {event?.projectName}
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block">
-                {event.category}
-                {event.side ? ` • ${event.side}` : ''}
+                {event?.category}
+                {event?.side ? ` • ${event.side}` : ''}
               </Typography>
             </Box>
           ))}
@@ -286,7 +286,7 @@ const DealRadarCard = ({
     });
     return events
       .filter((event) => {
-        if (!event.date) return false;
+        if (!event || !event.date) return false;
         const eventDate = new Date(event.date);
         eventDate.setHours(0, 0, 0, 0); // Start of event day
         return eventDate >= today; // Only include today and future dates
@@ -300,9 +300,9 @@ const DealRadarCard = ({
 
   // Filter events by selected date
   const filteredEvents = useMemo(() => {
-    if (!selectedDate) return allEvents;
+    if (!selectedDate) return allEvents.filter(Boolean);
     return allEvents.filter((event) => {
-      if (!event.date) return false;
+      if (!event || !event.date) return false;
       const dateKey = event.date.split('T')[0];
       return dateKey === selectedDate;
     });
@@ -451,12 +451,12 @@ const DealRadarCard = ({
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {displayedEvents.map((event, index) => {
-                      const categorized = categorizeTeamMembers(event.teamMembers || []);
+                    {displayedEvents.filter(Boolean).map((event, index) => {
+                      const categorized = categorizeTeamMembers(event?.teamMembers || []);
 
                       return (
                         <TableRow
-                          key={`${event.projectId}-${event.type}-${index}`}
+                          key={`${event?.projectId || index}-${event?.type || 'unknown'}-${index}`}
                           hover
                           sx={{
                             cursor: 'pointer',
@@ -465,23 +465,23 @@ const DealRadarCard = ({
                               bgcolor: 'action.hover',
                             },
                           }}
-                          onClick={() => onSelectProject(event.projectId)}
+                          onClick={() => event?.projectId && onSelectProject(event.projectId)}
                         >
-                          <TableCell>{formatDate(event.date)}</TableCell>
+                          <TableCell>{formatDate(event?.date)}</TableCell>
                           <TableCell>
                             <Chip
-                              label={event.type}
+                              label={event?.type || 'Unknown'}
                               size="small"
-                              color={event.type === 'Filing' ? 'info' : 'secondary'}
+                              color={event?.type === 'Filing' ? 'info' : 'secondary'}
                             />
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" fontWeight={600} color="primary.main">
-                              {event.projectName}
+                              {event?.projectName}
                             </Typography>
                           </TableCell>
-                          <TableCell>{event.category}</TableCell>
-                          <TableCell>{event.side || '—'}</TableCell>
+                          <TableCell>{event?.category}</TableCell>
+                          <TableCell>{event?.side || '—'}</TableCell>
                           <TableCell>
                             {categorized.partners.length > 0 ? (
                               <Stack direction="column" spacing={0.5}>
