@@ -242,7 +242,7 @@ export function LifecycleChangeDialog({
         ) : showMilestoneSection ? (
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              The lifecycle stage has changed. Please confirm if any milestones have been completed.
+              Project lifecycle/status has changed. Please confirm whether any milestones have been reached.
             </Typography>
 
             {noMilestones ? (

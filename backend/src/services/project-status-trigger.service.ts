@@ -349,6 +349,7 @@ export class ProjectStatusTriggerService {
   static async getTriggers(filters?: {
     status?: string;
     staffingProjectId?: number;
+    attorneyId?: number;
     startDate?: Date;
     endDate?: Date;
   }): Promise<any[]> {
@@ -366,7 +367,7 @@ export class ProjectStatusTriggerService {
       if (filters?.endDate) where.created_at.lte = filters.endDate;
     }
 
-    return (prisma as any).billing_milestone_trigger_queue.findMany({
+    const triggers = await (prisma as any).billing_milestone_trigger_queue.findMany({
       where,
       orderBy: { created_at: 'desc' },
       include: {
@@ -398,6 +399,40 @@ export class ProjectStatusTriggerService {
           },
         },
       },
+    });
+
+    if (filters?.attorneyId === undefined || filters.attorneyId === null) {
+      return triggers;
+    }
+
+    const attorneyProjectRows = await (prisma as any).billing_project_bc_attorney.findMany({
+      where: {
+        staff_id: filters.attorneyId,
+      },
+      select: {
+        billing_project_id: true,
+      },
+    });
+
+    const allowedProjectIds = new Set(
+      attorneyProjectRows
+        .map((row: { billing_project_id: bigint | number | string | null }) =>
+          row.billing_project_id === null || row.billing_project_id === undefined
+            ? NaN
+            : Number(row.billing_project_id)
+        )
+        .filter((value: number) => Number.isFinite(value))
+    );
+
+    if (allowedProjectIds.size === 0) {
+      return [];
+    }
+
+    return triggers.filter((trigger: any) => {
+      const projectId = Number(
+        trigger?.milestone?.billing_engagement?.billing_project_cm_no?.billing_project?.project_id
+      );
+      return Number.isFinite(projectId) && allowedProjectIds.has(projectId);
     });
   }
 

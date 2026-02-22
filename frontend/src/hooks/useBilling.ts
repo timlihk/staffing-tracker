@@ -37,6 +37,9 @@ export const billingKeys = {
   triggers: (params?: Record<string, unknown>) => [...billingKeys.all, 'triggers', params ?? {}] as const,
   overdueByAttorney: (params?: Record<string, unknown>) => [...billingKeys.all, 'overdue-by-attorney', params ?? {}] as const,
   pipelineInsights: () => [...billingKeys.all, 'pipeline-insights'] as const,
+  financeSummary: (params?: Record<string, unknown>) => [...billingKeys.all, 'finance-summary', params ?? {}] as const,
+  longStopRisks: (params?: Record<string, unknown>) => [...billingKeys.all, 'long-stop-risks', params ?? {}] as const,
+  unpaidInvoices: (params?: Record<string, unknown>) => [...billingKeys.all, 'unpaid-invoices', params ?? {}] as const,
 };
 
 // Get all billing projects
@@ -364,6 +367,7 @@ export function useUnmappedAttorneys() {
 export function useBillingTriggers(params?: {
   status?: 'pending' | 'confirmed' | 'rejected';
   staffingProjectId?: number;
+  attorneyId?: number;
   startDate?: string;
   endDate?: string;
 }) {
@@ -371,10 +375,11 @@ export function useBillingTriggers(params?: {
     () => ({
       status: params?.status ?? null,
       staffingProjectId: params?.staffingProjectId ?? null,
+      attorneyId: params?.attorneyId ?? null,
       startDate: params?.startDate ?? null,
       endDate: params?.endDate ?? null,
     }),
-    [params?.status, params?.staffingProjectId, params?.startDate, params?.endDate]
+    [params?.status, params?.staffingProjectId, params?.attorneyId, params?.startDate, params?.endDate]
   );
 
   return useQuery({
@@ -415,6 +420,69 @@ export function useBillingPipelineInsights() {
   });
 }
 
+export function useBillingFinanceSummary(params?: {
+  attorneyId?: number;
+}) {
+  const stableParams = useMemo(
+    () => ({
+      attorneyId: params?.attorneyId ?? null,
+    }),
+    [params?.attorneyId]
+  );
+
+  return useQuery({
+    queryKey: billingKeys.financeSummary(stableParams),
+    queryFn: () => billingApi.getBillingFinanceSummary(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useLongStopRisks(params?: {
+  attorneyId?: number;
+  windowDays?: number;
+  minUbtAmount?: number;
+  limit?: number;
+}) {
+  const stableParams = useMemo(
+    () => ({
+      attorneyId: params?.attorneyId ?? null,
+      windowDays: params?.windowDays ?? 30,
+      minUbtAmount: params?.minUbtAmount ?? null,
+      limit: params?.limit ?? 500,
+    }),
+    [params?.attorneyId, params?.windowDays, params?.minUbtAmount, params?.limit]
+  );
+
+  return useQuery({
+    queryKey: billingKeys.longStopRisks(stableParams),
+    queryFn: () => billingApi.getLongStopRisks(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useUnpaidInvoices(params?: {
+  attorneyId?: number;
+  thresholdDays?: number;
+  minAmount?: number;
+  limit?: number;
+}) {
+  const stableParams = useMemo(
+    () => ({
+      attorneyId: params?.attorneyId ?? null,
+      thresholdDays: params?.thresholdDays ?? 30,
+      minAmount: params?.minAmount ?? null,
+      limit: params?.limit ?? 1000,
+    }),
+    [params?.attorneyId, params?.thresholdDays, params?.minAmount, params?.limit]
+  );
+
+  return useQuery({
+    queryKey: billingKeys.unpaidInvoices(stableParams),
+    queryFn: () => billingApi.getUnpaidInvoices(params),
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useConfirmBillingTrigger() {
   const queryClient = useQueryClient();
 
@@ -424,6 +492,9 @@ export function useConfirmBillingTrigger() {
       queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
       queryClient.invalidateQueries({ queryKey: billingKeys.overdueByAttorney() });
       queryClient.invalidateQueries({ queryKey: billingKeys.projects() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.pipelineInsights() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.financeSummary() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.unpaidInvoices() });
       toast.success('Trigger confirmed');
     },
     onError: (error: unknown) => {
@@ -440,6 +511,8 @@ export function useRejectBillingTrigger() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
       queryClient.invalidateQueries({ queryKey: billingKeys.overdueByAttorney() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.pipelineInsights() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.financeSummary() });
       toast.success('Trigger rejected');
     },
     onError: (error: unknown) => {
@@ -464,6 +537,9 @@ export function useUpdateTriggerActionItem() {
     }) => billingApi.updateTriggerActionItem(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.pipelineInsights() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.financeSummary() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.unpaidInvoices() });
       toast.success('Trigger action updated');
     },
     onError: (error: unknown) => {

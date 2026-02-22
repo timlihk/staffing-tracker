@@ -24,6 +24,26 @@ const toSafeNumber = (value: unknown): number | null => {
   return Number.isFinite(numeric) ? numeric : null;
 };
 
+const parseOptionalIntQuery = (value: unknown): number | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed)) return undefined;
+  return parsed;
+};
+
+const parseOptionalNumberQuery = (value: unknown): number | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) return undefined;
+  return parsed;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
 const formatActionItem = (actionItem: any) => {
   if (!actionItem) {
     return null;
@@ -98,11 +118,24 @@ export const getPendingTriggers = async (req: AuthRequest, res: Response) => {
  */
 export const getTriggers = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, staffingProjectId, startDate, endDate } = req.query;
+    const { status, staffingProjectId, attorneyId, startDate, endDate } = req.query;
 
     const filters: any = {};
     if (status) filters.status = status as string;
-    if (staffingProjectId) filters.staffingProjectId = parseInt(staffingProjectId as string, 10);
+    if (staffingProjectId) {
+      const parsedStaffingProjectId = parseInt(staffingProjectId as string, 10);
+      if (Number.isNaN(parsedStaffingProjectId)) {
+        return res.status(400).json({ error: 'Invalid staffingProjectId' });
+      }
+      filters.staffingProjectId = parsedStaffingProjectId;
+    }
+    if (attorneyId) {
+      const parsedAttorneyId = parseInt(attorneyId as string, 10);
+      if (Number.isNaN(parsedAttorneyId)) {
+        return res.status(400).json({ error: 'Invalid attorneyId' });
+      }
+      filters.attorneyId = parsedAttorneyId;
+    }
     if (startDate) filters.startDate = new Date(startDate as string);
     if (endDate) filters.endDate = new Date(endDate as string);
 
@@ -346,5 +379,325 @@ export const getPipelineInsights = async (_req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Error fetching billing pipeline insights:', error as any);
     res.status(500).json({ error: 'Failed to fetch billing pipeline insights' });
+  }
+};
+
+/**
+ * Get high-level billing finance summary (billing/collection/UBT) with attorney breakdown.
+ */
+export const getFinanceSummary = async (req: AuthRequest, res: Response) => {
+  try {
+    const attorneyId = parseOptionalIntQuery(req.query.attorneyId);
+
+    if (req.query.attorneyId !== undefined && attorneyId === undefined) {
+      return res.status(400).json({ error: 'Invalid attorneyId' });
+    }
+
+    const [totalsRow] = await prisma.$queryRawUnsafe<any[]>(
+      `
+        WITH scoped_projects AS (
+          SELECT DISTINCT bp.project_id
+          FROM billing_project bp
+          WHERE $1::int IS NULL
+            OR EXISTS (
+              SELECT 1
+              FROM billing_project_bc_attorneys bpa
+              WHERE bpa.billing_project_id = bp.project_id
+                AND bpa.staff_id = $1::int
+            )
+        ),
+        project_financials AS (
+          SELECT
+            sp.project_id,
+            COALESCE(SUM(COALESCE(e.billing_usd, 0)::numeric), 0) AS billing_usd,
+            COALESCE(SUM(COALESCE(e.collection_usd, 0)::numeric), 0) AS collection_usd,
+            COALESCE(SUM(COALESCE(e.ubt_usd, 0)::numeric), 0) AS ubt_usd
+          FROM scoped_projects sp
+          LEFT JOIN billing_project_cm_no cm ON cm.project_id = sp.project_id
+          LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+          GROUP BY sp.project_id
+        )
+        SELECT
+          COALESCE(SUM(pf.billing_usd), 0) AS billing_usd,
+          COALESCE(SUM(pf.collection_usd), 0) AS collection_usd,
+          COALESCE(SUM(pf.ubt_usd), 0) AS ubt_usd,
+          COALESCE(COUNT(*), 0)::bigint AS project_count
+        FROM project_financials pf
+      `,
+      attorneyId ?? null
+    );
+
+    const byAttorneyRows = await prisma.$queryRawUnsafe<any[]>(
+      `
+        SELECT
+          s.id AS staff_id,
+          s.name AS attorney_name,
+          s.position AS attorney_position,
+          COALESCE(SUM(COALESCE(e.billing_usd, 0)::numeric), 0) AS billing_usd,
+          COALESCE(SUM(COALESCE(e.collection_usd, 0)::numeric), 0) AS collection_usd,
+          COALESCE(SUM(COALESCE(e.ubt_usd, 0)::numeric), 0) AS ubt_usd,
+          COALESCE(COUNT(DISTINCT bp.project_id), 0)::bigint AS project_count
+        FROM billing_project_bc_attorneys bpa
+        JOIN staff s ON s.id = bpa.staff_id
+        JOIN billing_project bp ON bp.project_id = bpa.billing_project_id
+        LEFT JOIN billing_project_cm_no cm ON cm.project_id = bp.project_id
+        LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+        WHERE $1::int IS NULL OR s.id = $1::int
+        GROUP BY s.id, s.name, s.position
+        ORDER BY ubt_usd DESC, billing_usd DESC, attorney_name ASC
+      `,
+      attorneyId ?? null
+    );
+
+    return res.json({
+      asOf: new Date().toISOString(),
+      totals: {
+        billingUsd: Number(totalsRow?.billing_usd ?? 0),
+        collectionUsd: Number(totalsRow?.collection_usd ?? 0),
+        ubtUsd: Number(totalsRow?.ubt_usd ?? 0),
+        projectCount: Number(totalsRow?.project_count ?? 0),
+      },
+      byAttorney: byAttorneyRows.map((row) => ({
+        staffId: Number(row.staff_id ?? 0),
+        attorneyName: row.attorney_name || 'Unassigned',
+        attorneyPosition: row.attorney_position || null,
+        billingUsd: Number(row.billing_usd ?? 0),
+        collectionUsd: Number(row.collection_usd ?? 0),
+        ubtUsd: Number(row.ubt_usd ?? 0),
+        projectCount: Number(row.project_count ?? 0),
+      })),
+    });
+  } catch (error) {
+    logger.error('Error fetching billing finance summary:', error as any);
+    return res.status(500).json({ error: 'Failed to fetch billing finance summary' });
+  }
+};
+
+/**
+ * Get long-stop-date risk queue for control tower.
+ */
+export const getLongStopRisks = async (req: AuthRequest, res: Response) => {
+  try {
+    const attorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const windowDays = clamp(parseOptionalIntQuery(req.query.windowDays) ?? 30, 1, 180);
+    const limit = clamp(parseOptionalIntQuery(req.query.limit) ?? 500, 1, 2000);
+    const minUbtAmount = parseOptionalNumberQuery(req.query.minUbtAmount);
+
+    if (req.query.attorneyId !== undefined && attorneyId === undefined) {
+      return res.status(400).json({ error: 'Invalid attorneyId' });
+    }
+    if (req.query.windowDays !== undefined && parseOptionalIntQuery(req.query.windowDays) === undefined) {
+      return res.status(400).json({ error: 'Invalid windowDays' });
+    }
+    if (req.query.limit !== undefined && parseOptionalIntQuery(req.query.limit) === undefined) {
+      return res.status(400).json({ error: 'Invalid limit' });
+    }
+    if (req.query.minUbtAmount !== undefined && minUbtAmount === undefined) {
+      return res.status(400).json({ error: 'Invalid minUbtAmount' });
+    }
+
+    const params: Array<number> = [windowDays];
+    const conditions: string[] = [
+      'pl.lsd_date IS NOT NULL',
+      'pl.lsd_date::date <= (CURRENT_DATE + ($1::int * INTERVAL \'1 day\'))',
+    ];
+
+    if (attorneyId !== undefined) {
+      params.push(attorneyId);
+      conditions.push(`pl.staff_id = $${params.length}::int`);
+    }
+
+    if (minUbtAmount !== undefined) {
+      params.push(minUbtAmount);
+      conditions.push(`COALESCE(pl.ubt_usd, 0) >= $${params.length}::numeric`);
+    }
+
+    params.push(limit);
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `
+        WITH project_lsd AS (
+          SELECT
+            bp.project_id AS billing_project_id,
+            bp.project_name AS billing_project_name,
+            bp.client_name,
+            COALESCE(s.id, 0) AS staff_id,
+            COALESCE(s.name, 'Unassigned') AS attorney_name,
+            s.position AS attorney_position,
+            p.id AS staffing_project_id,
+            p.name AS staffing_project_name,
+            p.status AS staffing_project_status,
+            MIN(fa.lsd_date) AS lsd_date,
+            COALESCE(SUM(COALESCE(e.billing_usd, 0)::numeric), 0) AS billing_usd,
+            COALESCE(SUM(COALESCE(e.collection_usd, 0)::numeric), 0) AS collection_usd,
+            COALESCE(SUM(COALESCE(e.ubt_usd, 0)::numeric), 0) AS ubt_usd
+          FROM billing_project bp
+          LEFT JOIN billing_project_bc_attorneys bpa ON bpa.billing_project_id = bp.project_id
+          LEFT JOIN staff s ON s.id = bpa.staff_id
+          LEFT JOIN billing_project_cm_no cm ON cm.project_id = bp.project_id
+          LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
+          LEFT JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
+          LEFT JOIN billing_staffing_project_link bspl ON bspl.billing_project_id = bp.project_id
+          LEFT JOIN projects p ON p.id = bspl.staffing_project_id
+          GROUP BY
+            bp.project_id,
+            bp.project_name,
+            bp.client_name,
+            COALESCE(s.id, 0),
+            COALESCE(s.name, 'Unassigned'),
+            s.position,
+            p.id,
+            p.name,
+            p.status
+        )
+        SELECT
+          pl.billing_project_id,
+          pl.billing_project_name,
+          pl.client_name,
+          pl.staff_id,
+          pl.attorney_name,
+          pl.attorney_position,
+          pl.staffing_project_id,
+          pl.staffing_project_name,
+          pl.staffing_project_status,
+          pl.lsd_date,
+          (pl.lsd_date::date - CURRENT_DATE)::int AS days_to_long_stop,
+          CASE
+            WHEN pl.lsd_date::date < CURRENT_DATE THEN 'past_due'
+            WHEN pl.lsd_date::date <= (CURRENT_DATE + INTERVAL '14 day') THEN 'due_14'
+            WHEN pl.lsd_date::date <= (CURRENT_DATE + INTERVAL '30 day') THEN 'due_30'
+            ELSE 'watch'
+          END AS risk_level,
+          pl.billing_usd,
+          pl.collection_usd,
+          pl.ubt_usd
+        FROM project_lsd pl
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY pl.lsd_date ASC, pl.ubt_usd DESC, pl.billing_project_name ASC
+        LIMIT $${params.length}::int
+      `,
+      ...params
+    );
+
+    return res.json(rows.map((row) => ({
+      billingProjectId: Number(row.billing_project_id ?? 0),
+      billingProjectName: row.billing_project_name,
+      clientName: row.client_name,
+      staffId: Number(row.staff_id ?? 0),
+      attorneyName: row.attorney_name || 'Unassigned',
+      attorneyPosition: row.attorney_position || null,
+      staffingProjectId: row.staffing_project_id ? Number(row.staffing_project_id) : null,
+      staffingProjectName: row.staffing_project_name || null,
+      staffingProjectStatus: row.staffing_project_status || null,
+      lsdDate: row.lsd_date,
+      daysToLongStop: Number(row.days_to_long_stop ?? 0),
+      riskLevel: row.risk_level,
+      billingUsd: Number(row.billing_usd ?? 0),
+      collectionUsd: Number(row.collection_usd ?? 0),
+      ubtUsd: Number(row.ubt_usd ?? 0),
+    })));
+  } catch (error) {
+    logger.error('Error fetching long-stop risks:', error as any);
+    return res.status(500).json({ error: 'Failed to fetch long-stop risks' });
+  }
+};
+
+/**
+ * Get unpaid invoice alerts queue (invoice sent but not marked paid after threshold days).
+ */
+export const getUnpaidInvoices = async (req: AuthRequest, res: Response) => {
+  try {
+    const attorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const thresholdDays = clamp(parseOptionalIntQuery(req.query.thresholdDays) ?? 30, 1, 365);
+    const limit = clamp(parseOptionalIntQuery(req.query.limit) ?? 1000, 1, 5000);
+    const minAmount = parseOptionalNumberQuery(req.query.minAmount);
+
+    if (req.query.attorneyId !== undefined && attorneyId === undefined) {
+      return res.status(400).json({ error: 'Invalid attorneyId' });
+    }
+    if (req.query.thresholdDays !== undefined && parseOptionalIntQuery(req.query.thresholdDays) === undefined) {
+      return res.status(400).json({ error: 'Invalid thresholdDays' });
+    }
+    if (req.query.limit !== undefined && parseOptionalIntQuery(req.query.limit) === undefined) {
+      return res.status(400).json({ error: 'Invalid limit' });
+    }
+    if (req.query.minAmount !== undefined && minAmount === undefined) {
+      return res.status(400).json({ error: 'Invalid minAmount' });
+    }
+
+    const params: Array<number> = [thresholdDays];
+    const conditions: string[] = [
+      'm.invoice_sent_date IS NOT NULL',
+      'm.payment_received_date IS NULL',
+      'm.invoice_sent_date::date <= (CURRENT_DATE - ($1::int * INTERVAL \'1 day\'))',
+    ];
+
+    if (attorneyId !== undefined) {
+      params.push(attorneyId);
+      conditions.push(`COALESCE(s.id, 0) = $${params.length}::int`);
+    }
+
+    if (minAmount !== undefined) {
+      params.push(minAmount);
+      conditions.push(`COALESCE(m.amount_value, 0) >= $${params.length}::numeric`);
+    }
+
+    params.push(limit);
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(
+      `
+        SELECT
+          COALESCE(s.id, 0) AS staff_id,
+          COALESCE(s.name, 'Unassigned') AS attorney_name,
+          s.position AS attorney_position,
+          bp.project_id AS billing_project_id,
+          bp.project_name AS billing_project_name,
+          bp.client_name,
+          p.id AS staffing_project_id,
+          p.name AS staffing_project_name,
+          p.status AS staffing_project_status,
+          e.engagement_id,
+          COALESCE(e.engagement_title, e.name) AS engagement_title,
+          m.milestone_id,
+          m.title AS milestone_title,
+          COALESCE(m.amount_value, 0)::numeric AS milestone_amount,
+          m.invoice_sent_date,
+          (CURRENT_DATE - m.invoice_sent_date::date)::int AS days_since_invoice
+        FROM billing_milestone m
+        JOIN billing_engagement e ON e.engagement_id = m.engagement_id
+        JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+        JOIN billing_project bp ON bp.project_id = cm.project_id
+        LEFT JOIN billing_project_bc_attorneys bpa ON bpa.billing_project_id = bp.project_id
+        LEFT JOIN staff s ON s.id = bpa.staff_id
+        LEFT JOIN billing_staffing_project_link bspl ON bspl.billing_project_id = bp.project_id
+        LEFT JOIN projects p ON p.id = bspl.staffing_project_id
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY days_since_invoice DESC, m.invoice_sent_date ASC, bp.project_name ASC
+        LIMIT $${params.length}::int
+      `,
+      ...params
+    );
+
+    return res.json(rows.map((row) => ({
+      staffId: Number(row.staff_id ?? 0),
+      attorneyName: row.attorney_name || 'Unassigned',
+      attorneyPosition: row.attorney_position || null,
+      billingProjectId: Number(row.billing_project_id ?? 0),
+      billingProjectName: row.billing_project_name,
+      clientName: row.client_name,
+      staffingProjectId: row.staffing_project_id ? Number(row.staffing_project_id) : null,
+      staffingProjectName: row.staffing_project_name || null,
+      staffingProjectStatus: row.staffing_project_status || null,
+      engagementId: Number(row.engagement_id ?? 0),
+      engagementTitle: row.engagement_title || null,
+      milestoneId: Number(row.milestone_id ?? 0),
+      milestoneTitle: row.milestone_title || null,
+      milestoneAmount: Number(row.milestone_amount ?? 0),
+      invoiceSentDate: row.invoice_sent_date,
+      daysSinceInvoice: Number(row.days_since_invoice ?? 0),
+    })));
+  } catch (error) {
+    logger.error('Error fetching unpaid invoice alerts:', error as any);
+    return res.status(500).json({ error: 'Failed to fetch unpaid invoice alerts' });
   }
 };

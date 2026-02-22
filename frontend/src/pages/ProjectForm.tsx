@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSmartBack } from '../hooks/useSmartBack';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import {
   Box,
   Paper,
@@ -136,13 +137,16 @@ const ProjectForm: React.FC = () => {
         await updateProject.mutateAsync({ id: Number(id), data: cleanedData });
         projectId = Number(id);
 
-        // Check if lifecycle stage changed and project has a C/M number
+        // Check if lifecycle/status changed and project has a C/M number
         const previousLifecycle = (project?.lifecycleStage || '').trim();
         const newLifecycle = (cleanedData.lifecycleStage || '').trim();
-        const lifecycleChanged = newLifecycle !== previousLifecycle && newLifecycle.length > 0;
+        const lifecycleChanged = newLifecycle !== previousLifecycle;
+        const previousStatus = (project?.status || '').trim();
+        const newStatus = (cleanedData.status || '').trim();
+        const statusChanged = newStatus !== previousStatus;
         const cmNumber = project?.cmNumber;
 
-        if (lifecycleChanged && cmNumber) {
+        if ((lifecycleChanged || statusChanged) && cmNumber) {
           // Show lifecycle change dialog instead of navigating
           setLifecycleDialogCmNumber(cmNumber);
           setLifecycleDialogIsNewEngagement(newLifecycle === 'new_engagement');
@@ -175,11 +179,13 @@ const ProjectForm: React.FC = () => {
               );
             }
             // Note: No toast for all-success case since useCreateProject already shows "Project created" toast
-          } catch (bulkError: any) {
+          } catch (bulkError: unknown) {
             // Handle 400 error when all assignments fail
-            if (bulkError.response?.status === 400) {
+            if (isAxiosError<{ errors?: unknown[] }>(bulkError) && bulkError.response?.status === 400) {
               const errorData = bulkError.response.data;
-              const errorCount = errorData.errors?.length || teamMembers.length;
+              const errorCount = Array.isArray(errorData?.errors)
+                ? errorData.errors.length
+                : teamMembers.length;
 
               toast.error('Failed to add team members',
                 `All ${errorCount} team member assignments failed. Please add them manually from the project detail page.`
@@ -195,7 +201,7 @@ const ProjectForm: React.FC = () => {
         }
       }
       navigate('/projects');
-    } catch (error) {
+    } catch {
       // Error is handled by mutation hooks with toast notifications
       // No additional action needed - error is logged for debugging only
     }
