@@ -70,6 +70,15 @@ const Projects: React.FC = () => {
   const { data, isLoading, error } = useProjects(params);
 
   const projects = data?.data || [];
+  const totalProjects = data?.pagination?.total ?? projects.length;
+  const paginationModel = useMemo(
+    () => ({ page: Math.max(page - 1, 0), pageSize }),
+    [page, pageSize]
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, categoryFilter, sideFilter, sectorFilter, searchTerm, selectedStaff?.id]);
 
   // CSV export columns
   const csvColumns: CsvColumn<Project>[] = [
@@ -358,12 +367,10 @@ const Projects: React.FC = () => {
               columns={columns}
               autoHeight
               pagination
+              paginationMode="server"
+              rowCount={totalProjects}
+              paginationModel={paginationModel}
               pageSizeOptions={[10, 25, 50, 100]}
-              initialState={{
-                pagination: {
-                  paginationModel: { page: page - 1, pageSize },
-                },
-              }}
               onPaginationModelChange={(model) => {
                 setPage(model.page + 1);
                 setPageSize(model.pageSize);
