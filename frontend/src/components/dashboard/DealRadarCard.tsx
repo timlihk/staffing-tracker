@@ -129,11 +129,13 @@ const DealRadarCard = ({
           });
         }
         const entry = map.get(dateKey)!;
-        entry.events.push(event);
-        if (event.type === 'Filing') {
-          entry.filingCount += 1;
-        } else if (event.type === 'Listing') {
-          entry.listingCount += 1;
+        if (event) {
+          entry.events.push(event);
+          if (event?.type === 'Filing') {
+            entry.filingCount += 1;
+          } else if (event?.type === 'Listing') {
+            entry.listingCount += 1;
+          }
         }
       });
     });
