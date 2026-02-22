@@ -1,24 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Box, IconButton, useMediaQuery, useTheme, alpha } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import Sidebar from './Sidebar';
+import { tokens } from '../theme';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const drawerWidth = 280;
-const collapsedWidth = 80;
+const drawerWidth = 260;
+const collapsedWidth = 72;
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { colors } = tokens;
 
-  // Load collapsed state from localStorage, default to true on desktop, always collapsed on mobile
+  // Load collapsed state from localStorage, default to false (expanded) on desktop
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (isMobile) return true;
     const saved = localStorage.getItem('sidebarCollapsed');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   // Mobile drawer state (for temporary drawer)
@@ -50,17 +52,49 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sidebarWidth = isMobile ? drawerWidth : (isCollapsed ? collapsedWidth : drawerWidth);
 
   return (
-    <Box sx={{
-      display: 'flex',
-      minHeight: '100vh',
-      bgcolor: 'background.default',
-      width: '100vw',
-      maxWidth: '100vw',
-      margin: 0,
-      padding: 0,
-      justifyContent: 'flex-start',
-      alignItems: 'flex-start',
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        width: '100vw',
+        maxWidth: '100vw',
+        margin: 0,
+        padding: 0,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        position: 'relative',
+        // Subtle gradient background
+        background: `linear-gradient(135deg, ${colors.slate[50]} 0%, ${alpha(colors.indigo[50], 0.3)} 50%, ${colors.slate[50]} 100%)`,
+      }}
+    >
+      {/* Decorative background elements */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: -200,
+          right: -200,
+          width: 600,
+          height: 600,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${alpha(colors.indigo[200], 0.15)} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: -100,
+          left: -100,
+          width: 400,
+          height: 400,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${alpha(colors.violet[200], 0.1)} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
       {/* Mobile Menu Button */}
       {isMobile && (
         <IconButton
@@ -71,9 +105,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             left: 12,
             zIndex: theme.zIndex.drawer + 1,
             bgcolor: 'background.paper',
-            boxShadow: theme.shadows[2],
+            boxShadow: tokens.shadows.md,
+            width: 44,
+            height: 44,
             '&:hover': {
               bgcolor: 'background.paper',
+              boxShadow: tokens.shadows.lg,
             },
           }}
         >
@@ -87,6 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           flexShrink: 0,
           height: '100vh',
           position: 'relative',
+          zIndex: 1,
           '@media print': {
             display: 'none !important',
           },
@@ -111,10 +149,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           flexBasis: 0,
           minWidth: 0,
           overflow: 'auto',
-          py: { xs: 6, sm: 4, md: 6 },
-          px: { xs: 2, sm: 3, md: 4 },
-          // Add padding on mobile to account for the hamburger menu
-          pt: isMobile ? 8 : undefined,
+          position: 'relative',
+          zIndex: 1,
+          py: { xs: 6, sm: 4, md: 5 },
+          px: { xs: 2, sm: 3, md: 4, lg: 5 },
+          pt: isMobile ? 9 : undefined,
           // Full width when printing
           '@media print': {
             flexBasis: '100% !important',

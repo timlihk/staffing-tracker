@@ -31,6 +31,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import apiClient from '../api/client';
 import { toast } from '../lib/toast';
+import { tokens } from '../theme';
 
 interface SidebarProps {
   drawerWidth: number;
@@ -44,7 +45,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({
   drawerWidth,
-  collapsedWidth = 80,
+  collapsedWidth = 72,
   collapsed = false,
   onToggle,
   mobileOpen = false,
@@ -58,6 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const width = collapsed ? collapsedWidth : drawerWidth;
+  const { colors, gradients } = tokens;
 
   const handleLogoutMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -80,7 +82,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       await logout();
       navigate('/login', { replace: true });
     } catch (error) {
-      // Fallback to regular logout on error
       toast.error('Logout from all devices failed', 'Logging out from this device only');
       await logout();
       navigate('/login', { replace: true });
@@ -102,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   if (user?.role === 'admin') {
-    menuItems.push({ text: 'Billing Control', icon: <DevicesOther />, path: '/billing/control-tower' });
+    menuItems.push({ text: 'Control Tower', icon: <DevicesOther />, path: '/billing/control-tower' });
     menuItems.push({ text: 'Admin', icon: <ManageAccounts />, path: '/users' });
   }
 
@@ -115,32 +116,34 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Menu Toggle Button - Only show on desktop */}
       {!isMobile && (
-        <Box sx={{ p: 1, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        <Box sx={{ p: 1.5, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end' }}>
           <IconButton
             onClick={onToggle}
             sx={{
-              color: 'text.secondary',
+              color: colors.slate[400],
+              width: 36,
+              height: 36,
               '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.08),
-                color: 'primary.main',
+                bgcolor: alpha(colors.indigo[500], 0.08),
+                color: colors.indigo[500],
               },
             }}
           >
-            <Menu />
+            <Menu sx={{ fontSize: 20 }} />
           </IconButton>
         </Box>
       )}
 
       {/* Close button for mobile */}
       {isMobile && (
-        <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
           <IconButton
             onClick={onMobileClose}
             sx={{
-              color: 'text.secondary',
+              color: colors.slate[400],
               '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.08),
-                color: 'primary.main',
+                bgcolor: alpha(colors.indigo[500], 0.08),
+                color: colors.indigo[500],
               },
             }}
           >
@@ -149,40 +152,77 @@ const Sidebar: React.FC<SidebarProps> = ({
         </Box>
       )}
 
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 }}>
+      {/* Logo Section */}
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1.5, px: 2 }}>
         <Box textAlign="center" sx={{ width: '100%' }}>
           {collapsed ? (
-            <Typography
-              variant="h6"
+            <Box
               sx={{
-                fontWeight: 800,
-                letterSpacing: 1.5,
-                background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: gradients.primary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+                boxShadow: `0 8px 24px ${alpha(colors.indigo[500], 0.35)}`,
               }}
             >
-              CM
-            </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  fontSize: '1.125rem',
+                }}
+              >
+                CM
+              </Typography>
+            </Box>
           ) : (
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Capital Markets
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, justifyContent: 'center' }}>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: gradients.primary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: `0 8px 24px ${alpha(colors.indigo[500], 0.35)}`,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    color: '#FFFFFF',
+                    fontSize: '1rem',
+                  }}
+                >
+                  CM
+                </Typography>
+              </Box>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '1.125rem',
+                  color: colors.slate[800],
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Staffing
+              </Typography>
+            </Box>
           )}
         </Box>
       </Toolbar>
 
-      <List sx={{ px: collapsed ? 1 : 2, py: 1, flexGrow: 1 }}>
+      {/* Navigation Menu */}
+      <List sx={{ px: collapsed ? 1.5 : 2, py: 2, flexGrow: 1 }}>
         {menuItems.map((item) => {
           const active = isActive(item.path);
           return (
@@ -190,24 +230,30 @@ const Sidebar: React.FC<SidebarProps> = ({
               key={item.text}
               onClick={() => handleNavigation(item.path)}
               sx={{
-                mb: 0.5,
-                borderRadius: 2,
-                py: collapsed ? 1 : 1.25,
-                minHeight: 48, // Better touch target for mobile
-                transition: 'all 0.2s',
+                mb: 0.75,
+                borderRadius: 12,
+                py: collapsed ? 1.25 : 1.25,
+                minHeight: 48,
+                transition: 'all 0.2s ease',
                 justifyContent: collapsed ? 'center' : 'flex-start',
+                position: 'relative',
+                overflow: 'hidden',
                 ...(active && {
-                  bgcolor: alpha(theme.palette.primary.main, 0.12),
-                  color: 'primary.main',
-                  fontWeight: 600,
+                  background: gradients.primary,
+                  color: '#FFFFFF',
+                  boxShadow: `0 8px 24px ${alpha(colors.indigo[500], 0.35)}`,
                   '&:hover': {
-                    bgcolor: alpha(theme.palette.primary.main, 0.18),
+                    background: gradients.primary,
+                    boxShadow: `0 10px 30px ${alpha(colors.indigo[500], 0.45)}`,
+                    transform: 'translateY(-1px)',
                   },
                 }),
                 ...(!active && {
-                  color: 'text.secondary',
+                  color: colors.slate[500],
                   '&:hover': {
-                    bgcolor: alpha(theme.palette.text.primary, 0.04),
+                    bgcolor: alpha(colors.slate[500], 0.06),
+                    color: colors.slate[700],
+                    transform: 'translateX(2px)',
                   },
                 }),
               }}
@@ -215,19 +261,21 @@ const Sidebar: React.FC<SidebarProps> = ({
               <ListItemIcon
                 sx={{
                   minWidth: collapsed ? 0 : 40,
-                  color: active ? 'primary.main' : 'text.secondary',
+                  color: active ? '#FFFFFF' : 'inherit',
                   display: 'flex',
                   justifyContent: 'center',
                 }}
               >
-                {item.icon}
+                {React.cloneElement(item.icon as React.ReactElement, {
+                  sx: { fontSize: 22 },
+                })}
               </ListItemIcon>
               {!collapsed && (
                 <ListItemText
                   primary={item.text}
                   primaryTypographyProps={{
                     fontWeight: active ? 600 : 500,
-                    fontSize: '0.875rem',
+                    fontSize: '0.9375rem',
                   }}
                 />
               )}
@@ -236,61 +284,79 @@ const Sidebar: React.FC<SidebarProps> = ({
         })}
       </List>
 
-      <Box sx={{ px: collapsed ? 1 : 2, pb: 3 }}>
-        {!collapsed && <Divider sx={{ mb: 2 }} />}
+      {/* User Section */}
+      <Box sx={{ px: collapsed ? 1.5 : 2, pb: 3 }}>
+        {!collapsed && <Divider sx={{ mb: 2, borderColor: colors.slate[200] }} />}
+        
+        {/* User Info Card */}
         {!collapsed && user && (
-          <ListItemButton
-            disableRipple
-            component="div"
+          <Box
             sx={{
-              mb: 1.5,
-              borderRadius: 2,
-              py: 0.75,
-              cursor: 'default',
-              color: 'text.primary',
-              alignItems: 'flex-start',
-              '&:hover': { bgcolor: 'transparent' },
+              mb: 2,
+              p: 2,
+              borderRadius: 12,
+              bgcolor: alpha(colors.slate[100], 0.5),
+              border: `1px solid ${colors.slate[200]}`,
             }}
           >
-            <ListItemIcon
-              sx={{
-                minWidth: 40,
-                color: 'primary.main',
-                display: 'flex',
-                justifyContent: 'center',
-                pt: 0.25,
-              }}
-            >
-              <AccountCircle fontSize="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary={user.staff?.name ?? user.username}
-              secondary={user.role}
-              primaryTypographyProps={{
-                variant: 'subtitle2',
-                fontWeight: 600,
-                noWrap: true,
-              }}
-              secondaryTypographyProps={{
-                variant: 'caption',
-                color: 'text.secondary',
-                sx: { textTransform: 'capitalize' },
-              }}
-            />
-          </ListItemButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: gradients.subtle,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `2px solid ${colors.slate[200]}`,
+                }}
+              >
+                <AccountCircle sx={{ fontSize: 20, color: colors.indigo[500] }} />
+              </Box>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 600,
+                    color: colors.slate[800],
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {user.staff?.name ?? user.username}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: colors.slate[500],
+                    textTransform: 'capitalize',
+                    fontWeight: 500,
+                  }}
+                >
+                  {user.role}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         )}
+
+        {/* Logout Button */}
         <ListItemButton
           onClick={collapsed ? handleLogout : handleLogoutMenuOpen}
           sx={{
-            borderRadius: 2,
-            py: collapsed ? 1 : 1.25,
-            minHeight: 48, // Better touch target for mobile
-            color: collapsed ? 'text.secondary' : 'text.secondary',
-            '&:hover': {
-              bgcolor: alpha(theme.palette.error.main, 0.08),
-              color: 'error.main',
-            },
+            borderRadius: 12,
+            py: collapsed ? 1.25 : 1.25,
+            minHeight: 48,
+            color: colors.slate[500],
             justifyContent: collapsed ? 'center' : 'flex-start',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: alpha(colors.error, 0.08),
+              color: colors.error,
+            },
           }}
         >
           <ListItemIcon
@@ -301,9 +367,17 @@ const Sidebar: React.FC<SidebarProps> = ({
               justifyContent: 'center',
             }}
           >
-            <Logout />
+            <Logout sx={{ fontSize: 20 }} />
           </ListItemIcon>
-          {!collapsed && <ListItemText primary="Log out" primaryTypographyProps={{ fontWeight: 600 }} />}
+          {!collapsed && (
+            <ListItemText
+              primary="Log out"
+              primaryTypographyProps={{
+                fontWeight: 500,
+                fontSize: '0.9375rem',
+              }}
+            />
+          )}
         </ListItemButton>
 
         <MuiMenu
@@ -318,18 +392,25 @@ const Sidebar: React.FC<SidebarProps> = ({
             vertical: 'bottom',
             horizontal: 'left',
           }}
+          PaperProps={{
+            sx: {
+              borderRadius: 12,
+              boxShadow: tokens.shadows.lg,
+              minWidth: 200,
+            },
+          }}
         >
           <MenuItem onClick={handleLogout}>
             <ListItemIcon>
-              <Logout fontSize="small" />
+              <Logout fontSize="small" sx={{ color: colors.slate[500] }} />
             </ListItemIcon>
-            <ListItemText>Log out</ListItemText>
+            <ListItemText primary="Log out" />
           </MenuItem>
           <MenuItem onClick={handleLogoutAll}>
             <ListItemIcon>
-              <DevicesOther fontSize="small" />
+              <DevicesOther fontSize="small" sx={{ color: colors.slate[500] }} />
             </ListItemIcon>
-            <ListItemText>Log out from all devices</ListItemText>
+            <ListItemText primary="Log out all devices" />
           </MenuItem>
         </MuiMenu>
       </Box>
@@ -350,14 +431,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            borderRight: `1px solid ${theme.palette.divider}`,
+            borderRight: `1px solid ${colors.slate[200]}`,
             display: 'flex',
             flexDirection: 'column',
             overflowX: 'hidden',
+            background: alpha('#FFFFFF', 0.98),
+            backdropFilter: 'blur(20px)',
           },
         }}
         ModalProps={{
-          keepMounted: true, // Better mobile performance
+          keepMounted: true,
         }}
       >
         {drawerContent}
@@ -374,12 +457,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         flexShrink: 0,
         '& .MuiDrawer-paper': {
           width,
-          transition: 'width 0.2s ease',
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           boxSizing: 'border-box',
-          borderRight: `1px solid ${theme.palette.divider}`,
+          borderRight: `1px solid ${colors.slate[200]}`,
           display: 'flex',
           flexDirection: 'column',
           overflowX: 'hidden',
+          background: alpha('#FFFFFF', 0.95),
+          backdropFilter: 'blur(20px)',
+          boxShadow: `4px 0 24px ${alpha(colors.slate[900], 0.04)}`,
         },
       }}
     >
