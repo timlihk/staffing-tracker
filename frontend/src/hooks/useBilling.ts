@@ -37,6 +37,7 @@ export const billingKeys = {
   triggers: (params?: Record<string, unknown>) => [...billingKeys.all, 'triggers', params ?? {}] as const,
   overdueByAttorney: (params?: Record<string, unknown>) => [...billingKeys.all, 'overdue-by-attorney', params ?? {}] as const,
   changeLog: (id: number) => [...billingKeys.all, 'project', id, 'change-log'] as const,
+  pipelineInsights: () => [...billingKeys.all, 'pipeline-insights'] as const,
 };
 
 // Get all billing projects
@@ -462,6 +463,14 @@ export function useOverdueByAttorney(params?: {
   return useQuery({
     queryKey: billingKeys.overdueByAttorney(stableParams),
     queryFn: () => billingApi.getOverdueByAttorney(params),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useBillingPipelineInsights() {
+  return useQuery({
+    queryKey: billingKeys.pipelineInsights(),
+    queryFn: () => billingApi.getBillingPipelineInsights(),
     staleTime: 30 * 1000,
   });
 }
