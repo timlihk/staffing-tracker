@@ -440,7 +440,7 @@ const StaffDetail: React.FC = () => {
       />
       <Stack spacing={2}>
         {/* Staff Information */}
-        <Paper sx={{ p: 2 }}>
+        <Paper sx={{ p: 2, borderRadius: 1.5 }}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="subtitle2" color="text.secondary">
@@ -475,7 +475,7 @@ const StaffDetail: React.FC = () => {
           </Grid>
         </Paper>
 
-        <Section title="Project Load Timeline">
+        <Section title="Project Load Timeline" sx={{ borderRadius: 1.5 }}>
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
               {[
@@ -580,7 +580,7 @@ const StaffDetail: React.FC = () => {
               )}
             </Section>
 
-            <Section title="Change History">
+            <Section title="Change History" sx={{ borderRadius: 1.5 }}>
               {changeHistory.length > 0 ? (
                 <List>
                   {changeHistory.map((change) => (
