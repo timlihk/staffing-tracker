@@ -154,26 +154,49 @@ const ProjectDetail: React.FC = () => {
     fetchData();
   }, [id]);
 
-  // Look up billing project ID when project's C/M number is available
+  // Look up billing project ID via staffing-billing link table, then fall back to C/M lookup
   useEffect(() => {
-    if (!project?.cmNumber) {
-      setBillingProjectId(null);
-      return;
-    }
+    if (!id) return;
     let cancelled = false;
-    api.get(`/billing/cm-lookup/${project.cmNumber}`)
+
+    // Try the direct link table first
+    api.get(`/billing/mapping/by-staffing-project/${id}`)
       .then((res) => {
-        if (!cancelled && res.data.found) {
+        if (!cancelled && res.data.billingProjectId) {
           setBillingProjectId(res.data.billingProjectId);
+        } else if (!cancelled && project?.cmNumber) {
+          // Fall back to C/M number lookup
+          api.get(`/billing/cm-lookup/${project.cmNumber}`)
+            .then((cmRes) => {
+              if (!cancelled && cmRes.data.found) {
+                setBillingProjectId(cmRes.data.billingProjectId);
+              } else if (!cancelled) {
+                setBillingProjectId(null);
+              }
+            })
+            .catch(() => { if (!cancelled) setBillingProjectId(null); });
         } else if (!cancelled) {
           setBillingProjectId(null);
         }
       })
       .catch(() => {
-        if (!cancelled) setBillingProjectId(null);
+        // Link endpoint failed, try C/M lookup
+        if (!cancelled && project?.cmNumber) {
+          api.get(`/billing/cm-lookup/${project.cmNumber}`)
+            .then((cmRes) => {
+              if (!cancelled && cmRes.data.found) {
+                setBillingProjectId(cmRes.data.billingProjectId);
+              } else if (!cancelled) {
+                setBillingProjectId(null);
+              }
+            })
+            .catch(() => { if (!cancelled) setBillingProjectId(null); });
+        } else if (!cancelled) {
+          setBillingProjectId(null);
+        }
       });
     return () => { cancelled = true; };
-  }, [project?.cmNumber]);
+  }, [id, project?.cmNumber]);
 
   const refreshProjectEvents = async () => {
     if (!id || !permissions.isAdmin) {

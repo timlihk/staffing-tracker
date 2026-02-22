@@ -854,3 +854,31 @@ export async function lookupByCmNumber(req: AuthRequest, res: Response): Promise
     return res.status(500).json({ error: 'Failed to look up C/M number' });
   }
 }
+
+/**
+ * Look up billing project by staffing project ID via the link table
+ * GET /billing/mapping/by-staffing-project/:staffingProjectId
+ */
+export async function getBillingProjectByStaffingId(req: AuthRequest, res: Response): Promise<any> {
+  try {
+    const staffingProjectId = parseInt(req.params.staffingProjectId as string, 10);
+    if (isNaN(staffingProjectId)) {
+      return res.status(400).json({ error: 'Invalid staffing project ID' });
+    }
+
+    const link = await prisma.billing_staffing_project_link.findFirst({
+      where: { staffing_project_id: staffingProjectId },
+      select: { billing_project_id: true },
+      orderBy: { linked_at: 'desc' },
+    });
+
+    if (!link || !link.billing_project_id) {
+      return res.json({ billingProjectId: null });
+    }
+
+    return res.json({ billingProjectId: Number(link.billing_project_id) });
+  } catch (error) {
+    logger.error('Error looking up billing project by staffing ID', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to look up billing project' });
+  }
+}
