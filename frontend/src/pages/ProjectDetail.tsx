@@ -93,9 +93,6 @@ const ProjectDetail: React.FC = () => {
   const [editingAssignment, setEditingAssignment] = useState<ProjectAssignment | null>(null);
   const [savingAssignment, setSavingAssignment] = useState(false);
 
-  // Billing project ID for C/M link
-  const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
-
   // Billing project ID for C/M number navigation
   const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
 
