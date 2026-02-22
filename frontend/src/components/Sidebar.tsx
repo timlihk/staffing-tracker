@@ -109,7 +109,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    if (location.pathname === path || location.pathname.startsWith(path + '/')) {
+      // Only highlight if no other menu item has a more specific match
+      return !menuItems.some(
+        (item) => item.path !== path && item.path.startsWith(path + '/') &&
+          (location.pathname === item.path || location.pathname.startsWith(item.path + '/'))
+      );
+    }
+    return false;
   };
 
   const drawerContent = (
