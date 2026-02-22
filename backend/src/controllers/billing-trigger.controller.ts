@@ -409,12 +409,11 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response) => {
         project_financials AS (
           SELECT
             sp.project_id,
-            COALESCE(SUM(COALESCE(e.billing_usd, 0)::numeric), 0) AS billing_usd,
-            COALESCE(SUM(COALESCE(e.collection_usd, 0)::numeric), 0) AS collection_usd,
-            COALESCE(SUM(COALESCE(e.ubt_usd, 0)::numeric), 0) AS ubt_usd
+            COALESCE(SUM(COALESCE(cm.billing_to_date_usd, 0)::numeric), 0) AS billing_usd,
+            COALESCE(SUM(COALESCE(cm.collected_to_date_usd, 0)::numeric), 0) AS collection_usd,
+            COALESCE(SUM(COALESCE(cm.ubt_usd, 0)::numeric), 0) AS ubt_usd
           FROM scoped_projects sp
           LEFT JOIN billing_project_cm_no cm ON cm.project_id = sp.project_id
-          LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
           GROUP BY sp.project_id
         )
         SELECT
@@ -433,15 +432,14 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response) => {
           s.id AS staff_id,
           s.name AS attorney_name,
           s.position AS attorney_position,
-          COALESCE(SUM(COALESCE(e.billing_usd, 0)::numeric), 0) AS billing_usd,
-          COALESCE(SUM(COALESCE(e.collection_usd, 0)::numeric), 0) AS collection_usd,
-          COALESCE(SUM(COALESCE(e.ubt_usd, 0)::numeric), 0) AS ubt_usd,
+          COALESCE(SUM(COALESCE(cm.billing_to_date_usd, 0)::numeric), 0) AS billing_usd,
+          COALESCE(SUM(COALESCE(cm.collected_to_date_usd, 0)::numeric), 0) AS collection_usd,
+          COALESCE(SUM(COALESCE(cm.ubt_usd, 0)::numeric), 0) AS ubt_usd,
           COALESCE(COUNT(DISTINCT bp.project_id), 0)::bigint AS project_count
         FROM billing_project_bc_attorneys bpa
         JOIN staff s ON s.id = bpa.staff_id
         JOIN billing_project bp ON bp.project_id = bpa.billing_project_id
         LEFT JOIN billing_project_cm_no cm ON cm.project_id = bp.project_id
-        LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
         WHERE $1::int IS NULL OR s.id = $1::int
         GROUP BY s.id, s.name, s.position
         ORDER BY ubt_usd DESC, billing_usd DESC, attorney_name ASC
@@ -498,25 +496,43 @@ export const getLongStopRisks = async (req: AuthRequest, res: Response) => {
 
     const params: Array<number> = [windowDays];
     const conditions: string[] = [
-      'pl.lsd_date IS NOT NULL',
-      'pl.lsd_date::date <= (CURRENT_DATE + ($1::int * INTERVAL \'1 day\'))',
+      'rr.lsd_date IS NOT NULL',
+      'rr.lsd_date::date <= (CURRENT_DATE + ($1::int * INTERVAL \'1 day\'))',
     ];
 
     if (attorneyId !== undefined) {
       params.push(attorneyId);
-      conditions.push(`pl.staff_id = $${params.length}::int`);
+      conditions.push(`rr.staff_id = $${params.length}::int`);
     }
 
     if (minUbtAmount !== undefined) {
       params.push(minUbtAmount);
-      conditions.push(`COALESCE(pl.ubt_usd, 0) >= $${params.length}::numeric`);
+      conditions.push(`COALESCE(rr.ubt_usd, 0) >= $${params.length}::numeric`);
     }
 
     params.push(limit);
 
     const rows = await prisma.$queryRawUnsafe<any[]>(
       `
-        WITH project_lsd AS (
+        WITH project_financials AS (
+          SELECT
+            cm.project_id AS billing_project_id,
+            COALESCE(SUM(COALESCE(cm.billing_to_date_usd, 0)::numeric), 0) AS billing_usd,
+            COALESCE(SUM(COALESCE(cm.collected_to_date_usd, 0)::numeric), 0) AS collection_usd,
+            COALESCE(SUM(COALESCE(cm.ubt_usd, 0)::numeric), 0) AS ubt_usd
+          FROM billing_project_cm_no cm
+          GROUP BY cm.project_id
+        ),
+        project_lsd AS (
+          SELECT
+            cm.project_id AS billing_project_id,
+            MIN(fa.lsd_date) AS lsd_date
+          FROM billing_project_cm_no cm
+          JOIN billing_engagement e ON e.cm_id = cm.cm_id
+          JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
+          GROUP BY cm.project_id
+        ),
+        risk_rows AS (
           SELECT
             bp.project_id AS billing_project_id,
             bp.project_name AS billing_project_name,
@@ -527,53 +543,42 @@ export const getLongStopRisks = async (req: AuthRequest, res: Response) => {
             p.id AS staffing_project_id,
             p.name AS staffing_project_name,
             p.status AS staffing_project_status,
-            MIN(fa.lsd_date) AS lsd_date,
-            COALESCE(SUM(COALESCE(e.billing_usd, 0)::numeric), 0) AS billing_usd,
-            COALESCE(SUM(COALESCE(e.collection_usd, 0)::numeric), 0) AS collection_usd,
-            COALESCE(SUM(COALESCE(e.ubt_usd, 0)::numeric), 0) AS ubt_usd
+            pl.lsd_date,
+            COALESCE(pf.billing_usd, 0) AS billing_usd,
+            COALESCE(pf.collection_usd, 0) AS collection_usd,
+            COALESCE(pf.ubt_usd, 0) AS ubt_usd
           FROM billing_project bp
+          LEFT JOIN project_lsd pl ON pl.billing_project_id = bp.project_id
+          LEFT JOIN project_financials pf ON pf.billing_project_id = bp.project_id
           LEFT JOIN billing_project_bc_attorneys bpa ON bpa.billing_project_id = bp.project_id
           LEFT JOIN staff s ON s.id = bpa.staff_id
-          LEFT JOIN billing_project_cm_no cm ON cm.project_id = bp.project_id
-          LEFT JOIN billing_engagement e ON e.cm_id = cm.cm_id
-          LEFT JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
           LEFT JOIN billing_staffing_project_link bspl ON bspl.billing_project_id = bp.project_id
           LEFT JOIN projects p ON p.id = bspl.staffing_project_id
-          GROUP BY
-            bp.project_id,
-            bp.project_name,
-            bp.client_name,
-            COALESCE(s.id, 0),
-            COALESCE(s.name, 'Unassigned'),
-            s.position,
-            p.id,
-            p.name,
-            p.status
         )
         SELECT
-          pl.billing_project_id,
-          pl.billing_project_name,
-          pl.client_name,
-          pl.staff_id,
-          pl.attorney_name,
-          pl.attorney_position,
-          pl.staffing_project_id,
-          pl.staffing_project_name,
-          pl.staffing_project_status,
-          pl.lsd_date,
-          (pl.lsd_date::date - CURRENT_DATE)::int AS days_to_long_stop,
+          rr.billing_project_id,
+          rr.billing_project_name,
+          rr.client_name,
+          rr.staff_id,
+          rr.attorney_name,
+          rr.attorney_position,
+          rr.staffing_project_id,
+          rr.staffing_project_name,
+          rr.staffing_project_status,
+          rr.lsd_date,
+          (rr.lsd_date::date - CURRENT_DATE)::int AS days_to_long_stop,
           CASE
-            WHEN pl.lsd_date::date < CURRENT_DATE THEN 'past_due'
-            WHEN pl.lsd_date::date <= (CURRENT_DATE + INTERVAL '14 day') THEN 'due_14'
-            WHEN pl.lsd_date::date <= (CURRENT_DATE + INTERVAL '30 day') THEN 'due_30'
+            WHEN rr.lsd_date::date < CURRENT_DATE THEN 'past_due'
+            WHEN rr.lsd_date::date <= (CURRENT_DATE + INTERVAL '14 day') THEN 'due_14'
+            WHEN rr.lsd_date::date <= (CURRENT_DATE + INTERVAL '30 day') THEN 'due_30'
             ELSE 'watch'
           END AS risk_level,
-          pl.billing_usd,
-          pl.collection_usd,
-          pl.ubt_usd
-        FROM project_lsd pl
+          rr.billing_usd,
+          rr.collection_usd,
+          rr.ubt_usd
+        FROM risk_rows rr
         WHERE ${conditions.join(' AND ')}
-        ORDER BY pl.lsd_date ASC, pl.ubt_usd DESC, pl.billing_project_name ASC
+        ORDER BY rr.lsd_date ASC, rr.ubt_usd DESC, rr.billing_project_name ASC
         LIMIT $${params.length}::int
       `,
       ...params
