@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { BillingMilestoneAISweepService } from '../services/billing-milestone-ai-sweep.service';
 import { logger } from '../utils/logger';
 import prisma from '../utils/prisma';
+import { SweepLockError } from '../utils/sweep-lock';
 
 const RUN_ON_START = process.env.RUN_BILLING_AI_SWEEP_ON_START === 'true';
 const CRON_EXPRESSION = process.env.BILLING_AI_SWEEP_CRON || '30 2 * * *';
@@ -51,6 +52,10 @@ const run = async (trigger: 'scheduled' | 'startup') => {
 
     logger.info('[BillingAISweep] Job completed', { result });
   } catch (error) {
+    if (error instanceof SweepLockError) {
+      logger.info('[BillingAISweep] Skipped — another run is in progress');
+      return;
+    }
     logger.error('[BillingAISweep] Job failed', {
       trigger,
       error: error instanceof Error ? error.message : String(error),
@@ -58,28 +63,34 @@ const run = async (trigger: 'scheduled' | 'startup') => {
   }
 };
 
-cron.schedule(
-  CRON_EXPRESSION,
-  () => {
-    run('scheduled').catch((error) => {
-      logger.error('[BillingAISweep] Scheduled run crashed', {
+if (!cron.validate(CRON_EXPRESSION)) {
+  logger.error('[BillingAISweep] Invalid cron expression, scheduler NOT started', {
+    cron: CRON_EXPRESSION,
+  });
+} else {
+  cron.schedule(
+    CRON_EXPRESSION,
+    () => {
+      run('scheduled').catch((error) => {
+        logger.error('[BillingAISweep] Scheduled run crashed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    },
+    { timezone: TIMEZONE }
+  );
+
+  logger.info('[BillingAISweep] Scheduler initialized', {
+    cron: CRON_EXPRESSION,
+    timezone: TIMEZONE,
+    runOnStart: RUN_ON_START,
+  });
+
+  if (RUN_ON_START) {
+    run('startup').catch((error) => {
+      logger.error('[BillingAISweep] Startup run crashed', {
         error: error instanceof Error ? error.message : String(error),
       });
     });
-  },
-  { timezone: TIMEZONE }
-);
-
-logger.info('[BillingAISweep] Scheduler initialized', {
-  cron: CRON_EXPRESSION,
-  timezone: TIMEZONE,
-  runOnStart: RUN_ON_START,
-});
-
-if (RUN_ON_START) {
-  run('startup').catch((error) => {
-    logger.error('[BillingAISweep] Startup run crashed', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  });
+  }
 }

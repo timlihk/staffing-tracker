@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import config from '../config';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+import { withSweepLock } from '../utils/sweep-lock';
 
 const AI_TRIGGER_STATUS = 'MILESTONE_AI_DATE_PASSED';
 const AI_MATCH_METHOD = 'ai_due_sweep';
@@ -13,6 +15,18 @@ const DEFAULT_LIMIT = 300;
 const DEFAULT_BATCH_SIZE = 20;
 const DEFAULT_MIN_CONFIDENCE = 0.75;
 const DEFAULT_AUTO_CONFIRM_CONFIDENCE = 0.92;
+const RETRY_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+
+const AIResultSchema = z.object({
+  results: z.array(z.object({
+    index: z.number().int().min(0),
+    due: z.boolean(),
+    confidence: z.number().min(0).max(1),
+    reason: z.string().optional().default(''),
+    parsedDate: z.string().nullable().optional().default(null),
+  })),
+});
 
 interface SweepCandidate {
   milestone_id: bigint;
@@ -105,6 +119,12 @@ export class BillingMilestoneAISweepService {
 
   static async runDailySweep(
     options: BillingMilestoneAISweepOptions = {}
+  ): Promise<BillingMilestoneAISweepResult> {
+    return withSweepLock('billing_ai_sweep', () => this.runDailySweepInner(options));
+  }
+
+  private static async runDailySweepInner(
+    options: BillingMilestoneAISweepOptions
   ): Promise<BillingMilestoneAISweepResult> {
     const dryRun = options.dryRun === true;
     const client = this.getClient();
@@ -294,30 +314,14 @@ export class BillingMilestoneAISweepService {
       rawFragment: this.trimForPrompt(candidate.raw_fragment, 900),
     }));
 
-    const response = await client.chat.completions.create({
-      model: config.ai.model || 'deepseek-chat',
-      temperature: 0,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: JSON.stringify({
-            asOfDate,
-            milestones: rows,
-          }),
-        },
-      ],
-    });
-
-    const content = response.choices[0]?.message?.content;
+    const content = await this.callAIWithRetry(client, rows, asOfDate);
     if (!content) {
       return new Map<number, AIDueEvaluation>();
     }
 
-    let parsed: { results?: AIResultRecord[] } = {};
+    let rawParsed: unknown;
     try {
-      parsed = JSON.parse(content) as { results?: AIResultRecord[] };
+      rawParsed = JSON.parse(content);
     } catch {
       logger.error('[BillingAISweep] Failed to parse AI response as JSON', {
         preview: content.slice(0, 240),
@@ -325,15 +329,22 @@ export class BillingMilestoneAISweepService {
       return new Map<number, AIDueEvaluation>();
     }
 
+    const validated = AIResultSchema.safeParse(rawParsed);
+    if (!validated.success) {
+      logger.error('[BillingAISweep] AI response failed schema validation', {
+        errors: validated.error.issues.slice(0, 5),
+        preview: content.slice(0, 240),
+      });
+      return new Map<number, AIDueEvaluation>();
+    }
+
     const result = new Map<number, AIDueEvaluation>();
-    for (const item of parsed.results || []) {
-      if (!Number.isInteger(item.index) || item.index < 0 || item.index >= batch.length) {
-        continue;
-      }
+    for (const item of validated.data.results) {
+      if (item.index >= batch.length) continue;
 
       const confidence = this.normalizeConfidence(item.confidence, 0);
       result.set(item.index, {
-        due: item.due === true,
+        due: item.due,
         confidence,
         reason: this.trimForPrompt(item.reason || 'AI flagged due-date condition', 240),
         parsedDate: item.parsedDate || null,
@@ -341,6 +352,43 @@ export class BillingMilestoneAISweepService {
     }
 
     return result;
+  }
+
+  private static async callAIWithRetry(
+    client: OpenAI,
+    rows: Array<Record<string, unknown>>,
+    asOfDate: string,
+  ): Promise<string | null> {
+    for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+      try {
+        const response = await client.chat.completions.create({
+          model: config.ai.model || 'deepseek-chat',
+          temperature: 0,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content: JSON.stringify({ asOfDate, milestones: rows }),
+            },
+          ],
+        });
+        return response.choices[0]?.message?.content ?? null;
+      } catch (error) {
+        const isLast = attempt === RETRY_ATTEMPTS;
+        logger.warn(`[BillingAISweep] AI call attempt ${attempt}/${RETRY_ATTEMPTS} failed`, {
+          error: error instanceof Error ? error.message : String(error),
+          willRetry: !isLast,
+        });
+        if (isLast) throw error;
+        await this.sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
+      }
+    }
+    return null; // unreachable but satisfies TS
+  }
+
+  private static sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private static async processCandidate(

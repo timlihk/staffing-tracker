@@ -12,6 +12,7 @@ import { BillingMilestoneAISweepService } from '../services/billing-milestone-ai
 import { BillingPipelineInsightsService } from '../services/billing-pipeline-insights.service';
 import { logger } from '../utils/logger';
 import prisma from '../utils/prisma';
+import { SweepLockError } from '../utils/sweep-lock';
 
 const toSafeNumber = (value: unknown): number | null => {
   if (value === null || value === undefined) return null;
@@ -279,6 +280,9 @@ export const runDueDateSweep = async (req: AuthRequest, res: Response) => {
       ...result,
     });
   } catch (error) {
+    if (error instanceof SweepLockError) {
+      return res.status(409).json({ error: error.message });
+    }
     logger.error('Error running date-based milestone sweep:', error as any);
     res.status(500).json({ error: 'Failed to run date-based milestone sweep' });
   }
@@ -324,6 +328,9 @@ export const runAIDueSweep = async (req: AuthRequest, res: Response) => {
       ...result,
     });
   } catch (error) {
+    if (error instanceof SweepLockError) {
+      return res.status(409).json({ error: error.message });
+    }
     logger.error('Error running AI milestone due-date sweep:', error as any);
     res.status(500).json({ error: 'Failed to run AI milestone due-date sweep' });
   }

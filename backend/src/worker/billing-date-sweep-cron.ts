@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { BillingMilestoneDateSweepService } from '../services/billing-milestone-date-sweep.service';
 import { logger } from '../utils/logger';
 import prisma from '../utils/prisma';
+import { SweepLockError } from '../utils/sweep-lock';
 
 const RUN_ON_START = process.env.RUN_BILLING_DATE_SWEEP_ON_START === 'true';
 const CRON_EXPRESSION = process.env.BILLING_DATE_SWEEP_CRON || '0 2 * * *';
@@ -34,6 +35,10 @@ const run = async (trigger: 'scheduled' | 'startup') => {
 
     logger.info('[BillingDateSweep] Job completed', { result });
   } catch (error) {
+    if (error instanceof SweepLockError) {
+      logger.info('[BillingDateSweep] Skipped — another run is in progress');
+      return;
+    }
     logger.error('[BillingDateSweep] Job failed', {
       trigger,
       error: error instanceof Error ? error.message : String(error),
@@ -41,28 +46,34 @@ const run = async (trigger: 'scheduled' | 'startup') => {
   }
 };
 
-cron.schedule(
-  CRON_EXPRESSION,
-  () => {
-    run('scheduled').catch((error) => {
-      logger.error('[BillingDateSweep] Scheduled run crashed', {
+if (!cron.validate(CRON_EXPRESSION)) {
+  logger.error('[BillingDateSweep] Invalid cron expression, scheduler NOT started', {
+    cron: CRON_EXPRESSION,
+  });
+} else {
+  cron.schedule(
+    CRON_EXPRESSION,
+    () => {
+      run('scheduled').catch((error) => {
+        logger.error('[BillingDateSweep] Scheduled run crashed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    },
+    { timezone: TIMEZONE }
+  );
+
+  logger.info('[BillingDateSweep] Scheduler initialized', {
+    cron: CRON_EXPRESSION,
+    timezone: TIMEZONE,
+    runOnStart: RUN_ON_START,
+  });
+
+  if (RUN_ON_START) {
+    run('startup').catch((error) => {
+      logger.error('[BillingDateSweep] Startup run crashed', {
         error: error instanceof Error ? error.message : String(error),
       });
     });
-  },
-  { timezone: TIMEZONE }
-);
-
-logger.info('[BillingDateSweep] Scheduler initialized', {
-  cron: CRON_EXPRESSION,
-  timezone: TIMEZONE,
-  runOnStart: RUN_ON_START,
-});
-
-if (RUN_ON_START) {
-  run('startup').catch((error) => {
-    logger.error('[BillingDateSweep] Startup run crashed', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  });
+  }
 }

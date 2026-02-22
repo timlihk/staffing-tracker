@@ -2,6 +2,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+import { withSweepLock } from '../utils/sweep-lock';
 
 const DATE_SWEEP_TRIGGER_STATUS = 'MILESTONE_DUE_DATE_PASSED';
 const DATE_SWEEP_MATCH_METHOD = 'date_sweep';
@@ -45,6 +46,10 @@ interface CandidateProcessResult {
 
 export class BillingMilestoneDateSweepService {
   static async runDailySweep(options: BillingMilestoneDateSweepOptions = {}): Promise<BillingMilestoneDateSweepResult> {
+    return withSweepLock('billing_date_sweep', () => this.runDailySweepInner(options));
+  }
+
+  private static async runDailySweepInner(options: BillingMilestoneDateSweepOptions): Promise<BillingMilestoneDateSweepResult> {
     const dryRun = options.dryRun === true;
     const limit = this.normalizeLimit(options.limit);
     const candidates = await this.fetchCandidates(limit);
