@@ -25,7 +25,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Autocomplete,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -35,7 +34,6 @@ import {
   Delete as DeleteIcon,
   ChangeCircle,
   CheckCircleOutline,
-  Timeline,
   History,
   Group,
   OpenInNew,
@@ -76,54 +74,12 @@ const getActionIcon = (actionType: string) => {
   }
 };
 
-interface ProjectEventRecord {
-  id: number;
-  event_type: string;
-  event_key?: string | null;
-  occurred_at: string;
-  status_from?: string | null;
-  status_to?: string | null;
-  lifecycle_stage_from?: string | null;
-  lifecycle_stage_to?: string | null;
-  source?: string | null;
-  payload?: Record<string, unknown> | null;
-}
-
-interface CreateProjectEventResponse {
-  event: ProjectEventRecord;
-  triggersCreated: number;
-  triggerIds: number[];
-}
-
-
-const CANONICAL_EVENT_OPTIONS = [
-  'PROJECT_CLOSED',
-  'PROJECT_TERMINATED',
-  'PROJECT_PAUSED',
-  'PROJECT_RESUMED',
-  'NEW_ENGAGEMENT',
-  'PROJECT_KICKOFF',
-  'CONFIDENTIAL_FILING_SUBMITTED',
-  'A1_SUBMITTED',
-  'HEARING_PASSED',
-  'LISTING_COMPLETED',
-  'RENEWAL_CYCLE_STARTED',
-];
-
-
 const formatLifecycleStage = (stage?: string | null) => {
   if (!stage) return '—';
   return stage
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
-
-const formatEventType = (eventType: string) =>
-  eventType
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -132,17 +88,10 @@ const ProjectDetail: React.FC = () => {
   const permissions = usePermissions();
   const [project, setProject] = useState<Project | null>(null);
   const [changeHistory, setChangeHistory] = useState<ChangeHistory[]>([]);
-  const [projectEvents, setProjectEvents] = useState<ProjectEventRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [eventsLoading, setEventsLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<ProjectAssignment | null>(null);
   const [savingAssignment, setSavingAssignment] = useState(false);
-  const [eventDialogOpen, setEventDialogOpen] = useState(false);
-  const [eventTypeInput, setEventTypeInput] = useState('');
-  const [eventOccurredAt, setEventOccurredAt] = useState('');
-  const [eventNotes, setEventNotes] = useState('');
-  const [creatingEvent, setCreatingEvent] = useState(false);
 
   // Billing project ID for C/M link
   const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
@@ -188,30 +137,22 @@ const ProjectDetail: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-      setEventsLoading(permissions.isAdmin);
       try {
-        const eventsRequest = permissions.isAdmin
-          ? api.get<ProjectEventRecord[]>(`/projects/${id}/events`, { params: { limit: 100 } })
-          : Promise.resolve({ data: [] as ProjectEventRecord[] });
-
-        const [projectResponse, changeHistoryResponse, eventsResponse] = await Promise.all([
+        const [projectResponse, changeHistoryResponse] = await Promise.all([
           api.get(`/projects/${id}`),
           api.get(`/projects/${id}/change-history`),
-          eventsRequest,
         ]);
         setProject(projectResponse.data);
         setChangeHistory(changeHistoryResponse.data);
-        setProjectEvents(eventsResponse.data);
       } catch (error) {
         toast.error('Failed to load project details', 'Please try again later');
       } finally {
-        setEventsLoading(false);
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id, permissions.isAdmin]);
+  }, [id]);
 
   // Look up billing project ID when project has a C/M number
   useEffect(() => {
@@ -231,31 +172,6 @@ const ProjectDetail: React.FC = () => {
       });
     return () => { cancelled = true; };
   }, [project?.cmNumber]);
-
-  const refreshProjectEvents = async () => {
-    if (!id || !permissions.isAdmin) {
-      setProjectEvents([]);
-      return;
-    }
-    setEventsLoading(true);
-    try {
-      const response = await api.get<ProjectEventRecord[]>(`/projects/${id}/events`, {
-        params: { limit: 100 },
-      });
-      setProjectEvents(response.data);
-    } catch (error) {
-      toast.error('Failed to refresh project events', 'Please try again later');
-    } finally {
-      setEventsLoading(false);
-    }
-  };
-
-
-  const resetEventForm = () => {
-    setEventTypeInput('');
-    setEventOccurredAt('');
-    setEventNotes('');
-  };
 
   const handleCmInputChange = useCallback((value: string) => {
     setCmInput(value);
@@ -317,53 +233,6 @@ const ProjectDetail: React.FC = () => {
       handleCmInputChange(project.cmNumber);
     }
   };
-
-  const handleCreateProjectEvent = async () => {
-    if (!id) return;
-    const eventType = eventTypeInput.trim();
-    if (!eventType) {
-      toast.error('Event type is required');
-      return;
-    }
-
-    try {
-      setCreatingEvent(true);
-
-      const payload = eventNotes.trim()
-        ? { notes: eventNotes.trim() }
-        : undefined;
-
-      const occurredAt = eventOccurredAt
-        ? new Date(eventOccurredAt).toISOString()
-        : undefined;
-
-      const response = await api.post<CreateProjectEventResponse>(`/projects/${id}/events`, {
-        eventType,
-        occurredAt,
-        source: 'manual_ui',
-        payload,
-      });
-
-      const triggersCreated = response.data?.triggersCreated ?? 0;
-      const triggerMessage =
-        triggersCreated > 0
-          ? `${triggersCreated} billing trigger${triggersCreated === 1 ? '' : 's'} queued`
-          : 'No milestone trigger matched immediately';
-
-      toast.success('Project event added', triggerMessage);
-      setEventDialogOpen(false);
-      resetEventForm();
-      await refreshProjectEvents();
-    } catch (error) {
-      const message = isAxiosError<{ error?: string }>(error)
-        ? (error.response?.data?.error ?? 'Please try again')
-        : 'Please try again';
-      toast.error('Failed to add project event', message);
-    } finally {
-      setCreatingEvent(false);
-    }
-  };
-
 
   if (loading) {
     return (
@@ -695,23 +564,21 @@ const ProjectDetail: React.FC = () => {
               },
               {
                 label: 'C/M NUMBER',
-                value: project.cmNumber || '-',
-                action: (
-                  <Stack direction="row" spacing={0.5} alignItems="center">
-                    {billingProjectId && (
-                      <Tooltip title="Open billing detail">
-                        <IconButton size="small" onClick={() => navigate(`/billing/${billingProjectId}`)} sx={{ p: 0.25 }}>
-                          <OpenInNew fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {permissions.canEditProject && (
-                      <IconButton size="small" onClick={openCmDialog} sx={{ p: 0.25 }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    )}
-                  </Stack>
-                ),
+                value: project.cmNumber && billingProjectId ? (
+                  <Typography
+                    variant="body1"
+                    component="span"
+                    sx={{ color: 'primary.main', cursor: 'pointer', textDecoration: 'underline', '&:hover': { color: 'primary.dark' } }}
+                    onClick={() => navigate(`/billing/${billingProjectId}`)}
+                  >
+                    {project.cmNumber}
+                  </Typography>
+                ) : (project.cmNumber || '-'),
+                action: permissions.canEditProject ? (
+                  <IconButton size="small" onClick={openCmDialog} sx={{ p: 0.25 }}>
+                    <Edit fontSize="small" />
+                  </IconButton>
+                ) : undefined,
               },
               {
                 label: 'SIDE',
@@ -898,110 +765,6 @@ const ProjectDetail: React.FC = () => {
           </Paper>
         </Stack>
 
-        {permissions.isAdmin && (
-          <Paper sx={{ p: 3 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Timeline color="primary" />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Project Event Diagnostics
-                </Typography>
-              </Box>
-              {permissions.canEditProject && (
-                <Button
-                  startIcon={<Add />}
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setEventDialogOpen(true)}
-                >
-                  Add
-                </Button>
-              )}
-            </Stack>
-
-            {eventsLoading ? (
-              <Box display="flex" justifyContent="center" py={3}>
-                <CircularProgress size={24} />
-              </Box>
-            ) : projectEvents.length > 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {projectEvents.slice(0, 10).map((event) => {
-                  const notesValue =
-                    event.payload && typeof event.payload === 'object' && event.payload.notes
-                      ? String(event.payload.notes)
-                      : null;
-
-                  return (
-                    <Box
-                      key={event.id}
-                      sx={{
-                        display: 'flex',
-                        gap: 2,
-                        p: 1.5,
-                        borderRadius: 1,
-                        bgcolor: 'grey.50',
-                        border: '1px solid',
-                        borderColor: 'grey.100',
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <Box sx={{ minWidth: 90, flexShrink: 0 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(event.occurred_at).toLocaleDateString()}
-                        </Typography>
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {new Date(event.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 0.5 }}>
-                          <Chip size="small" color="primary" label={formatEventType(event.event_type)} sx={{ height: 20 }} />
-                          <Chip size="small" variant="outlined" label={event.source || 'system'} sx={{ height: 20 }} />
-                        </Stack>
-                        {(event.status_from || event.status_to) && (
-                          <Typography variant="caption" color="text.secondary">
-                            Status: {event.status_from || '—'} → {event.status_to || '—'}
-                          </Typography>
-                        )}
-                        {(event.lifecycle_stage_from || event.lifecycle_stage_to) && (
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Lifecycle: {formatLifecycleStage(event.lifecycle_stage_from)} → {formatLifecycleStage(event.lifecycle_stage_to)}
-                          </Typography>
-                        )}
-                        {notesValue && (
-                          <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
-                            {notesValue}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  );
-                })}
-                {projectEvents.length > 10 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
-                    +{projectEvents.length - 10} more events
-                  </Typography>
-                )}
-              </Box>
-            ) : (
-              <Box
-                sx={{
-                  p: 2,
-                  textAlign: 'center',
-                  bgcolor: 'grey.50',
-                  borderRadius: 1,
-                  border: '1px dashed',
-                  borderColor: 'grey.300',
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  No trigger events recorded yet
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        )}
-
         {/* Change History */}
         <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -1071,78 +834,6 @@ const ProjectDetail: React.FC = () => {
           )}
         </Paper>
       </Stack>
-      {permissions.isAdmin && (
-        <Dialog
-          open={eventDialogOpen}
-          onClose={() => {
-            if (!creatingEvent) {
-              setEventDialogOpen(false);
-              resetEventForm();
-            }
-          }}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Add Project Event</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} mt={1}>
-              <Autocomplete
-                freeSolo
-                options={CANONICAL_EVENT_OPTIONS}
-                value={eventTypeInput}
-                inputValue={eventTypeInput}
-                onInputChange={(_, value) => setEventTypeInput(value)}
-                onChange={(_, value) => setEventTypeInput(typeof value === 'string' ? value : value || '')}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Event Type"
-                    required
-                    helperText="Use canonical event names or enter a bespoke event label."
-                  />
-                )}
-              />
-
-              <TextField
-                label="Occurred At"
-                type="datetime-local"
-                value={eventOccurredAt}
-                onChange={(e) => setEventOccurredAt(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <TextField
-                label="Notes"
-                multiline
-                minRows={3}
-                value={eventNotes}
-                onChange={(e) => setEventNotes(e.target.value)}
-                placeholder="Optional context for reviewers"
-              />
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                if (!creatingEvent) {
-                  setEventDialogOpen(false);
-                  resetEventForm();
-                }
-              }}
-              disabled={creatingEvent}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleCreateProjectEvent}
-              disabled={creatingEvent || !eventTypeInput.trim()}
-            >
-              {creatingEvent ? 'Adding...' : 'Add Event'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
       {/* C/M Number Edit Dialog */}
       <Dialog
         open={cmDialogOpen}
