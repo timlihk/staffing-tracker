@@ -15,6 +15,7 @@ function mapLifecycleStageToEvent(stage: string | null): string | null {
   if (!stage) return null;
   switch (stage.toLowerCase()) {
     case 'signed':
+    case 'new_engagement':
       return CanonicalProjectEventType.EL_SIGNED;
     case 'kickoff':
       return CanonicalProjectEventType.PROJECT_KICKOFF;

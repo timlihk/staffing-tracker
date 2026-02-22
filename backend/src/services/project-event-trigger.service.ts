@@ -771,6 +771,7 @@ export class ProjectEventTriggerService {
 
     switch (stage.toLowerCase()) {
       case 'signed':
+      case 'new_engagement':
         return CanonicalProjectEventType.EL_SIGNED;
       case 'kickoff':
         return CanonicalProjectEventType.PROJECT_KICKOFF;
