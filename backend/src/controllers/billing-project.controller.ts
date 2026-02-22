@@ -596,24 +596,13 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'Billing project not found' });
     }
 
-    // Build update data for billing_project table
+    // Build update data for billing_project table (only project-level fields)
     const updateData: any = {
       updated_at: new Date(),
     };
 
     if (project_name !== undefined) updateData.project_name = project_name;
     if (client_name !== undefined) updateData.client_name = client_name;
-    if (agreed_fee_usd !== undefined) updateData.agreed_fee_usd = agreed_fee_usd;
-    if (agreed_fee_cny !== undefined) updateData.agreed_fee_cny = agreed_fee_cny;
-    if (billing_usd !== undefined) updateData.billing_usd = billing_usd;
-    if (billing_cny !== undefined) updateData.billing_cny = billing_cny;
-    if (collection_usd !== undefined) updateData.collection_usd = collection_usd;
-    if (collection_cny !== undefined) updateData.collection_cny = collection_cny;
-    if (ubt_usd !== undefined) updateData.ubt_usd = ubt_usd;
-    if (ubt_cny !== undefined) updateData.ubt_cny = ubt_cny;
-    if (billing_credit_usd !== undefined) updateData.billing_credit_usd = billing_credit_usd;
-    if (billing_credit_cny !== undefined) updateData.billing_credit_cny = billing_credit_cny;
-    if (bonus_usd !== undefined) updateData.bonus_usd = bonus_usd;
 
     // Update the project
     await prisma.billing_project.update({
@@ -653,6 +642,41 @@ export async function updateBillingProject(req: AuthRequest, res: Response) {
           return res.status(409).json({ error: 'C/M number already exists for this project' });
         }
         throw cmError;
+      }
+    }
+
+    // Update financial fields on the primary billing_project_cm_no record
+    const hasFinancials = [
+      agreed_fee_usd, billing_usd, billing_cny, collection_usd, collection_cny,
+      ubt_usd, ubt_cny, billing_credit_usd, billing_credit_cny,
+    ].some((v) => v !== undefined);
+
+    if (hasFinancials) {
+      const primaryCm = await prisma.billing_project_cm_no.findFirst({
+        where: { project_id: projectIdBigInt },
+        orderBy: [{ is_primary: 'desc' }, { cm_id: 'asc' }],
+      });
+
+      if (primaryCm) {
+        const cmUpdate: any = {};
+        if (agreed_fee_usd !== undefined) cmUpdate.agreed_fee_usd = agreed_fee_usd;
+        if (billing_usd !== undefined) cmUpdate.billing_to_date_usd = billing_usd;
+        if (billing_cny !== undefined) cmUpdate.billing_to_date_cny = billing_cny;
+        if (collection_usd !== undefined) cmUpdate.collected_to_date_usd = collection_usd;
+        if (collection_cny !== undefined) cmUpdate.collected_to_date_cny = collection_cny;
+        if (ubt_usd !== undefined) cmUpdate.ubt_usd = ubt_usd;
+        if (ubt_cny !== undefined) cmUpdate.ubt_cny = ubt_cny;
+        if (billing_credit_usd !== undefined) cmUpdate.billing_credit_usd = billing_credit_usd;
+        if (billing_credit_cny !== undefined) cmUpdate.billing_credit_cny = billing_credit_cny;
+
+        if (Object.keys(cmUpdate).length > 0) {
+          cmUpdate.financials_updated_at = new Date();
+          cmUpdate.financials_updated_by = userId;
+          await prisma.billing_project_cm_no.update({
+            where: { cm_id: primaryCm.cm_id },
+            data: cmUpdate,
+          });
+        }
       }
     }
 

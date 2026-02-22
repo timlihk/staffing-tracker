@@ -609,12 +609,20 @@ const ProjectDetail: React.FC = () => {
               {
                 label: 'C/M NUMBER',
                 value: project.cmNumber || '-',
-                action: permissions.canEditProject ? (
-                  <IconButton size="small" onClick={openCmDialog} sx={{ p: 0.25 }}>
-                    <Edit fontSize="small" />
-                  </IconButton>
-                ) : undefined,
-                linkTo: project.cmNumber && billingProjectId ? `/billing/${billingProjectId}` : undefined,
+                action: (
+                  <Stack direction="row" spacing={0.25} alignItems="center">
+                    {billingProjectId && (
+                      <IconButton size="small" onClick={() => navigate(`/billing/${billingProjectId}`)} sx={{ p: 0.25 }} title="Open billing detail">
+                        <OpenInNew fontSize="small" color="primary" />
+                      </IconButton>
+                    )}
+                    {permissions.canEditProject && (
+                      <IconButton size="small" onClick={openCmDialog} sx={{ p: 0.25 }}>
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Stack>
+                ),
               },
               {
                 label: 'SIDE',
@@ -647,7 +655,7 @@ const ProjectDetail: React.FC = () => {
                 value: project.lastConfirmedAt
                   ? `${formatDate(project.lastConfirmedAt)} by ${project.confirmedBy?.username || 'Unknown'}`
                   : 'Never confirmed',
-              }] as Array<{ label: string; value: string; action?: React.ReactNode; linkTo?: string }>).map((item) => (
+              }] as Array<{ label: string; value: string; action?: React.ReactNode }>).map((item) => (
                 <Box
                   key={item.label}
                   sx={{
@@ -665,20 +673,9 @@ const ProjectDetail: React.FC = () => {
                     {item.label}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {item.linkTo ? (
-                      <Typography
-                        variant="body2"
-                        component="span"
-                        sx={{ fontWeight: 600, color: 'primary.main', cursor: 'pointer', textDecoration: 'underline', '&:hover': { color: 'primary.dark' } }}
-                        onClick={() => navigate(item.linkTo!)}
-                      >
-                        {item.value}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {item.value}
-                      </Typography>
-                    )}
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {item.value}
+                    </Typography>
                     {item.action}
                   </Box>
                 </Box>
