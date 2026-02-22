@@ -89,7 +89,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${alpha(colors.violet[200], 0.1)} 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${alpha(colors.violet[400], 0.1)} 0%, transparent 70%)`,
           pointerEvents: 'none',
           zIndex: 0,
         }}
