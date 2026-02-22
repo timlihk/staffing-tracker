@@ -194,36 +194,36 @@ export default function BillingMatters() {
   const columns: GridColDef[] = useMemo(
     () => [
       {
-        field: 'project_name',
-        headerName: 'Project',
+        field: 'cm_numbers',
+        headerName: 'C/M Number',
         flex: isMobile ? 0 : 1,
-        minWidth: isMobile ? 140 : 200,
+        minWidth: isMobile ? 110 : 150,
         renderCell: (params: GridRenderCellParams) => (
           <MuiLink
             component={RouterLink}
             to={`/billing/${params.row.project_id}`}
-            sx={{ 
-              fontWeight: 500, 
-              textDecoration: 'none', 
+            sx={{
+              fontWeight: 500,
+              textDecoration: 'none',
               '&:hover': { textDecoration: 'underline' },
               fontSize: isMobile ? '0.875rem' : 'inherit',
             }}
           >
-            {params.value}
+            {params.value || '—'}
           </MuiLink>
         ),
+      },
+      {
+        field: 'project_name',
+        headerName: 'Project',
+        flex: isMobile ? 0 : 1,
+        minWidth: isMobile ? 140 : 200,
       },
       {
         field: 'client_name',
         headerName: 'Client',
         flex: isMobile ? 0 : 0.8,
         minWidth: isMobile ? 100 : 150,
-        hideable: true,
-      },
-      {
-        field: 'cm_numbers',
-        headerName: 'C/M',
-        width: isMobile ? 90 : 120,
         hideable: true,
       },
       {
@@ -363,7 +363,7 @@ export default function BillingMatters() {
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              placeholder="Search by project or C/M number..."
+              placeholder="Search by C/M number, project, or client..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               size="small"
