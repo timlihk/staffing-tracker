@@ -197,7 +197,7 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
           engagementId: engagement.engagement_id,
           milestones: [
             {
-              milestone_id: milestoneToEdit.milestone_id,
+              milestone_id: Number(milestoneToEdit.milestone_id),
               ...basePayload,
             },
           ],
@@ -236,7 +236,7 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
         projectId,
         cmId: cmId ?? undefined,
         engagementId: engagement.engagement_id,
-        milestoneId: milestoneToDelete.milestone_id,
+        milestoneId: Number(milestoneToDelete.milestone_id),
       });
       setMilestoneToDelete(null);
       setDeleteDialogOpen(false);
