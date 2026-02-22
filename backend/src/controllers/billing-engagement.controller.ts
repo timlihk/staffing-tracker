@@ -369,6 +369,65 @@ export async function createEngagement(req: AuthRequest, res: Response) {
 }
 
 /**
+ * DELETE /api/billing/engagements/:engagementId
+ * Delete an engagement and all related data (cascades)
+ */
+export async function deleteEngagement(req: AuthRequest, res: Response) {
+  try {
+    let engagementIdBigInt: bigint;
+    try {
+      engagementIdBigInt = parseNumericIdParam(req.params.engagementId, 'engagement ID');
+    } catch (err) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+
+    const engagementProject = await prisma.$queryRaw<{ project_id: bigint; engagement_title: string | null }[]>`
+      SELECT cm.project_id, e.engagement_title
+      FROM billing_engagement e
+      JOIN billing_project_cm_no cm ON cm.cm_id = e.cm_id
+      WHERE e.engagement_id = ${engagementIdBigInt}
+      LIMIT 1
+    `;
+
+    if (!engagementProject.length) {
+      return res.status(404).json({ error: 'Engagement not found' });
+    }
+
+    const hasAccess = await canAccessBillingProject(engagementProject[0].project_id, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
+    }
+
+    const deleted = await prisma.$queryRaw<{ engagement_id: bigint }[]>`
+      DELETE FROM billing_engagement
+      WHERE engagement_id = ${engagementIdBigInt}
+      RETURNING engagement_id
+    `;
+
+    if (!deleted || deleted.length === 0) {
+      return res.status(404).json({ error: 'Engagement not found' });
+    }
+
+    if (req.user?.userId) {
+      await prisma.activityLog.create({
+        data: {
+          userId: req.user.userId,
+          actionType: 'delete',
+          entityType: 'billing_engagement',
+          entityId: toSafeNumber(engagementIdBigInt),
+          description: `Deleted engagement "${engagementProject[0].engagement_title || engagementIdBigInt.toString()}"`,
+        },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error deleting engagement', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to delete engagement' });
+  }
+}
+
+/**
  * PATCH /api/billing/engagements/:engagementId/fee-arrangement
  * Update fee arrangement reference text and LSD date for an engagement
  */

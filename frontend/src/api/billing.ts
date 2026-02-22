@@ -404,6 +404,16 @@ export const deleteMilestone = async (milestoneId: number) => {
   return response.data;
 };
 
+export const deleteProject = async (projectId: number) => {
+  const response = await apiClient.delete(`/billing/projects/${projectId}`);
+  return response.data;
+};
+
+export const deleteEngagement = async (engagementId: number) => {
+  const response = await apiClient.delete(`/billing/engagements/${engagementId}`);
+  return response.data;
+};
+
 // Get billing access settings
 export const getBillingAccessSettings = async (): Promise<BillingAccessSettings> => {
   const response = await apiClient.get('/billing/settings/access');

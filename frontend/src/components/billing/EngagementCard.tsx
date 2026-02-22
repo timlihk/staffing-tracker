@@ -12,6 +12,7 @@ import {
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
 import { InfoField } from './InfoField';
 import { MilestoneReferenceSection } from './MilestoneReferenceSection';
@@ -19,12 +20,15 @@ import { MilestoneTable } from './MilestoneTable';
 import { MilestoneReferenceDialog } from './MilestoneReferenceDialog';
 import { MilestoneFormDialog } from './MilestoneFormDialog';
 import { MilestoneDeleteDialog } from './MilestoneDeleteDialog';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import {
   useUpdateFeeArrangement,
   useUpdateMilestones,
   useCreateMilestone,
   useDeleteMilestone,
+  useDeleteEngagement,
 } from '../../hooks/useBilling';
+import { usePermissions } from '../../hooks/usePermissions';
 import { formatCurrency } from '../../lib/currency';
 import {
   formatDate,
@@ -50,6 +54,7 @@ export interface EngagementCardProps {
 }
 
 export function EngagementCard({ projectId, cmId, engagement }: EngagementCardProps) {
+  const permissions = usePermissions();
   const [expanded, setExpanded] = useState(false);
 
   const sortedMilestones = useMemo<Milestone[]>(() => {
@@ -76,6 +81,7 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
   const updateMilestonesMutation = useUpdateMilestones();
   const createMilestoneMutation = useCreateMilestone();
   const deleteMilestoneMutation = useDeleteMilestone();
+  const deleteEngagementMutation = useDeleteEngagement();
 
   // Reference dialog state
   const [referenceDialogOpen, setReferenceDialogOpen] = useState(false);
@@ -87,13 +93,17 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
   const [milestoneForm, setMilestoneForm] = useState<MilestoneFormState>(() => createMilestoneFormState());
   const [milestoneToEdit, setMilestoneToEdit] = useState<Milestone | null>(null);
 
-  // Delete dialog state
+  // Delete milestone dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [milestoneToDelete, setMilestoneToDelete] = useState<Milestone | null>(null);
+
+  // Delete engagement dialog state
+  const [deleteEngagementDialogOpen, setDeleteEngagementDialogOpen] = useState(false);
 
   const isReferenceSaving = updateFeeArrangement.isPending;
   const isMilestoneSaving = updateMilestonesMutation.isPending || createMilestoneMutation.isPending;
   const isDeletingMilestone = deleteMilestoneMutation.isPending;
+  const isDeletingEngagement = deleteEngagementMutation.isPending;
 
   // Reference handlers
   const handleOpenReferenceEditor = () => {
@@ -235,6 +245,30 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
     }
   };
 
+  // Delete engagement handlers
+  const handleOpenDeleteEngagement = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteEngagementDialogOpen(true);
+  };
+
+  const handleCloseDeleteEngagement = () => {
+    if (isDeletingEngagement) return;
+    setDeleteEngagementDialogOpen(false);
+  };
+
+  const handleConfirmDeleteEngagement = async () => {
+    try {
+      await deleteEngagementMutation.mutateAsync({
+        projectId,
+        cmId: cmId ?? undefined,
+        engagementId: engagement.engagement_id,
+      });
+      setDeleteEngagementDialogOpen(false);
+    } catch {
+      // handled by mutation toast
+    }
+  };
+
   return (
     <>
       <Paper sx={cardSx}>
@@ -268,14 +302,27 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
                 </Typography>
               </Stack>
             </Stack>
-            {totalCount > 0 && (
-              <Chip
-                label={`${completedCount}/${totalCount} milestones`}
-                size="small"
-                color={completedCount === totalCount ? 'success' : 'default'}
-                variant="outlined"
-              />
-            )}
+            <Stack direction="row" spacing={1} alignItems="center">
+              {totalCount > 0 && (
+                <Chip
+                  label={`${completedCount}/${totalCount} milestones`}
+                  size="small"
+                  color={completedCount === totalCount ? 'success' : 'default'}
+                  variant="outlined"
+                />
+              )}
+              {permissions.isAdmin && (
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={handleOpenDeleteEngagement}
+                  aria-label="Delete engagement"
+                  sx={{ p: 0.5 }}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Stack>
           </Stack>
 
           <Collapse in={expanded}>
@@ -361,6 +408,15 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
         deleting={isDeletingMilestone}
         onClose={handleCloseDeleteDialog}
         onConfirm={handleConfirmDelete}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteEngagementDialogOpen}
+        title="Delete engagement"
+        message={`Are you sure you want to delete "${engagementLabel}"? This will permanently remove all milestones, fee arrangements, and related data.`}
+        deleting={isDeletingEngagement}
+        onClose={handleCloseDeleteEngagement}
+        onConfirm={handleConfirmDeleteEngagement}
       />
     </>
   );

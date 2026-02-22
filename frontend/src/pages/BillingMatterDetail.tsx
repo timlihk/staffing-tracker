@@ -12,10 +12,11 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   Add as AddIcon,
+  DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
-import { CmSummaryCard, EngagementCard, EngagementFormCard, BillingInfoEditDialog, type BillingInfoFormData } from '../components/billing';
-import { useBillingProjectSummary } from '../hooks/useBilling';
+import { CmSummaryCard, EngagementCard, EngagementFormCard, BillingInfoEditDialog, DeleteConfirmDialog, type BillingInfoFormData } from '../components/billing';
+import { useBillingProjectSummary, useDeleteProject } from '../hooks/useBilling';
 import { parseEngagementId } from '../lib/billing/utils';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../api/client';
@@ -30,8 +31,10 @@ export default function BillingMatterDetail() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showEngagementForm, setShowEngagementForm] = useState(false);
+  const [deleteProjectDialogOpen, setDeleteProjectDialogOpen] = useState(false);
 
   const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useBillingProjectSummary(projectId, { view: 'full' });
+  const deleteProjectMutation = useDeleteProject();
 
   const project = summary?.project;
 
@@ -55,6 +58,16 @@ export default function BillingMatterDetail() {
     }
   };
 
+  const handleConfirmDeleteProject = async () => {
+    try {
+      await deleteProjectMutation.mutateAsync({ projectId });
+      setDeleteProjectDialogOpen(false);
+      navigate('/billing');
+    } catch {
+      // handled by mutation toast
+    }
+  };
+
   const pageSubtitle = useMemo(() => {
     if (!project) return undefined;
     return project.client_name || undefined;
@@ -75,9 +88,21 @@ export default function BillingMatterDetail() {
         title={project?.project_name || 'Billing matter'}
         subtitle={pageSubtitle}
         actions={
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/billing')} variant="outlined">
-            Back to list
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/billing')} variant="outlined">
+              Back to list
+            </Button>
+            {permissions.isAdmin && project && (
+              <Button
+                startIcon={<DeleteOutlineIcon />}
+                onClick={() => setDeleteProjectDialogOpen(true)}
+                variant="outlined"
+                color="error"
+              >
+                Delete Project
+              </Button>
+            )}
+          </Stack>
         }
       />
 
@@ -155,6 +180,15 @@ export default function BillingMatterDetail() {
           project={project}
         />
       )}
+
+      <DeleteConfirmDialog
+        open={deleteProjectDialogOpen}
+        title="Delete project"
+        message={`Are you sure you want to delete "${project?.project_name || 'this project'}"? This will permanently remove all engagements, milestones, and related data.`}
+        deleting={deleteProjectMutation.isPending}
+        onClose={() => !deleteProjectMutation.isPending && setDeleteProjectDialogOpen(false)}
+        onConfirm={handleConfirmDeleteProject}
+      />
 
     </Page>
   );

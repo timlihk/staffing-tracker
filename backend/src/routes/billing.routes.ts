@@ -280,6 +280,34 @@ router.put('/projects/:id', authenticate, adminOnly, validate(billingIdParamSche
 
 /**
  * @openapi
+ * /billing/projects/{id}:
+ *   delete:
+ *     tags: [Billing]
+ *     summary: Delete billing project
+ *     description: Delete a billing project and all related data (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Billing project ID
+ *     responses:
+ *       200:
+ *         description: Billing project deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: Billing project not found
+ */
+router.delete('/projects/:id', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), billingController.deleteProject);
+
+/**
+ * @openapi
  * /billing/projects/{id}/engagement/{engagementId}:
  *   get:
  *     tags: [Billing]
@@ -523,6 +551,34 @@ router.patch(
   validate(updateFeeArrangementSchema),
   billingController.updateFeeArrangement
 );
+
+/**
+ * @openapi
+ * /billing/engagements/{engagementId}:
+ *   delete:
+ *     tags: [Billing]
+ *     summary: Delete engagement
+ *     description: Delete an engagement and all related data (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: engagementId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Engagement ID
+ *     responses:
+ *       200:
+ *         description: Engagement deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (admin only)
+ *       404:
+ *         description: Engagement not found
+ */
+router.delete('/engagements/:engagementId', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), billingController.deleteEngagement);
 
 /**
  * @openapi
