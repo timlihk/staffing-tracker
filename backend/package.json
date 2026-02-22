@@ -27,6 +27,8 @@
     "billing:update-financials": "python3 src/scripts/update-billing-from-excel.py",
     "billing:update-master": "ts-node src/scripts/update-billing-master.ts",
     "billing:update-all": "npm run billing:update-master",
+    "billing:sweep-due-milestones": "ts-node src/scripts/run-date-milestone-sweep.ts",
+    "billing:sweep-ai-milestones": "ts-node src/scripts/run-ai-milestone-sweep.ts",
     "billing:backfill-missing-project-milestones": "ts-node scripts/backfill-missing-project-milestones.ts",
     "billing:backfill-trigger-rules": "ts-node scripts/backfill-milestone-trigger-rules.ts",
     "billing:backfill-project-events": "ts-node scripts/backfill-project-events.ts"

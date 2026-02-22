@@ -7,6 +7,9 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { ProjectStatusTriggerService } from '../services/project-status-trigger.service';
+import { BillingMilestoneDateSweepService } from '../services/billing-milestone-date-sweep.service';
+import { BillingMilestoneAISweepService } from '../services/billing-milestone-ai-sweep.service';
+import { BillingPipelineInsightsService } from '../services/billing-pipeline-insights.service';
 import { logger } from '../utils/logger';
 
 const toSafeNumber = (value: unknown): number | null => {
@@ -248,5 +251,82 @@ export const getOverdueByAttorney = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Error fetching overdue by attorney:', error as any);
     res.status(500).json({ error: 'Failed to fetch overdue billing data' });
+  }
+};
+
+/**
+ * Run date-based milestone sweep (manual/admin trigger).
+ */
+export const runDueDateSweep = async (req: AuthRequest, res: Response) => {
+  try {
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const parsedLimit = Number(req.query?.limit);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+
+    const result = await BillingMilestoneDateSweepService.runDailySweep({
+      dryRun,
+      limit,
+    });
+
+    res.json({
+      message: dryRun
+        ? 'Dry run completed for date-based milestone sweep'
+        : 'Date-based milestone sweep completed',
+      ...result,
+    });
+  } catch (error) {
+    logger.error('Error running date-based milestone sweep:', error as any);
+    res.status(500).json({ error: 'Failed to run date-based milestone sweep' });
+  }
+};
+
+/**
+ * Run AI milestone due-date sweep (manual/admin trigger).
+ */
+export const runAIDueSweep = async (req: AuthRequest, res: Response) => {
+  try {
+    const dryRun = String(req.query?.dryRun || '').toLowerCase() === 'true';
+    const parsedLimit = Number(req.query?.limit);
+    const parsedBatchSize = Number(req.query?.batchSize);
+    const parsedMinConfidence = Number(req.query?.minConfidence);
+    const parsedAutoConfirmConfidence = Number(req.query?.autoConfirmConfidence);
+
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+    const batchSize = Number.isFinite(parsedBatchSize) ? parsedBatchSize : undefined;
+    const minConfidence = Number.isFinite(parsedMinConfidence) ? parsedMinConfidence : undefined;
+    const autoConfirmConfidence = Number.isFinite(parsedAutoConfirmConfidence)
+      ? parsedAutoConfirmConfidence
+      : undefined;
+
+    const result = await BillingMilestoneAISweepService.runDailySweep({
+      dryRun,
+      limit,
+      batchSize,
+      minConfidence,
+      autoConfirmConfidence,
+    });
+
+    res.json({
+      message: dryRun
+        ? 'Dry run completed for AI milestone due-date sweep'
+        : 'AI milestone due-date sweep completed',
+      ...result,
+    });
+  } catch (error) {
+    logger.error('Error running AI milestone due-date sweep:', error as any);
+    res.status(500).json({ error: 'Failed to run AI milestone due-date sweep' });
+  }
+};
+
+/**
+ * Get billing pipeline insights for control tower cards.
+ */
+export const getPipelineInsights = async (_req: AuthRequest, res: Response) => {
+  try {
+    const insights = await BillingPipelineInsightsService.getInsights();
+    res.json(insights);
+  } catch (error) {
+    logger.error('Error fetching billing pipeline insights:', error as any);
+    res.status(500).json({ error: 'Failed to fetch billing pipeline insights' });
   }
 };
