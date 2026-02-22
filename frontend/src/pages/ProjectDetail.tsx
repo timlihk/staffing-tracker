@@ -96,6 +96,9 @@ const ProjectDetail: React.FC = () => {
   // Billing project ID for C/M link
   const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
 
+  // Billing project ID for C/M number navigation
+  const [billingProjectId, setBillingProjectId] = useState<number | null>(null);
+
   // C/M number edit dialog state
   const [cmDialogOpen, setCmDialogOpen] = useState(false);
   const [cmInput, setCmInput] = useState('');
@@ -154,7 +157,7 @@ const ProjectDetail: React.FC = () => {
     fetchData();
   }, [id]);
 
-  // Look up billing project ID when project has a C/M number
+  // Look up billing project ID when project's C/M number is available
   useEffect(() => {
     if (!project?.cmNumber) {
       setBillingProjectId(null);
@@ -165,6 +168,8 @@ const ProjectDetail: React.FC = () => {
       .then((res) => {
         if (!cancelled && res.data.found) {
           setBillingProjectId(res.data.billingProjectId);
+        } else if (!cancelled) {
+          setBillingProjectId(null);
         }
       })
       .catch(() => {
@@ -172,6 +177,30 @@ const ProjectDetail: React.FC = () => {
       });
     return () => { cancelled = true; };
   }, [project?.cmNumber]);
+
+  const refreshProjectEvents = async () => {
+    if (!id || !permissions.isAdmin) {
+      setProjectEvents([]);
+      return;
+    }
+    setEventsLoading(true);
+    try {
+      const response = await api.get<ProjectEventRecord[]>(`/projects/${id}/events`, {
+        params: { limit: 100 },
+      });
+      setProjectEvents(response.data);
+    } catch (error) {
+      toast.error('Failed to refresh project events', 'Please try again later');
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  const resetEventForm = () => {
+    setEventTypeInput('');
+    setEventOccurredAt('');
+    setEventNotes('');
+  };
 
   const handleCmInputChange = useCallback((value: string) => {
     setCmInput(value);
