@@ -16,6 +16,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   Tabs,
@@ -32,11 +33,14 @@ import {
   useRejectBillingTrigger,
   useUpdateTriggerActionItem,
 } from '../hooks/useBilling';
+import { usePermissions } from '../hooks/usePermissions';
 import type { BillingTriggerRow } from '../api/billing';
 
 type SortField = 'overdueAmount' | 'overdueCount' | 'avgDaysOverdue' | 'projectCount';
 type ActionStatus = 'pending' | 'completed' | 'cancelled';
 type TowerView = 'manager' | 'captain' | 'finance';
+type TriggerFocus = 'all' | 'needs_review' | 'needs_action';
+type MetricTone = 'neutral' | 'positive' | 'warning' | 'danger';
 
 interface AttorneySummary {
   staffId: number;
@@ -49,11 +53,62 @@ interface AttorneySummary {
   nextDueDate: string | null;
 }
 
+interface MetricCardProps {
+  label: string;
+  value: string;
+  helper?: string;
+  tone?: MetricTone;
+}
+
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
   maximumFractionDigits: 0,
 });
+
+const toneStyles: Record<MetricTone, { borderColor: string; backgroundColor: string }> = {
+  neutral: {
+    borderColor: 'divider',
+    backgroundColor: 'background.paper',
+  },
+  positive: {
+    borderColor: 'success.light',
+    backgroundColor: 'success.50',
+  },
+  warning: {
+    borderColor: 'warning.light',
+    backgroundColor: 'warning.50',
+  },
+  danger: {
+    borderColor: 'error.light',
+    backgroundColor: 'error.50',
+  },
+};
+
+const MetricCard: React.FC<MetricCardProps> = ({ label, value, helper, tone = 'neutral' }) => (
+  <Paper
+    variant="outlined"
+    sx={{
+      p: 2,
+      flex: 1,
+      minWidth: 180,
+      borderColor: toneStyles[tone].borderColor,
+      bgcolor: toneStyles[tone].backgroundColor,
+    }}
+  >
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+      {value}
+    </Typography>
+    {helper ? (
+      <Typography variant="caption" color="text.secondary">
+        {helper}
+      </Typography>
+    ) : null}
+  </Paper>
+);
 
 const toNumber = (value: unknown) => {
   const parsed = typeof value === 'number' ? value : Number(value ?? 0);
@@ -71,10 +126,46 @@ const daysOverdue = (dueDate?: string | null) => {
 
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '—');
 const toInputDate = (value?: string | null) => (value ? new Date(value).toISOString().slice(0, 10) : '');
+const toYmd = (value: Date) => value.toISOString().slice(0, 10);
+const plusDaysYmd = (days: number) => {
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + days);
+  return toYmd(dueDate);
+};
+
 const formatCode = (value?: string | null) => {
   if (!value) return '—';
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 };
+
+const statusChipColor = (value?: string | null) => {
+  if (value === 'pending') return 'warning' as const;
+  if (value === 'confirmed') return 'success' as const;
+  if (value === 'rejected') return 'default' as const;
+  return 'default' as const;
+};
+
+const actionStatusChipColor = (value?: string | null) => {
+  if (value === 'completed') return 'success' as const;
+  if (value === 'pending') return 'warning' as const;
+  if (value === 'cancelled') return 'default' as const;
+  return 'default' as const;
+};
+
+const getRiskChip = (dueDate?: string | null) => {
+  const overdue = daysOverdue(dueDate);
+  if (overdue >= 60) {
+    return { label: `${overdue}d late`, color: 'error' as const };
+  }
+  if (overdue >= 31) {
+    return { label: `${overdue}d late`, color: 'warning' as const };
+  }
+  if (overdue > 0) {
+    return { label: `${overdue}d late`, color: 'info' as const };
+  }
+  return { label: 'On track', color: 'success' as const };
+};
+
 const getErrorMessage = (error: unknown) => {
   if (isAxiosError<{ error?: string }>(error)) {
     return error.response?.data?.error || error.message;
@@ -86,16 +177,23 @@ const getErrorMessage = (error: unknown) => {
 };
 
 const BillingControlTower: React.FC = () => {
+  const permissions = usePermissions();
+  const canOperateQueue = permissions.isAdmin;
+
   const [view, setView] = useState<TowerView>('manager');
   const [attorneyFilter, setAttorneyFilter] = useState<number | undefined>(undefined);
   const [minAmount, setMinAmount] = useState<number | undefined>(undefined);
   const [triggerStatus, setTriggerStatus] = useState<'pending' | 'confirmed' | 'rejected' | 'all'>('all');
+  const [triggerFocus, setTriggerFocus] = useState<TriggerFocus>('needs_review');
+  const [triggerSearch, setTriggerSearch] = useState('');
   const [sortField, setSortField] = useState<SortField>('overdueAmount');
+
   const [editingTrigger, setEditingTrigger] = useState<BillingTriggerRow | null>(null);
   const [actionTypeInput, setActionTypeInput] = useState('general_followup');
   const [actionStatusInput, setActionStatusInput] = useState<ActionStatus>('pending');
   const [actionDueDateInput, setActionDueDateInput] = useState('');
   const [actionDescriptionInput, setActionDescriptionInput] = useState('');
+  const [actionAssignedToInput, setActionAssignedToInput] = useState<number | ''>('');
 
   const overdueQuery = useOverdueByAttorney({
     attorneyId: attorneyFilter,
@@ -115,28 +213,59 @@ const BillingControlTower: React.FC = () => {
   const triggerRows = triggersQuery.data ?? [];
   const pipeline = pipelineInsightsQuery.data;
 
+  const isLoading = overdueQuery.isLoading || triggersQuery.isLoading || pipelineInsightsQuery.isLoading;
+  const loadError = overdueQuery.error || triggersQuery.error || pipelineInsightsQuery.error;
+  const isMutating = confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending;
+
   const attorneyOptions = useMemo(() => {
-    const map = new Map<number, { staffId: number; attorneyName: string }>();
+    const map = new Map<number, { staffId: number; attorneyName: string; attorneyPosition: string | null }>();
+
     for (const row of overdueRows) {
       if (!map.has(row.staffId)) {
-        map.set(row.staffId, { staffId: row.staffId, attorneyName: row.attorneyName });
+        map.set(row.staffId, {
+          staffId: row.staffId,
+          attorneyName: row.attorneyName,
+          attorneyPosition: row.attorneyPosition,
+        });
       }
     }
+
+    for (const row of pipeline?.byAttorney ?? []) {
+      if (!map.has(row.staffId)) {
+        map.set(row.staffId, {
+          staffId: row.staffId,
+          attorneyName: row.attorneyName,
+          attorneyPosition: row.attorneyPosition,
+        });
+      }
+    }
+
     return Array.from(map.values()).sort((a, b) => a.attorneyName.localeCompare(b.attorneyName));
+  }, [overdueRows, pipeline?.byAttorney]);
+
+  const milestoneToAttorney = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const row of overdueRows) {
+      map.set(Number(row.milestoneId), row.staffId);
+    }
+    return map;
   }, [overdueRows]);
 
   const attorneySummary = useMemo<AttorneySummary[]>(() => {
-    const grouped = new Map<number, {
-      staffId: number;
-      attorneyName: string;
-      attorneyPosition: string | null;
-      overdueAmount: number;
-      overdueCount: number;
-      overdueDaysTotal: number;
-      overdueDaysCount: number;
-      projectIds: Set<string>;
-      nextDueDate: string | null;
-    }>();
+    const grouped = new Map<
+      number,
+      {
+        staffId: number;
+        attorneyName: string;
+        attorneyPosition: string | null;
+        overdueAmount: number;
+        overdueCount: number;
+        overdueDaysTotal: number;
+        overdueDaysCount: number;
+        projectIds: Set<string>;
+        nextDueDate: string | null;
+      }
+    >();
 
     for (const row of overdueRows) {
       const current = grouped.get(row.staffId) ?? {
@@ -188,6 +317,77 @@ const BillingControlTower: React.FC = () => {
     });
   }, [attorneySummary, sortField]);
 
+  const filteredOverdueRows = useMemo(() => {
+    if (!attorneyFilter) return overdueRows;
+    return overdueRows.filter((row) => row.staffId === attorneyFilter);
+  }, [overdueRows, attorneyFilter]);
+
+  const baseFilteredTriggers = useMemo(() => {
+    const normalizedSearch = triggerSearch.trim().toLowerCase();
+
+    return triggerRows.filter((row) => {
+      const amount = toNumber(row.milestone?.amountValue);
+      if (minAmount !== undefined && amount < minAmount) {
+        return false;
+      }
+
+      if (attorneyFilter) {
+        const owner = milestoneToAttorney.get(Number(row.milestoneId));
+        if (owner !== attorneyFilter) {
+          return false;
+        }
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const haystack = [
+        row.project?.name,
+        row.milestone?.title,
+        row.triggerReason,
+        row.actionItem?.description,
+        row.actionItem?.actionType,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
+  }, [triggerRows, triggerSearch, minAmount, attorneyFilter, milestoneToAttorney]);
+
+  const captainTriggerRows = useMemo(() => {
+    if (triggerFocus === 'needs_review') {
+      return baseFilteredTriggers.filter((row) => row.status === 'pending');
+    }
+    if (triggerFocus === 'needs_action') {
+      return baseFilteredTriggers.filter((row) => row.status === 'confirmed' && row.actionItem?.status !== 'completed');
+    }
+    return baseFilteredTriggers;
+  }, [baseFilteredTriggers, triggerFocus]);
+
+  const pendingTriggerRows = useMemo(() => {
+    return baseFilteredTriggers.filter((row) => row.status === 'pending');
+  }, [baseFilteredTriggers]);
+
+  const financeInvoiceQueue = useMemo(() => {
+    return baseFilteredTriggers.filter((row) => {
+      const actionType = (row.actionItem?.actionType || row.actionTaken || '').toLowerCase();
+      const actionStatus = (row.actionItem?.status || 'pending').toLowerCase();
+      return row.status === 'confirmed' && actionType === 'issue_invoice' && actionStatus !== 'completed';
+    });
+  }, [baseFilteredTriggers]);
+
+  const financeFollowupQueue = useMemo(() => {
+    return baseFilteredTriggers.filter((row) => {
+      const actionType = (row.actionItem?.actionType || row.actionTaken || '').toLowerCase();
+      const actionStatus = (row.actionItem?.status || 'pending').toLowerCase();
+      const isFollowup = actionType === 'follow_up_payment' || actionType === 'general_followup';
+      return row.status === 'confirmed' && isFollowup && actionStatus !== 'completed';
+    });
+  }, [baseFilteredTriggers]);
+
   const riskKpis = useMemo(() => {
     const uniqueMilestoneIds = new Set<string>();
     let totalOverdueAmount = 0;
@@ -236,42 +436,59 @@ const BillingControlTower: React.FC = () => {
     };
   }, [pipeline?.totals, riskKpis, triggerRows]);
 
-  const filteredOverdueRows = useMemo(() => {
-    if (!attorneyFilter) return overdueRows;
-    return overdueRows.filter((row) => row.staffId === attorneyFilter);
-  }, [overdueRows, attorneyFilter]);
-
-  const pendingTriggerRows = useMemo(
-    () => triggerRows.filter((row) => row.status === 'pending'),
-    [triggerRows]
-  );
-
-  const financeInvoiceQueue = useMemo(() => {
-    return triggerRows.filter((row) => {
-      const actionType = (row.actionItem?.actionType || row.actionTaken || '').toLowerCase();
-      const actionStatus = (row.actionItem?.status || 'pending').toLowerCase();
-      return row.status === 'confirmed' && actionType === 'issue_invoice' && actionStatus !== 'completed';
-    });
-  }, [triggerRows]);
-
-  const financeFollowupQueue = useMemo(() => {
-    return triggerRows.filter((row) => {
-      const actionType = (row.actionItem?.actionType || row.actionTaken || '').toLowerCase();
-      const actionStatus = (row.actionItem?.status || 'pending').toLowerCase();
-      const isFollowup = actionType === 'follow_up_payment' || actionType === 'general_followup';
-      return row.status === 'confirmed' && isFollowup && actionStatus !== 'completed';
-    });
-  }, [triggerRows]);
-
-  const isLoading = overdueQuery.isLoading || triggersQuery.isLoading || pipelineInsightsQuery.isLoading;
-  const loadError = overdueQuery.error || triggersQuery.error || pipelineInsightsQuery.error;
+  const resolveActionType = (trigger: BillingTriggerRow) => {
+    return trigger.actionItem?.actionType || trigger.actionTaken || 'general_followup';
+  };
 
   const handleConfirm = async (trigger: BillingTriggerRow) => {
+    if (!canOperateQueue) return;
     await confirmTrigger.mutateAsync(trigger.id);
   };
 
   const handleReject = async (trigger: BillingTriggerRow) => {
+    if (!canOperateQueue) return;
     await rejectTrigger.mutateAsync(trigger.id);
+  };
+
+  const handleSetActionStatus = async (trigger: BillingTriggerRow, status: ActionStatus) => {
+    if (!canOperateQueue) return;
+    await updateTriggerActionItem.mutateAsync({
+      id: trigger.id,
+      data: {
+        actionType: resolveActionType(trigger),
+        status,
+      },
+    });
+  };
+
+  const handleAssignActionType = async (trigger: BillingTriggerRow, actionType: string, dueInDays: number) => {
+    if (!canOperateQueue) return;
+    await updateTriggerActionItem.mutateAsync({
+      id: trigger.id,
+      data: {
+        actionType,
+        status: 'pending',
+        dueDate: plusDaysYmd(dueInDays),
+      },
+    });
+  };
+
+  const handleConfirmAndSetInvoice = async (trigger: BillingTriggerRow) => {
+    if (!canOperateQueue) return;
+
+    if (trigger.status === 'pending') {
+      await confirmTrigger.mutateAsync(trigger.id);
+    }
+
+    await updateTriggerActionItem.mutateAsync({
+      id: trigger.id,
+      data: {
+        actionType: 'issue_invoice',
+        description: 'Issue invoice for confirmed milestone trigger',
+        dueDate: plusDaysYmd(3),
+        status: 'pending',
+      },
+    });
   };
 
   const openActionEditor = (trigger: BillingTriggerRow) => {
@@ -280,6 +497,7 @@ const BillingControlTower: React.FC = () => {
     setActionStatusInput(trigger.actionItem?.status || 'pending');
     setActionDueDateInput(toInputDate(trigger.actionItem?.dueDate));
     setActionDescriptionInput(trigger.actionItem?.description || '');
+    setActionAssignedToInput(trigger.actionItem?.assignedTo?.id ?? '');
   };
 
   const closeActionEditor = () => {
@@ -288,16 +506,19 @@ const BillingControlTower: React.FC = () => {
   };
 
   const handleSaveActionItem = async () => {
-    if (!editingTrigger) return;
+    if (!editingTrigger || !canOperateQueue) return;
+
     await updateTriggerActionItem.mutateAsync({
       id: editingTrigger.id,
       data: {
         actionType: actionTypeInput || undefined,
         status: actionStatusInput,
-        dueDate: actionDueDateInput ? actionDueDateInput : null,
+        dueDate: actionDueDateInput || null,
         description: actionDescriptionInput.trim() ? actionDescriptionInput.trim() : undefined,
+        assignedTo: actionAssignedToInput === '' ? null : actionAssignedToInput,
       },
     });
+
     setEditingTrigger(null);
   };
 
@@ -305,20 +526,24 @@ const BillingControlTower: React.FC = () => {
     <Stack spacing={2.5}>
       <Section>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">Pending Trigger Decisions</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{pendingTriggerRows.length}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">31+ Day Risk Milestones</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{riskKpis.severeOverdueCount}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">Total Overdue Exposure</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {currencyFormatter.format(riskKpis.totalOverdueAmount)}
-            </Typography>
-          </Paper>
+          <MetricCard
+            label="Pending Trigger Decisions"
+            value={String(pendingTriggerRows.length)}
+            helper="Awaiting confirm/reject"
+            tone="warning"
+          />
+          <MetricCard
+            label="31+ Day Risk Milestones"
+            value={String(riskKpis.severeOverdueCount)}
+            helper="Needs immediate captain follow-through"
+            tone="danger"
+          />
+          <MetricCard
+            label="Total Overdue Exposure"
+            value={currencyFormatter.format(riskKpis.totalOverdueAmount)}
+            helper="Milestones already past due"
+            tone="danger"
+          />
         </Stack>
       </Section>
 
@@ -346,7 +571,7 @@ const BillingControlTower: React.FC = () => {
             value={minAmount ?? ''}
             onChange={(e) => setMinAmount(e.target.value ? Number(e.target.value) : undefined)}
             size="small"
-            sx={{ minWidth: 200 }}
+            sx={{ minWidth: 180 }}
           />
 
           <TextField
@@ -355,127 +580,214 @@ const BillingControlTower: React.FC = () => {
             value={triggerStatus}
             onChange={(e) => setTriggerStatus(e.target.value as 'pending' | 'confirmed' | 'rejected' | 'all')}
             size="small"
-            sx={{ minWidth: 180 }}
+            sx={{ minWidth: 160 }}
           >
             <MenuItem value="pending">Pending</MenuItem>
             <MenuItem value="confirmed">Confirmed</MenuItem>
             <MenuItem value="rejected">Rejected</MenuItem>
             <MenuItem value="all">All</MenuItem>
           </TextField>
+
+          <TextField
+            select
+            label="Queue Focus"
+            value={triggerFocus}
+            onChange={(e) => setTriggerFocus(e.target.value as TriggerFocus)}
+            size="small"
+            sx={{ minWidth: 170 }}
+          >
+            <MenuItem value="needs_review">Needs Review</MenuItem>
+            <MenuItem value="needs_action">Needs Action</MenuItem>
+            <MenuItem value="all">All Rows</MenuItem>
+          </TextField>
+
+          <TextField
+            label="Search"
+            value={triggerSearch}
+            onChange={(e) => setTriggerSearch(e.target.value)}
+            placeholder="Project, milestone, reason"
+            size="small"
+            sx={{ minWidth: 220 }}
+          />
         </Stack>
 
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           Trigger Decision Queue
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Status</TableCell>
-              <TableCell>Project</TableCell>
-              <TableCell>Milestone</TableCell>
-              <TableCell>Reason</TableCell>
-              <TableCell align="right">Confidence</TableCell>
-              <TableCell>Action</TableCell>
-              <TableCell>Action Status</TableCell>
-              <TableCell>Action Due</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {triggerRows.length === 0 ? (
+
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={10} align="center">No triggers found for selected filters</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Project</TableCell>
+                <TableCell>Milestone</TableCell>
+                <TableCell>Risk</TableCell>
+                <TableCell>Reason</TableCell>
+                <TableCell align="right">Confidence</TableCell>
+                <TableCell>Action</TableCell>
+                <TableCell>Action Status</TableCell>
+                <TableCell>Action Due</TableCell>
+                <TableCell>Created</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
-            ) : (
-              triggerRows.map((row) => (
-                <TableRow key={row.id} hover>
-                  <TableCell>{formatCode(row.status)}</TableCell>
-                  <TableCell>{row.project?.name || '—'}</TableCell>
-                  <TableCell>{row.milestone?.title || '—'}</TableCell>
-                  <TableCell>{row.triggerReason || '—'}</TableCell>
-                  <TableCell align="right">{(row.matchConfidence * 100).toFixed(0)}%</TableCell>
-                  <TableCell>{formatCode(row.actionItem?.actionType || row.actionTaken)}</TableCell>
-                  <TableCell>{formatCode(row.actionItem?.status)}</TableCell>
-                  <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
-                  <TableCell>{formatDate(row.createdAt)}</TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      {row.status === 'pending' && (
-                        <>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            onClick={() => handleConfirm(row)}
-                            disabled={confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending}
-                          >
-                            Confirm
-                          </Button>
+            </TableHead>
+            <TableBody>
+              {captainTriggerRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={11} align="center">
+                    No triggers found for selected filters
+                  </TableCell>
+                </TableRow>
+              ) : (
+                captainTriggerRows.map((row) => {
+                  const riskChip = getRiskChip(row.milestone?.dueDate);
+
+                  return (
+                    <TableRow key={row.id} hover>
+                      <TableCell>
+                        <Chip size="small" label={formatCode(row.status)} color={statusChipColor(row.status)} />
+                      </TableCell>
+                      <TableCell>{row.project?.name || '—'}</TableCell>
+                      <TableCell>{row.milestone?.title || '—'}</TableCell>
+                      <TableCell>
+                        <Chip size="small" label={riskChip.label} color={riskChip.color} variant="outlined" />
+                      </TableCell>
+                      <TableCell>{row.triggerReason || '—'}</TableCell>
+                      <TableCell align="right">{(row.matchConfidence * 100).toFixed(0)}%</TableCell>
+                      <TableCell>{formatCode(row.actionItem?.actionType || row.actionTaken)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={formatCode(row.actionItem?.status || 'pending')}
+                          color={actionStatusChipColor(row.actionItem?.status || 'pending')}
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
+                      <TableCell>{formatDate(row.createdAt)}</TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" spacing={0.75} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
+                          {row.status === 'pending' ? (
+                            <>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                onClick={() => handleConfirm(row)}
+                                disabled={!canOperateQueue || isMutating}
+                              >
+                                Confirm
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => handleConfirmAndSetInvoice(row)}
+                                disabled={!canOperateQueue || isMutating}
+                              >
+                                Confirm + Invoice
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                onClick={() => handleReject(row)}
+                                disabled={!canOperateQueue || isMutating}
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          ) : null}
+
+                          {row.status === 'confirmed' && row.actionItem?.status !== 'completed' ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="success"
+                              onClick={() => handleSetActionStatus(row, 'completed')}
+                              disabled={!canOperateQueue || isMutating}
+                            >
+                              Mark Done
+                            </Button>
+                          ) : null}
+
+                          {row.status === 'confirmed' && row.actionItem?.status === 'completed' ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => handleSetActionStatus(row, 'pending')}
+                              disabled={!canOperateQueue || isMutating}
+                            >
+                              Reopen
+                            </Button>
+                          ) : null}
+
                           <Button
                             size="small"
                             variant="outlined"
-                            color="error"
-                            onClick={() => handleReject(row)}
-                            disabled={confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending}
+                            onClick={() => openActionEditor(row)}
+                            disabled={!canOperateQueue || isMutating}
                           >
-                            Reject
+                            {row.actionItem ? 'Edit Action' : 'Add Action'}
                           </Button>
-                        </>
-                      )}
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => openActionEditor(row)}
-                        disabled={confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending}
-                      >
-                        {row.actionItem ? 'Edit Action' : 'Add Action'}
-                      </Button>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Section>
 
       <Section>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           Overdue Milestone Risk Board
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>B&C Attorney</TableCell>
-              <TableCell>Billing Project</TableCell>
-              <TableCell>Milestone</TableCell>
-              <TableCell>Due Date</TableCell>
-              <TableCell align="right">Days Overdue</TableCell>
-              <TableCell align="right">Amount</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredOverdueRows.length === 0 ? (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">No overdue milestones found</TableCell>
+                <TableCell>B&C Attorney</TableCell>
+                <TableCell>Billing Project</TableCell>
+                <TableCell>Milestone</TableCell>
+                <TableCell>Risk</TableCell>
+                <TableCell>Due Date</TableCell>
+                <TableCell align="right">Days Overdue</TableCell>
+                <TableCell align="right">Amount</TableCell>
               </TableRow>
-            ) : (
-              filteredOverdueRows.map((row) => (
-                <TableRow key={`${row.staffId}-${row.milestoneId}`} hover>
-                  <TableCell>{row.attorneyName}</TableCell>
-                  <TableCell>{row.billingProjectName}</TableCell>
-                  <TableCell>{row.milestoneTitle || '—'}</TableCell>
-                  <TableCell>{formatDate(row.milestoneDueDate)}</TableCell>
-                  <TableCell align="right">{daysOverdue(row.milestoneDueDate)}</TableCell>
-                  <TableCell align="right">
-                    {currencyFormatter.format(toNumber(row.milestoneAmount ?? row.overdueAmount))}
+            </TableHead>
+            <TableBody>
+              {filteredOverdueRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No overdue milestones found
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredOverdueRows.map((row) => {
+                  const risk = getRiskChip(row.milestoneDueDate);
+                  return (
+                    <TableRow key={`${row.staffId}-${row.milestoneId}`} hover>
+                      <TableCell>{row.attorneyName}</TableCell>
+                      <TableCell>{row.billingProjectName}</TableCell>
+                      <TableCell>{row.milestoneTitle || '—'}</TableCell>
+                      <TableCell>
+                        <Chip size="small" label={risk.label} color={risk.color} variant="outlined" />
+                      </TableCell>
+                      <TableCell>{formatDate(row.milestoneDueDate)}</TableCell>
+                      <TableCell align="right">{daysOverdue(row.milestoneDueDate)}</TableCell>
+                      <TableCell align="right">
+                        {currencyFormatter.format(toNumber(row.milestoneAmount ?? row.overdueAmount))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Section>
     </Stack>
   );
@@ -484,37 +796,42 @@ const BillingControlTower: React.FC = () => {
     <Stack spacing={2.5}>
       <Section>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-          {[
-            {
-              label: 'Invoicable Now',
-              value: `${currencyFormatter.format(managerTotals.invoicableAmount)} (${managerTotals.invoicableCount})`,
-            },
-            {
-              label: 'Outstanding AR',
-              value: `${currencyFormatter.format(managerTotals.outstandingArAmount)} (${managerTotals.outstandingArCount})`,
-            },
-            {
-              label: 'Overdue AR (30+)',
-              value: `${currencyFormatter.format(managerTotals.overdueAr30Amount)} (${managerTotals.overdueAr30Count})`,
-            },
-            {
-              label: 'Collected YTD',
-              value: `${currencyFormatter.format(managerTotals.collectedYtdAmount)} (${managerTotals.collectedYtdCount})`,
-            },
-            {
-              label: 'Pending Triggers',
-              value: String(managerTotals.pendingTriggers),
-            },
-            {
-              label: 'Pending Actions',
-              value: String(managerTotals.pendingActionItems),
-            },
-          ].map((item) => (
-            <Paper key={item.label} sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-              <Typography variant="caption" color="text.secondary">{item.label}</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>{item.value}</Typography>
-            </Paper>
-          ))}
+          <MetricCard
+            label="Invoicable Now"
+            value={currencyFormatter.format(managerTotals.invoicableAmount)}
+            helper={`${managerTotals.invoicableCount} milestones ready for invoice`}
+            tone="positive"
+          />
+          <MetricCard
+            label="Outstanding AR"
+            value={currencyFormatter.format(managerTotals.outstandingArAmount)}
+            helper={`${managerTotals.outstandingArCount} open receivables`}
+            tone="warning"
+          />
+          <MetricCard
+            label="Overdue AR (30+)"
+            value={currencyFormatter.format(managerTotals.overdueAr30Amount)}
+            helper={`${managerTotals.overdueAr30Count} milestones in risk window`}
+            tone="danger"
+          />
+          <MetricCard
+            label="Collected YTD"
+            value={currencyFormatter.format(managerTotals.collectedYtdAmount)}
+            helper={`${managerTotals.collectedYtdCount} payments recorded`}
+            tone="positive"
+          />
+          <MetricCard
+            label="Pending Triggers"
+            value={String(managerTotals.pendingTriggers)}
+            helper="Awaiting captain decision"
+            tone="warning"
+          />
+          <MetricCard
+            label="Pending Actions"
+            value={String(managerTotals.pendingActionItems)}
+            helper="Execution queue for finance"
+            tone="warning"
+          />
         </Stack>
       </Section>
 
@@ -522,36 +839,40 @@ const BillingControlTower: React.FC = () => {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           B&C Performance Lens
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>B&C Attorney</TableCell>
-              <TableCell>Position</TableCell>
-              <TableCell align="right">Invoicable</TableCell>
-              <TableCell align="right">Outstanding AR</TableCell>
-              <TableCell align="right">Overdue AR (30+)</TableCell>
-              <TableCell align="right">Upcoming 30d</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {(pipeline?.byAttorney || []).length === 0 ? (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">No attorney pipeline data available</TableCell>
+                <TableCell>B&C Attorney</TableCell>
+                <TableCell>Position</TableCell>
+                <TableCell align="right">Invoicable</TableCell>
+                <TableCell align="right">Outstanding AR</TableCell>
+                <TableCell align="right">Overdue AR (30+)</TableCell>
+                <TableCell align="right">Upcoming 30d</TableCell>
               </TableRow>
-            ) : (
-              (pipeline?.byAttorney || []).map((row) => (
-                <TableRow key={`${row.staffId}-${row.attorneyName}`} hover>
-                  <TableCell>{row.attorneyName}</TableCell>
-                  <TableCell>{row.attorneyPosition || '—'}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(toNumber(row.invoicableAmount))}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(toNumber(row.outstandingArAmount))}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(toNumber(row.overdueAr30Amount))}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(toNumber(row.upcoming30Amount))}</TableCell>
+            </TableHead>
+            <TableBody>
+              {(pipeline?.byAttorney || []).length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    No attorney pipeline data available
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                (pipeline?.byAttorney || []).map((row) => (
+                  <TableRow key={`${row.staffId}-${row.attorneyName}`} hover>
+                    <TableCell>{row.attorneyName}</TableCell>
+                    <TableCell>{row.attorneyPosition || '—'}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(toNumber(row.invoicableAmount))}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(toNumber(row.outstandingArAmount))}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(toNumber(row.overdueAr30Amount))}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(toNumber(row.upcoming30Amount))}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Section>
 
       <Section>
@@ -559,18 +880,24 @@ const BillingControlTower: React.FC = () => {
           Exposure Snapshot
         </Typography>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-          <Paper sx={{ p: 2, flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">Overdue Milestones</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{riskKpis.overdueMilestones}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">31+ Day Risks</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{riskKpis.severeOverdueCount}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">Attorneys At Risk</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{riskKpis.attorneysAtRisk}</Typography>
-          </Paper>
+          <MetricCard
+            label="Overdue Milestones"
+            value={String(riskKpis.overdueMilestones)}
+            helper="Immediate milestone slippage"
+            tone="warning"
+          />
+          <MetricCard
+            label="31+ Day Risks"
+            value={String(riskKpis.severeOverdueCount)}
+            helper="High-priority collection exposure"
+            tone="danger"
+          />
+          <MetricCard
+            label="Attorneys At Risk"
+            value={String(riskKpis.attorneysAtRisk)}
+            helper="B&C attorneys with overdue book"
+            tone="warning"
+          />
         </Stack>
       </Section>
     </Stack>
@@ -580,30 +907,30 @@ const BillingControlTower: React.FC = () => {
     <Stack spacing={2.5}>
       <Section>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5}>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">Invoicable Now</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {currencyFormatter.format(managerTotals.invoicableAmount)}
-            </Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">Outstanding AR</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {currencyFormatter.format(managerTotals.outstandingArAmount)}
-            </Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">Overdue AR (30+)</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {currencyFormatter.format(managerTotals.overdueAr30Amount)}
-            </Typography>
-          </Paper>
-          <Paper sx={{ p: 2, flex: 1, bgcolor: 'grey.50' }}>
-            <Typography variant="caption" color="text.secondary">Collected YTD</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {currencyFormatter.format(managerTotals.collectedYtdAmount)}
-            </Typography>
-          </Paper>
+          <MetricCard
+            label="Invoicable Now"
+            value={currencyFormatter.format(managerTotals.invoicableAmount)}
+            helper={`${managerTotals.invoicableCount} milestones ready`}
+            tone="positive"
+          />
+          <MetricCard
+            label="Outstanding AR"
+            value={currencyFormatter.format(managerTotals.outstandingArAmount)}
+            helper={`${managerTotals.outstandingArCount} invoices open`}
+            tone="warning"
+          />
+          <MetricCard
+            label="Overdue AR (30+)"
+            value={currencyFormatter.format(managerTotals.overdueAr30Amount)}
+            helper={`${managerTotals.overdueAr30Count} needs collection push`}
+            tone="danger"
+          />
+          <MetricCard
+            label="Collected YTD"
+            value={currencyFormatter.format(managerTotals.collectedYtdAmount)}
+            helper={`${managerTotals.collectedYtdCount} settled payments`}
+            tone="positive"
+          />
         </Stack>
       </Section>
 
@@ -611,116 +938,198 @@ const BillingControlTower: React.FC = () => {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           Invoice Dispatch Queue
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Project</TableCell>
-              <TableCell>Milestone</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell>Action Due</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {financeInvoiceQueue.length === 0 ? (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">No pending invoice actions</TableCell>
+                <TableCell>Project</TableCell>
+                <TableCell>Milestone</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell>Action Due</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
-            ) : (
-              financeInvoiceQueue.map((row) => (
-                <TableRow key={`invoice-${row.id}`} hover>
-                  <TableCell>{row.project?.name || '—'}</TableCell>
-                  <TableCell>{row.milestone?.title || '—'}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(toNumber(row.milestone?.amountValue))}</TableCell>
-                  <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
-                  <TableCell>{formatCode(row.actionItem?.status)}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small" variant="outlined" onClick={() => openActionEditor(row)}>
-                      Edit Action
-                    </Button>
+            </TableHead>
+            <TableBody>
+              {financeInvoiceQueue.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    No pending invoice actions
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                financeInvoiceQueue.map((row) => (
+                  <TableRow key={`invoice-${row.id}`} hover>
+                    <TableCell>{row.project?.name || '—'}</TableCell>
+                    <TableCell>{row.milestone?.title || '—'}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(toNumber(row.milestone?.amountValue))}</TableCell>
+                    <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={formatCode(row.actionItem?.status || 'pending')}
+                        color={actionStatusChipColor(row.actionItem?.status || 'pending')}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.75} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="success"
+                          onClick={() => handleSetActionStatus(row, 'completed')}
+                          disabled={!canOperateQueue || isMutating}
+                        >
+                          Mark Sent
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleAssignActionType(row, 'follow_up_payment', 14)}
+                          disabled={!canOperateQueue || isMutating}
+                        >
+                          Move to Follow-up
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => openActionEditor(row)}
+                          disabled={!canOperateQueue || isMutating}
+                        >
+                          Edit Action
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Section>
 
       <Section>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           Collections Follow-up Queue
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Project</TableCell>
-              <TableCell>Milestone</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell>Action Due</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {financeFollowupQueue.length === 0 ? (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">No pending follow-up actions</TableCell>
+                <TableCell>Project</TableCell>
+                <TableCell>Milestone</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell>Action Due</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
-            ) : (
-              financeFollowupQueue.map((row) => (
-                <TableRow key={`followup-${row.id}`} hover>
-                  <TableCell>{row.project?.name || '—'}</TableCell>
-                  <TableCell>{row.milestone?.title || '—'}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(toNumber(row.milestone?.amountValue))}</TableCell>
-                  <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
-                  <TableCell>{formatCode(row.actionItem?.status)}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small" variant="outlined" onClick={() => openActionEditor(row)}>
-                      Edit Action
-                    </Button>
+            </TableHead>
+            <TableBody>
+              {financeFollowupQueue.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    No pending follow-up actions
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                financeFollowupQueue.map((row) => (
+                  <TableRow key={`followup-${row.id}`} hover>
+                    <TableCell>{row.project?.name || '—'}</TableCell>
+                    <TableCell>{row.milestone?.title || '—'}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(toNumber(row.milestone?.amountValue))}</TableCell>
+                    <TableCell>{formatDate(row.actionItem?.dueDate)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={formatCode(row.actionItem?.status || 'pending')}
+                        color={actionStatusChipColor(row.actionItem?.status || 'pending')}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.75} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="success"
+                          onClick={() => handleSetActionStatus(row, 'completed')}
+                          disabled={!canOperateQueue || isMutating}
+                        >
+                          Mark Collected
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleAssignActionType(row, 'follow_up_payment', 7)}
+                          disabled={!canOperateQueue || isMutating}
+                        >
+                          Schedule +7d
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => openActionEditor(row)}
+                          disabled={!canOperateQueue || isMutating}
+                        >
+                          Edit Action
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Section>
 
       <Section>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           Attorney Aging Risk
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>B&C Attorney</TableCell>
-              <TableCell align="right">Projects</TableCell>
-              <TableCell align="right">Overdue Count</TableCell>
-              <TableCell align="right">Avg Days Overdue</TableCell>
-              <TableCell align="right">Overdue Amount</TableCell>
-              <TableCell>Next Due</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedAttorneySummary.length === 0 ? (
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">No overdue milestones found</TableCell>
+                <TableCell>B&C Attorney</TableCell>
+                <TableCell align="right">
+                  <Button size="small" onClick={() => setSortField('projectCount')}>Projects</Button>
+                </TableCell>
+                <TableCell align="right">
+                  <Button size="small" onClick={() => setSortField('overdueCount')}>Overdue Count</Button>
+                </TableCell>
+                <TableCell align="right">
+                  <Button size="small" onClick={() => setSortField('avgDaysOverdue')}>Avg Days Overdue</Button>
+                </TableCell>
+                <TableCell align="right">
+                  <Button size="small" onClick={() => setSortField('overdueAmount')}>Overdue Amount</Button>
+                </TableCell>
+                <TableCell>Next Due</TableCell>
               </TableRow>
-            ) : (
-              sortedAttorneySummary.map((row) => (
-                <TableRow key={`age-${row.staffId}`} hover>
-                  <TableCell>{row.attorneyName}</TableCell>
-                  <TableCell align="right">{row.projectCount}</TableCell>
-                  <TableCell align="right">{row.overdueCount}</TableCell>
-                  <TableCell align="right">{row.avgDaysOverdue.toFixed(1)}</TableCell>
-                  <TableCell align="right">{currencyFormatter.format(row.overdueAmount)}</TableCell>
-                  <TableCell>{formatDate(row.nextDueDate)}</TableCell>
+            </TableHead>
+            <TableBody>
+              {sortedAttorneySummary.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    No overdue milestones found
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                sortedAttorneySummary.map((row) => (
+                  <TableRow key={`age-${row.staffId}`} hover>
+                    <TableCell>{row.attorneyName}</TableCell>
+                    <TableCell align="right">{row.projectCount}</TableCell>
+                    <TableCell align="right">{row.overdueCount}</TableCell>
+                    <TableCell align="right">{row.avgDaysOverdue.toFixed(1)}</TableCell>
+                    <TableCell align="right">{currencyFormatter.format(row.overdueAmount)}</TableCell>
+                    <TableCell>{formatDate(row.nextDueDate)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Section>
     </Stack>
   );
@@ -729,8 +1138,14 @@ const BillingControlTower: React.FC = () => {
     <Page>
       <PageHeader
         title="Billing Control Tower"
-        subtitle="Role-focused prototype for manager visibility, deal-captain decisions, and finance execution."
+        subtitle="Role-focused workspace for manager visibility, deal-captain decisions, and finance execution."
       />
+
+      {!canOperateQueue ? (
+        <Section>
+          <Alert severity="warning">Only administrators can access trigger operations in the billing control tower.</Alert>
+        </Section>
+      ) : null}
 
       <Section>
         <Tabs value={view} onChange={(_, next) => setView(next as TowerView)} aria-label="control tower role views">
@@ -738,10 +1153,11 @@ const BillingControlTower: React.FC = () => {
           <Tab value="captain" label="Deal Captain View" />
           <Tab value="finance" label="Finance View" />
         </Tabs>
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
           <Chip size="small" label={`As of ${formatDate(pipeline?.asOf || new Date().toISOString())}`} />
-          <Chip size="small" label={`Pending Triggers ${managerTotals.pendingTriggers}`} />
-          <Chip size="small" label={`Pending Actions ${managerTotals.pendingActionItems}`} />
+          <Chip size="small" label={`Pending Triggers ${managerTotals.pendingTriggers}`} color="warning" variant="outlined" />
+          <Chip size="small" label={`Pending Actions ${managerTotals.pendingActionItems}`} color="warning" variant="outlined" />
+          <Chip size="small" label={canOperateQueue ? 'Admin Controls Enabled' : 'Read-only'} color={canOperateQueue ? 'success' : 'default'} variant="outlined" />
         </Stack>
       </Section>
 
@@ -764,9 +1180,7 @@ const BillingControlTower: React.FC = () => {
       )}
 
       <Dialog open={!!editingTrigger} onClose={closeActionEditor} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingTrigger?.actionItem ? 'Edit Trigger Action' : 'Add Trigger Action'}
-        </DialogTitle>
+        <DialogTitle>{editingTrigger?.actionItem ? 'Edit Trigger Action' : 'Add Trigger Action'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -783,6 +1197,7 @@ const BillingControlTower: React.FC = () => {
               <MenuItem value="review_billing_agreement">Review Billing Agreement</MenuItem>
               <MenuItem value="general_followup">General Follow-up</MenuItem>
             </TextField>
+
             <TextField
               select
               label="Action Status"
@@ -794,6 +1209,22 @@ const BillingControlTower: React.FC = () => {
               <MenuItem value="completed">Completed</MenuItem>
               <MenuItem value="cancelled">Cancelled</MenuItem>
             </TextField>
+
+            <TextField
+              select
+              label="Assigned To"
+              value={actionAssignedToInput}
+              onChange={(e) => setActionAssignedToInput(e.target.value === '' ? '' : Number(e.target.value))}
+              fullWidth
+            >
+              <MenuItem value="">Unassigned</MenuItem>
+              {attorneyOptions.map((attorney) => (
+                <MenuItem key={attorney.staffId} value={attorney.staffId}>
+                  {attorney.attorneyName}
+                </MenuItem>
+              ))}
+            </TextField>
+
             <TextField
               type="date"
               label="Action Due Date"
@@ -802,6 +1233,7 @@ const BillingControlTower: React.FC = () => {
               InputLabelProps={{ shrink: true }}
               fullWidth
             />
+
             <TextField
               label="Description"
               value={actionDescriptionInput}
@@ -816,7 +1248,11 @@ const BillingControlTower: React.FC = () => {
           <Button onClick={closeActionEditor} disabled={updateTriggerActionItem.isPending}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleSaveActionItem} disabled={updateTriggerActionItem.isPending}>
+          <Button
+            variant="contained"
+            onClick={handleSaveActionItem}
+            disabled={updateTriggerActionItem.isPending || !canOperateQueue}
+          >
             Save
           </Button>
         </DialogActions>
