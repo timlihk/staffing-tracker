@@ -65,6 +65,7 @@ export function LifecycleChangeDialog({
     fee_arrangement_text: '',
   });
   const [savingEngagement, setSavingEngagement] = useState(false);
+  const [billingLoadFailed, setBillingLoadFailed] = useState(false);
 
   // Load billing data when dialog opens
   useEffect(() => {
@@ -75,6 +76,7 @@ export function LifecycleChangeDialog({
       setLoading(true);
       setMilestonesDone(false);
       setNoMilestones(false);
+      setBillingLoadFailed(false);
       setBillingProjectId(null);
       setCmId(null);
       setMilestones([]);
@@ -137,7 +139,9 @@ export function LifecycleChangeDialog({
 
         setMilestones(allMilestones);
       } catch {
-        toast.error('Failed to load billing data');
+        // Billing data may be inaccessible (no billing access, no billing project, etc.)
+        // Don't block the lifecycle update — just skip milestones/engagement sections
+        setBillingLoadFailed(true);
         setNoMilestones(true);
         setMilestonesDone(true);
       } finally {
@@ -220,18 +224,19 @@ export function LifecycleChangeDialog({
   };
 
   // Determine which section to show
+  // If billing data failed to load, skip engagement form (can't create without billingProjectId)
   const showMilestoneSection = !milestonesDone;
-  const showEngagementSection = milestonesDone && isNewEngagement;
-  const showDoneButton = milestonesDone && !isNewEngagement;
+  const showEngagementSection = milestonesDone && isNewEngagement && !billingLoadFailed;
+  const showDoneButton = milestonesDone && (!isNewEngagement || billingLoadFailed);
 
   return (
-    <Dialog open={open} fullWidth maxWidth="sm" onClose={undefined}>
+    <Dialog open={open} fullWidth maxWidth="sm" onClose={loading ? undefined : onClose}>
       <DialogTitle>
         {showMilestoneSection
           ? 'Confirm Milestone Completion'
           : showEngagementSection
             ? 'Create New Engagement'
-            : 'Done'}
+            : 'Lifecycle Updated'}
       </DialogTitle>
 
       <DialogContent>
@@ -239,6 +244,13 @@ export function LifecycleChangeDialog({
           <Box display="flex" justifyContent="center" py={4}>
             <CircularProgress />
           </Box>
+        ) : billingLoadFailed ? (
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="warning">
+              Could not load billing data. The lifecycle stage has been updated successfully.
+              {isNewEngagement && ' You can create a new engagement manually from the billing detail page.'}
+            </Alert>
+          </Stack>
         ) : showMilestoneSection ? (
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
