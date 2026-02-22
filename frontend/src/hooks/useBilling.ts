@@ -36,6 +36,7 @@ export const billingKeys = {
   unmappedAttorneys: () => [...billingKeys.all, 'unmapped-attorneys'] as const,
   triggers: (params?: Record<string, unknown>) => [...billingKeys.all, 'triggers', params ?? {}] as const,
   overdueByAttorney: (params?: Record<string, unknown>) => [...billingKeys.all, 'overdue-by-attorney', params ?? {}] as const,
+  changeLog: (id: number) => [...billingKeys.all, 'project', id, 'change-log'] as const,
 };
 
 // Get all billing projects
@@ -77,6 +78,15 @@ export function useBillingProjectActivity(id: number, options?: { enabled?: bool
   return useQuery({
     queryKey: billingKeys.projectActivity(id),
     queryFn: () => billingApi.getBillingProjectActivity(id),
+    enabled: (options?.enabled ?? true) && !!id,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useBillingProjectChangeLog(id: number, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: billingKeys.changeLog(id),
+    queryFn: () => billingApi.getBillingProjectChangeLog(id),
     enabled: (options?.enabled ?? true) && !!id,
     staleTime: 60 * 1000,
   });

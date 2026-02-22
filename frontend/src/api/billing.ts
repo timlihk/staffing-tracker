@@ -278,6 +278,27 @@ export const getBillingProjectActivity = async (id: number): Promise<ProjectActi
   return response.data;
 };
 
+// Get billing project change log (audit trail)
+export interface BillingChangeLogEntry {
+  id: number;
+  actionType: string;
+  entityType: string;
+  entityId: number | null;
+  description: string | null;
+  username: string;
+  createdAt: string;
+}
+
+export interface BillingChangeLogResponse {
+  data: BillingChangeLogEntry[];
+  total: number;
+}
+
+export const getBillingProjectChangeLog = async (projectId: number): Promise<BillingChangeLogResponse> => {
+  const response = await apiClient.get(`/billing/projects/${projectId}/change-log`);
+  return response.data;
+};
+
 // Create engagement under a CM
 export interface CreateEngagementPayload {
   engagement_title: string;

@@ -11,3 +11,4 @@ export { MilestoneFormDialog, type MilestoneFormDialogProps } from './MilestoneF
 export { MilestoneDeleteDialog, type MilestoneDeleteDialogProps } from './MilestoneDeleteDialog';
 export { BillingInfoEditDialog, type BillingInfoEditDialogProps, type BillingInfoFormData } from './BillingInfoEditDialog';
 export { DeleteConfirmDialog, type DeleteConfirmDialogProps } from './DeleteConfirmDialog';
+export { BillingChangeLog, type BillingChangeLogProps } from './BillingChangeLog';
