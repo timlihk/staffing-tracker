@@ -27,6 +27,7 @@ import {
   AttachMoney,
   AccountCircle,
   DevicesOther,
+  MenuBook,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import apiClient from '../api/client';
@@ -100,6 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { text: 'Projects', icon: <FolderOpen />, path: '/projects' },
     { text: 'Staff', icon: <People />, path: '/staff' },
     { text: 'Billing', icon: <AttachMoney />, path: '/billing' },
+    { text: 'Best Practices', icon: <MenuBook />, path: '/best-practices' },
   ];
 
   if (user?.role === 'admin') {

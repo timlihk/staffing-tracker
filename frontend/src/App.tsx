@@ -22,6 +22,7 @@ const ProjectForm = lazy(() => import('./pages/ProjectForm'));
 const Staff = lazy(() => import('./pages/Staff'));
 const StaffDetail = lazy(() => import('./pages/StaffDetail'));
 const StaffForm = lazy(() => import('./pages/StaffForm'));
+const BestPracticeGuide = lazy(() => import('./pages/BestPracticeGuide'));
 
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -269,6 +270,17 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <BillingMatterDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/best-practices"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <BestPracticeGuide />
                   </Layout>
                 </ProtectedRoute>
               }

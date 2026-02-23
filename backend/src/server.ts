@@ -20,6 +20,7 @@ import emailSettingsRoutes from './routes/email-settings.routes';
 import appSettingsRoutes from './routes/app-settings.routes';
 import billingRoutes from './routes/billing.routes';
 import adminRoutes from './routes/admin.routes';
+import bestPracticesRoutes from './routes/best-practices.routes';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestIdMiddleware } from './middleware/requestId';
 import { requestLogger } from './middleware/requestLogger';
@@ -190,6 +191,7 @@ app.use('/api/email-settings', emailSettingsRoutes);
 app.use('/api/app-settings', appSettingsRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/best-practices', bestPracticesRoutes);
 
 // 404 handler - must be before error handler
 app.use(notFoundHandler);
