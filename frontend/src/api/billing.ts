@@ -508,6 +508,14 @@ export const deleteMilestone = async (milestoneId: number) => {
   return response.data;
 };
 
+export const updateBillingProject = async (
+  projectId: number,
+  data: Record<string, unknown>
+) => {
+  const response = await apiClient.put(`/billing/projects/${projectId}`, data);
+  return response.data;
+};
+
 export const deleteProject = async (projectId: number) => {
   const response = await apiClient.delete(`/billing/projects/${projectId}`);
   return response.data;

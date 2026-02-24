@@ -114,6 +114,26 @@ export function useEngagementDetail(projectId: number, engagementId: number, ena
   });
 }
 
+// Update billing project (C/M number, attorneys, etc.)
+export function useUpdateBillingProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, data }: { projectId: number; data: Record<string, unknown> }) =>
+      billingApi.updateBillingProject(projectId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.projects() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.projectSummary(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: billingKeys.projectActivity(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: billingKeys.changeLog(variables.projectId) });
+      toast.success('Billing information updated successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to update billing information'));
+    },
+  });
+}
+
 // Update financials mutation
 export function useUpdateFinancials() {
   const queryClient = useQueryClient();

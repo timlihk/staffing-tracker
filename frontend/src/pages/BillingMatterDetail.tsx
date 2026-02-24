@@ -18,11 +18,9 @@ import {
 } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
 import { CmSummaryCard, EngagementCard, EngagementFormCard, BillingInfoEditDialog, DeleteConfirmDialog, BillingChangeLog, type BillingInfoFormData } from '../components/billing';
-import { useBillingProjectSummary, useDeleteProject } from '../hooks/useBilling';
+import { useBillingProjectSummary, useDeleteProject, useUpdateBillingProject } from '../hooks/useBilling';
 import { parseEngagementId } from '../lib/billing/utils';
 import { usePermissions } from '../hooks/usePermissions';
-import api from '../api/client';
-import { toast } from '../lib/toast';
 import type { EngagementDetailResponse } from '../api/billing';
 
 export default function BillingMatterDetail() {
@@ -35,8 +33,9 @@ export default function BillingMatterDetail() {
   const [showEngagementForm, setShowEngagementForm] = useState(false);
   const [deleteProjectDialogOpen, setDeleteProjectDialogOpen] = useState(false);
 
-  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useBillingProjectSummary(projectId, { view: 'full' });
+  const { data: summary, isLoading: summaryLoading } = useBillingProjectSummary(projectId, { view: 'full' });
   const deleteProjectMutation = useDeleteProject();
+  const updateProjectMutation = useUpdateBillingProject();
 
   const project = summary?.project;
 
@@ -51,13 +50,7 @@ export default function BillingMatterDetail() {
   }, [selectedCm?.engagements]);
 
   const handleSaveBillingInfo = async (data: BillingInfoFormData) => {
-    try {
-      await api.put(`/billing/projects/${projectId}`, data);
-      await refetchSummary();
-    } catch (error) {
-      toast.error('Failed to update billing information', 'Please try again later');
-      throw error;
-    }
+    await updateProjectMutation.mutateAsync({ projectId, data });
   };
 
   const handleConfirmDeleteProject = async () => {
