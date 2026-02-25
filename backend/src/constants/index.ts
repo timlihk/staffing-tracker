@@ -148,6 +148,22 @@ export const EntityType = {
 export type EntityType = (typeof EntityType)[keyof typeof EntityType];
 
 // ============================================================================
+// Lifecycle Stage Order (progression sequence for IPO projects)
+// ============================================================================
+export const LIFECYCLE_STAGE_ORDER = [
+  'new_engagement',
+  'signed',
+  'kickoff',
+  'confidential_filed',
+  'a1_filed',
+  'hearing_passed',
+  'listed',
+  'renewal_cycle',
+] as const;
+
+export type LifecycleStage = (typeof LIFECYCLE_STAGE_ORDER)[number];
+
+// ============================================================================
 // HTTP Status Codes
 // ============================================================================
 export const HttpStatus = {

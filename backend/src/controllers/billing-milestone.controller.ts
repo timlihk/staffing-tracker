@@ -178,6 +178,30 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
       logger.info('Milestone updated', { milestoneId, rowsAffected: updateResult });
     }
 
+    // Auto-resolve pending triggers for milestones marked complete via dialog
+    const completedMilestoneIds = milestones
+      .filter((m) => m.completed === true)
+      .map((m) => Number(m.milestone_id))
+      .filter((id) => Number.isFinite(id));
+
+    if (completedMilestoneIds.length > 0) {
+      try {
+        await prisma.$executeRaw`
+          UPDATE billing_milestone_trigger_queue
+          SET status = 'confirmed',
+              confirmed_at = NOW(),
+              action_taken = 'auto_resolved_dialog'
+          WHERE milestone_id = ANY(${completedMilestoneIds}::bigint[])
+            AND status = 'pending'
+        `;
+      } catch (resolveErr) {
+        logger.error('Failed to auto-resolve pending triggers for dialog-completed milestones', {
+          error: resolveErr instanceof Error ? resolveErr.message : String(resolveErr),
+          milestoneIds: completedMilestoneIds,
+        });
+      }
+    }
+
     if (req.user?.userId) {
       await prisma.activityLog.create({
         data: {

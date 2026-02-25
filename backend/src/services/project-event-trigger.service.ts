@@ -1,6 +1,7 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+import { getIntermediateStages, isBackwardTransition } from '../utils/lifecycle';
 
 export const CanonicalProjectEventType = {
   PROJECT_CLOSED: 'PROJECT_CLOSED',
@@ -47,6 +48,7 @@ interface PendingTriggerFromEventData {
   staffing_project_id: number;
   old_status: string;
   new_status: string;
+  event_type: string;
   match_confidence: number;
   trigger_reason: string;
   project_event_id: number;
@@ -140,9 +142,34 @@ export class ProjectEventTriggerService {
       eventTypes.add(statusEvent);
     }
 
-    const lifecycleEvent = this.mapLifecycleStageToEventType(input.newLifecycleStage);
-    if (lifecycleEvent && input.newLifecycleStage !== input.oldLifecycleStage) {
-      eventTypes.add(lifecycleEvent);
+    const lifecycleChanged = input.newLifecycleStage !== input.oldLifecycleStage;
+
+    if (lifecycleChanged) {
+      if (isBackwardTransition(input.oldLifecycleStage, input.newLifecycleStage)) {
+        logger.warn('Backward lifecycle transition detected, skipping lifecycle events', {
+          projectId: input.projectId,
+          from: input.oldLifecycleStage,
+          to: input.newLifecycleStage,
+        });
+      } else {
+        // Fire events for intermediate stages that were skipped
+        const intermediateStages = getIntermediateStages(
+          input.oldLifecycleStage,
+          input.newLifecycleStage
+        );
+        for (const stage of intermediateStages) {
+          const intermediateEvent = this.mapLifecycleStageToEventType(stage);
+          if (intermediateEvent) {
+            eventTypes.add(intermediateEvent);
+          }
+        }
+
+        // Fire event for the target stage
+        const lifecycleEvent = this.mapLifecycleStageToEventType(input.newLifecycleStage);
+        if (lifecycleEvent) {
+          eventTypes.add(lifecycleEvent);
+        }
+      }
     }
 
     if (eventTypes.size === 0) {
@@ -153,7 +180,10 @@ export class ProjectEventTriggerService {
     let triggersCreated = 0;
     const eventIds: number[] = [];
 
-    for (const eventType of eventTypes) {
+    // Convert to array to preserve insertion order (intermediates before target)
+    const orderedEventTypes = Array.from(eventTypes);
+
+    for (const eventType of orderedEventTypes) {
       const created = await this.createProjectEvent({
         projectId: input.projectId,
         eventType,
@@ -460,7 +490,8 @@ export class ProjectEventTriggerService {
           milestone_id: milestone.milestone_id,
           staffing_project_id: project.id,
           old_status: event.status_from || event.lifecycle_stage_from || 'N/A',
-          new_status: event.status_to || event.lifecycle_stage_to || event.event_type,
+          new_status: event.status_to || event.lifecycle_stage_to || 'N/A',
+          event_type: event.event_type,
           match_confidence: matched.confidence,
           trigger_reason: matched.reason,
           project_event_id: event.id,
@@ -721,6 +752,7 @@ export class ProjectEventTriggerService {
           staffing_project_id: data.staffing_project_id,
           old_status: data.old_status,
           new_status: data.new_status,
+          event_type: data.event_type,
           match_confidence: new Decimal(data.match_confidence.toString()),
           trigger_reason: data.trigger_reason,
           project_event_id: data.project_event_id,

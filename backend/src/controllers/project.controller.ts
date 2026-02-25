@@ -3,7 +3,6 @@ import { AuthRequest } from '../middleware/auth';
 import prisma, { getCached, setCached, invalidateCache, CACHE_KEYS } from '../utils/prisma';
 import { trackFieldChanges } from '../utils/changeTracking';
 import { detectProjectChanges, sendProjectUpdateEmails } from '../services/email.service';
-import { ProjectStatusTriggerService } from '../services/project-status-trigger.service';
 import { ProjectEventTriggerService } from '../services/project-event-trigger.service';
 import { parseQueryInt, wasValueClamped } from '../utils/queryParsing';
 import { logger } from '../utils/logger';
@@ -1040,6 +1039,13 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    const existingDerivedLifecycleStage = deriveLifecycleStage({
+      lifecycleStage: existingProject.lifecycleStage,
+      timetable: existingProject.timetable,
+      elStatus: existingProject.elStatus,
+      fallbackLifecycleStage: existingProject.lifecycleStage,
+    });
+
     const nextLifecycleStage = deriveLifecycleStage({
       lifecycleStage,
       timetable: timetable !== undefined ? timetable : existingProject.timetable,
@@ -1061,7 +1067,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (sector !== undefined) updateData.sector = sector;
     if (notes !== undefined) updateData.notes = notes;
     if (cmNumber !== undefined) updateData.cmNumber = cmNumber || null;
-    if (nextLifecycleStage !== existingProject.lifecycleStage) {
+    if (nextLifecycleStage !== existingDerivedLifecycleStage) {
       updateData.lifecycleStage = nextLifecycleStage;
       updateData.lifecycleStageChangedAt = new Date();
       if (req.user?.userId) {
@@ -1196,14 +1202,14 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     // Process milestone triggers if status or lifecycle stage changed
     const statusChanged = status !== undefined && status !== existingProject.status;
-    const lifecycleStageChanged = nextLifecycleStage !== existingProject.lifecycleStage;
+    const lifecycleStageChanged = nextLifecycleStage !== existingDerivedLifecycleStage;
     if (statusChanged || lifecycleStageChanged) {
       // Fire and forget - don't block the response
       ProjectEventTriggerService.processProjectTransition({
         projectId,
         oldStatus: existingProject.status,
         newStatus: status ?? existingProject.status,
-        oldLifecycleStage: existingProject.lifecycleStage,
+        oldLifecycleStage: existingDerivedLifecycleStage,
         newLifecycleStage: nextLifecycleStage,
         userId: req.user?.userId,
       }).then((result) => {
@@ -1212,7 +1218,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
             projectId,
             oldStatus: existingProject.status,
             newStatus: status ?? existingProject.status,
-            oldLifecycleStage: existingProject.lifecycleStage,
+            oldLifecycleStage: existingDerivedLifecycleStage,
             newLifecycleStage: nextLifecycleStage,
             eventsCreated: result.eventsCreated,
             triggersCreated: result.triggersCreated,
@@ -1224,20 +1230,6 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
           error: err,
         });
       });
-
-      // Legacy status trigger compatibility path
-      if (statusChanged) {
-        ProjectStatusTriggerService.processStatusChange(
-          projectId,
-          existingProject.status,
-          status as string
-        ).catch((err) => {
-          req.log?.error('Failed to process legacy status triggers', {
-            projectId,
-            error: err,
-          });
-        });
-      }
     }
 
     req.log?.info('Project updated', { projectId: project.id, changes: changes.length });
