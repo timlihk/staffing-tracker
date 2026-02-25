@@ -336,7 +336,6 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
                 'name', e.name,
                 'start_date', e.start_date,
                 'end_date', e.end_date,
-                'signed_date', e.signed_date,
                 'feeArrangement', (
                   SELECT JSON_BUILD_OBJECT(
                     'fee_id', fa.fee_id,

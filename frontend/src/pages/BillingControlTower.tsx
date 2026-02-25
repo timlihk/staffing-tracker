@@ -5,6 +5,8 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Collapse,
+  IconButton,
   Paper,
   Stack,
   Tab,
@@ -17,6 +19,8 @@ import {
   Tabs,
   Typography,
 } from '@mui/material';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Page, PageHeader, Section } from '../components/ui';
@@ -150,10 +154,6 @@ function renderTriggerQueueTable(
   },
 ) {
   return (
-    <Section>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-        Milestones Triggered — Invoice Queue ({invoiceQueueRows.length})
-      </Typography>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small">
           <TableHead>
@@ -229,7 +229,6 @@ function renderTriggerQueueTable(
           </TableBody>
         </Table>
       </TableContainer>
-    </Section>
   );
 }
 
@@ -238,10 +237,6 @@ function renderUnpaidInvoicesTable(
   navigate: (path: string) => void,
 ) {
   return (
-    <Section>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-        Unpaid Invoices 30+ Days ({unpaidRows.length})
-      </Typography>
       <TableContainer component={Paper} variant="outlined">
         <Table size="small">
           <TableHead>
@@ -285,7 +280,6 @@ function renderUnpaidInvoicesTable(
           </TableBody>
         </Table>
       </TableContainer>
-    </Section>
   );
 }
 
@@ -355,6 +349,8 @@ const BillingControlTower: React.FC = () => {
   const permissions = usePermissions();
   const canOperateQueue = permissions.isAdmin;
   const [activeTab, setActiveTab] = useState(0);
+  const [showTriggerQueue, setShowTriggerQueue] = useState(false);
+  const [showUnpaidInvoices, setShowUnpaidInvoices] = useState(false);
 
   // Data hooks — called unconditionally so both tabs share data
   const metricsQuery = useTimeWindowedMetrics();
@@ -461,8 +457,50 @@ const BillingControlTower: React.FC = () => {
           {activeTab === 0 && (
             <>
               {renderTimeWindowMetrics(metricsQuery.data)}
-              {renderTriggerQueueTable(invoiceQueueRows, triggerActions)}
-              {renderUnpaidInvoicesTable(unpaidRows, navigate)}
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowTriggerQueue(!showTriggerQueue)}
+                >
+                  <IconButton size="small">
+                    {showTriggerQueue ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Milestones Triggered — Invoice Queue
+                  </Typography>
+                  <Chip size="small" label={`${invoiceQueueRows.length}`} color={invoiceQueueRows.length > 0 ? 'warning' : 'default'} />
+                </Stack>
+                <Collapse in={showTriggerQueue}>
+                  <Box sx={{ mt: 1 }}>
+                    {renderTriggerQueueTable(invoiceQueueRows, triggerActions)}
+                  </Box>
+                </Collapse>
+              </Section>
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowUnpaidInvoices(!showUnpaidInvoices)}
+                >
+                  <IconButton size="small">
+                    {showUnpaidInvoices ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Unpaid Invoices 30+ Days
+                  </Typography>
+                  <Chip size="small" label={`${unpaidRows.length}`} color={unpaidRows.length > 0 ? 'error' : 'default'} />
+                </Stack>
+                <Collapse in={showUnpaidInvoices}>
+                  <Box sx={{ mt: 1 }}>
+                    {renderUnpaidInvoicesTable(unpaidRows, navigate)}
+                  </Box>
+                </Collapse>
+              </Section>
             </>
           )}
 
@@ -471,8 +509,50 @@ const BillingControlTower: React.FC = () => {
             <>
               {renderTimeWindowMetrics(metricsQuery.data)}
               {renderLongStopRiskTable(longStopRows, navigate)}
-              {renderTriggerQueueTable(invoiceQueueRows, { ...triggerActions, readOnly: true })}
-              {renderUnpaidInvoicesTable(unpaidRows, navigate)}
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowTriggerQueue(!showTriggerQueue)}
+                >
+                  <IconButton size="small">
+                    {showTriggerQueue ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Milestones Triggered — Invoice Queue
+                  </Typography>
+                  <Chip size="small" label={`${invoiceQueueRows.length}`} color={invoiceQueueRows.length > 0 ? 'warning' : 'default'} />
+                </Stack>
+                <Collapse in={showTriggerQueue}>
+                  <Box sx={{ mt: 1 }}>
+                    {renderTriggerQueueTable(invoiceQueueRows, { ...triggerActions, readOnly: true })}
+                  </Box>
+                </Collapse>
+              </Section>
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowUnpaidInvoices(!showUnpaidInvoices)}
+                >
+                  <IconButton size="small">
+                    {showUnpaidInvoices ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Unpaid Invoices 30+ Days
+                  </Typography>
+                  <Chip size="small" label={`${unpaidRows.length}`} color={unpaidRows.length > 0 ? 'error' : 'default'} />
+                </Stack>
+                <Collapse in={showUnpaidInvoices}>
+                  <Box sx={{ mt: 1 }}>
+                    {renderUnpaidInvoicesTable(unpaidRows, navigate)}
+                  </Box>
+                </Collapse>
+              </Section>
             </>
           )}
         </>
