@@ -64,7 +64,7 @@ const Projects: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(searchInput);
-    }, 500);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [searchInput]);

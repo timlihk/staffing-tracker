@@ -65,7 +65,7 @@ export default function BillingMatters() {
   const [searchInput, setSearchInput] = useState('');
   const [bcAttorneyFilter, setBcAttorneyFilter] = useState<string>('all');
 
-  const debouncedSearch = useDebounce(searchInput, 300);
+  const debouncedSearch = useDebounce(searchInput, 800);
   const activeSearch = debouncedSearch.trim();
   const activeAttorney = bcAttorneyFilter !== 'all' ? bcAttorneyFilter : undefined;
 
