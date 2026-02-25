@@ -186,9 +186,11 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
 
     if (completedMilestoneIds.length > 0) {
       try {
+        const resolvedBy = req.user?.userId ?? null;
         await prisma.$executeRaw`
           UPDATE billing_milestone_trigger_queue
           SET status = 'confirmed',
+              confirmed_by = ${resolvedBy},
               confirmed_at = NOW(),
               action_taken = 'auto_resolved_dialog'
           WHERE milestone_id = ANY(${completedMilestoneIds}::bigint[])

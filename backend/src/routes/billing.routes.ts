@@ -1144,10 +1144,6 @@ router.post('/triggers/sweep-due-milestones', authenticate, adminOnly, billingTr
  *         name: minConfidence
  *         schema:
  *           type: number
- *       - in: query
- *         name: autoConfirmConfidence
- *         schema:
- *           type: number
  *     responses:
  *       200:
  *         description: Sweep finished

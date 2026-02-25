@@ -6,7 +6,6 @@ import { withSweepLock } from '../utils/sweep-lock';
 
 const DATE_SWEEP_TRIGGER_STATUS = 'MILESTONE_DUE_DATE_PASSED';
 const DATE_SWEEP_MATCH_METHOD = 'date_sweep';
-const DATE_SWEEP_COMPLETION_SOURCE = 'date_sweep_auto';
 const DATE_SWEEP_ACTION_TYPE = 'issue_invoice';
 const DATE_SWEEP_DEFAULT_LIMIT = 2000;
 
@@ -181,40 +180,22 @@ export class BillingMilestoneDateSweepService {
           event_type: DATE_SWEEP_TRIGGER_STATUS,
           match_confidence: new Decimal('1.00'),
           trigger_reason: reason,
-          status: 'confirmed',
-          confirmed_at: now,
-          action_taken: DATE_SWEEP_ACTION_TYPE,
+          status: 'pending',
           rule_id: candidate.rule_id ?? null,
           match_method: DATE_SWEEP_MATCH_METHOD,
         },
       });
 
-      await tx.billing_milestone.update({
-        where: { milestone_id: milestoneId },
+      await tx.billing_action_item.create({
         data: {
-          completed: true,
-          completion_date: now,
-          completion_source: DATE_SWEEP_COMPLETION_SOURCE,
+          trigger_queue_id: trigger.id,
+          milestone_id: milestoneId,
+          action_type: DATE_SWEEP_ACTION_TYPE,
+          description: this.buildActionDescription(candidate),
+          due_date: dueDate,
+          status: 'pending',
         },
       });
-
-      const existingActionItem = await tx.billing_action_item.findFirst({
-        where: { trigger_queue_id: trigger.id },
-        orderBy: { id: 'desc' },
-      });
-
-      if (!existingActionItem) {
-        await tx.billing_action_item.create({
-          data: {
-            trigger_queue_id: trigger.id,
-            milestone_id: milestoneId,
-            action_type: DATE_SWEEP_ACTION_TYPE,
-            description: this.buildActionDescription(candidate),
-            due_date: dueDate,
-            status: 'pending',
-          },
-        });
-      }
     });
 
     return {

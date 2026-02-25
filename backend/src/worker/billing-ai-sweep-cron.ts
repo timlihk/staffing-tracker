@@ -11,10 +11,6 @@ const ENV_ENABLED = process.env.ENABLE_BILLING_AI_SWEEP === 'true';
 const ENV_LIMIT = Number.parseInt(process.env.BILLING_AI_SWEEP_LIMIT || '300', 10);
 const ENV_BATCH_SIZE = Number.parseInt(process.env.BILLING_AI_SWEEP_BATCH_SIZE || '20', 10);
 const ENV_MIN_CONFIDENCE = Number.parseFloat(process.env.BILLING_AI_SWEEP_MIN_CONFIDENCE || '0.75');
-const ENV_AUTO_CONFIRM_CONFIDENCE = Number.parseFloat(
-  process.env.BILLING_AI_SWEEP_AUTO_CONFIRM_CONFIDENCE || '0.92'
-);
-
 const run = async (trigger: 'scheduled' | 'startup') => {
   try {
     const settings = await prisma.appSettings.findFirst();
@@ -22,8 +18,6 @@ const run = async (trigger: 'scheduled' | 'startup') => {
     const limit = settings?.billingAiSweepLimit ?? ENV_LIMIT;
     const batchSize = settings?.billingAiSweepBatchSize ?? ENV_BATCH_SIZE;
     const minConfidence = settings?.billingAiSweepMinConfidence ?? ENV_MIN_CONFIDENCE;
-    const autoConfirmConfidence =
-      settings?.billingAiSweepAutoConfirmConfidence ?? ENV_AUTO_CONFIRM_CONFIDENCE;
 
     if (!enabled) {
       logger.info('[BillingAISweep] Skipped (disabled in app settings)');
@@ -37,7 +31,6 @@ const run = async (trigger: 'scheduled' | 'startup') => {
       limit,
       batchSize,
       minConfidence,
-      autoConfirmConfidence,
     });
 
     const result = await BillingMilestoneAISweepService.runDailySweep({
@@ -45,9 +38,6 @@ const run = async (trigger: 'scheduled' | 'startup') => {
       limit: Number.isFinite(limit) ? limit : undefined,
       batchSize: Number.isFinite(batchSize) ? batchSize : undefined,
       minConfidence: Number.isFinite(minConfidence) ? minConfidence : undefined,
-      autoConfirmConfidence: Number.isFinite(autoConfirmConfidence)
-        ? autoConfirmConfidence
-        : undefined,
     });
 
     logger.info('[BillingAISweep] Job completed', { result });

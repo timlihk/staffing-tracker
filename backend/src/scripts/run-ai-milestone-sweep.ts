@@ -12,14 +12,12 @@ async function main() {
   const limit = parseNumberFlag('--limit');
   const batchSize = parseNumberFlag('--batch-size');
   const minConfidence = parseNumberFlag('--min-confidence');
-  const autoConfirmConfidence = parseNumberFlag('--auto-confirm-confidence');
 
   const result = await BillingMilestoneAISweepService.runDailySweep({
     dryRun,
     limit,
     batchSize,
     minConfidence,
-    autoConfirmConfidence,
   });
 
   // eslint-disable-next-line no-console

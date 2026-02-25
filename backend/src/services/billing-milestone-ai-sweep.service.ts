@@ -9,12 +9,10 @@ import { withSweepLock } from '../utils/sweep-lock';
 
 const AI_TRIGGER_STATUS = 'MILESTONE_AI_DATE_PASSED';
 const AI_MATCH_METHOD = 'ai_due_sweep';
-const AI_COMPLETION_SOURCE = 'ai_due_sweep_auto';
 const AI_ACTION_TYPE = 'issue_invoice';
 const DEFAULT_LIMIT = 300;
 const DEFAULT_BATCH_SIZE = 20;
 const DEFAULT_MIN_CONFIDENCE = 0.75;
-const DEFAULT_AUTO_CONFIRM_CONFIDENCE = 0.92;
 const RETRY_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 1000;
 
@@ -55,7 +53,6 @@ export interface BillingMilestoneAISweepOptions {
   limit?: number;
   batchSize?: number;
   minConfidence?: number;
-  autoConfirmConfidence?: number;
 }
 
 export interface BillingMilestoneAISweepResult {
@@ -64,7 +61,6 @@ export interface BillingMilestoneAISweepResult {
   scanned: number;
   aiFlaggedDue: number;
   processed: number;
-  confirmed: number;
   pendingReview: number;
   autoLinked: number;
   skippedNoStaffingProject: number;
@@ -75,7 +71,6 @@ export interface BillingMilestoneAISweepResult {
 
 interface CandidateProcessResult {
   processed: boolean;
-  confirmed: boolean;
   pendingReview: boolean;
   autoLinked: boolean;
   skippedNoStaffingProject: boolean;
@@ -145,10 +140,6 @@ export class BillingMilestoneAISweepService {
     const limit = this.normalizeLimit(options.limit);
     const batchSize = this.normalizeBatchSize(options.batchSize);
     const minConfidence = this.normalizeConfidence(options.minConfidence, DEFAULT_MIN_CONFIDENCE);
-    const autoConfirmConfidence = this.normalizeConfidence(
-      options.autoConfirmConfidence,
-      DEFAULT_AUTO_CONFIRM_CONFIDENCE
-    );
 
     const result: BillingMilestoneAISweepResult = {
       dryRun,
@@ -156,7 +147,6 @@ export class BillingMilestoneAISweepService {
       scanned: 0,
       aiFlaggedDue: 0,
       processed: 0,
-      confirmed: 0,
       pendingReview: 0,
       autoLinked: 0,
       skippedNoStaffingProject: 0,
@@ -212,14 +202,10 @@ export class BillingMilestoneAISweepService {
           const processed = await this.processCandidate(
             candidate,
             evaluation,
-            {
-              dryRun,
-              autoConfirmConfidence,
-            }
+            { dryRun }
           );
 
           if (processed.processed) result.processed += 1;
-          if (processed.confirmed) result.confirmed += 1;
           if (processed.pendingReview) result.pendingReview += 1;
           if (processed.autoLinked) result.autoLinked += 1;
           if (processed.skippedNoStaffingProject) result.skippedNoStaffingProject += 1;
@@ -408,12 +394,10 @@ export class BillingMilestoneAISweepService {
   private static async processCandidate(
     candidate: SweepCandidate,
     evaluation: AIDueEvaluation,
-    options: { dryRun: boolean; autoConfirmConfidence: number }
+    options: { dryRun: boolean }
   ): Promise<CandidateProcessResult> {
     const milestoneId = this.toBigInt(candidate.milestone_id);
     const billingProjectId = this.toBigInt(candidate.billing_project_id);
-    const shouldAutoConfirm = this.shouldAutoConfirm(candidate, evaluation.confidence, options.autoConfirmConfidence);
-
     const existingTrigger = await prisma.billing_milestone_trigger_queue.findFirst({
       where: {
         milestone_id: milestoneId,
@@ -428,7 +412,6 @@ export class BillingMilestoneAISweepService {
     if (existingTrigger) {
       return {
         processed: false,
-        confirmed: false,
         pendingReview: false,
         autoLinked: false,
         skippedNoStaffingProject: false,
@@ -444,7 +427,6 @@ export class BillingMilestoneAISweepService {
     if (!projectResolution.staffingProjectId) {
       return {
         processed: false,
-        confirmed: false,
         pendingReview: false,
         autoLinked: false,
         skippedNoStaffingProject: true,
@@ -455,8 +437,7 @@ export class BillingMilestoneAISweepService {
     if (options.dryRun) {
       return {
         processed: true,
-        confirmed: shouldAutoConfirm,
-        pendingReview: !shouldAutoConfirm,
+        pendingReview: true,
         autoLinked: projectResolution.autoLinked,
         skippedNoStaffingProject: false,
         skippedAlreadyTriggered: false,
@@ -465,7 +446,6 @@ export class BillingMilestoneAISweepService {
 
     await prisma.$transaction(async (tx) => {
       const now = new Date();
-      const triggerStatus = shouldAutoConfirm ? 'confirmed' : 'pending';
 
       const trigger = await tx.billing_milestone_trigger_queue.create({
         data: {
@@ -476,65 +456,31 @@ export class BillingMilestoneAISweepService {
           event_type: AI_TRIGGER_STATUS,
           match_confidence: new Decimal(evaluation.confidence.toFixed(2)),
           trigger_reason: this.buildTriggerReason(candidate, evaluation),
-          status: triggerStatus,
-          confirmed_at: shouldAutoConfirm ? now : null,
-          action_taken: shouldAutoConfirm ? AI_ACTION_TYPE : null,
+          status: 'pending',
           rule_id: candidate.rule_id ?? null,
           match_method: AI_MATCH_METHOD,
         },
       });
 
-      if (!shouldAutoConfirm) {
-        return;
-      }
-
-      await tx.billing_milestone.update({
-        where: { milestone_id: milestoneId },
+      await tx.billing_action_item.create({
         data: {
-          completed: true,
-          completion_date: now,
-          completion_source: AI_COMPLETION_SOURCE,
+          trigger_queue_id: trigger.id,
+          milestone_id: milestoneId,
+          action_type: AI_ACTION_TYPE,
+          description: this.buildActionDescription(candidate),
+          due_date: this.defaultActionDueDate(now),
+          status: 'pending',
         },
       });
-
-      const existingActionItem = await tx.billing_action_item.findFirst({
-        where: { trigger_queue_id: trigger.id },
-        orderBy: { id: 'desc' },
-      });
-
-      if (!existingActionItem) {
-        await tx.billing_action_item.create({
-          data: {
-            trigger_queue_id: trigger.id,
-            milestone_id: milestoneId,
-            action_type: AI_ACTION_TYPE,
-            description: this.buildActionDescription(candidate),
-            due_date: this.defaultActionDueDate(now),
-            status: 'pending',
-          },
-        });
-      }
     });
 
     return {
       processed: true,
-      confirmed: shouldAutoConfirm,
-      pendingReview: !shouldAutoConfirm,
+      pendingReview: true,
       autoLinked: projectResolution.autoLinked,
       skippedNoStaffingProject: false,
       skippedAlreadyTriggered: false,
     };
-  }
-
-  private static shouldAutoConfirm(
-    candidate: SweepCandidate,
-    confidence: number,
-    autoConfirmConfidence: number
-  ): boolean {
-    if (candidate.rule_auto_confirm === true) {
-      return true;
-    }
-    return confidence >= autoConfirmConfidence;
   }
 
   private static async resolveStaffingProjectId(

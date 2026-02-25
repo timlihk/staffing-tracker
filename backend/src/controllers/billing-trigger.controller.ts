@@ -331,7 +331,6 @@ export const runAIDueSweep = async (req: AuthRequest, res: Response) => {
     const parsedLimit = Number(req.query?.limit);
     const parsedBatchSize = Number(req.query?.batchSize);
     const parsedMinConfidence = Number(req.query?.minConfidence);
-    const parsedAutoConfirmConfidence = Number(req.query?.autoConfirmConfidence);
     const settings = await prisma.appSettings.findFirst();
 
     const limit = Number.isFinite(parsedLimit)
@@ -343,16 +342,12 @@ export const runAIDueSweep = async (req: AuthRequest, res: Response) => {
     const minConfidence = Number.isFinite(parsedMinConfidence)
       ? parsedMinConfidence
       : settings?.billingAiSweepMinConfidence;
-    const autoConfirmConfidence = Number.isFinite(parsedAutoConfirmConfidence)
-      ? parsedAutoConfirmConfidence
-      : settings?.billingAiSweepAutoConfirmConfidence;
 
     const result = await BillingMilestoneAISweepService.runDailySweep({
       dryRun,
       limit,
       batchSize,
       minConfidence,
-      autoConfirmConfidence,
     });
 
     res.json({
