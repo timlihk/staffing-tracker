@@ -167,4 +167,63 @@ describe('Cache System', () => {
       expect(cacheStats.misses).toBe(initialMisses + 1);
     });
   });
+
+  describe('Cache Invalidation with Sanitized Patterns', () => {
+    it('should strip control characters from invalidation pattern and still match', () => {
+      const key = CACHE_KEYS.PROJECT_DETAIL(42);
+      setCached(key, { id: 42 });
+
+      // Pattern with control chars — sanitized form should still match stored key
+      invalidateCache('project:detail\x00\x01');
+      expect(getCached(key)).toBeNull();
+    });
+
+    it('should strip non-ASCII from invalidation pattern and still match', () => {
+      const key = CACHE_KEYS.STAFF_DETAIL(7);
+      setCached(key, { id: 7 });
+
+      invalidateCache('staff:detail\u200B'); // zero-width space
+      expect(getCached(key)).toBeNull();
+    });
+
+    it('should not invalidate unrelated keys', () => {
+      setCached(CACHE_KEYS.PROJECT_DETAIL(1), { id: 1 });
+      setCached(CACHE_KEYS.STAFF_DETAIL(2), { id: 2 });
+
+      invalidateCache('project:detail');
+
+      expect(getCached(CACHE_KEYS.PROJECT_DETAIL(1))).toBeNull();
+      expect(getCached(CACHE_KEYS.STAFF_DETAIL(2))).toEqual({ id: 2 });
+    });
+  });
+
+  describe('Cache Eviction', () => {
+    it('should evict oldest entry when cache reaches max size', () => {
+      // Fill cache to max (1000 entries)
+      for (let i = 0; i < 1000; i++) {
+        setCached(`eviction-test:${i}`, { i });
+      }
+
+      expect(cacheStats.size()).toBe(1000);
+
+      // Adding one more should evict the oldest (eviction-test:0)
+      setCached('eviction-test:new', { new: true });
+
+      expect(cacheStats.size()).toBe(1000);
+      expect(getCached('eviction-test:0')).toBeNull();
+      expect(getCached('eviction-test:new')).toEqual({ new: true });
+      // A later entry should still exist
+      expect(getCached('eviction-test:999')).toEqual({ i: 999 });
+    });
+
+    it('should increment eviction counter on size-based eviction', () => {
+      const initialEvictions = cacheStats.evictions;
+
+      for (let i = 0; i < 1001; i++) {
+        setCached(`evict-count-test:${i}`, { i });
+      }
+
+      expect(cacheStats.evictions).toBe(initialEvictions + 1);
+    });
+  });
 });
