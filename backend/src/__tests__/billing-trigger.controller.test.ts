@@ -188,6 +188,18 @@ describe('Billing Trigger Controller - Authorization Scope', () => {
       expect(res.status).toBe(400);
       expect(res.body.error).toMatch(/invalid attorneyid/i);
     });
+
+    it('returns 400 for partially numeric attorneyId like "42abc"', async () => {
+      const res = await request(adminApp).get('/finance-summary?attorneyId=42abc');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
+
+    it('returns 400 for float attorneyId like "3.5"', async () => {
+      const res = await request(adminApp).get('/triggers?attorneyId=3.5');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
   });
 
   describe('Non-admin without staff record', () => {

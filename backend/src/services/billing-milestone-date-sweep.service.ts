@@ -68,7 +68,7 @@ export class BillingMilestoneDateSweepService {
     // Batch-prefetch dedup set and link map to eliminate per-candidate N+1 queries
     const milestoneIds = candidates.map((c) => this.toBigInt(c.milestone_id));
     const billingProjectIds = [...new Set(candidates.map((c) => this.toBigInt(c.billing_project_id)))];
-    const cmNumbers = [...new Set(candidates.map((c) => c.cm_no).filter((v): v is string => v != null))];
+    const cmNumbers = [...new Set(candidates.map((c) => c.cm_no?.trim()).filter((v): v is string => !!v))];
 
     const [alreadyTriggeredRows, existingLinks, cmMatches] = await Promise.all([
       // 1. Dedup: which milestones already have pending/confirmed triggers?
@@ -197,17 +197,21 @@ export class BillingMilestoneDateSweepService {
 
     if (!staffingProjectId && candidate.cm_no) {
       staffingProjectId = cmProjectMap.get(candidate.cm_no.trim()) ?? null;
-      if (staffingProjectId && !dryRun) {
-        // Persist the auto-link for future runs
-        await prisma.$executeRaw(Prisma.sql`
-          INSERT INTO billing_staffing_project_link (
-            billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
-          ) VALUES (
-            ${billingProjectId}, ${staffingProjectId}, ${1.0}, NOW(),
-            ${'Auto-linked by milestone due-date sweep via C/M number'}
-          ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
-        `);
+      if (staffingProjectId) {
         autoLinked = true;
+        // Persist the auto-link for future runs (skip in dry-run)
+        if (!dryRun) {
+          await prisma.$executeRaw(Prisma.sql`
+            INSERT INTO billing_staffing_project_link (
+              billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
+            ) VALUES (
+              ${billingProjectId}, ${staffingProjectId}, ${1.0}, NOW(),
+              ${'Auto-linked by milestone due-date sweep via C/M number'}
+            ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
+          `);
+        }
+        // Update linkMap so later candidates for the same billing project don't double-count
+        linkMap.set(billingProjectId, staffingProjectId);
       }
     }
 
