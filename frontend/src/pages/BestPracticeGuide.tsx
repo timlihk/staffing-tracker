@@ -1525,6 +1525,87 @@ export default function BestPracticeGuide() {
               </Stack>
             </GuideCard>
 
+            {/* Guide 1b: Finance View — Excel Upload */}
+            <GuideCard title="Finance View — Upload & Sync Excel Data">
+              <Stack spacing={2}>
+                <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
+                  The Finance Excel Upload is now in <strong>Control Tower &gt; Finance View</strong>. It syncs billing data from the HKCM Project List Excel into the system — creating/updating billing projects, engagements, milestones, and financial figures.
+                </Alert>
+                <ScreenFrame title="Control Tower — Finance View — Excel Upload">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">Finance View</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Upload zone */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, border: `2px dashed ${tokens.colors.slate[300]}`, borderRadius: 1, p: 1.5, textAlign: 'center', bgcolor: tokens.colors.slate[50] }}>
+                        <Typography variant="caption" fontSize="0.5rem" color="text.secondary" display="block">Drop or select the HKCM Project List Excel</Typography>
+                        <Box sx={{ mt: 0.5, px: 1, py: 0.25, bgcolor: tokens.colors.indigo[500], color: 'white', borderRadius: 0.5, display: 'inline-block', fontSize: '0.4rem', fontWeight: 700 }}>Select File</Box>
+                      </Box>
+                    </Stack>
+                    {/* Preview summary */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, p: 1 }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.5rem" display="block" sx={{ mb: 0.5 }}>Preview Summary</Typography>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          <Chip label="120 rows" size="small" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="89 matched" size="small" color="success" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="5 unmatched" size="small" color="warning" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="12 to update" size="small" color="info" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="3 milestones" size="small" sx={{ height: 16, fontSize: '0.4rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Matched details (collapsible) */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">&#x25B8;</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.5rem">Matched Details</Typography>
+                          <Chip label="89" size="small" sx={{ height: 16, fontSize: '0.4rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Action buttons */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={4} />
+                      <Stack direction="row" spacing={0.5}>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: tokens.colors.indigo[500], color: 'white', borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 700 }}>Apply Changes</Box>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 600, color: tokens.colors.slate[600] }}>Cancel</Box>
+                      </Stack>
+                    </Stack>
+                    {/* Post-sync links */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={5} />
+                      <Stack direction="row" spacing={0.5}>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 600, color: tokens.colors.indigo[500] }}>View Full Sync Report</Box>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 600, color: tokens.colors.indigo[500] }}>Sync History</Box>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Switch to the <strong>Finance View</strong> tab, then click <strong>Select File</strong> to choose the HKCM Project List Excel (.xlsx or .xls). The system reads the file and generates a preview.</>} />
+                  <StepItem n={2} text={<>Review the <strong>Preview Summary</strong> chips: matched C/M numbers (green), unmatched (yellow warning), projects to update, and milestones to create. If AI validation is available, check any flagged issues.</>} />
+                  <StepItem n={3} text={<>Expand <strong>Matched Details</strong> to see per-project changes — engagement counts, milestone counts, and financial field diffs — before applying.</>} />
+                  <StepItem n={4} text={<>Click <strong>Apply Changes</strong> to sync the data. After completion, a success summary shows counts of updated projects, synced financials, upserted engagements, and created milestones.</>} />
+                  <StepItem n={5} text={<>Click <strong>View Full Sync Report</strong> for a detailed breakdown of every change, or <strong>Sync History</strong> to see all past sync runs with date, file, user, and status.</>} />
+                </Stack>
+                <Alert severity="warning" sx={{ '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
+                  <strong>Important:</strong> Unmatched C/M numbers (shown in yellow during preview) will be skipped. If a C/M number is not in the database, create the billing project manually first, or check the Excel file for the correct C/M format.
+                </Alert>
+              </Stack>
+            </GuideCard>
+
             {/* Guide 2: Management View */}
             <GuideCard title="Management View — Monitor Portfolio Risks">
               <Stack spacing={2}>
