@@ -847,34 +847,33 @@ const ProjectDetail: React.FC = () => {
                   key={change.id}
                   sx={{
                     display: 'flex',
-                    gap: 1.5,
-                    p: 1,
+                    gap: 1,
+                    px: 1,
+                    py: 0.5,
                     borderRadius: 1,
                     bgcolor: 'grey.50',
-                    border: '1px solid',
-                    borderColor: 'grey.100',
                     alignItems: 'center',
                   }}
                 >
-                  <Box sx={{ minWidth: 32, flexShrink: 0 }}>{getActionIcon(change.changeType)}</Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Box display="flex" gap={1} flexWrap="wrap" alignItems="baseline">
-                      <Typography variant="caption" fontWeight={600}>
-                        {change.fieldName}:
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {change.oldValue || '(empty)'}
-                      </Typography>
-                      <Typography variant="caption">→</Typography>
-                      <Typography variant="caption" color="primary.main" fontWeight={600}>
-                        {change.newValue || '(empty)'}
-                      </Typography>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
-                      {new Date(change.changedAt).toLocaleDateString()} {new Date(change.changedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {change.username && ` • ${change.username}`}
+                  <Box sx={{ minWidth: 24, flexShrink: 0 }}>{getActionIcon(change.changeType)}</Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                    {new Date(change.changedAt).toLocaleDateString()}
+                  </Typography>
+                  <Typography variant="caption" fontWeight={600} sx={{ flexShrink: 0 }}>
+                    {change.fieldName}:
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    {change.oldValue || '(empty)'}
+                  </Typography>
+                  <Typography variant="caption">→</Typography>
+                  <Typography variant="caption" color="primary.main" fontWeight={600} noWrap>
+                    {change.newValue || '(empty)'}
+                  </Typography>
+                  {change.username && (
+                    <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto', flexShrink: 0 }}>
+                      {change.username}
                     </Typography>
-                  </Box>
+                  )}
                 </Box>
               ))}
               {changeHistory.length > 10 && (
