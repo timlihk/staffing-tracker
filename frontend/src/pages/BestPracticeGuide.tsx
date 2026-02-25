@@ -35,6 +35,7 @@ import {
   DevicesOther,
 } from '@mui/icons-material';
 import { Page, PageHeader, Section } from '../components/ui';
+import { useAuth } from '../hooks/useAuth';
 import { tokens } from '../theme';
 
 // ---------------------------------------------------------------------------
@@ -330,14 +331,17 @@ const GuideCard = ({ title, children }: { title: string; children: React.ReactNo
 export default function BestPracticeGuide() {
   type SectionKey = 'best-practices' | 'how-to-projects' | 'how-to-staffing' | 'how-to-billing' | 'how-to-control-tower';
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
-  const LANDING_SECTIONS: {
+  const ALL_LANDING_SECTIONS: {
     key: SectionKey;
     title: string;
     subtitle: string;
     icon: React.ReactNode;
     color: string;
     chips: { label: string; sectionId: string }[];
+    adminOnly?: boolean;
   }[] = [
     {
       key: 'best-practices',
@@ -378,8 +382,11 @@ export default function BestPracticeGuide() {
       icon: <DevicesOther sx={{ fontSize: 28 }} />,
       color: tokens.colors.violet[500],
       chips: [],
+      adminOnly: true,
     },
   ];
+
+  const LANDING_SECTIONS = ALL_LANDING_SECTIONS.filter((s) => !('adminOnly' in s && s.adminOnly) || isAdmin);
 
   const handleCardClick = (key: SectionKey) => {
     setActiveSection((prev) => (prev === key ? null : key));
@@ -1413,7 +1420,7 @@ export default function BestPracticeGuide() {
       )}
 
       {/* ================ How To — Control Tower content ================ */}
-      {activeSection === 'how-to-control-tower' && (
+      {isAdmin && activeSection === 'how-to-control-tower' && (
       <Box id={SECTION_IDS.howToControlTower} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<DevicesOther sx={{ color: tokens.colors.violet[500] }} />} label="How To — Control Tower" />}>
           <Stack spacing={3}>
