@@ -1395,6 +1395,8 @@ router.get('/long-stop-risks', authenticate, checkBillingAccess, adminOnly, bill
  */
 router.get('/unpaid-invoices', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getUnpaidInvoices);
 
+router.get('/time-windowed-metrics', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getTimeWindowedMetrics);
+
 // ============================================================================
 // Excel Sync (Finance Upload)
 // ============================================================================

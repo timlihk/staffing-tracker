@@ -707,3 +707,35 @@ export const getUnpaidInvoices = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ error: 'Failed to fetch unpaid invoice alerts' });
   }
 };
+
+/**
+ * Get time-windowed billing/collected metrics (30/60/90 day buckets).
+ */
+export const getTimeWindowedMetrics = async (_req: AuthRequest, res: Response) => {
+  try {
+    const rows = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT
+        COALESCE(SUM(CASE WHEN invoice_sent_date >= CURRENT_DATE - INTERVAL '30 day' THEN amount_value ELSE 0 END), 0) AS billed_30d,
+        COALESCE(SUM(CASE WHEN invoice_sent_date >= CURRENT_DATE - INTERVAL '60 day' THEN amount_value ELSE 0 END), 0) AS billed_60d,
+        COALESCE(SUM(CASE WHEN invoice_sent_date >= CURRENT_DATE - INTERVAL '90 day' THEN amount_value ELSE 0 END), 0) AS billed_90d,
+        COALESCE(SUM(CASE WHEN payment_received_date >= CURRENT_DATE - INTERVAL '30 day' THEN amount_value ELSE 0 END), 0) AS collected_30d,
+        COALESCE(SUM(CASE WHEN payment_received_date >= CURRENT_DATE - INTERVAL '60 day' THEN amount_value ELSE 0 END), 0) AS collected_60d,
+        COALESCE(SUM(CASE WHEN payment_received_date >= CURRENT_DATE - INTERVAL '90 day' THEN amount_value ELSE 0 END), 0) AS collected_90d
+      FROM billing_milestone
+      WHERE invoice_sent_date IS NOT NULL OR payment_received_date IS NOT NULL
+    `);
+
+    const row = rows[0] ?? {};
+    res.json({
+      billed30d: Number(row.billed_30d ?? 0),
+      billed60d: Number(row.billed_60d ?? 0),
+      billed90d: Number(row.billed_90d ?? 0),
+      collected30d: Number(row.collected_30d ?? 0),
+      collected60d: Number(row.collected_60d ?? 0),
+      collected90d: Number(row.collected_90d ?? 0),
+    });
+  } catch (error) {
+    logger.error('Error fetching time-windowed metrics:', error as any);
+    return res.status(500).json({ error: 'Failed to fetch time-windowed metrics' });
+  }
+};

@@ -564,6 +564,14 @@ export function useUnpaidInvoices(params?: {
   });
 }
 
+export function useTimeWindowedMetrics() {
+  return useQuery({
+    queryKey: [...billingKeys.all, 'time-windowed-metrics'] as const,
+    queryFn: billingApi.getTimeWindowedMetrics,
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useConfirmBillingTrigger() {
   const queryClient = useQueryClient();
 

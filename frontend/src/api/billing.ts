@@ -776,6 +776,20 @@ export const getUnpaidInvoices = async (params?: {
   return response.data;
 };
 
+export interface BillingTimeWindowMetrics {
+  billed30d: number;
+  billed60d: number;
+  billed90d: number;
+  collected30d: number;
+  collected60d: number;
+  collected90d: number;
+}
+
+export const getTimeWindowedMetrics = async (): Promise<BillingTimeWindowMetrics> => {
+  const response = await apiClient.get('/billing/time-windowed-metrics');
+  return response.data;
+};
+
 export const getBillingNotes = async (projectId: number, engagementId?: number): Promise<BillingNote[]> => {
   const params = engagementId ? { engagement_id: engagementId } : undefined;
   const response = await apiClient.get(`/billing/projects/${projectId}/notes`, { params });
