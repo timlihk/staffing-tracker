@@ -41,6 +41,16 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
+const AdminOrBcAttorneyRoute = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isBcAttorney = user?.staff?.position === 'B&C Working Attorney';
+  if (!isAdmin && !isBcAttorney) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 const LoadingScreen = () => (
   <Box
     sx={{
@@ -232,11 +242,11 @@ function App() {
               path="/billing/control-tower"
               element={
                 <ProtectedRoute>
-                  <AdminRoute>
+                  <AdminOrBcAttorneyRoute>
                     <Layout>
                       <BillingControlTower />
                     </Layout>
-                  </AdminRoute>
+                  </AdminOrBcAttorneyRoute>
                 </ProtectedRoute>
               }
             />

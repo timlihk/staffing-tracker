@@ -1055,7 +1055,7 @@ router.patch('/settings/access', authenticate, adminOnly, validate(updateBilling
  *       401:
  *         description: Unauthorized
  */
-router.get('/triggers/pending', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getPendingTriggers);
+router.get('/triggers/pending', authenticate, checkBillingAccess, billingTriggerController.getPendingTriggers);
 
 /**
  * @openapi
@@ -1092,7 +1092,7 @@ router.get('/triggers/pending', authenticate, checkBillingAccess, adminOnly, bil
  *       401:
  *         description: Unauthorized
  */
-router.get('/triggers', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getTriggers);
+router.get('/triggers', authenticate, checkBillingAccess, billingTriggerController.getTriggers);
 
 /**
  * @openapi
@@ -1356,7 +1356,7 @@ router.get('/finance-summary', authenticate, checkBillingAccess, adminOnly, bill
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/long-stop-risks', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getLongStopRisks);
+router.get('/long-stop-risks', authenticate, checkBillingAccess, billingTriggerController.getLongStopRisks);
 
 /**
  * @openapi
@@ -1393,9 +1393,9 @@ router.get('/long-stop-risks', authenticate, checkBillingAccess, adminOnly, bill
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/unpaid-invoices', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getUnpaidInvoices);
+router.get('/unpaid-invoices', authenticate, checkBillingAccess, billingTriggerController.getUnpaidInvoices);
 
-router.get('/time-windowed-metrics', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getTimeWindowedMetrics);
+router.get('/time-windowed-metrics', authenticate, checkBillingAccess, billingTriggerController.getTimeWindowedMetrics);
 
 // ============================================================================
 // Excel Sync (Finance Upload)

@@ -34,6 +34,7 @@ import {
   useTimeWindowedMetrics,
 } from '../hooks/useBilling';
 import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../hooks/useAuth';
 import type {
   BillingLongStopRiskRow,
   BillingTriggerRow,
@@ -122,23 +123,6 @@ const MetricCard: React.FC<{ label: string; value: string; helper?: string; tone
 // ---------------------------------------------------------------------------
 // Shared renderers
 // ---------------------------------------------------------------------------
-
-function renderTimeWindowMetrics(metrics: BillingTimeWindowMetrics | undefined) {
-  if (!metrics) return null;
-  return (
-    <Section>
-      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Billing & Collections Activity</Typography>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
-        <MetricCard label="Billed (30d)" value={currencyFormatter.format(metrics.billed30d)} tone="neutral" />
-        <MetricCard label="Billed (60d)" value={currencyFormatter.format(metrics.billed60d)} tone="neutral" />
-        <MetricCard label="Billed (90d)" value={currencyFormatter.format(metrics.billed90d)} tone="neutral" />
-        <MetricCard label="Collected (30d)" value={currencyFormatter.format(metrics.collected30d)} tone="positive" />
-        <MetricCard label="Collected (60d)" value={currencyFormatter.format(metrics.collected60d)} tone="positive" />
-        <MetricCard label="Collected (90d)" value={currencyFormatter.format(metrics.collected90d)} tone="positive" />
-      </Stack>
-    </Section>
-  );
-}
 
 function renderTriggerQueueTable(
   invoiceQueueRows: InvoiceQueueRow[],
@@ -287,56 +271,50 @@ function renderLongStopRiskTable(
   longStopRows: BillingLongStopRiskRow[],
   navigate: (path: string) => void,
 ) {
-  const pastDueCount = longStopRows.filter((r) => r.daysToLongStop < 0).length;
   return (
-    <Section>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-        Projects Past Long Stop Date ({pastDueCount} past due / {longStopRows.length} at risk)
-      </Typography>
-      <TableContainer component={Paper} variant="outlined">
-        <Table size="small">
-          <TableHead>
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Risk</TableCell>
+            <TableCell>B&C Attorney</TableCell>
+            <TableCell>Billing Matter</TableCell>
+            <TableCell>Long Stop Date</TableCell>
+            <TableCell align="right">Days To/Past</TableCell>
+            <TableCell align="right">UBT</TableCell>
+            <TableCell align="right">Collected</TableCell>
+            <TableCell align="right" />
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {longStopRows.length === 0 ? (
             <TableRow>
-              <TableCell>Risk</TableCell>
-              <TableCell>B&C Attorney</TableCell>
-              <TableCell>Billing Matter</TableCell>
-              <TableCell>Long Stop Date</TableCell>
-              <TableCell align="right">Days To/Past</TableCell>
-              <TableCell align="right">UBT</TableCell>
-              <TableCell align="right">Collected</TableCell>
-              <TableCell align="right" />
+              <TableCell colSpan={8} align="center">No long-stop date risks</TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {longStopRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center">No long-stop date risks</TableCell>
-              </TableRow>
-            ) : (
-              longStopRows.map((row) => {
-                const risk = getLongStopRiskChip(row);
-                return (
-                  <TableRow key={`${row.billingProjectId}-${row.staffId}-${row.lsdDate}`} hover>
-                    <TableCell><Chip size="small" label={risk.label} color={risk.color} variant="outlined" /></TableCell>
-                    <TableCell>{row.attorneyName}</TableCell>
-                    <TableCell>{row.billingProjectName}</TableCell>
-                    <TableCell>{formatDate(row.lsdDate)}</TableCell>
-                    <TableCell align="right">{row.daysToLongStop}</TableCell>
-                    <TableCell align="right">{currencyFormatter.format(toNumber(row.ubtUsd))}</TableCell>
-                    <TableCell align="right">{currencyFormatter.format(toNumber(row.collectionUsd))}</TableCell>
-                    <TableCell align="right">
-                      <Button size="small" variant="text" onClick={() => navigate(`/billing/${row.billingProjectId}`)}>
-                        Open
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Section>
+          ) : (
+            longStopRows.map((row) => {
+              const risk = getLongStopRiskChip(row);
+              return (
+                <TableRow key={`${row.billingProjectId}-${row.staffId}-${row.lsdDate}`} hover>
+                  <TableCell><Chip size="small" label={risk.label} color={risk.color} variant="outlined" /></TableCell>
+                  <TableCell>{row.attorneyName}</TableCell>
+                  <TableCell>{row.billingProjectName}</TableCell>
+                  <TableCell>{formatDate(row.lsdDate)}</TableCell>
+                  <TableCell align="right">{row.daysToLongStop}</TableCell>
+                  <TableCell align="right">{currencyFormatter.format(toNumber(row.ubtUsd))}</TableCell>
+                  <TableCell align="right">{currencyFormatter.format(toNumber(row.collectionUsd))}</TableCell>
+                  <TableCell align="right">
+                    <Button size="small" variant="text" onClick={() => navigate(`/billing/${row.billingProjectId}`)}>
+                      Open
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -347,16 +325,27 @@ function renderLongStopRiskTable(
 const BillingControlTower: React.FC = () => {
   const navigate = useNavigate();
   const permissions = usePermissions();
+  const { user } = useAuth();
   const canOperateQueue = permissions.isAdmin;
+  const myStaffId = user?.staff?.id;
+
+  // Non-admin users see only "My Projects" tab (index 0); admins see all 3 tabs
   const [activeTab, setActiveTab] = useState(0);
+  const [showMetrics, setShowMetrics] = useState(true);
+  const [showLongStopRisks, setShowLongStopRisks] = useState(false);
   const [showTriggerQueue, setShowTriggerQueue] = useState(false);
   const [showUnpaidInvoices, setShowUnpaidInvoices] = useState(false);
 
-  // Data hooks — called unconditionally so both tabs share data
+  // Admin data hooks — called unconditionally (React rules of hooks)
   const metricsQuery = useTimeWindowedMetrics();
   const triggersQuery = useBillingTriggers();
   const longStopQuery = useLongStopRisks({ windowDays: 90, limit: 1000 });
   const unpaidQuery = useUnpaidInvoices({ thresholdDays: 30, limit: 1000 });
+
+  // B&C Attorney View — filtered to current user's projects
+  const myTriggersQuery = useBillingTriggers(myStaffId ? { attorneyId: myStaffId } : undefined);
+  const myLongStopQuery = useLongStopRisks(myStaffId ? { attorneyId: myStaffId, windowDays: 90, limit: 1000 } : undefined);
+  const myUnpaidQuery = useUnpaidInvoices(myStaffId ? { attorneyId: myStaffId, thresholdDays: 30, limit: 1000 } : undefined);
 
   // Mutations (Finance View only)
   const confirmTrigger = useConfirmBillingTrigger();
@@ -364,12 +353,21 @@ const BillingControlTower: React.FC = () => {
   const updateTriggerActionItem = useUpdateTriggerActionItem();
   const isMutating = confirmTrigger.isPending || rejectTrigger.isPending || updateTriggerActionItem.isPending;
 
-  const isLoading = metricsQuery.isLoading || triggersQuery.isLoading || longStopQuery.isLoading || unpaidQuery.isLoading;
-  const loadError = metricsQuery.error || triggersQuery.error || longStopQuery.error || unpaidQuery.error;
+  const adminDataLoading = metricsQuery.isLoading || triggersQuery.isLoading || longStopQuery.isLoading || unpaidQuery.isLoading;
+  const myDataLoading = myStaffId ? (myTriggersQuery.isLoading || myLongStopQuery.isLoading || myUnpaidQuery.isLoading) : false;
+  const isLoading = permissions.isAdmin ? (adminDataLoading || myDataLoading) : myDataLoading;
+
+  const adminError = metricsQuery.error || triggersQuery.error || longStopQuery.error || unpaidQuery.error;
+  const myError = myTriggersQuery.error || myLongStopQuery.error || myUnpaidQuery.error;
+  const loadError = permissions.isAdmin ? (adminError || myError) : myError;
 
   const triggerRows = useMemo(() => triggersQuery.data ?? [], [triggersQuery.data]);
   const longStopRows = useMemo(() => longStopQuery.data ?? [], [longStopQuery.data]);
   const unpaidRows = useMemo(() => unpaidQuery.data ?? [], [unpaidQuery.data]);
+
+  const myTriggerRows = useMemo(() => myTriggersQuery.data ?? [], [myTriggersQuery.data]);
+  const myLongStopRows = useMemo(() => myLongStopQuery.data ?? [], [myLongStopQuery.data]);
+  const myUnpaidRows = useMemo(() => myUnpaidQuery.data ?? [], [myUnpaidQuery.data]);
 
   // Build invoice queue from triggers
   const invoiceQueueRows = useMemo<InvoiceQueueRow[]>(() => {
@@ -389,6 +387,25 @@ const BillingControlTower: React.FC = () => {
 
     return [...review, ...ready];
   }, [triggerRows]);
+
+  // Build invoice queue from attorney's triggers (for B&C Attorney View)
+  const myInvoiceQueueRows = useMemo<InvoiceQueueRow[]>(() => {
+    const review = myTriggerRows
+      .filter((r) => r.status === 'pending')
+      .map((trigger) => ({ stage: 'needs_confirmation' as const, trigger }));
+
+    const ready = myTriggerRows
+      .filter((r) => {
+        if (r.status !== 'confirmed') return false;
+        const actionType = (r.actionItem?.actionType || r.actionTaken || '').toLowerCase();
+        const actionStatus = (r.actionItem?.status || 'pending').toLowerCase();
+        const shouldIssueInvoice = actionType === 'issue_invoice' || (actionType === '' && !r.actionItem);
+        return shouldIssueInvoice && actionStatus !== 'completed';
+      })
+      .map((trigger) => ({ stage: 'ready_to_invoice' as const, trigger }));
+
+    return [...review, ...ready];
+  }, [myTriggerRows]);
 
   // Action handlers
   const handleConfirmAndInvoice = async (trigger: BillingTriggerRow) => {
@@ -426,20 +443,19 @@ const BillingControlTower: React.FC = () => {
     onFollowUp: handleMoveToFollowUp,
   };
 
+  // Collapsible state for the attorney view (separate from admin views)
+  const [showMyTriggerQueue, setShowMyTriggerQueue] = useState(false);
+  const [showMyUnpaidInvoices, setShowMyUnpaidInvoices] = useState(false);
+
   return (
     <Page>
       <PageHeader title="Billing Control Tower" />
 
-      {!canOperateQueue && (
-        <Section>
-          <Alert severity="warning">Only administrators can access billing control tower operations.</Alert>
-        </Section>
-      )}
-
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
-          <Tab label="Finance View" />
-          <Tab label="Management View" />
+          {permissions.isAdmin && <Tab label="Finance View" />}
+          {permissions.isAdmin && <Tab label="Management View" />}
+          <Tab label="My Projects" />
         </Tabs>
       </Box>
 
@@ -453,10 +469,39 @@ const BillingControlTower: React.FC = () => {
         </Section>
       ) : (
         <>
-          {/* Finance View */}
-          {activeTab === 0 && (
+          {/* Finance View (admin only) */}
+          {permissions.isAdmin && activeTab === 0 && (
             <>
-              {renderTimeWindowMetrics(metricsQuery.data)}
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowMetrics(!showMetrics)}
+                >
+                  <IconButton size="small">
+                    {showMetrics ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Billing & Collections Activity
+                  </Typography>
+                </Stack>
+                <Collapse in={showMetrics}>
+                  <Box sx={{ mt: 1 }}>
+                    {metricsQuery.data && (
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+                        <MetricCard label="Billed (30d)" value={currencyFormatter.format(metricsQuery.data.billed30d)} tone="neutral" />
+                        <MetricCard label="Billed (60d)" value={currencyFormatter.format(metricsQuery.data.billed60d)} tone="neutral" />
+                        <MetricCard label="Billed (90d)" value={currencyFormatter.format(metricsQuery.data.billed90d)} tone="neutral" />
+                        <MetricCard label="Collected (30d)" value={currencyFormatter.format(metricsQuery.data.collected30d)} tone="positive" />
+                        <MetricCard label="Collected (60d)" value={currencyFormatter.format(metricsQuery.data.collected60d)} tone="positive" />
+                        <MetricCard label="Collected (90d)" value={currencyFormatter.format(metricsQuery.data.collected90d)} tone="positive" />
+                      </Stack>
+                    )}
+                  </Box>
+                </Collapse>
+              </Section>
               <Section>
                 <Stack
                   direction="row"
@@ -504,11 +549,69 @@ const BillingControlTower: React.FC = () => {
             </>
           )}
 
-          {/* Management View */}
-          {activeTab === 1 && (
+          {/* Management View (admin only) */}
+          {permissions.isAdmin && activeTab === 1 && (
             <>
-              {renderTimeWindowMetrics(metricsQuery.data)}
-              {renderLongStopRiskTable(longStopRows, navigate)}
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowMetrics(!showMetrics)}
+                >
+                  <IconButton size="small">
+                    {showMetrics ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Billing & Collections Activity
+                  </Typography>
+                </Stack>
+                <Collapse in={showMetrics}>
+                  <Box sx={{ mt: 1 }}>
+                    {metricsQuery.data && (
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+                        <MetricCard label="Billed (30d)" value={currencyFormatter.format(metricsQuery.data.billed30d)} tone="neutral" />
+                        <MetricCard label="Billed (60d)" value={currencyFormatter.format(metricsQuery.data.billed60d)} tone="neutral" />
+                        <MetricCard label="Billed (90d)" value={currencyFormatter.format(metricsQuery.data.billed90d)} tone="neutral" />
+                        <MetricCard label="Collected (30d)" value={currencyFormatter.format(metricsQuery.data.collected30d)} tone="positive" />
+                        <MetricCard label="Collected (60d)" value={currencyFormatter.format(metricsQuery.data.collected60d)} tone="positive" />
+                        <MetricCard label="Collected (90d)" value={currencyFormatter.format(metricsQuery.data.collected90d)} tone="positive" />
+                      </Stack>
+                    )}
+                  </Box>
+                </Collapse>
+              </Section>
+              <Section>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => setShowLongStopRisks(!showLongStopRisks)}
+                >
+                  <IconButton size="small">
+                    {showLongStopRisks ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                  </IconButton>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Projects Past Long Stop Date
+                  </Typography>
+                  {(() => {
+                    const pastDueCount = longStopRows.filter((r) => r.daysToLongStop < 0).length;
+                    return (
+                      <>
+                        <Chip size="small" label={`${pastDueCount} past due`} color={pastDueCount > 0 ? 'error' : 'default'} />
+                        <Chip size="small" label={`${longStopRows.length} at risk`} color={longStopRows.length > 0 ? 'warning' : 'default'} />
+                      </>
+                    );
+                  })()}
+                </Stack>
+                <Collapse in={showLongStopRisks}>
+                  <Box sx={{ mt: 1 }}>
+                    {renderLongStopRiskTable(longStopRows, navigate)}
+                  </Box>
+                </Collapse>
+              </Section>
               <Section>
                 <Stack
                   direction="row"
@@ -553,6 +656,94 @@ const BillingControlTower: React.FC = () => {
                   </Box>
                 </Collapse>
               </Section>
+            </>
+          )}
+
+          {/* B&C Attorney View — My Projects */}
+          {activeTab === (permissions.isAdmin ? 2 : 0) && (
+            <>
+              {!myStaffId ? (
+                <Section>
+                  <Alert severity="info">Your user account is not linked to a staff profile. Contact an administrator to link your account.</Alert>
+                </Section>
+              ) : (
+                <>
+                  <Section>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => setShowLongStopRisks(!showLongStopRisks)}
+                    >
+                      <IconButton size="small">
+                        {showLongStopRisks ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                      </IconButton>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Projects Past Long Stop Date
+                      </Typography>
+                      {(() => {
+                        const pastDueCount = myLongStopRows.filter((r) => r.daysToLongStop < 0).length;
+                        return (
+                          <>
+                            <Chip size="small" label={`${pastDueCount} past due`} color={pastDueCount > 0 ? 'error' : 'default'} />
+                            <Chip size="small" label={`${myLongStopRows.length} at risk`} color={myLongStopRows.length > 0 ? 'warning' : 'default'} />
+                          </>
+                        );
+                      })()}
+                    </Stack>
+                    <Collapse in={showLongStopRisks}>
+                      <Box sx={{ mt: 1 }}>
+                        {renderLongStopRiskTable(myLongStopRows, navigate)}
+                      </Box>
+                    </Collapse>
+                  </Section>
+                  <Section>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => setShowMyTriggerQueue(!showMyTriggerQueue)}
+                    >
+                      <IconButton size="small">
+                        {showMyTriggerQueue ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                      </IconButton>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Milestones Triggered — Invoice Queue
+                      </Typography>
+                      <Chip size="small" label={`${myInvoiceQueueRows.length}`} color={myInvoiceQueueRows.length > 0 ? 'warning' : 'default'} />
+                    </Stack>
+                    <Collapse in={showMyTriggerQueue}>
+                      <Box sx={{ mt: 1 }}>
+                        {renderTriggerQueueTable(myInvoiceQueueRows, { ...triggerActions, readOnly: true })}
+                      </Box>
+                    </Collapse>
+                  </Section>
+                  <Section>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => setShowMyUnpaidInvoices(!showMyUnpaidInvoices)}
+                    >
+                      <IconButton size="small">
+                        {showMyUnpaidInvoices ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                      </IconButton>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        Unpaid Invoices 30+ Days
+                      </Typography>
+                      <Chip size="small" label={`${myUnpaidRows.length}`} color={myUnpaidRows.length > 0 ? 'error' : 'default'} />
+                    </Stack>
+                    <Collapse in={showMyUnpaidInvoices}>
+                      <Box sx={{ mt: 1 }}>
+                        {renderUnpaidInvoicesTable(myUnpaidRows, navigate)}
+                      </Box>
+                    </Collapse>
+                  </Section>
+                </>
+              )}
             </>
           )}
         </>
