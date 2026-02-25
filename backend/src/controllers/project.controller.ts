@@ -664,6 +664,11 @@ export const updateProjectBillingMilestones = async (req: AuthRequest, res: Resp
       return res.status(400).json({ error: 'Invalid milestone_id in payload' });
     }
 
+    // Reject duplicate milestone IDs — deterministic state requires unique entries
+    if (new Set(milestoneIds).size !== milestoneIds.length) {
+      return res.status(400).json({ error: 'Duplicate milestone_id in payload' });
+    }
+
     const allowedMilestones = await prisma.$queryRaw<{ milestone_id: bigint }[]>(Prisma.sql`
       SELECT DISTINCT m.milestone_id
       FROM billing_milestone m

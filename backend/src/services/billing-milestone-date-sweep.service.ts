@@ -63,12 +63,54 @@ export class BillingMilestoneDateSweepService {
       errors: 0,
     };
 
-    // Process candidates in parallel batches of 10 to reduce total wall-clock time
+    if (candidates.length === 0) return result;
+
+    // Batch-prefetch dedup set and link map to eliminate per-candidate N+1 queries
+    const milestoneIds = candidates.map((c) => this.toBigInt(c.milestone_id));
+    const billingProjectIds = [...new Set(candidates.map((c) => this.toBigInt(c.billing_project_id)))];
+    const cmNumbers = [...new Set(candidates.map((c) => c.cm_no).filter((v): v is string => v != null))];
+
+    const [alreadyTriggeredRows, existingLinks, cmMatches] = await Promise.all([
+      // 1. Dedup: which milestones already have pending/confirmed triggers?
+      prisma.billing_milestone_trigger_queue.findMany({
+        where: {
+          milestone_id: { in: milestoneIds },
+          event_type: DATE_SWEEP_TRIGGER_STATUS,
+          status: { in: ['pending', 'confirmed'] },
+        },
+        select: { milestone_id: true },
+      }),
+      // 2. Link resolution: which billing projects already have staffing links?
+      prisma.billing_staffing_project_link.findMany({
+        where: {
+          billing_project_id: { in: billingProjectIds },
+          staffing_project_id: { not: null },
+        },
+        select: { billing_project_id: true, staffing_project_id: true },
+        orderBy: { link_id: 'asc' },
+        distinct: ['billing_project_id'],
+      }),
+      // 3. CM number → staffing project fallback
+      cmNumbers.length > 0
+        ? prisma.project.findMany({
+            where: { cmNumber: { in: cmNumbers } },
+            select: { id: true, cmNumber: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const triggeredSet = new Set(alreadyTriggeredRows.map((r) => r.milestone_id));
+    const linkMap = new Map(existingLinks.map((r) => [r.billing_project_id!, r.staffing_project_id!]));
+    const cmProjectMap = new Map(cmMatches.map((r) => [r.cmNumber!, r.id]));
+
+    // Process candidates in parallel batches
     const BATCH_SIZE = 10;
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
-        batch.map((candidate) => this.processCandidate(candidate, dryRun))
+        batch.map((candidate) =>
+          this.processCandidateWithMaps(candidate, dryRun, triggeredSet, linkMap, cmProjectMap)
+        )
       );
       for (let j = 0; j < settled.length; j++) {
         const outcome = settled[j];
@@ -133,47 +175,48 @@ export class BillingMilestoneDateSweepService {
     `);
   }
 
-  private static async processCandidate(candidate: SweepCandidate, dryRun: boolean): Promise<CandidateProcessResult> {
+  /** Process a single candidate using pre-fetched dedup set and link maps (no per-candidate queries). */
+  private static async processCandidateWithMaps(
+    candidate: SweepCandidate,
+    dryRun: boolean,
+    triggeredSet: Set<bigint>,
+    linkMap: Map<bigint, number>,
+    cmProjectMap: Map<string, number>,
+  ): Promise<CandidateProcessResult> {
     const milestoneId = this.toBigInt(candidate.milestone_id);
     const billingProjectId = this.toBigInt(candidate.billing_project_id);
 
-    const alreadyTriggered = await prisma.billing_milestone_trigger_queue.findFirst({
-      where: {
-        milestone_id: milestoneId,
-        event_type: DATE_SWEEP_TRIGGER_STATUS,
-        status: {
-          in: ['pending', 'confirmed'],
-        },
-      },
-      select: { id: true },
-    });
-
-    if (alreadyTriggered) {
-      return {
-        processed: false,
-        autoLinked: false,
-        skippedNoStaffingProject: false,
-        skippedAlreadyTriggered: true,
-      };
+    // Dedup check — O(1) Set lookup instead of per-candidate DB query
+    if (triggeredSet.has(milestoneId)) {
+      return { processed: false, autoLinked: false, skippedNoStaffingProject: false, skippedAlreadyTriggered: true };
     }
 
-    const projectResolution = await this.resolveStaffingProjectId(billingProjectId, candidate.cm_no, dryRun);
-    if (!projectResolution.staffingProjectId) {
-      return {
-        processed: false,
-        autoLinked: false,
-        skippedNoStaffingProject: true,
-        skippedAlreadyTriggered: false,
-      };
+    // Link resolution — O(1) Map lookup instead of per-candidate DB query
+    let staffingProjectId: number | null = linkMap.get(billingProjectId) ?? null;
+    let autoLinked = false;
+
+    if (!staffingProjectId && candidate.cm_no) {
+      staffingProjectId = cmProjectMap.get(candidate.cm_no.trim()) ?? null;
+      if (staffingProjectId && !dryRun) {
+        // Persist the auto-link for future runs
+        await prisma.$executeRaw(Prisma.sql`
+          INSERT INTO billing_staffing_project_link (
+            billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
+          ) VALUES (
+            ${billingProjectId}, ${staffingProjectId}, ${1.0}, NOW(),
+            ${'Auto-linked by milestone due-date sweep via C/M number'}
+          ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
+        `);
+        autoLinked = true;
+      }
+    }
+
+    if (!staffingProjectId) {
+      return { processed: false, autoLinked: false, skippedNoStaffingProject: true, skippedAlreadyTriggered: false };
     }
 
     if (dryRun) {
-      return {
-        processed: true,
-        autoLinked: projectResolution.autoLinked,
-        skippedNoStaffingProject: false,
-        skippedAlreadyTriggered: false,
-      };
+      return { processed: true, autoLinked, skippedNoStaffingProject: false, skippedAlreadyTriggered: false };
     }
 
     await prisma.$transaction(async (tx) => {
@@ -184,7 +227,7 @@ export class BillingMilestoneDateSweepService {
       const trigger = await tx.billing_milestone_trigger_queue.create({
         data: {
           milestone_id: milestoneId,
-          staffing_project_id: projectResolution.staffingProjectId!,
+          staffing_project_id: staffingProjectId!,
           old_status: 'pending',
           new_status: DATE_SWEEP_TRIGGER_STATUS,
           event_type: DATE_SWEEP_TRIGGER_STATUS,
@@ -208,12 +251,7 @@ export class BillingMilestoneDateSweepService {
       });
     });
 
-    return {
-      processed: true,
-      autoLinked: projectResolution.autoLinked,
-      skippedNoStaffingProject: false,
-      skippedAlreadyTriggered: false,
-    };
+    return { processed: true, autoLinked, skippedNoStaffingProject: false, skippedAlreadyTriggered: false };
   }
 
   private static async resolveStaffingProjectId(

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Paper, Typography, Box, Stack, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, type TooltipProps } from 'recharts';
@@ -123,6 +123,23 @@ const DonutChart: React.FC<{
 };
 
 const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
+  const sortedCategories = useMemo(
+    () => data.projectsByCategory.map(item => ({ name: item.category, value: item.count })).sort((a, b) => b.value - a.value),
+    [data.projectsByCategory],
+  );
+  const sortedStatuses = useMemo(
+    () => data.projectsByStatus.map(item => ({ name: item.status, value: item.count })).sort((a, b) => b.value - a.value),
+    [data.projectsByStatus],
+  );
+  const sortedSectors = useMemo(
+    () => data.projectsBySector.map(item => ({ name: item.sector || 'Unknown', value: item.count })).sort((a, b) => b.value - a.value),
+    [data.projectsBySector],
+  );
+  const sortedSides = useMemo(
+    () => data.projectsBySide.map(item => ({ name: item.side || 'Unknown', value: item.count })).sort((a, b) => b.value - a.value),
+    [data.projectsBySide],
+  );
+
   return (
     <Accordion defaultExpanded>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -341,33 +358,18 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
           {/* Projects Breakdown */}
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
             <DonutChart
-              data={data.projectsByCategory
-                .map(item => ({
-                  name: item.category,
-                  value: item.count
-                }))
-                .sort((a, b) => b.value - a.value)}
+              data={sortedCategories}
               colors={CATEGORY_COLORS}
               title="Projects by Category"
             />
             <DonutChart
-              data={data.projectsByStatus
-                .map(item => ({
-                  name: item.status,
-                  value: item.count
-                }))
-                .sort((a, b) => b.value - a.value)}
+              data={sortedStatuses}
               colors={STATUS_COLORS}
               title="Projects by Status"
             />
             {data.projectsBySector.length > 0 ? (
               <DonutChart
-                data={data.projectsBySector
-                  .map(item => ({
-                    name: item.sector || 'Unknown',
-                    value: item.count
-                  }))
-                  .sort((a, b) => b.value - a.value)}
+                data={sortedSectors}
                 colors={SECTOR_COLORS}
                 title="Projects by Sector"
               />
@@ -387,12 +389,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ data }) => {
             )}
             {data.projectsBySide.length > 0 ? (
               <DonutChart
-                data={data.projectsBySide
-                  .map(item => ({
-                    name: item.side || 'Unknown',
-                    value: item.count
-                  }))
-                  .sort((a, b) => b.value - a.value)}
+                data={sortedSides}
                 colors={SIDE_COLORS}
                 title="Projects by Side"
               />

@@ -29,8 +29,9 @@ const parseOptionalIntQuery = (value: unknown): number | undefined => {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
-  const parsed = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(parsed)) return undefined;
+  // Use Number() instead of parseInt to reject partially numeric strings like "42abc"
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed)) return undefined;
   return parsed;
 };
 

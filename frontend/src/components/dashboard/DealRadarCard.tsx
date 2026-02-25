@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Typography,
   Box,
@@ -142,7 +142,9 @@ const DealRadarCard = ({
     return map;
   }, [groups]);
 
-  const CustomDay = (props: PickersDayProps) => {
+  // Memoize to prevent re-creating the component on every render
+  // eslint-disable-next-line react/no-unstable-nested-components
+  const CustomDay = useCallback((props: PickersDayProps) => {
     const { day, outsideCurrentMonth, ...other } = props;
     // Format date in local timezone to avoid UTC conversion issues
     const dayDate = day as Date;
@@ -275,7 +277,7 @@ const DealRadarCard = ({
         </Box>
       </Tooltip>
     );
-  };
+  }, [eventsByDate, selectedDate, setShowAllEvents]);
 
   // Flatten all events and sort by date, filtering to show only today and future dates
   const allEvents = useMemo(() => {
