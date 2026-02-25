@@ -334,14 +334,13 @@ export default function BestPracticeGuide() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const ALL_LANDING_SECTIONS: {
+  const LANDING_SECTIONS: {
     key: SectionKey;
     title: string;
     subtitle: string;
     icon: React.ReactNode;
     color: string;
     chips: { label: string; sectionId: string }[];
-    adminOnly?: boolean;
   }[] = [
     {
       key: 'best-practices',
@@ -382,11 +381,9 @@ export default function BestPracticeGuide() {
       icon: <DevicesOther sx={{ fontSize: 28 }} />,
       color: tokens.colors.violet[500],
       chips: [],
-      adminOnly: true,
     },
   ];
 
-  const LANDING_SECTIONS = ALL_LANDING_SECTIONS.filter((s) => !('adminOnly' in s && s.adminOnly) || isAdmin);
 
   const handleCardClick = (key: SectionKey) => {
     setActiveSection((prev) => (prev === key ? null : key));
@@ -1420,12 +1417,12 @@ export default function BestPracticeGuide() {
       )}
 
       {/* ================ How To — Control Tower content ================ */}
-      {isAdmin && activeSection === 'how-to-control-tower' && (
+      {activeSection === 'how-to-control-tower' && (
       <Box id={SECTION_IDS.howToControlTower} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<DevicesOther sx={{ color: tokens.colors.violet[500] }} />} label="How To — Control Tower" />}>
           <Stack spacing={3}>
-            {/* Guide 1: Finance View — Invoice Queue */}
-            <GuideCard title="Finance View — Process the Invoice Queue">
+            {/* Guide 1: Finance View — Invoice Queue (admin only) */}
+            {isAdmin && <GuideCard title="Finance View — Process the Invoice Queue">
               <Stack spacing={2}>
                 <ScreenFrame title="Control Tower — Finance View">
                   <Stack spacing={1}>
@@ -1523,10 +1520,10 @@ export default function BestPracticeGuide() {
                   <StepItem n={6} text={<>Click <strong>Move to Follow-up</strong> to flag an unpaid invoice for collections action.</>} />
                 </Stack>
               </Stack>
-            </GuideCard>
+            </GuideCard>}
 
-            {/* Guide 1b: Finance View — Excel Upload */}
-            <GuideCard title="Finance View — Upload & Sync Excel Data">
+            {/* Guide 1b: Finance View — Excel Upload (admin only) */}
+            {isAdmin && <GuideCard title="Finance View — Upload & Sync Excel Data">
               <Stack spacing={2}>
                 <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
                   The Finance Excel Upload is now in <strong>Control Tower &gt; Finance View</strong>. It syncs billing data from the HKCM Project List Excel into the system — creating/updating billing projects, engagements, milestones, and financial figures.
@@ -1604,10 +1601,10 @@ export default function BestPracticeGuide() {
                   <strong>Important:</strong> Unmatched C/M numbers (shown in yellow during preview) will be skipped. If a C/M number is not in the database, create the billing project manually first, or check the Excel file for the correct C/M format.
                 </Alert>
               </Stack>
-            </GuideCard>
+            </GuideCard>}
 
-            {/* Guide 2: Management View */}
-            <GuideCard title="Management View — Monitor Portfolio Risks">
+            {/* Guide 2: Management View (admin only) */}
+            {isAdmin && <GuideCard title="Management View — Monitor Portfolio Risks">
               <Stack spacing={2}>
                 <ScreenFrame title="Control Tower — Management View">
                   <Stack spacing={1}>
@@ -1681,9 +1678,9 @@ export default function BestPracticeGuide() {
                   <StepItem n={2} text={<>The invoice queue and unpaid invoices are shown <strong>read-only</strong> in Management View for awareness. To take action, switch to Finance View.</>} />
                 </Stack>
               </Stack>
-            </GuideCard>
+            </GuideCard>}
 
-            {/* Guide 3: My Projects Tab */}
+            {/* Guide 3: My Projects Tab (visible to all) */}
             <GuideCard title="My Projects — B&C Attorney View">
               <Stack spacing={2}>
                 <ScreenFrame title="Control Tower — My Projects">
