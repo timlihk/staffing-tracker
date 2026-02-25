@@ -13,6 +13,12 @@ FROM "project_event" pe
 WHERE tq."project_event_id" = pe."id"
   AND tq."event_type" IS NULL;
 
+-- Backfill event_type for sweep-created rows (no project_event link)
+UPDATE "billing_milestone_trigger_queue"
+SET "event_type" = "new_status"
+WHERE "event_type" IS NULL
+  AND "new_status" IN ('MILESTONE_DUE_DATE_PASSED', 'MILESTONE_AI_DATE_PASSED');
+
 -- Replace (milestone_id, new_status, status) unique constraint with
 -- (milestone_id, event_type, status) so different event types for the
 -- same milestone are not collapsed into a single trigger
