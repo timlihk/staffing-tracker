@@ -437,6 +437,8 @@ model billing_milestone {
   @@unique([engagement_id, ordinal], map: "billing_milestone_engagement_ordinal_unique")
   @@index([invoice_sent_date, payment_received_date], map: "idx_billing_milestone_billing_status")
   @@index([completed], map: "idx_billing_milestone_completed")
+  @@index([due_date], map: "idx_billing_milestone_due_date")
+  @@index([completed, due_date], map: "idx_billing_milestone_completed_due_date")
   @@index([engagement_id], map: "idx_billing_milestone_engagement")
   @@index([engagement_id, sort_order], map: "idx_billing_milestone_engagement_sort")
   @@index([fee_id, sort_order], map: "idx_billing_milestone_fee_sort")
@@ -667,6 +669,7 @@ model billing_action_item {
 
   @@index([status], map: "idx_action_item_status")
   @@index([assigned_to], map: "idx_action_item_assigned")
+  @@index([trigger_queue_id], map: "idx_action_item_trigger_queue")
   @@map("billing_action_item")
 }
 
