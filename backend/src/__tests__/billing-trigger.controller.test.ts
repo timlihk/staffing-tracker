@@ -156,6 +156,40 @@ describe('Billing Trigger Controller - Authorization Scope', () => {
     });
   });
 
+  describe('Invalid attorneyId validation', () => {
+    const adminApp = createApp({ role: 'admin' });
+
+    it('returns 400 for non-numeric attorneyId on /triggers', async () => {
+      const res = await request(adminApp).get('/triggers?attorneyId=abc');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
+
+    it('returns 400 for non-numeric attorneyId on /finance-summary', async () => {
+      const res = await request(adminApp).get('/finance-summary?attorneyId=abc');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
+
+    it('returns 400 for non-numeric attorneyId on /long-stop-risks', async () => {
+      const res = await request(adminApp).get('/long-stop-risks?attorneyId=abc');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
+
+    it('returns 400 for non-numeric attorneyId on /unpaid-invoices', async () => {
+      const res = await request(adminApp).get('/unpaid-invoices?attorneyId=abc');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
+
+    it('returns 400 for non-numeric attorneyId on /overdue-by-attorney', async () => {
+      const res = await request(adminApp).get('/overdue-by-attorney?attorneyId=abc');
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/invalid attorneyid/i);
+    });
+  });
+
   describe('Non-admin without staff record', () => {
     const noStaffApp = createApp({ userId: 99, role: 'viewer' });
 

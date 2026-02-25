@@ -1313,7 +1313,7 @@ router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOnly, bi
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden (admin only)
+ *         description: Forbidden (non-admin accessing another attorney's portfolio)
  */
 router.get('/finance-summary', authenticate, checkBillingAccess, billingTriggerController.getFinanceSummary);
 
@@ -1350,7 +1350,7 @@ router.get('/finance-summary', authenticate, checkBillingAccess, billingTriggerC
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden (admin only)
+ *         description: Forbidden (non-admin accessing another attorney's portfolio)
  */
 router.get('/long-stop-risks', authenticate, checkBillingAccess, billingTriggerController.getLongStopRisks);
 
@@ -1387,7 +1387,7 @@ router.get('/long-stop-risks', authenticate, checkBillingAccess, billingTriggerC
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden (admin only)
+ *         description: Forbidden (non-admin accessing another attorney's portfolio)
  */
 router.get('/unpaid-invoices', authenticate, checkBillingAccess, billingTriggerController.getUnpaidInvoices);
 

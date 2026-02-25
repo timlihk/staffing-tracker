@@ -88,6 +88,7 @@ export const setCached = <T>(key: string, data: T): void => {
 
 export const invalidateCache = (pattern: string): void => {
   const sanitized = sanitizeCacheKey(pattern);
+  if (!sanitized) return; // empty pattern would match every key — bail out
   for (const key of cache.keys()) {
     if (key.includes(sanitized)) {
       cache.delete(key);

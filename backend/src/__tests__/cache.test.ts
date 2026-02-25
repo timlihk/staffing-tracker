@@ -195,6 +195,18 @@ describe('Cache System', () => {
       expect(getCached(CACHE_KEYS.PROJECT_DETAIL(1))).toBeNull();
       expect(getCached(CACHE_KEYS.STAFF_DETAIL(2))).toEqual({ id: 2 });
     });
+
+    it('should not wipe all keys when pattern sanitizes to empty string', () => {
+      setCached(CACHE_KEYS.PROJECT_DETAIL(1), { id: 1 });
+      setCached(CACHE_KEYS.STAFF_DETAIL(2), { id: 2 });
+
+      // Pattern of only control/non-ASCII chars sanitizes to ''
+      invalidateCache('\x00\x01\u200B');
+
+      // Both keys should still exist
+      expect(getCached(CACHE_KEYS.PROJECT_DETAIL(1))).toEqual({ id: 1 });
+      expect(getCached(CACHE_KEYS.STAFF_DETAIL(2))).toEqual({ id: 2 });
+    });
   });
 
   describe('Cache Eviction', () => {
