@@ -63,21 +63,31 @@ export class BillingMilestoneDateSweepService {
       errors: 0,
     };
 
-    for (const candidate of candidates) {
-      try {
-        const processed = await this.processCandidate(candidate, dryRun);
-        if (processed.processed) result.processed += 1;
-        if (processed.autoLinked) result.autoLinked += 1;
-        if (processed.skippedNoStaffingProject) result.skippedNoStaffingProject += 1;
-        if (processed.skippedAlreadyTriggered) result.skippedAlreadyTriggered += 1;
-      } catch (error) {
-        result.errors += 1;
-        logger.error('[BillingDateSweep] Failed processing milestone candidate', {
-          milestoneId: Number(candidate.milestone_id),
-          projectName: candidate.project_name,
-          cmNo: candidate.cm_no,
-          error: error instanceof Error ? error.message : String(error),
-        });
+    // Process candidates in parallel batches of 10 to reduce total wall-clock time
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batch = candidates.slice(i, i + BATCH_SIZE);
+      const settled = await Promise.allSettled(
+        batch.map((candidate) => this.processCandidate(candidate, dryRun))
+      );
+      for (let j = 0; j < settled.length; j++) {
+        const outcome = settled[j];
+        if (outcome.status === 'fulfilled') {
+          const processed = outcome.value;
+          if (processed.processed) result.processed += 1;
+          if (processed.autoLinked) result.autoLinked += 1;
+          if (processed.skippedNoStaffingProject) result.skippedNoStaffingProject += 1;
+          if (processed.skippedAlreadyTriggered) result.skippedAlreadyTriggered += 1;
+        } else {
+          result.errors += 1;
+          const candidate = batch[j];
+          logger.error('[BillingDateSweep] Failed processing milestone candidate', {
+            milestoneId: Number(candidate.milestone_id),
+            projectName: candidate.project_name,
+            cmNo: candidate.cm_no,
+            error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason),
+          });
+        }
       }
     }
 

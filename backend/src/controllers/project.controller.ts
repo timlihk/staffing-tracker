@@ -618,22 +618,21 @@ export const updateProjectBillingMilestones = async (req: AuthRequest, res: Resp
         return res.status(403).json({ error: 'Access denied - No staff record' });
       }
 
-      const staff = await prisma.staff.findUnique({
-        where: { id: dbUser.staffId },
-        select: { position: true },
-      });
+      // Parallel lookup — staff position + project assignment are independent
+      const [staff, assignment] = await Promise.all([
+        prisma.staff.findUnique({
+          where: { id: dbUser.staffId },
+          select: { position: true },
+        }),
+        prisma.projectBcAttorney.findFirst({
+          where: { projectId, staffId: dbUser.staffId },
+          select: { id: true },
+        }),
+      ]);
 
       if (staff?.position !== 'B&C Working Attorney') {
         return res.status(403).json({ error: 'Access denied - Not a B&C attorney' });
       }
-
-      const assignment = await prisma.projectBcAttorney.findFirst({
-        where: {
-          projectId,
-          staffId: dbUser.staffId,
-        },
-        select: { id: true },
-      });
 
       if (!assignment) {
         return res.status(403).json({ error: 'Access denied - Project not assigned to you' });
@@ -680,25 +679,33 @@ export const updateProjectBillingMilestones = async (req: AuthRequest, res: Resp
       return res.status(403).json({ error: `Milestones not linked to project C/M: ${unauthorized.join(', ')}` });
     }
 
+    // Batch-fetch all milestones in one query instead of N individual findUnique calls
+    const existingMilestones = await prisma.billing_milestone.findMany({
+      where: {
+        milestone_id: { in: milestoneIds.map((id) => BigInt(id)) },
+      },
+      select: {
+        milestone_id: true,
+        completed: true,
+        completion_date: true,
+        invoice_sent_date: true,
+        payment_received_date: true,
+        notes: true,
+        due_date: true,
+        title: true,
+        trigger_text: true,
+        amount_value: true,
+        amount_currency: true,
+      },
+    });
+    const existingMap = new Map(
+      existingMilestones.map((m) => [Number(m.milestone_id), m])
+    );
+
     const updatedMilestones: Array<{ milestoneId: number; changed: string[] }> = [];
     for (const milestone of milestones) {
       const milestoneId = Number(milestone.milestone_id);
-      const existing = await prisma.billing_milestone.findUnique({
-        where: { milestone_id: BigInt(milestoneId) },
-        select: {
-          milestone_id: true,
-          completed: true,
-          completion_date: true,
-          invoice_sent_date: true,
-          payment_received_date: true,
-          notes: true,
-          due_date: true,
-          title: true,
-          trigger_text: true,
-          amount_value: true,
-          amount_currency: true,
-        },
-      });
+      const existing = existingMap.get(milestoneId);
 
       if (!existing) continue;
 
