@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Typography,
   Box,
@@ -130,7 +130,7 @@ const StaffingHeatmapCard = ({ days, onSelectStaff }: StaffingHeatmapCardProps) 
     });
   };
 
-  const getSortedRows = (rows: DashboardSummary['staffingHeatmap'], groupLabel: string) => {
+  const getSortedRows = useCallback((rows: DashboardSummary['staffingHeatmap'], groupLabel: string) => {
     const config = sortConfig[groupLabel];
     if (!config) {
       // Default: sort by name alphabetically
@@ -147,7 +147,7 @@ const StaffingHeatmapCard = ({ days, onSelectStaff }: StaffingHeatmapCardProps) 
       const weekB = b.weeks.find((w) => w.week === config.field)?.count ?? 0;
       return config.order === 'asc' ? weekA - weekB : weekB - weekA;
     });
-  };
+  }, [sortConfig]);
 
   return (
     <Paper sx={{ p: 2.5, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
