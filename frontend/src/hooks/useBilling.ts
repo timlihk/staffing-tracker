@@ -8,6 +8,9 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import * as billingApi from '../api/billing';
+import type { BillingAccessSettings } from '../api/billing';
+
+export type BillingSettings = BillingAccessSettings;
 import { toast } from 'sonner';
 
 type FinancialUpdatePayload = Partial<{

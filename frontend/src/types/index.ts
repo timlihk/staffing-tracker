@@ -1,3 +1,141 @@
+// ---------------------------------------------------------------------------
+// Core entity types
+// ---------------------------------------------------------------------------
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  staff?: Staff;
+  mustResetPassword?: boolean;
+}
+
+export interface Staff {
+  id: number;
+  name: string;
+  email?: string;
+  position: string;
+  department?: string;
+  status: string;
+  notes?: string;
+  assignments?: ProjectAssignment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type Timetable = 'PRE_A1' | 'A1' | 'HEARING' | 'LISTING';
+
+export interface Project {
+  id: number;
+  name: string;
+  category: string;
+  status: string;
+  priority?: string;
+  elStatus?: string;
+  timetable?: Timetable;
+  bcAttorney?: string;
+  cmNumber?: string;
+  filingDate?: string;
+  listingDate?: string;
+  side?: string;
+  sector?: string;
+  notes?: string;
+  lastConfirmedAt?: string;
+  lastConfirmedBy?: number;
+  confirmedBy?: {
+    id: number;
+    username: string;
+    staff?: { id: number; name: string } | null;
+  };
+  assignments?: ProjectAssignment[];
+  bcAttorneys?: ProjectBcAttorney[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectBcAttorney {
+  id: number;
+  projectId: number;
+  staffId: number;
+  staff?: Staff;
+  createdAt: string;
+}
+
+export interface ProjectAssignment {
+  id: number;
+  projectId: number;
+  staffId: number;
+  jurisdiction?: string;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  project?: Project;
+  staff?: Staff;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActivityLog {
+  id: number;
+  userId?: number;
+  actionType: string;
+  entityType: string;
+  entityId?: number;
+  description?: string;
+  username?: string;
+  createdAt: string;
+}
+
+export interface ChangeHistory {
+  id: number;
+  fieldName: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changeType: string;
+  username: string;
+  changedAt: string;
+}
+
+export interface ManagedUser {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  mustResetPassword: boolean;
+  lastLogin: string | null;
+  lastActivity: string | null;
+  staff: { id: number; name: string } | null;
+  recentActionCount: number;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
+
+// ---------------------------------------------------------------------------
+// Billing types
+// ---------------------------------------------------------------------------
+
+export type BigIntLike = number | string;
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
 export interface DashboardSummary {
   summary: {
     totalProjects: number;

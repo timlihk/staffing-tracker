@@ -26,7 +26,7 @@ import { formatCurrencyWhole } from '../lib/currency';
 import { Page, BillingListSkeleton } from '../components/ui';
 import { ExportButton, type ExportFormat } from '../components/ExportButton';
 import { Link as RouterLink } from 'react-router-dom';
-import type { BillingAttorneyOption, BillingProjectSummary } from '../api/billing';
+import type { BillingAttorneyOption, BillingProject } from '../api/billing';
 import { getBillingAttorneys } from '../api/billing';
 import { downloadCsv, downloadJson, type CsvColumn, Formatters } from '../lib/export';
 
@@ -83,7 +83,7 @@ export default function BillingMatters() {
   const totalPages = pagination?.totalPages ?? 0;
 
   // CSV export columns
-  const csvColumns: CsvColumn<BillingProjectSummary>[] = [
+  const csvColumns: CsvColumn<BillingProject>[] = [
     { header: 'Project Name', key: 'project_name' },
     { header: 'Client', key: 'client_name' },
     { header: 'C/M Numbers', key: 'cm_numbers' },

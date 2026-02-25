@@ -126,6 +126,41 @@ export interface SyncResult {
 // Subset of PrismaClient that supports raw queries (works for both prisma and tx)
 type DbClient = Pick<typeof prisma, '$queryRaw' | '$executeRaw'>;
 
+// Accumulator for per-row counters/data built inside a transaction.
+// Merged into the shared SyncResult only after the transaction commits,
+// so a rollback doesn't leave stale increments in the summary.
+interface RowAccumulator {
+  projectsUpdated: number;
+  financialsUpdated: number;
+  engagementsUpserted: number;
+  milestonesCreated: number;
+  milestonesMarkedCompleted: number;
+  newCm: SyncRunChanges['newCms'][0] | null;
+  updatedCm: SyncRunChanges['updatedCms'][0] | null;
+}
+
+function newRowAccumulator(): RowAccumulator {
+  return {
+    projectsUpdated: 0,
+    financialsUpdated: 0,
+    engagementsUpserted: 0,
+    milestonesCreated: 0,
+    milestonesMarkedCompleted: 0,
+    newCm: null,
+    updatedCm: null,
+  };
+}
+
+function mergeRowAccumulator(result: SyncResult, acc: RowAccumulator): void {
+  result.projectsUpdated += acc.projectsUpdated;
+  result.financialsUpdated += acc.financialsUpdated;
+  result.engagementsUpserted += acc.engagementsUpserted;
+  result.milestonesCreated += acc.milestonesCreated;
+  result.milestonesMarkedCompleted += acc.milestonesMarkedCompleted;
+  if (acc.newCm) result.syncRunData.newCms.push(acc.newCm);
+  if (acc.updatedCm) result.syncRunData.updatedCms.push(acc.updatedCm);
+}
+
 // ---------------------------------------------------------------------------
 // Regex (reused from backfill script)
 // ---------------------------------------------------------------------------
@@ -1007,9 +1042,13 @@ async function processRow(row: ExcelRow, userId: number | undefined, result: Syn
 
   // All DB writes for a single row are atomic via $transaction.
   // Timeout raised to 30s because rows with many milestones can be slow.
+  // Counters are accumulated locally and merged only after commit,
+  // so a rollback doesn't leave stale increments in the summary.
+  const acc = newRowAccumulator();
   const linkInfo = await prisma.$transaction(async (tx) => {
-    return await processRowCore(tx, row, userId, result);
+    return await processRowCore(tx, row, userId, acc);
   }, { timeout: 30000 });
+  mergeRowAccumulator(result, acc);
 
   // Auto-link runs outside the transaction — it's best-effort and has
   // its own error handling. We don't want a link failure to roll back
@@ -1039,7 +1078,7 @@ async function processRowCore(
   tx: DbClient,
   row: ExcelRow,
   userId: number | undefined,
-  result: SyncResult,
+  acc: RowAccumulator,
 ): Promise<{ projectId: bigint } | null> {
   // Find the C/M record
   const cmRecords = await tx.$queryRaw<Array<{
@@ -1071,11 +1110,11 @@ async function processRowCore(
       RETURNING cm_id
     `);
     cmId = newCm[0].cm_id;
-    result.projectsUpdated++;
+    acc.projectsUpdated++;
     needsAutoLink = true;
 
-    // Record new CM in syncRunData
-    result.syncRunData.newCms.push({
+    // Record new CM in accumulator (merged after commit)
+    acc.newCm = {
       cmNo: row.cmNo,
       projectName: row.projectName || 'Unnamed',
       clientName: row.clientName || '',
@@ -1083,7 +1122,7 @@ async function processRowCore(
         title: e.engagementTitle,
         milestoneCount: e.milestones.length,
       })),
-    });
+    };
   } else {
     cmId = cmRecords[0].cm_id;
     projectId = cmRecords[0].project_id;
@@ -1109,7 +1148,7 @@ async function processRowCore(
         updated_at = NOW()
       WHERE project_id = ${projectId}
     `);
-    result.projectsUpdated++;
+    acc.projectsUpdated++;
 
     // Build financial diffs
     const financialChanges: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
@@ -1138,7 +1177,7 @@ async function processRowCore(
       }
     }
 
-    result.syncRunData.updatedCms.push({
+    acc.updatedCm = {
       cmNo: row.cmNo,
       projectName: row.projectName || '',
       financialChanges,
@@ -1147,7 +1186,7 @@ async function processRowCore(
         milestoneCount: e.milestones.length,
         completedCount: e.milestones.filter(m => m.isCompleted).length,
       })),
-    });
+    };
   }
 
   // Update billing_project_cm_no financials (verbatim from Excel)
@@ -1170,12 +1209,12 @@ async function processRowCore(
       financials_updated_by = ${userId ?? null}
     WHERE cm_id = ${cmId}
   `);
-  result.financialsUpdated++;
+  acc.financialsUpdated++;
 
   // Process each engagement
   for (let engIdx = 0; engIdx < row.engagements.length; engIdx++) {
     const eng = row.engagements[engIdx];
-    await processEngagement(tx, eng, cmId, projectId, engIdx, result);
+    await processEngagement(tx, eng, cmId, projectId, engIdx, acc);
   }
 
   return needsAutoLink ? { projectId } : null;
@@ -1187,7 +1226,7 @@ async function processEngagement(
   cmId: bigint,
   projectId: bigint,
   engIdx: number,
-  result: SyncResult,
+  acc: RowAccumulator,
 ): Promise<void> {
   // Find or create engagement
   const engCode = `excel_${engIdx}`;
@@ -1227,8 +1266,8 @@ async function processEngagement(
               updated_at = NOW()
           WHERE engagement_id = ${engagementId}
         `);
-        result.engagementsUpserted++;
-        await processEngagementData(tx, eng, engagementId, result);
+        acc.engagementsUpserted++;
+        await processEngagementData(tx, eng, engagementId, acc);
         return;
       }
     }
@@ -1241,15 +1280,15 @@ async function processEngagement(
     engagementId = inserted[0].engagement_id;
   }
 
-  result.engagementsUpserted++;
-  await processEngagementData(tx, eng, engagementId, result);
+  acc.engagementsUpserted++;
+  await processEngagementData(tx, eng, engagementId, acc);
 }
 
 async function processEngagementData(
   tx: DbClient,
   eng: ExcelEngagement,
   engagementId: bigint,
-  result: SyncResult,
+  acc: RowAccumulator,
 ): Promise<void> {
   // Update or create fee arrangement
   const existingFa = await tx.$queryRaw<Array<{ fee_id: bigint }>>(Prisma.sql`
@@ -1327,7 +1366,7 @@ async function processEngagementData(
         updated_at = NOW()
     `);
 
-    result.milestonesMarkedCompleted += eng.milestones.filter(m => m.isCompleted).length;
-    result.milestonesCreated += eng.milestones.filter(m => !m.isCompleted).length;
+    acc.milestonesMarkedCompleted += eng.milestones.filter(m => m.isCompleted).length;
+    acc.milestonesCreated += eng.milestones.filter(m => !m.isCompleted).length;
   }
 }
