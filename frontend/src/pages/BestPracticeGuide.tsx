@@ -32,6 +32,7 @@ import {
   FolderOutlined,
   BadgeOutlined,
   AccountBalanceWalletOutlined,
+  DevicesOther,
 } from '@mui/icons-material';
 import { Page, PageHeader, Section } from '../components/ui';
 import { tokens } from '../theme';
@@ -49,6 +50,7 @@ const SECTION_IDS = {
   howToProjects: 'how-to-projects',
   howToStaffing: 'how-to-staffing',
   howToBilling: 'how-to-billing',
+  howToControlTower: 'how-to-control-tower',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -326,7 +328,7 @@ const GuideCard = ({ title, children }: { title: string; children: React.ReactNo
 // Page Component
 // ---------------------------------------------------------------------------
 export default function BestPracticeGuide() {
-  type SectionKey = 'best-practices' | 'how-to-projects' | 'how-to-staffing' | 'how-to-billing';
+  type SectionKey = 'best-practices' | 'how-to-projects' | 'how-to-staffing' | 'how-to-billing' | 'how-to-control-tower';
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
 
   const LANDING_SECTIONS: {
@@ -369,6 +371,14 @@ export default function BestPracticeGuide() {
       color: tokens.colors.success,
       chips: [],
     },
+    {
+      key: 'how-to-control-tower',
+      title: 'How To — Control Tower',
+      subtitle: 'Process invoices, monitor long stop risks, and track unpaid invoices.',
+      icon: <DevicesOther sx={{ fontSize: 28 }} />,
+      color: tokens.colors.violet[500],
+      chips: [],
+    },
   ];
 
   const handleCardClick = (key: SectionKey) => {
@@ -387,7 +397,7 @@ export default function BestPracticeGuide() {
         {LANDING_SECTIONS.map((section) => {
           const isActive = activeSection === section.key;
           return (
-            <Grid key={section.key} size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid key={section.key} size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
               <Box
                 onClick={() => handleCardClick(section.key)}
                 sx={{
@@ -1343,11 +1353,22 @@ export default function BestPracticeGuide() {
                           <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, p: 1 }}>
                             <Stack direction="row" justifyContent="space-between">
                               <Typography variant="caption" fontWeight={600} fontSize="0.55rem">Engagement #1 — IPO Advisory</Typography>
-                              <Typography variant="caption" fontSize="0.5rem" color="text.secondary">▾ expand</Typography>
+                              <Typography variant="caption" fontSize="0.5rem" color="text.secondary">▴ collapse</Typography>
                             </Stack>
                             <Typography variant="caption" fontSize="0.5rem" color="text.secondary">
                               Signed: 2024-06-01 • LSD: 2025-06-01 • Milestones: 3
                             </Typography>
+                            {/* Expanded milestone table hint */}
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                              <Callout n={6} />
+                              <Box sx={{ flex: 1, bgcolor: tokens.colors.slate[50], borderRadius: 0.5, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                                <Typography variant="caption" fontSize="0.45rem" fontWeight={700}>Milestones</Typography>
+                                <Stack direction="row" spacing={1} sx={{ mt: 0.25 }}>
+                                  <Typography variant="caption" fontSize="0.4rem">☑ Filing fee — $50K — Invoiced</Typography>
+                                  <Typography variant="caption" fontSize="0.4rem">☐ Listing fee — $100K — Pending</Typography>
+                                </Stack>
+                              </Box>
+                            </Stack>
                           </Box>
                           <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, p: 1 }}>
                             <Typography variant="caption" fontWeight={600} fontSize="0.55rem">Engagement #2 — Follow-on</Typography>
@@ -1379,10 +1400,268 @@ export default function BestPracticeGuide() {
                 <Stack spacing={1}>
                   <StepItem n={1} text={<>The <strong>C/M Summary card</strong> at top shows the project name, client, attorney in charge, and aggregated financials. Admins can click Edit to update project-level billing info.</>} />
                   <StepItem n={2} text={<>If linked to a staffing project, click the <strong>Staffing Project link</strong> to jump to the staffing detail page.</>} />
-                  <StepItem n={3} text={<>Each <strong>Engagement Card</strong> represents a separate scope of work. Click the card header to expand and view milestones, fees, signed date, and LSD.</>} />
+                  <StepItem n={3} text={<>Each <strong>Engagement Card</strong> represents a separate scope of work. Click the card header to expand and view milestones, fee arrangement, signed date, LSD, and per-engagement notes.</>} />
                   <StepItem n={4} text={<>Admins can click <strong>+ Add Engagement</strong> to create a new engagement for additional scope under the same C/M number. Remember: new scope = new engagement, not a new project.</>} />
                   <StepItem n={5} text={<>The <strong>Change Log</strong> at the bottom shows all billing data changes with timestamps and who made them.</>} />
+                  <StepItem n={6} text={<>Inside an expanded engagement, the <strong>Milestones</strong> table shows each billing milestone with its trigger text, due date, amount, invoice status, and payment status. Use the checkboxes to mark milestones as completed.</>} />
                 </Stack>
+              </Stack>
+            </GuideCard>
+          </Stack>
+        </Section>
+      </Box>
+      )}
+
+      {/* ================ How To — Control Tower content ================ */}
+      {activeSection === 'how-to-control-tower' && (
+      <Box id={SECTION_IDS.howToControlTower} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<DevicesOther sx={{ color: tokens.colors.violet[500] }} />} label="How To — Control Tower" />}>
+          <Stack spacing={3}>
+            {/* Guide 1: Finance View — Invoice Queue */}
+            <GuideCard title="Finance View — Process the Invoice Queue">
+              <Stack spacing={2}>
+                <ScreenFrame title="Control Tower — Finance View">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Callout n={1} />
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">Finance View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">My Projects</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Metrics row */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5, flex: 1 }}>
+                        {[
+                          { l: 'Triggered 7d', v: '3' },
+                          { l: 'Invoiced 7d', v: '$250K' },
+                          { l: 'Collected 30d', v: '$180K' },
+                          { l: 'Overdue 30d+', v: '2' },
+                        ].map((m) => (
+                          <Box key={m.l} sx={{ bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}`, textAlign: 'center' }}>
+                            <Typography variant="caption" fontSize="0.4rem" color="text.secondary">{m.l}</Typography>
+                            <Typography variant="caption" fontSize="0.6rem" fontWeight={700} display="block">{m.v}</Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Stack>
+                    {/* Trigger Queue (collapsible) */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Milestones Triggered — Invoice Queue</Typography>
+                          <Chip label="3" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 0.6fr 0.8fr 0.5fr 1fr', px: 1, py: 0.25, borderBottom: `1px solid ${tokens.colors.slate[100]}`, alignItems: 'center' }}>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Stage</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Project</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Milestone</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Amount</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Reason</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Conf.</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Actions</Typography>
+                        </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 0.6fr 0.8fr 0.5fr 1fr', px: 1, py: 0.4, alignItems: 'center' }}>
+                          <Chip label="Needs Confirm" size="small" sx={{ height: 14, fontSize: '0.35rem' }} />
+                          <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">Filing fee</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">$50K</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">Stage change</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">85%</Typography>
+                          <Stack direction="row" spacing={0.25}>
+                            <Callout n={4} />
+                            <Box sx={{ px: 0.5, py: 0.15, bgcolor: tokens.colors.success, color: 'white', borderRadius: 0.5, fontSize: '0.35rem', fontWeight: 700 }}>Confirm</Box>
+                            <Box sx={{ px: 0.5, py: 0.15, bgcolor: tokens.colors.error, color: 'white', borderRadius: 0.5, fontSize: '0.35rem', fontWeight: 700 }}>Reject</Box>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                    {/* Unpaid Invoices (collapsible) */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={5} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Unpaid Invoices 30+ Days</Typography>
+                          <Chip label="2" size="small" color="error" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ px: 1, py: 0.4 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Beta Corp</Typography>
+                            <Typography variant="caption" fontSize="0.45rem">$80K</Typography>
+                            <Chip label="45d" size="small" color="warning" sx={{ height: 14, fontSize: '0.35rem' }} />
+                            <Callout n={6} />
+                            <Box sx={{ px: 0.5, py: 0.15, bgcolor: tokens.colors.indigo[500], color: 'white', borderRadius: 0.5, fontSize: '0.35rem', fontWeight: 700 }}>Follow Up</Box>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Use the <strong>tabs</strong> to switch views. Finance View is for processing invoices. Management View is for monitoring risks. My Projects shows your own matters.</>} />
+                  <StepItem n={2} text={<>The <strong>time-windowed metrics</strong> at top show activity for the last 7 and 30 days — triggered milestones, invoiced amounts, collections, and overdue counts.</>} />
+                  <StepItem n={3} text={<>The <strong>Invoice Queue</strong> lists milestones triggered by lifecycle changes, date sweeps, or AI detection. Click the arrow to collapse or expand. The badge shows the count.</>} />
+                  <StepItem n={4} text={<>For each triggered milestone: click <strong>Confirm + Queue Invoice</strong> to approve it, or <strong>Reject</strong> if it&apos;s a false positive. After confirming, click <strong>Mark Invoice Sent</strong> when the invoice goes out.</>} />
+                  <StepItem n={5} text={<>The <strong>Unpaid Invoices</strong> section shows invoices sent 30+ days ago without payment. Aging chips show how long it&apos;s been overdue (blue = 30d, orange = 60d, red = 90d+).</>} />
+                  <StepItem n={6} text={<>Click <strong>Move to Follow-up</strong> to flag an unpaid invoice for collections action.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 2: Management View */}
+            <GuideCard title="Management View — Monitor Portfolio Risks">
+              <Stack spacing={2}>
+                <ScreenFrame title="Control Tower — Management View">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Finance View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">My Projects</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Metrics */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5 }}>
+                      {[
+                        { l: 'Triggered 7d', v: '3' },
+                        { l: 'Invoiced 7d', v: '$250K' },
+                        { l: 'Collected 30d', v: '$180K' },
+                        { l: 'Overdue 30d+', v: '2' },
+                      ].map((m) => (
+                        <Box key={m.l} sx={{ bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}`, textAlign: 'center' }}>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">{m.l}</Typography>
+                          <Typography variant="caption" fontSize="0.6rem" fontWeight={700} display="block">{m.v}</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    {/* Long Stop Risks */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Long Stop Date Risks</Typography>
+                          <Chip label="4" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ px: 1, py: 0.4 }}>
+                          <Stack spacing={0.25}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings</Typography>
+                              <Chip label="12d left" size="small" color="warning" sx={{ height: 14, fontSize: '0.35rem' }} />
+                              <Typography variant="caption" fontSize="0.4rem" color="text.secondary">UBT: $50K</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Gamma Ltd</Typography>
+                              <Chip label="5d past" size="small" color="error" sx={{ height: 14, fontSize: '0.35rem' }} />
+                              <Typography variant="caption" fontSize="0.4rem" color="text.secondary">UBT: $30K</Typography>
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                    {/* Read-only queue */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Invoice Queue</Typography>
+                          <Chip label="3" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary" sx={{ ml: 'auto' }}>Read-only</Typography>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>Long Stop Date Risks</strong> table shows engagements approaching or past their LSD. Risk chips are color-coded: blue = 30 days, orange = 14 days, red = past due.</>} />
+                  <StepItem n={2} text={<>The invoice queue and unpaid invoices are shown <strong>read-only</strong> in Management View for awareness. To take action, switch to Finance View.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 3: My Projects Tab */}
+            <GuideCard title="My Projects — B&C Attorney View">
+              <Stack spacing={2}>
+                <ScreenFrame title="Control Tower — My Projects">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Finance View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">My Projects</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Filtered trigger queue */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Triggered Milestones on My Projects</Typography>
+                          <Chip label="1" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ px: 1, py: 0.4 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings</Typography>
+                            <Typography variant="caption" fontSize="0.45rem">Filing fee — $50K</Typography>
+                            <Chip label="Stage change" size="small" sx={{ height: 14, fontSize: '0.35rem' }} />
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                    {/* Filtered LSD risks */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Long Stop Date Risks</Typography>
+                          <Chip label="1" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Filtered unpaid */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Unpaid Invoices</Typography>
+                          <Chip label="0" size="small" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>Triggered Milestones</strong> section shows only milestones from projects where you are the B&C attorney. Review these to stay aware of upcoming billing activity.</>} />
+                  <StepItem n={2} text={<>The <strong>Long Stop Date Risks</strong> section is filtered to your projects. Check for any engagements approaching or past their LSD.</>} />
+                  <StepItem n={3} text={<>The <strong>Unpaid Invoices</strong> section shows invoices 30+ days overdue on your matters. Coordinate with Finance for follow-up on collections.</>} />
+                </Stack>
+                <Alert severity="info" sx={{ mt: 1, '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
+                  B&C Working Attorneys and Admins can access the Control Tower from the sidebar. Finance View and Management View are admin-only.
+                </Alert>
               </Stack>
             </GuideCard>
           </Stack>
