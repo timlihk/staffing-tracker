@@ -97,37 +97,41 @@ const roleGuidelines = [
     role: 'Deal Team Members',
     color: tokens.colors.indigo[500],
     Icon: Groups,
-    keyTakeaway: 'Create projects, keep status and lifecycle current.',
+    keyTakeaway: 'Create projects, keep status and lifecycle current — this directly triggers billing milestones.',
     tasks: [
       'Create the project record first.',
       'Keep project status current for staffing visibility.',
-      'Keep lifecycle stage current to support billing milestone tracking.',
+      'Update lifecycle stage as soon as a milestone event occurs (e.g. A1 filed, hearing passed, listed) — this triggers automatic milestone detection for billing.',
       'When an LSD passes or supplementary scope is added to the same project, create a new engagement under the existing C/M — do not create a new project.',
       'For a genuinely new project for the same client, set up a new C/M number — do not reuse the existing one.',
       'Draft and maintain milestone reference language from the engagement letter.',
+      'Review the Control Tower "My Projects" tab to see if any milestones were triggered on your projects.',
     ],
   },
   {
     role: 'Finance Team',
     color: tokens.colors.success,
     Icon: AccountBalance,
-    keyTakeaway: 'Validate billing details, signed dates, and LSD.',
+    keyTakeaway: 'Confirm triggered milestones, issue invoices, and track collections via Control Tower.',
     tasks: [
       'Co-confirm billing details with Deal Team.',
       'Validate signed date and Long Stop Date (LSD) for each engagement.',
       'Review milestone structure and dates for billing accuracy.',
       'Ensure each engagement card only contains its own milestones.',
+      'Use the Control Tower Finance View to confirm triggered milestones and issue invoices.',
+      'Track unpaid invoices (30+ days) and follow up on collections.',
     ],
   },
   {
     role: 'Managers',
     color: tokens.colors.violet[500],
     Icon: SupervisorAccount,
-    keyTakeaway: 'Review data quality and escalate missing critical dates.',
+    keyTakeaway: 'Monitor data quality and billing risks via the Control Tower Management View.',
     tasks: [
       'Review data quality and role accountability.',
       'Escalate missing critical dates (signed date, LSD).',
       'Ensure status/lifecycle updates happen in time for reporting and billing operations.',
+      'Use the Control Tower Management View to monitor long stop date risks and overall billing pipeline.',
     ],
   },
 ];
@@ -170,6 +174,16 @@ const billingPractices = [
     title: 'Never mix engagements',
     description: 'If milestones belong to a different engagement, create a new engagement card. Do not combine.',
     Icon: Block,
+  },
+  {
+    title: 'Update lifecycle stage promptly',
+    description: 'Changing lifecycle stage triggers automatic billing milestone detection. Update as soon as a milestone event occurs.',
+    Icon: Update,
+  },
+  {
+    title: 'Review Control Tower regularly',
+    description: 'Deal Team checks "My Projects" tab, Finance uses "Finance View" to confirm and issue invoices.',
+    Icon: LinkIcon,
   },
 ];
 
@@ -564,6 +578,11 @@ export default function BestPracticeGuide() {
       {/* ---- 4. Lifecycle Stages ---- */}
       <Box id={SECTION_IDS.lifecycle} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<TimelineOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="Lifecycle Stages" />}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <strong>Important:</strong> When you change a project's lifecycle stage, the system automatically checks
+            whether any billing milestones have been triggered. This is the primary mechanism for billing milestone
+            detection — keep lifecycle stages current to ensure timely invoicing.
+          </Alert>
           <Stack spacing={0}>
             {lifecycleStages.map((item, index) => (
               <Box
@@ -676,7 +695,108 @@ export default function BestPracticeGuide() {
         </Section>
       </Box>
 
-      {/* ---- 6. Data Quality Standard ---- */}
+      {/* ---- 6. How Milestone Detection Works ---- */}
+      <Box sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<ReceiptLongOutlined sx={{ color: tokens.colors.success }} />} label="How Milestone Detection Works" />}>
+          <Stack spacing={2}>
+            <Typography variant="body2" fontWeight={600} color="text.primary">
+              The system uses three complementary methods to detect when billing milestones are triggered:
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                    1. Lifecycle Stage Changes (Real-time)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    When a deal team member updates the lifecycle stage (e.g. moves from "A1 Filed" to "Hearing Passed"),
+                    the system immediately checks all milestones for that project and flags any that match. This is the
+                    primary trigger method.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                    2. Date-Based Sweep (Daily 2 AM HKT)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    A daily sweep checks all milestone dates. If a milestone's target date has passed and it hasn't been
+                    triggered yet, it gets flagged automatically. This catches date-driven milestones even if the lifecycle
+                    stage wasn't updated.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                    3. AI-Assisted Sweep (Daily 2:30 AM HKT)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    An AI model reviews project events and milestone language to identify milestones that may have been
+                    triggered but weren't caught by the other two methods. This acts as a safety net to reduce missed billing.
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+            <Alert severity="info">
+              All three methods feed into the <strong>Control Tower Invoice Queue</strong>, where Finance confirms and
+              issues invoices. Deal team members can review triggered milestones on their projects via the "My Projects" tab.
+            </Alert>
+          </Stack>
+        </Section>
+      </Box>
+
+      {/* ---- 7. Control Tower Workflow ---- */}
+      <Box sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<SettingsOutlined sx={{ color: tokens.colors.success }} />} label="Control Tower Workflow" />}>
+          <Stack spacing={2}>
+            <Typography variant="body2" fontWeight={600} color="text.primary">
+              The Control Tower is the central hub for billing operations. It has three views:
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(tokens.colors.success, 0.3)}`, height: '100%', bgcolor: alpha(tokens.colors.success, 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+                    Finance View
+                  </Typography>
+                  <Chip label="Admin only" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Invoice issuance workflow: review triggered milestones → Confirm + Queue Invoice → Mark Invoice Sent.
+                    Also tracks unpaid invoices 30+ days for collections follow-up.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(tokens.colors.violet[500], 0.3)}`, height: '100%', bgcolor: alpha(tokens.colors.violet[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+                    Management View
+                  </Typography>
+                  <Chip label="Admin only" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Portfolio oversight: monitors long stop date risks, overall billing pipeline, and unpaid invoices.
+                    Read-only view of the invoice queue for awareness.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(tokens.colors.indigo[500], 0.3)}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+                    My Projects
+                  </Typography>
+                  <Chip label="B&C Attorneys + Admin" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Shows triggered milestones, long stop date risks, and unpaid invoices filtered to your own projects.
+                    Helps attorneys stay on top of billing activity for their matters.
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Stack>
+        </Section>
+      </Box>
+
+      {/* ---- 8. Data Quality Standard ---- */}
       <Box id={SECTION_IDS.dataQuality} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<VerifiedOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="Data Quality Standard" />}>
           <Stack spacing={2}>
