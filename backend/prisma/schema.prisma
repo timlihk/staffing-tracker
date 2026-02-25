@@ -33,6 +33,7 @@ model User {
   staffChanges                                                   StaffChangeHistory[]            @relation("StaffChanges")
   refreshTokens                                                  RefreshToken[]
   billing_sync_run                                               billing_sync_run[]
+  billing_note                                                   billing_note[]
   staff                                                          Staff?                          @relation(fields: [staffId], references: [id])
 
   @@index([role])
@@ -499,6 +500,7 @@ model billing_project {
   billing_project_bc_attorney   billing_project_bc_attorney[]
   billing_project_cm_no         billing_project_cm_no[]
   billing_staffing_project_link billing_staffing_project_link[]
+  billing_note                  billing_note[]
 
   @@index([attorney_in_charge], map: "idx_billing_project_attorney")
   @@index([project_name], map: "idx_billing_project_name")
@@ -517,6 +519,21 @@ model billing_project_bc_attorney {
   @@index([billing_project_id], map: "idx_billing_project_bc_attorney_project")
   @@index([staff_id], map: "idx_billing_project_bc_attorney_staff")
   @@map("billing_project_bc_attorneys")
+}
+
+model billing_note {
+  id          Int             @id @default(autoincrement())
+  project_id  BigInt          @map("project_id")
+  cm_id       BigInt?         @map("cm_id")
+  author_id   Int             @map("author_id")
+  content     String
+  created_at  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  author      User            @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project     billing_project @relation(fields: [project_id], references: [project_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([project_id], map: "idx_billing_note_project")
+  @@map("billing_notes")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

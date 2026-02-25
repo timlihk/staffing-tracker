@@ -323,6 +323,9 @@ export async function getBillingProjectDetail(req: AuthRequest, res: Response) {
           cm.billing_credit_cny,
           cm.financials_updated_at,
           cm.financials_updated_by,
+          cm.matter_notes,
+          cm.finance_remarks,
+          cm.unbilled_per_el,
           COALESCE(
             JSON_AGG(
               JSON_BUILD_OBJECT(
@@ -931,5 +934,82 @@ export async function getBillingProjectByStaffingId(req: AuthRequest, res: Respo
   } catch (error) {
     logger.error('Error looking up billing project by staffing ID', { error: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ error: 'Failed to look up billing project' });
+  }
+}
+
+/**
+ * GET /billing/projects/:id/notes
+ * Get all notes for a billing project
+ */
+export async function getBillingNotes(req: AuthRequest, res: Response) {
+  try {
+    const projectId = parseInt(String(req.params.id), 10);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const notes = await prisma.billing_note.findMany({
+      where: { project_id: projectId },
+      include: {
+        author: { select: { id: true, username: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return res.json(notes.map(n => ({
+      id: n.id,
+      project_id: Number(n.project_id),
+      cm_id: n.cm_id ? Number(n.cm_id) : null,
+      author_name: n.author.username,
+      author_id: n.author.id,
+      content: n.content,
+      created_at: n.created_at.toISOString(),
+    })));
+  } catch (error) {
+    logger.error('Error fetching billing notes', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to fetch notes' });
+  }
+}
+
+/**
+ * POST /billing/projects/:id/notes
+ * Create a new note for a billing project
+ */
+export async function createBillingNote(req: AuthRequest, res: Response) {
+  try {
+    const projectId = parseInt(String(req.params.id), 10);
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const { content, cm_id } = req.body;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ error: 'Note content is required' });
+    }
+
+    const note = await prisma.billing_note.create({
+      data: {
+        project_id: projectId,
+        cm_id: cm_id ? BigInt(cm_id) : null,
+        author_id: req.user!.userId,
+        content: content.trim(),
+      },
+      include: {
+        author: { select: { id: true, username: true } },
+      },
+    });
+
+    return res.status(201).json({
+      id: note.id,
+      project_id: Number(note.project_id),
+      cm_id: note.cm_id ? Number(note.cm_id) : null,
+      author_name: note.author.username,
+      author_id: note.author.id,
+      content: note.content,
+      created_at: note.created_at.toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error creating billing note', { error: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ error: 'Failed to create note' });
   }
 }

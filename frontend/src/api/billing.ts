@@ -62,7 +62,20 @@ export interface BillingProjectCM {
   engagement_count: number;
   milestone_count: number;
   completed_milestone_count: number;
+  matter_notes?: string | null;
+  finance_remarks?: string | null;
+  unbilled_per_el?: number | string | null;
   engagements?: EngagementDetailResponse[];
+}
+
+export interface BillingNote {
+  id: number;
+  project_id: number;
+  cm_id: number | null;
+  author_name: string;
+  author_id: number;
+  content: string;
+  created_at: string;
 }
 
 export interface ProjectActivityResponse {
@@ -758,5 +771,15 @@ export const getUnpaidInvoices = async (params?: {
   limit?: number;
 }): Promise<BillingUnpaidInvoiceRow[]> => {
   const response = await apiClient.get('/billing/unpaid-invoices', { params });
+  return response.data;
+};
+
+export const getBillingNotes = async (projectId: number): Promise<BillingNote[]> => {
+  const response = await apiClient.get(`/billing/projects/${projectId}/notes`);
+  return response.data;
+};
+
+export const createBillingNote = async (projectId: number, content: string): Promise<BillingNote> => {
+  const response = await apiClient.post(`/billing/projects/${projectId}/notes`, { content });
   return response.data;
 };

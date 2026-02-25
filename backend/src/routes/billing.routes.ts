@@ -488,6 +488,10 @@ router.get('/projects/:id/activity', authenticate, checkBillingAccess, validate(
  */
 router.get('/projects/:id/change-log', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingProjectChangeLog);
 
+// Notes
+router.get('/projects/:id/notes', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.getBillingNotes);
+router.post('/projects/:id/notes', authenticate, checkBillingAccess, validate(billingIdParamSchema, 'params'), billingController.createBillingNote);
+
 /**
  * @openapi
  * /billing/projects/{id}/financials:

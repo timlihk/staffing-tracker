@@ -41,6 +41,7 @@ export const billingKeys = {
   financeSummary: (params?: Record<string, unknown>) => [...billingKeys.all, 'finance-summary', params ?? {}] as const,
   longStopRisks: (params?: Record<string, unknown>) => [...billingKeys.all, 'long-stop-risks', params ?? {}] as const,
   unpaidInvoices: (params?: Record<string, unknown>) => [...billingKeys.all, 'unpaid-invoices', params ?? {}] as const,
+  notes: (id: number) => [...billingKeys.all, 'project', id, 'notes'] as const,
 };
 
 // Get all billing projects
@@ -624,6 +625,30 @@ export function useUpdateTriggerActionItem() {
     },
     onError: (error: unknown) => {
       toast.error(extractBillingError(error, 'Failed to update trigger action'));
+    },
+  });
+}
+
+export function useBillingNotes(projectId: number) {
+  return useQuery({
+    queryKey: billingKeys.notes(projectId),
+    queryFn: () => billingApi.getBillingNotes(projectId),
+    enabled: !!projectId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCreateBillingNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, content }: { projectId: number; content: string }) =>
+      billingApi.createBillingNote(projectId, content),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.notes(variables.projectId) });
+      toast.success('Note added');
+    },
+    onError: (error: unknown) => {
+      toast.error(extractBillingError(error, 'Failed to add note'));
     },
   });
 }
