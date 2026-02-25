@@ -1,7 +1,6 @@
-import { Box, CircularProgress, Divider, Stack, Switch, Typography } from '@mui/material';
+import { Box, CircularProgress, Stack, Switch, Typography } from '@mui/material';
 import type { BillingSettings } from '../../hooks/useBilling';
 import { toast } from '../../lib/toast';
-import { BillingExcelSyncPanel } from './BillingExcelSyncPanel';
 
 export interface BillingSettingsPanelProps {
   billingSettings: BillingSettings | undefined;
@@ -133,9 +132,6 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
         </Box>
       </Stack>
 
-      <Divider sx={{ my: 3 }} />
-
-      <BillingExcelSyncPanel />
     </Stack>
   );
 }

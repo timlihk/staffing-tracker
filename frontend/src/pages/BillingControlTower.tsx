@@ -24,6 +24,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Page, PageHeader, Section } from '../components/ui';
+import { BillingExcelSyncPanel } from '../components/admin/BillingExcelSyncPanel';
 import {
   useBillingTriggers,
   useConfirmBillingTrigger,
@@ -545,6 +546,9 @@ const BillingControlTower: React.FC = () => {
                     {renderUnpaidInvoicesTable(unpaidRows, navigate)}
                   </Box>
                 </Collapse>
+              </Section>
+              <Section>
+                <BillingExcelSyncPanel />
               </Section>
             </>
           )}
