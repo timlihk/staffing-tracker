@@ -333,14 +333,17 @@ export default function BestPracticeGuide() {
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isBcAttorney = user?.staff?.position === 'B&C Working Attorney';
+  const canAccessControlTower = isAdmin || isBcAttorney;
 
-  const LANDING_SECTIONS: {
+  const ALL_LANDING_SECTIONS: {
     key: SectionKey;
     title: string;
     subtitle: string;
     icon: React.ReactNode;
     color: string;
     chips: { label: string; sectionId: string }[];
+    visible?: boolean;
   }[] = [
     {
       key: 'best-practices',
@@ -381,9 +384,12 @@ export default function BestPracticeGuide() {
       icon: <DevicesOther sx={{ fontSize: 28 }} />,
       color: tokens.colors.violet[500],
       chips: [],
+      visible: canAccessControlTower,
     },
   ];
 
+  const LANDING_SECTIONS = ALL_LANDING_SECTIONS.filter((s) => s.visible !== false);
+  const cardLg = LANDING_SECTIONS.length === 5 ? 2.4 : 3;
 
   const handleCardClick = (key: SectionKey) => {
     setActiveSection((prev) => (prev === key ? null : key));
@@ -401,7 +407,7 @@ export default function BestPracticeGuide() {
         {LANDING_SECTIONS.map((section) => {
           const isActive = activeSection === section.key;
           return (
-            <Grid key={section.key} size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+            <Grid key={section.key} size={{ xs: 12, sm: 6, md: 4, lg: cardLg }}>
               <Box
                 onClick={() => handleCardClick(section.key)}
                 sx={{
@@ -1417,7 +1423,7 @@ export default function BestPracticeGuide() {
       )}
 
       {/* ================ How To — Control Tower content ================ */}
-      {activeSection === 'how-to-control-tower' && (
+      {canAccessControlTower && activeSection === 'how-to-control-tower' && (
       <Box id={SECTION_IDS.howToControlTower} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<DevicesOther sx={{ color: tokens.colors.violet[500] }} />} label="How To — Control Tower" />}>
           <Stack spacing={3}>
