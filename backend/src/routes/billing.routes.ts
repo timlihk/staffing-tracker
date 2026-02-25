@@ -1275,7 +1275,7 @@ router.patch(
  *       401:
  *         description: Unauthorized
  */
-router.get('/overdue-by-attorney', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getOverdueByAttorney);
+router.get('/overdue-by-attorney', authenticate, checkBillingAccess, billingTriggerController.getOverdueByAttorney);
 
 /**
  * @openapi
@@ -1319,7 +1319,7 @@ router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOnly, bi
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/finance-summary', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getFinanceSummary);
+router.get('/finance-summary', authenticate, checkBillingAccess, billingTriggerController.getFinanceSummary);
 
 /**
  * @openapi
