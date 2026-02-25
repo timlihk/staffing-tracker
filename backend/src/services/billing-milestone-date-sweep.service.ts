@@ -38,7 +38,6 @@ export interface BillingMilestoneDateSweepResult {
 
 interface CandidateProcessResult {
   processed: boolean;
-  autoLinked: boolean;
   skippedNoStaffingProject: boolean;
   skippedAlreadyTriggered: boolean;
 }
@@ -138,7 +137,7 @@ export class BillingMilestoneDateSweepService {
       const batch = candidates.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
         batch.map((candidate) =>
-          this.processCandidateWithMaps(candidate, dryRun, triggeredSet, linkMap, autoLinkedProjectIds)
+          this.processCandidateWithMaps(candidate, dryRun, triggeredSet, linkMap)
         )
       );
       for (let j = 0; j < settled.length; j++) {
@@ -146,7 +145,6 @@ export class BillingMilestoneDateSweepService {
         if (outcome.status === 'fulfilled') {
           const processed = outcome.value;
           if (processed.processed) result.processed += 1;
-          if (processed.autoLinked) result.autoLinked += 1;
           if (processed.skippedNoStaffingProject) result.skippedNoStaffingProject += 1;
           if (processed.skippedAlreadyTriggered) result.skippedAlreadyTriggered += 1;
         } else {
@@ -161,6 +159,9 @@ export class BillingMilestoneDateSweepService {
         }
       }
     }
+
+    // autoLinked counts distinct billing projects, not per-candidate
+    result.autoLinked = autoLinkedProjectIds.size;
 
     return result;
   }
@@ -210,26 +211,24 @@ export class BillingMilestoneDateSweepService {
     dryRun: boolean,
     triggeredSet: Set<bigint>,
     linkMap: Map<bigint, number>,
-    autoLinkedProjectIds: Set<bigint>,
   ): Promise<CandidateProcessResult> {
     const milestoneId = this.toBigInt(candidate.milestone_id);
     const billingProjectId = this.toBigInt(candidate.billing_project_id);
 
     // Dedup check — O(1) Set lookup instead of per-candidate DB query
     if (triggeredSet.has(milestoneId)) {
-      return { processed: false, autoLinked: false, skippedNoStaffingProject: false, skippedAlreadyTriggered: true };
+      return { processed: false, skippedNoStaffingProject: false, skippedAlreadyTriggered: true };
     }
 
     // Link resolution — O(1) Map lookup (linkMap already includes CM fallback entries)
     const staffingProjectId: number | null = linkMap.get(billingProjectId) ?? null;
-    const autoLinked = autoLinkedProjectIds.has(billingProjectId);
 
     if (!staffingProjectId) {
-      return { processed: false, autoLinked: false, skippedNoStaffingProject: true, skippedAlreadyTriggered: false };
+      return { processed: false, skippedNoStaffingProject: true, skippedAlreadyTriggered: false };
     }
 
     if (dryRun) {
-      return { processed: true, autoLinked, skippedNoStaffingProject: false, skippedAlreadyTriggered: false };
+      return { processed: true, skippedNoStaffingProject: false, skippedAlreadyTriggered: false };
     }
 
     await prisma.$transaction(async (tx) => {
@@ -264,7 +263,7 @@ export class BillingMilestoneDateSweepService {
       });
     });
 
-    return { processed: true, autoLinked, skippedNoStaffingProject: false, skippedAlreadyTriggered: false };
+    return { processed: true, skippedNoStaffingProject: false, skippedAlreadyTriggered: false };
   }
 
   private static async resolveStaffingProjectId(
