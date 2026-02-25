@@ -33,6 +33,17 @@ jest.mock('../utils/prisma', () => ({
       findMany: jest.fn(),
     },
     $queryRaw: jest.fn(),
+    billing_milestone: {
+      findMany: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+}));
+
+jest.mock('../services/project-event-trigger.service', () => ({
+  ProjectEventTriggerService: {
+    createProjectEvent: jest.fn().mockResolvedValue(undefined),
+    getProjectEvents: jest.fn().mockResolvedValue([]),
   },
 }));
 
@@ -530,7 +541,7 @@ describe('Project Controller', () => {
       expect(res.body.error).toMatch(/duplicate milestone_id/i);
     });
 
-    it('accepts payload with unique milestone_ids', async () => {
+    it('accepts payload with unique milestone_ids and returns 200', async () => {
       mockPrisma.project.findUnique.mockResolvedValue({
         id: 1,
         name: 'Test Project',
@@ -540,6 +551,11 @@ describe('Project Controller', () => {
       mockPrisma.$queryRaw
         .mockResolvedValueOnce([{ cm_no: 'CM001' }])
         .mockResolvedValueOnce([{ milestone_id: 100n }, { milestone_id: 200n }]);
+      // existingMilestones batch-fetch — return records with no changes to trigger
+      mockPrisma.billing_milestone.findMany.mockResolvedValue([
+        { milestone_id: 100n, completed: true, completion_date: new Date(), invoice_sent_date: null, payment_received_date: null, notes: null, due_date: null, title: 'M1', trigger_text: null, amount_value: null, amount_currency: null },
+        { milestone_id: 200n, completed: false, completion_date: null, invoice_sent_date: null, payment_received_date: null, notes: null, due_date: null, title: 'M2', trigger_text: null, amount_value: null, amount_currency: null },
+      ]);
 
       const res = await request(app)
         .patch('/api/projects/1/billing-milestones')
@@ -550,8 +566,8 @@ describe('Project Controller', () => {
           ],
         });
 
-      // Should pass the duplicate check (may fail later due to incomplete mocks, but not with 400 duplicate)
-      expect(res.status).not.toBe(400);
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ success: true, updated: 0 });
     });
   });
 });
