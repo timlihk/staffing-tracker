@@ -128,6 +128,9 @@ export const getTriggers = async (req: AuthRequest, res: Response) => {
     const { status, staffingProjectId, startDate, endDate } = req.query;
 
     const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    if (req.query.attorneyId !== undefined && rawAttorneyId === undefined) {
+      return res.status(400).json({ error: 'Invalid attorneyId' });
+    }
     const { attorneyId: effectiveAttorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
 
     const filters: any = {};
@@ -265,6 +268,9 @@ export const getOverdueByAttorney = async (req: AuthRequest, res: Response) => {
     const { minAmount, startDate, endDate } = req.query;
 
     const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    if (req.query.attorneyId !== undefined && rawAttorneyId === undefined) {
+      return res.status(400).json({ error: 'Invalid attorneyId' });
+    }
     const { attorneyId: effectiveAttorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
 
     const filters: any = {};
