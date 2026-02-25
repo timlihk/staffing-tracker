@@ -192,6 +192,7 @@ export interface BillingTriggerRow {
   id: number;
   milestoneId: BigIntLike;
   staffingProjectId: number;
+  billingProjectId: number | null;
   oldStatus: string;
   newStatus: string;
   matchConfidence: number;

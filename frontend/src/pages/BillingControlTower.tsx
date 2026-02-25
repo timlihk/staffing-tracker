@@ -587,11 +587,11 @@ const BillingControlTower: React.FC = () => {
                                 </Button>
                               </>
                             )}
-                            {trigger.staffingProjectId ? (
+                            {trigger.billingProjectId ? (
                               <Button
                                 size="small"
                                 variant="text"
-                                onClick={() => navigate(`/projects/${trigger.staffingProjectId}`)}
+                                onClick={() => navigate(`/billing/${trigger.billingProjectId}`)}
                               >
                                 Open Project
                               </Button>

@@ -69,10 +69,15 @@ const formatTrigger = (trigger: any) => {
     ? trigger.billing_action_item[0]
     : null;
 
+  const billingProjectId = toSafeNumber(
+    trigger.milestone?.billing_engagement?.billing_project_cm_no?.billing_project?.project_id
+  );
+
   return {
     id: trigger.id,
     milestoneId: toSafeNumber(trigger.milestone_id),
     staffingProjectId: toSafeNumber(trigger.staffing_project_id),
+    billingProjectId,
     oldStatus: trigger.old_status,
     newStatus: trigger.new_status,
     matchConfidence: parseFloat(trigger.match_confidence?.toString() || '0'),
