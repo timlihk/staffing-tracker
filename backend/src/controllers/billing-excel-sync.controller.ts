@@ -65,6 +65,7 @@ export async function applyExcelSync(req: AuthRequest, res: Response): Promise<a
       staffingLinksCount: result.syncRunData.staffingLinks.length,
       unmatchedCount: result.syncRunData.unmatchedNewCms.length,
       skippedCount: result.syncRunData.skippedCms.length,
+      failedRowCount: result.failedRows.length,
     };
 
     const syncRun = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`

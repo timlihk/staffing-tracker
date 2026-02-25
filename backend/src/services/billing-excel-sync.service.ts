@@ -119,8 +119,12 @@ export interface SyncResult {
   milestonesUpdated: number;
   milestonesMarkedCompleted: number;
   unmatchedCmNumbers: string[];
+  failedRows: Array<{ cmNo: string; rowNum: number; error: string }>;
   syncRunData: SyncRunChanges;
 }
+
+// Subset of PrismaClient that supports raw queries (works for both prisma and tx)
+type DbClient = Pick<typeof prisma, '$queryRaw' | '$executeRaw'>;
 
 // ---------------------------------------------------------------------------
 // Regex (reused from backfill script)
@@ -656,6 +660,7 @@ export async function parseExcelFile(buffer: Buffer): Promise<ExcelRow[]> {
   if (!ws) throw new Error('No worksheets found in Excel file');
 
   const rows: ExcelRow[] = [];
+  const lastRowByCm = new Map<string, ExcelRow>();
   let lastCmNo = '';
 
   for (let r = 5; r <= ws.rowCount; r++) {
@@ -709,8 +714,8 @@ export async function parseExcelFile(buffer: Buffer): Promise<ExcelRow[]> {
     }
 
     if (isSubRow) {
-      // Attach as additional engagement(s) to previous row with same C/M
-      const parent = [...rows].reverse().find((r: ExcelRow) => r.cmNo === cmNo);
+      // Attach as additional engagement(s) to previous row with same C/M (O(1) Map lookup)
+      const parent = lastRowByCm.get(cmNo);
       if (parent) {
         parent.engagements.push(...engagements);
         // Financial values belong to the parent C/M (not additive — sub-rows don't have separate financials)
@@ -718,7 +723,7 @@ export async function parseExcelFile(buffer: Buffer): Promise<ExcelRow[]> {
       }
     }
 
-    rows.push({
+    const newRow: ExcelRow = {
       rowNum: r,
       projectName,
       clientName: getCellText(row.getCell(4)).trim(),
@@ -738,7 +743,9 @@ export async function parseExcelFile(buffer: Buffer): Promise<ExcelRow[]> {
       matterNotes: getCellText(row.getCell(22)).trim() || null,
       engagements,
       isSubRow: false,
-    });
+    };
+    rows.push(newRow);
+    lastRowByCm.set(cmNo, newRow);
   }
 
   return rows;
@@ -856,6 +863,7 @@ export async function applyChanges(rows: ExcelRow[], userId?: number): Promise<S
     milestonesUpdated: 0,
     milestonesMarkedCompleted: 0,
     unmatchedCmNumbers: [],
+    failedRows: [],
     syncRunData: {
       updatedCms: [],
       newCms: [],
@@ -869,9 +877,9 @@ export async function applyChanges(rows: ExcelRow[], userId?: number): Promise<S
     try {
       await processRow(row, userId, result);
     } catch (error) {
-      logger.error(`Error processing C/M ${row.cmNo} (row ${row.rowNum})`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Error processing C/M ${row.cmNo} (row ${row.rowNum})`, { error: errorMsg });
+      result.failedRows.push({ cmNo: row.cmNo, rowNum: row.rowNum, error: errorMsg });
     }
   }
 
@@ -892,6 +900,7 @@ interface StaffingLinkResult {
 }
 
 async function autoLinkToStaffingProject(
+  db: DbClient,
   billingProjectId: bigint,
   cmNo: string,
   projectName: string,
@@ -904,7 +913,7 @@ async function autoLinkToStaffingProject(
     let matchMethod = '';
 
     // Strategy 1: exact cm_number match
-    const exactMatch = await prisma.$queryRaw<Array<{
+    const exactMatch = await db.$queryRaw<Array<{
       id: number; name: string; cm_number: string | null;
     }>>(Prisma.sql`
       SELECT id, name, cm_number FROM projects
@@ -918,7 +927,7 @@ async function autoLinkToStaffingProject(
 
     // Strategy 2: C/M prefix match (same base matter number)
     if (!staffingProject && cmBase) {
-      const prefixMatch = await prisma.$queryRaw<Array<{
+      const prefixMatch = await db.$queryRaw<Array<{
         id: number; name: string; cm_number: string | null;
       }>>(Prisma.sql`
         SELECT id, name, cm_number FROM projects
@@ -934,7 +943,7 @@ async function autoLinkToStaffingProject(
     // Strategy 3: name similarity (fallback, requires pg_trgm extension)
     if (!staffingProject && projectName) {
       try {
-        const nameMatch = await prisma.$queryRaw<Array<{
+        const nameMatch = await db.$queryRaw<Array<{
           id: number; name: string; cm_number: string | null; score: number;
         }>>(Prisma.sql`
           SELECT id, name, cm_number, similarity(name, ${projectName}) as score
@@ -947,15 +956,16 @@ async function autoLinkToStaffingProject(
           staffingProject = nameMatch[0];
           matchMethod = `name similarity (${Number(nameMatch[0].score).toFixed(2)})`;
         }
-      } catch {
-        // pg_trgm extension not available — skip name similarity matching
+      } catch (pgError: unknown) {
+        // pg_trgm extension not available — only swallow known DB errors
+        if (!(pgError instanceof Prisma.PrismaClientKnownRequestError)) throw pgError;
       }
     }
 
     if (!staffingProject) return null;
 
     // Create link (skip if already exists)
-    await prisma.$executeRaw(Prisma.sql`
+    await db.$executeRaw(Prisma.sql`
       INSERT INTO billing_staffing_project_link (billing_project_id, staffing_project_id, auto_match_score, linked_at, notes)
       VALUES (${billingProjectId}, ${staffingProject.id}, ${1.0}, NOW(), ${`Auto-linked by Excel sync (${matchMethod}: "${staffingProject.name}")`})
       ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
@@ -964,7 +974,7 @@ async function autoLinkToStaffingProject(
     // Fill cm_number on staffing project if not already set
     const cmNumberSet = !staffingProject.cm_number;
     if (cmNumberSet) {
-      await prisma.$executeRaw(Prisma.sql`
+      await db.$executeRaw(Prisma.sql`
         UPDATE projects
         SET cm_number = ${cmNo}, updated_at = NOW()
         WHERE id = ${staffingProject.id} AND cm_number IS NULL
@@ -986,61 +996,26 @@ async function autoLinkToStaffingProject(
 }
 
 async function processRow(row: ExcelRow, userId: number | undefined, result: SyncResult): Promise<void> {
-  // Find the C/M record
-  const cmRecords = await prisma.$queryRaw<Array<{
-    cm_id: bigint;
-    project_id: bigint;
-  }>>(Prisma.sql`
-    SELECT cm_id, project_id
-    FROM billing_project_cm_no
-    WHERE cm_no = ${row.cmNo}
-    LIMIT 1
-  `);
-
-  let cmId: bigint;
-  let projectId: bigint;
-
-  if (cmRecords.length === 0) {
-    // Skip placeholder C/M values
-    if (row.cmNo.toUpperCase() === 'TBC' || !row.cmNo.trim()) {
-      if (!result.unmatchedCmNumbers.includes(row.cmNo)) {
-        result.unmatchedCmNumbers.push(row.cmNo);
-        result.syncRunData.skippedCms.push(row.cmNo);
-      }
-      return;
+  // Skip placeholder C/M values (no transaction needed)
+  if (row.cmNo.toUpperCase() === 'TBC' || !row.cmNo.trim()) {
+    if (!result.unmatchedCmNumbers.includes(row.cmNo)) {
+      result.unmatchedCmNumbers.push(row.cmNo);
+      result.syncRunData.skippedCms.push(row.cmNo);
     }
+    return;
+  }
 
-    // Create new billing_project + billing_project_cm_no
-    const newProject = await prisma.$queryRaw<Array<{ project_id: bigint }>>(Prisma.sql`
-      INSERT INTO billing_project (project_name, client_name, attorney_in_charge, sca, created_at, updated_at)
-      VALUES (${row.projectName || 'Unnamed'}, ${row.clientName || null}, ${row.attorneyInCharge || null}, ${row.sca || null}, NOW(), NOW())
-      RETURNING project_id
-    `);
-    projectId = newProject[0].project_id;
+  // All DB writes for a single row are atomic via $transaction.
+  // Timeout raised to 30s because rows with many milestones can be slow.
+  const linkInfo = await prisma.$transaction(async (tx) => {
+    return await processRowCore(tx, row, userId, result);
+  }, { timeout: 30000 });
 
-    const newCm = await prisma.$queryRaw<Array<{ cm_id: bigint }>>(Prisma.sql`
-      INSERT INTO billing_project_cm_no (project_id, cm_no, is_primary, status)
-      VALUES (${projectId}, ${row.cmNo}, true, 'active')
-      RETURNING cm_id
-    `);
-    cmId = newCm[0].cm_id;
-    result.projectsUpdated++;
-
-    // Auto-link to staffing project by name match
-    const linkResult = await autoLinkToStaffingProject(projectId, row.cmNo, row.projectName);
-
-    // Record new CM in syncRunData
-    const newCmEntry: SyncRunChanges['newCms'][0] = {
-      cmNo: row.cmNo,
-      projectName: row.projectName || 'Unnamed',
-      clientName: row.clientName || '',
-      engagements: row.engagements.map(e => ({
-        title: e.engagementTitle,
-        milestoneCount: e.milestones.length,
-      })),
-    };
-    result.syncRunData.newCms.push(newCmEntry);
-
+  // Auto-link runs outside the transaction — it's best-effort and has
+  // its own error handling. We don't want a link failure to roll back
+  // the core project/financial/milestone writes.
+  if (linkInfo) {
+    const linkResult = await autoLinkToStaffingProject(prisma, linkInfo.projectId, row.cmNo, row.projectName);
     if (linkResult) {
       result.syncRunData.staffingLinks.push({
         cmNo: row.cmNo,
@@ -1056,12 +1031,65 @@ async function processRow(row: ExcelRow, userId: number | undefined, result: Syn
         projectName: row.projectName || 'Unnamed',
       });
     }
+  }
+}
+
+/** Core per-row logic, runs inside a transaction. Returns link info if a new project was created. */
+async function processRowCore(
+  tx: DbClient,
+  row: ExcelRow,
+  userId: number | undefined,
+  result: SyncResult,
+): Promise<{ projectId: bigint } | null> {
+  // Find the C/M record
+  const cmRecords = await tx.$queryRaw<Array<{
+    cm_id: bigint;
+    project_id: bigint;
+  }>>(Prisma.sql`
+    SELECT cm_id, project_id
+    FROM billing_project_cm_no
+    WHERE cm_no = ${row.cmNo}
+    LIMIT 1
+  `);
+
+  let cmId: bigint;
+  let projectId: bigint;
+  let needsAutoLink = false;
+
+  if (cmRecords.length === 0) {
+    // Create new billing_project + billing_project_cm_no
+    const newProject = await tx.$queryRaw<Array<{ project_id: bigint }>>(Prisma.sql`
+      INSERT INTO billing_project (project_name, client_name, attorney_in_charge, sca, created_at, updated_at)
+      VALUES (${row.projectName || 'Unnamed'}, ${row.clientName || null}, ${row.attorneyInCharge || null}, ${row.sca || null}, NOW(), NOW())
+      RETURNING project_id
+    `);
+    projectId = newProject[0].project_id;
+
+    const newCm = await tx.$queryRaw<Array<{ cm_id: bigint }>>(Prisma.sql`
+      INSERT INTO billing_project_cm_no (project_id, cm_no, is_primary, status)
+      VALUES (${projectId}, ${row.cmNo}, true, 'active')
+      RETURNING cm_id
+    `);
+    cmId = newCm[0].cm_id;
+    result.projectsUpdated++;
+    needsAutoLink = true;
+
+    // Record new CM in syncRunData
+    result.syncRunData.newCms.push({
+      cmNo: row.cmNo,
+      projectName: row.projectName || 'Unnamed',
+      clientName: row.clientName || '',
+      engagements: row.engagements.map(e => ({
+        title: e.engagementTitle,
+        milestoneCount: e.milestones.length,
+      })),
+    });
   } else {
     cmId = cmRecords[0].cm_id;
     projectId = cmRecords[0].project_id;
 
     // Query current financial values BEFORE update for diff tracking
-    const currentFinancials = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
+    const currentFinancials = await tx.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT agreed_fee_usd, billing_to_date_usd, collected_to_date_usd,
              billing_credit_usd, ubt_usd, ar_usd, billing_credit_cny, ubt_cny,
              billed_but_unpaid, unbilled_per_el, finance_remarks, matter_notes
@@ -1071,7 +1099,7 @@ async function processRow(row: ExcelRow, userId: number | undefined, result: Syn
     `);
 
     // Update billing_project metadata
-    await prisma.$executeRaw(Prisma.sql`
+    await tx.$executeRaw(Prisma.sql`
       UPDATE billing_project
       SET
         project_name = ${row.projectName || null},
@@ -1123,7 +1151,7 @@ async function processRow(row: ExcelRow, userId: number | undefined, result: Syn
   }
 
   // Update billing_project_cm_no financials (verbatim from Excel)
-  await prisma.$executeRaw(Prisma.sql`
+  await tx.$executeRaw(Prisma.sql`
     UPDATE billing_project_cm_no
     SET
       agreed_fee_usd = ${row.engagements[0]?.feesUsd ?? null},
@@ -1147,11 +1175,14 @@ async function processRow(row: ExcelRow, userId: number | undefined, result: Syn
   // Process each engagement
   for (let engIdx = 0; engIdx < row.engagements.length; engIdx++) {
     const eng = row.engagements[engIdx];
-    await processEngagement(eng, cmId, projectId, engIdx, result);
+    await processEngagement(tx, eng, cmId, projectId, engIdx, result);
   }
+
+  return needsAutoLink ? { projectId } : null;
 }
 
 async function processEngagement(
+  tx: DbClient,
   eng: ExcelEngagement,
   cmId: bigint,
   projectId: bigint,
@@ -1160,7 +1191,7 @@ async function processEngagement(
 ): Promise<void> {
   // Find or create engagement
   const engCode = `excel_${engIdx}`;
-  const existingEng = await prisma.$queryRaw<Array<{ engagement_id: bigint }>>(Prisma.sql`
+  const existingEng = await tx.$queryRaw<Array<{ engagement_id: bigint }>>(Prisma.sql`
     SELECT engagement_id
     FROM billing_engagement
     WHERE cm_id = ${cmId} AND engagement_code = ${engCode}
@@ -1171,7 +1202,7 @@ async function processEngagement(
 
   if (existingEng.length > 0) {
     engagementId = existingEng[0].engagement_id;
-    await prisma.$executeRaw(Prisma.sql`
+    await tx.$executeRaw(Prisma.sql`
       UPDATE billing_engagement
       SET engagement_title = ${eng.engagementTitle || null},
           updated_at = NOW()
@@ -1180,7 +1211,7 @@ async function processEngagement(
   } else {
     // If engIdx === 0, try to reuse existing first engagement for this C/M
     if (engIdx === 0) {
-      const firstEng = await prisma.$queryRaw<Array<{ engagement_id: bigint }>>(Prisma.sql`
+      const firstEng = await tx.$queryRaw<Array<{ engagement_id: bigint }>>(Prisma.sql`
         SELECT engagement_id
         FROM billing_engagement
         WHERE cm_id = ${cmId}
@@ -1189,7 +1220,7 @@ async function processEngagement(
       `);
       if (firstEng.length > 0) {
         engagementId = firstEng[0].engagement_id;
-        await prisma.$executeRaw(Prisma.sql`
+        await tx.$executeRaw(Prisma.sql`
           UPDATE billing_engagement
           SET engagement_title = ${eng.engagementTitle || null},
               engagement_code = ${engCode},
@@ -1197,12 +1228,12 @@ async function processEngagement(
           WHERE engagement_id = ${engagementId}
         `);
         result.engagementsUpserted++;
-        await processEngagementData(eng, engagementId, result);
+        await processEngagementData(tx, eng, engagementId, result);
         return;
       }
     }
 
-    const inserted = await prisma.$queryRaw<Array<{ engagement_id: bigint }>>(Prisma.sql`
+    const inserted = await tx.$queryRaw<Array<{ engagement_id: bigint }>>(Prisma.sql`
       INSERT INTO billing_engagement (project_id, cm_id, engagement_code, engagement_title, created_at, updated_at)
       VALUES (${projectId}, ${cmId}, ${engCode}, ${eng.engagementTitle || null}, NOW(), NOW())
       RETURNING engagement_id
@@ -1211,16 +1242,17 @@ async function processEngagement(
   }
 
   result.engagementsUpserted++;
-  await processEngagementData(eng, engagementId, result);
+  await processEngagementData(tx, eng, engagementId, result);
 }
 
 async function processEngagementData(
+  tx: DbClient,
   eng: ExcelEngagement,
   engagementId: bigint,
   result: SyncResult,
 ): Promise<void> {
   // Update or create fee arrangement
-  const existingFa = await prisma.$queryRaw<Array<{ fee_id: bigint }>>(Prisma.sql`
+  const existingFa = await tx.$queryRaw<Array<{ fee_id: bigint }>>(Prisma.sql`
     SELECT fee_id
     FROM billing_fee_arrangement
     WHERE engagement_id = ${engagementId}
@@ -1232,7 +1264,7 @@ async function processEngagementData(
 
   if (existingFa.length > 0) {
     feeId = existingFa[0].fee_id;
-    await prisma.$executeRaw(Prisma.sql`
+    await tx.$executeRaw(Prisma.sql`
       UPDATE billing_fee_arrangement
       SET
         raw_text = ${eng.rawMilestoneText || ''},
@@ -1244,7 +1276,7 @@ async function processEngagementData(
       WHERE fee_id = ${feeId}
     `);
   } else {
-    const inserted = await prisma.$queryRaw<Array<{ fee_id: bigint }>>(Prisma.sql`
+    const inserted = await tx.$queryRaw<Array<{ fee_id: bigint }>>(Prisma.sql`
       INSERT INTO billing_fee_arrangement (engagement_id, raw_text, lsd_date, lsd_raw, parser_version, parsed_at, created_at, updated_at)
       VALUES (${engagementId}, ${eng.rawMilestoneText || ''}, ${eng.lsdDate}, ${eng.lsdRaw}, 'excel_sync_v1', NOW(), NOW(), NOW())
       RETURNING fee_id
@@ -1252,24 +1284,26 @@ async function processEngagementData(
     feeId = inserted[0].fee_id;
   }
 
-  // Upsert milestones
-  for (const milestone of eng.milestones) {
-    const upserted = await prisma.$executeRaw(Prisma.sql`
+  // Batch-upsert milestones (single INSERT ... VALUES ... ON CONFLICT for all milestones)
+  if (eng.milestones.length > 0) {
+    const milestoneValues = eng.milestones.map(m => Prisma.sql`(
+      ${feeId}, ${engagementId}, ${m.ordinal}, ${m.title},
+      ${m.description}, 'excel_import', ${m.triggerText},
+      ${m.amountValue}, ${m.amountCurrency},
+      ${m.isPercent}, ${m.percentValue},
+      ${m.isCompleted},
+      ${m.isCompleted ? 'excel_strikethrough' : null},
+      ${m.isCompleted ? Prisma.sql`CURRENT_DATE` : Prisma.sql`NULL`},
+      ${m.rawFragment}, ${m.sortOrder}, NOW(), NOW()
+    )`);
+
+    await tx.$executeRaw(Prisma.sql`
       INSERT INTO billing_milestone (
         fee_id, engagement_id, ordinal, title, description,
         trigger_type, trigger_text, amount_value, amount_currency,
         is_percent, percent_value, completed, completion_source,
         completion_date, raw_fragment, sort_order, created_at, updated_at
-      ) VALUES (
-        ${feeId}, ${engagementId}, ${milestone.ordinal}, ${milestone.title},
-        ${milestone.description}, 'excel_import', ${milestone.triggerText},
-        ${milestone.amountValue}, ${milestone.amountCurrency},
-        ${milestone.isPercent}, ${milestone.percentValue},
-        ${milestone.isCompleted},
-        ${milestone.isCompleted ? 'excel_strikethrough' : null},
-        ${milestone.isCompleted ? Prisma.sql`CURRENT_DATE` : Prisma.sql`NULL`},
-        ${milestone.rawFragment}, ${milestone.sortOrder}, NOW(), NOW()
-      )
+      ) VALUES ${Prisma.join(milestoneValues)}
       ON CONFLICT (engagement_id, ordinal) DO UPDATE SET
         fee_id = EXCLUDED.fee_id,
         title = EXCLUDED.title,
@@ -1293,9 +1327,7 @@ async function processEngagementData(
         updated_at = NOW()
     `);
 
-    if (upserted > 0) {
-      if (milestone.isCompleted) result.milestonesMarkedCompleted++;
-      else result.milestonesCreated++;
-    }
+    result.milestonesMarkedCompleted += eng.milestones.filter(m => m.isCompleted).length;
+    result.milestonesCreated += eng.milestones.filter(m => !m.isCompleted).length;
   }
 }
