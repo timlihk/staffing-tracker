@@ -1088,7 +1088,7 @@ router.get('/triggers/pending', authenticate, checkBillingAccess, adminOnly, bil
  *       401:
  *         description: Unauthorized
  */
-router.get('/triggers', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getTriggers);
+router.get('/triggers', authenticate, checkBillingAccess, billingTriggerController.getTriggers);
 
 /**
  * @openapi
@@ -1271,7 +1271,7 @@ router.patch(
  *       401:
  *         description: Unauthorized
  */
-router.get('/overdue-by-attorney', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getOverdueByAttorney);
+router.get('/overdue-by-attorney', authenticate, checkBillingAccess, billingTriggerController.getOverdueByAttorney);
 
 /**
  * @openapi
@@ -1315,7 +1315,7 @@ router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOnly, bi
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/finance-summary', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getFinanceSummary);
+router.get('/finance-summary', authenticate, checkBillingAccess, billingTriggerController.getFinanceSummary);
 
 /**
  * @openapi
@@ -1352,7 +1352,7 @@ router.get('/finance-summary', authenticate, checkBillingAccess, adminOnly, bill
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/long-stop-risks', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getLongStopRisks);
+router.get('/long-stop-risks', authenticate, checkBillingAccess, billingTriggerController.getLongStopRisks);
 
 /**
  * @openapi
@@ -1389,7 +1389,7 @@ router.get('/long-stop-risks', authenticate, checkBillingAccess, adminOnly, bill
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/unpaid-invoices', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getUnpaidInvoices);
+router.get('/unpaid-invoices', authenticate, checkBillingAccess, billingTriggerController.getUnpaidInvoices);
 
 // ============================================================================
 // Excel Sync (Finance Upload)

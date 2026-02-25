@@ -178,3 +178,42 @@ export const parseNullableNumber = (value: number | string | null | undefined) =
   }
   return null;
 };
+
+/**
+ * Error thrown when a non-admin user attempts to access data outside
+ * their billing portfolio scope.
+ */
+export class BillingScopeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BillingScopeError';
+  }
+}
+
+/**
+ * Enforce attorney-level scoping for billing portfolio endpoints.
+ *
+ * - Admin callers: pass through any requested attorneyId (or undefined for all).
+ * - Non-admin callers: forced to their own staffId. If they supply an attorneyId
+ *   that doesn't match their own, a BillingScopeError is thrown.
+ */
+export async function enforceBillingAttorneyScope(
+  authUser: BillingAuthUser | null | undefined,
+  requestedAttorneyId: number | undefined,
+): Promise<{ attorneyId: number | undefined; isAdmin: boolean }> {
+  const scope = await resolveBillingAccessScope(authUser);
+
+  if (scope.isAdmin) {
+    return { attorneyId: requestedAttorneyId, isAdmin: true };
+  }
+
+  if (!scope.staffId) {
+    throw new BillingScopeError('No staff record linked to your account');
+  }
+
+  if (requestedAttorneyId !== undefined && requestedAttorneyId !== scope.staffId) {
+    throw new BillingScopeError('Access denied to other attorneys\' portfolio data');
+  }
+
+  return { attorneyId: scope.staffId, isAdmin: false };
+}

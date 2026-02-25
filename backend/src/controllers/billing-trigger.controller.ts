@@ -13,6 +13,7 @@ import { BillingPipelineInsightsService } from '../services/billing-pipeline-ins
 import { logger } from '../utils/logger';
 import prisma from '../utils/prisma';
 import { SweepLockError } from '../utils/sweep-lock';
+import { enforceBillingAttorneyScope, BillingScopeError } from './billing.utils';
 
 const toSafeNumber = (value: unknown): number | null => {
   if (value === null || value === undefined) return null;
@@ -119,7 +120,10 @@ export const getPendingTriggers = async (req: AuthRequest, res: Response) => {
  */
 export const getTriggers = async (req: AuthRequest, res: Response) => {
   try {
-    const { status, staffingProjectId, attorneyId, startDate, endDate } = req.query;
+    const { status, staffingProjectId, startDate, endDate } = req.query;
+
+    const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const { attorneyId: effectiveAttorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
 
     const filters: any = {};
     if (status) filters.status = status as string;
@@ -130,12 +134,8 @@ export const getTriggers = async (req: AuthRequest, res: Response) => {
       }
       filters.staffingProjectId = parsedStaffingProjectId;
     }
-    if (attorneyId) {
-      const parsedAttorneyId = parseInt(attorneyId as string, 10);
-      if (Number.isNaN(parsedAttorneyId)) {
-        return res.status(400).json({ error: 'Invalid attorneyId' });
-      }
-      filters.attorneyId = parsedAttorneyId;
+    if (effectiveAttorneyId !== undefined) {
+      filters.attorneyId = effectiveAttorneyId;
     }
     if (startDate) filters.startDate = new Date(startDate as string);
     if (endDate) filters.endDate = new Date(endDate as string);
@@ -145,6 +145,9 @@ export const getTriggers = async (req: AuthRequest, res: Response) => {
 
     res.json(formattedTriggers);
   } catch (error) {
+    if (error instanceof BillingScopeError) {
+      return res.status(403).json({ error: error.message });
+    }
     logger.error('Error fetching triggers:', error as any);
     res.status(500).json({ error: 'Failed to fetch triggers' });
   }
@@ -254,10 +257,13 @@ export const rejectTrigger = async (req: AuthRequest, res: Response) => {
  */
 export const getOverdueByAttorney = async (req: AuthRequest, res: Response) => {
   try {
-    const { attorneyId, minAmount, startDate, endDate } = req.query;
+    const { minAmount, startDate, endDate } = req.query;
+
+    const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const { attorneyId: effectiveAttorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
 
     const filters: any = {};
-    if (attorneyId) filters.attorneyId = parseInt(attorneyId as string, 10);
+    if (effectiveAttorneyId !== undefined) filters.attorneyId = effectiveAttorneyId;
     if (minAmount) filters.minAmount = parseFloat(minAmount as string);
     if (startDate) filters.startDate = new Date(startDate as string);
     if (endDate) filters.endDate = new Date(endDate as string);
@@ -285,6 +291,9 @@ export const getOverdueByAttorney = async (req: AuthRequest, res: Response) => {
 
     res.json(formattedOverdue);
   } catch (error) {
+    if (error instanceof BillingScopeError) {
+      return res.status(403).json({ error: error.message });
+    }
     logger.error('Error fetching overdue by attorney:', error as any);
     res.status(500).json({ error: 'Failed to fetch overdue billing data' });
   }
@@ -383,11 +392,13 @@ export const getPipelineInsights = async (_req: AuthRequest, res: Response) => {
  */
 export const getFinanceSummary = async (req: AuthRequest, res: Response) => {
   try {
-    const attorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
 
-    if (req.query.attorneyId !== undefined && attorneyId === undefined) {
+    if (req.query.attorneyId !== undefined && rawAttorneyId === undefined) {
       return res.status(400).json({ error: 'Invalid attorneyId' });
     }
+
+    const { attorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
 
     const [totalsRow] = await prisma.$queryRawUnsafe<any[]>(
       `
@@ -462,6 +473,9 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response) => {
       })),
     });
   } catch (error) {
+    if (error instanceof BillingScopeError) {
+      return res.status(403).json({ error: error.message });
+    }
     logger.error('Error fetching billing finance summary:', error as any);
     return res.status(500).json({ error: 'Failed to fetch billing finance summary' });
   }
@@ -472,14 +486,16 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response) => {
  */
 export const getLongStopRisks = async (req: AuthRequest, res: Response) => {
   try {
-    const attorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
     const windowDays = clamp(parseOptionalIntQuery(req.query.windowDays) ?? 30, 1, 180);
     const limit = clamp(parseOptionalIntQuery(req.query.limit) ?? 500, 1, 2000);
     const minUbtAmount = parseOptionalNumberQuery(req.query.minUbtAmount);
 
-    if (req.query.attorneyId !== undefined && attorneyId === undefined) {
+    if (req.query.attorneyId !== undefined && rawAttorneyId === undefined) {
       return res.status(400).json({ error: 'Invalid attorneyId' });
     }
+
+    const { attorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
     if (req.query.windowDays !== undefined && parseOptionalIntQuery(req.query.windowDays) === undefined) {
       return res.status(400).json({ error: 'Invalid windowDays' });
     }
@@ -598,6 +614,9 @@ export const getLongStopRisks = async (req: AuthRequest, res: Response) => {
       ubtUsd: Number(row.ubt_usd ?? 0),
     })));
   } catch (error) {
+    if (error instanceof BillingScopeError) {
+      return res.status(403).json({ error: error.message });
+    }
     logger.error('Error fetching long-stop risks:', error as any);
     return res.status(500).json({ error: 'Failed to fetch long-stop risks' });
   }
@@ -608,14 +627,16 @@ export const getLongStopRisks = async (req: AuthRequest, res: Response) => {
  */
 export const getUnpaidInvoices = async (req: AuthRequest, res: Response) => {
   try {
-    const attorneyId = parseOptionalIntQuery(req.query.attorneyId);
+    const rawAttorneyId = parseOptionalIntQuery(req.query.attorneyId);
     const thresholdDays = clamp(parseOptionalIntQuery(req.query.thresholdDays) ?? 30, 1, 365);
     const limit = clamp(parseOptionalIntQuery(req.query.limit) ?? 1000, 1, 5000);
     const minAmount = parseOptionalNumberQuery(req.query.minAmount);
 
-    if (req.query.attorneyId !== undefined && attorneyId === undefined) {
+    if (req.query.attorneyId !== undefined && rawAttorneyId === undefined) {
       return res.status(400).json({ error: 'Invalid attorneyId' });
     }
+
+    const { attorneyId } = await enforceBillingAttorneyScope(req.user, rawAttorneyId);
     if (req.query.thresholdDays !== undefined && parseOptionalIntQuery(req.query.thresholdDays) === undefined) {
       return res.status(400).json({ error: 'Invalid thresholdDays' });
     }
@@ -698,6 +719,9 @@ export const getUnpaidInvoices = async (req: AuthRequest, res: Response) => {
       daysSinceInvoice: Number(row.days_since_invoice ?? 0),
     })));
   } catch (error) {
+    if (error instanceof BillingScopeError) {
+      return res.status(403).json({ error: error.message });
+    }
     logger.error('Error fetching unpaid invoice alerts:', error as any);
     return res.status(500).json({ error: 'Failed to fetch unpaid invoice alerts' });
   }
