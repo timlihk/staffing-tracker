@@ -136,10 +136,22 @@ export class ProjectEventTriggerService {
       return { eventsCreated: 0, triggersCreated: 0, eventIds: [] };
     }
 
-    const eventTypes = new Set<string>();
+    // Each event descriptor carries its own lifecycle stage context
+    interface EventDescriptor {
+      eventType: string;
+      lifecycleStageTo: string | null;
+    }
+
+    const eventDescriptors: EventDescriptor[] = [];
+    const seenEventTypes = new Set<string>();
+
     const statusEvent = this.mapStatusTransitionToEventType(input.oldStatus, input.newStatus);
-    if (statusEvent) {
-      eventTypes.add(statusEvent);
+    if (statusEvent && !seenEventTypes.has(statusEvent)) {
+      seenEventTypes.add(statusEvent);
+      eventDescriptors.push({
+        eventType: statusEvent,
+        lifecycleStageTo: input.newLifecycleStage || null,
+      });
     }
 
     const lifecycleChanged = input.newLifecycleStage !== input.oldLifecycleStage;
@@ -159,20 +171,28 @@ export class ProjectEventTriggerService {
         );
         for (const stage of intermediateStages) {
           const intermediateEvent = this.mapLifecycleStageToEventType(stage);
-          if (intermediateEvent) {
-            eventTypes.add(intermediateEvent);
+          if (intermediateEvent && !seenEventTypes.has(intermediateEvent)) {
+            seenEventTypes.add(intermediateEvent);
+            eventDescriptors.push({
+              eventType: intermediateEvent,
+              lifecycleStageTo: stage,
+            });
           }
         }
 
         // Fire event for the target stage
         const lifecycleEvent = this.mapLifecycleStageToEventType(input.newLifecycleStage);
-        if (lifecycleEvent) {
-          eventTypes.add(lifecycleEvent);
+        if (lifecycleEvent && !seenEventTypes.has(lifecycleEvent)) {
+          seenEventTypes.add(lifecycleEvent);
+          eventDescriptors.push({
+            eventType: lifecycleEvent,
+            lifecycleStageTo: input.newLifecycleStage || null,
+          });
         }
       }
     }
 
-    if (eventTypes.size === 0) {
+    if (eventDescriptors.length === 0) {
       return { eventsCreated: 0, triggersCreated: 0, eventIds: [] };
     }
 
@@ -180,24 +200,22 @@ export class ProjectEventTriggerService {
     let triggersCreated = 0;
     const eventIds: number[] = [];
 
-    // Convert to array to preserve insertion order (intermediates before target)
-    const orderedEventTypes = Array.from(eventTypes);
-
-    for (const eventType of orderedEventTypes) {
+    for (const descriptor of eventDescriptors) {
       const created = await this.createProjectEvent({
         projectId: input.projectId,
-        eventType,
+        eventType: descriptor.eventType,
         source: 'system_transition',
         createdBy: input.userId,
         statusFrom: input.oldStatus || null,
         statusTo: input.newStatus || null,
         lifecycleStageFrom: input.oldLifecycleStage || null,
-        lifecycleStageTo: input.newLifecycleStage || null,
+        lifecycleStageTo: descriptor.lifecycleStageTo,
         payload: {
           oldStatus: input.oldStatus || null,
           newStatus: input.newStatus || null,
           oldLifecycleStage: input.oldLifecycleStage || null,
           newLifecycleStage: input.newLifecycleStage || null,
+          eventLifecycleStage: descriptor.lifecycleStageTo,
         },
         processTriggers: true,
       });

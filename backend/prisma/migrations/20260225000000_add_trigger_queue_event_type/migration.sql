@@ -12,3 +12,10 @@ SET "event_type" = pe."event_type"
 FROM "project_event" pe
 WHERE tq."project_event_id" = pe."id"
   AND tq."event_type" IS NULL;
+
+-- Replace (milestone_id, new_status, status) unique constraint with
+-- (milestone_id, event_type, status) so different event types for the
+-- same milestone are not collapsed into a single trigger
+DROP INDEX IF EXISTS "idx_trigger_unique_pending";
+CREATE UNIQUE INDEX "idx_trigger_unique_pending"
+ON "billing_milestone_trigger_queue" ("milestone_id", "event_type", "status");

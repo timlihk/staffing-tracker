@@ -636,8 +636,8 @@ model billing_milestone_trigger_queue {
   rule                  billing_milestone_trigger_rule? @relation(fields: [rule_id], references: [id], onDelete: SetNull)
   billing_action_item  billing_action_item[]
 
-  // Unique constraint to prevent duplicate pending triggers
-  @@unique([milestone_id, new_status, status], map: "idx_trigger_unique_pending")
+  // Unique constraint to prevent duplicate pending triggers per event type
+  @@unique([milestone_id, event_type, status], map: "idx_trigger_unique_pending")
   @@unique([milestone_id, project_event_id], map: "idx_trigger_unique_event")
   @@index([status], map: "idx_trigger_queue_status")
   @@index([staffing_project_id], map: "idx_trigger_queue_project")
