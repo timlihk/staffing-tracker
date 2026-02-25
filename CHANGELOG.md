@@ -2,6 +2,65 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [5.1.0] - 2026-02-25
+
+### Billing Control Tower & Milestone Detection
+
+#### Control Tower — Three-View Architecture
+- **Finance View** (admin only): Full invoice issuance workflow
+  - Two-stage process: Needs Confirmation → Confirm + Queue Invoice → Mark Invoice Sent
+  - Unpaid invoices tracking (30+ days) for collections follow-up
+  - 30/60/90-day billed & collected metrics
+- **Management View** (admin only): Portfolio oversight
+  - Long stop date risk monitoring (past due + at risk)
+  - Read-only invoice queue for awareness
+  - Same 30/60/90-day metrics
+- **My Projects** (B&C attorneys + admin): Attorney-filtered view
+  - Triggered milestones, long stop risks, unpaid invoices for own projects only
+  - B&C attorneys can now access Control Tower (previously admin-only)
+- All sections collapsible with count badges and arrow toggles
+
+#### Automatic Milestone Trigger Detection
+- Three complementary detection methods feeding the Invoice Queue:
+  1. **Lifecycle stage changes** (real-time): System checks milestones when deal team updates lifecycle stage
+  2. **Date-based sweep** (daily 2 AM HKT): Catches date-driven milestones automatically
+  3. **AI-assisted sweep** (daily 2:30 AM HKT): DeepSeek reviews project events as safety net
+- `ProjectEventTriggerService.processProjectTransition()` creates project events → matches milestones → queues triggers
+
+#### B&C Attorney Access
+- Added `AdminOrBcAttorneyRoute` component for Control Tower access
+- Control Tower sidebar menu item now visible to B&C attorneys
+- Billing trigger/risk/unpaid endpoints switched from `adminOnly` to `checkBillingAccess` middleware
+
+#### Best Practice Guide Updates
+- New section: "How Milestone Detection Works" — explains all three trigger methods with timing
+- New section: "Control Tower Workflow" — describes Finance View, Management View, My Projects
+- Updated role ownership: Deal Team, Finance, and Manager responsibilities now reference milestone triggers and Control Tower
+- Lifecycle Stages section: added alert explaining that stage changes trigger automatic milestone detection
+- Billing Best Practice: added items about lifecycle stage updates and Control Tower review
+
+#### React Query Performance Optimizations
+- Increased `staleTime` and `gcTime` across billing, project, and staff hooks
+- Disabled `refetchOnWindowFocus` to reduce redundant API calls
+- Updated default query client settings for better caching behavior
+
+#### Backend Changes
+- New endpoint: `GET /billing/time-windowed-metrics` — 30/60/90-day billed & collected totals
+- Routes updated: `triggers`, `long-stop-risks`, `unpaid-invoices`, `time-windowed-metrics` now use `checkBillingAccess`
+- New hook: `useTimeWindowedMetrics()` for metrics data
+
+#### Frontend Changes
+- Updated: `BillingControlTower.tsx` — Complete rewrite with tabbed layout, collapsible sections, attorney-filtered data
+- Updated: `App.tsx` — Added `AdminOrBcAttorneyRoute`, new routes
+- Updated: `Sidebar.tsx` — Control Tower visible for B&C attorneys
+- Updated: `BestPracticeGuide.tsx` — New milestone detection and Control Tower documentation
+- Updated: `useBilling.ts` — New hooks, improved caching
+
+### Files Changed
+- 9 files changed, 465 insertions, 150 deletions
+
+---
+
 ## [5.0.0] - 2026-02-22
 
 ### Major Feature: Billing Excel Sync Engine

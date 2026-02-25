@@ -309,4 +309,30 @@ Added `billing_overdue_by_attorney` view creation in `recreateBillingViews()`.
 1. **Database Access:** Ensure DATABASE_URL is accessible for future migrations
 2. **Testing:** Manual testing of trigger workflow
 3. **Email Notifications:** Not yet implemented (optional enhancement)
-4. **Frontend:** No UI pages created yet (optional enhancement)
+
+## Recent Updates (Feb 25, 2026)
+
+### Frontend Control Tower — Now Implemented ✅
+The billing trigger system now has a full frontend UI via the **Billing Control Tower** (`/billing/control-tower`):
+
+- **Finance View** (admin): Two-stage invoice workflow — Needs Confirmation → Ready To Invoice → Invoice Sent
+- **Management View** (admin): Read-only portfolio oversight with long stop date risks
+- **My Projects** (B&C attorneys + admin): Filtered view showing only the logged-in attorney's triggered milestones, risks, and unpaid invoices
+
+### Additional Trigger Sources
+Beyond the original status-change triggers, two additional detection methods now feed the queue:
+1. **Date-based sweep** (daily 2 AM HKT) — `billing-milestone-date-sweep.service.ts`
+2. **AI-assisted sweep** (daily 2:30 AM HKT) — `billing-milestone-ai-sweep.service.ts` (DeepSeek)
+
+### Lifecycle Stage Triggers
+The trigger system now also fires on **lifecycle stage changes** (not just project status changes):
+- `ProjectEventTriggerService.processProjectTransition()` runs when lifecycle stage is updated
+- Creates `project_event` records → matches milestones → inserts into `billing_milestone_trigger_queue`
+
+### Access Control Updates
+- Trigger queue, long stop risks, unpaid invoices, and time-windowed metrics endpoints now use `checkBillingAccess` instead of `adminOnly`
+- B&C attorneys can access these endpoints (filtered to their projects server-side)
+
+### Guides Page
+- Best Practice Guide updated to explain all three milestone detection methods
+- Control Tower workflow documented for each role (Deal Team, Finance, Managers)

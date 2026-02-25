@@ -1,7 +1,7 @@
 # Billing Module - Implementation Progress
 
-**Last Updated:** February 22, 2026
-**Status:** Phase 7 Complete - Finance Excel Sync Engine Fully Operational (v5.0.0)
+**Last Updated:** February 25, 2026
+**Status:** Phase 8 Complete - Billing Control Tower with 3-View Architecture (v5.1.0)
 
 ---
 
@@ -318,6 +318,34 @@
    - Unmatched projects highlighted for manual linking
    - Staffing links with match method details
 
+8. **Billing Control Tower** (NEW in v5.1.0)
+   - Three-view tabbed interface:
+     - **Finance View** (admin): Invoice issuance workflow — confirm triggered milestones → queue invoice → mark sent. Tracks unpaid invoices 30+ days.
+     - **Management View** (admin): Portfolio oversight — long stop date risks, billing pipeline, read-only invoice queue.
+     - **My Projects** (B&C attorneys + admin): Filtered to own projects — triggered milestones, long stop risks, unpaid invoices.
+   - All sections collapsible with count badges (metrics, trigger queue, long stop risks, unpaid invoices)
+   - 30/60/90-day billed & collected metrics via time-windowed endpoint
+   - B&C attorneys can now access Control Tower (previously admin-only)
+
+9. **Automatic Milestone Trigger Detection** (NEW in v5.1.0)
+   - Three complementary detection methods:
+     - **Lifecycle stage changes** (real-time): When deal team updates lifecycle stage, system immediately checks for matching milestones
+     - **Date-based sweep** (daily 2 AM HKT): Catches date-driven milestones even if lifecycle wasn't updated
+     - **AI-assisted sweep** (daily 2:30 AM HKT via DeepSeek): Safety net reviewing project events against milestone language
+   - All triggers feed into Control Tower Invoice Queue for Finance confirmation
+   - Two-stage invoice workflow: Needs Confirmation → Ready To Invoice → Invoice Sent
+
+10. **Best Practice Guide Updates** (NEW in v5.1.0)
+    - Guides page updated with milestone detection workflow explanation
+    - Control Tower workflow documentation (Finance View, Management View, My Projects)
+    - Role-specific responsibilities updated for billing milestone awareness
+    - Three detection methods explained with timing details
+
+11. **React Query Performance Optimizations** (NEW in v5.1.0)
+    - Increased staleTime/gcTime across billing, project, and staff hooks
+    - Disabled refetchOnWindowFocus to reduce redundant API calls
+    - Updated default query client settings for better caching
+
 ---
 
 ## Pending Tasks
@@ -472,10 +500,16 @@
    - See only projects where you are attorney-in-charge
    - View financial summaries for your projects
 
-2. **Check Milestone Progress**
+2. **Control Tower — My Projects**
+   - Navigate to Sidebar → Control Tower
+   - See triggered milestones, long stop risks, and unpaid invoices for your projects
+   - Review whether lifecycle stage changes triggered any billing milestones
+   - All sections collapsible — expand what you need
+
+3. **Check Milestone Progress**
    - Click project to view details
-   - Review Milestones tab
-   - (Future) Mark milestones as completed
+   - Review Milestones tab for completion status
+   - Ensure lifecycle stages are current to trigger automatic milestone detection
 
 ### For Developers
 
@@ -578,13 +612,14 @@
 - Pages: `frontend/src/pages/`
   - `BillingMatters.tsx` — Billing projects list
   - `BillingMatterDetail.tsx` — Project detail with milestones
-  - `BillingControlTower.tsx` — Admin billing dashboard
+  - `BillingControlTower.tsx` — Three-view Control Tower (Finance, Management, My Projects)
+  - `BestPracticeGuide.tsx` — Guides page with milestone detection + Control Tower workflow docs
   - `SyncReport.tsx` — Print-friendly sync report
   - `SyncHistory.tsx` — Upload history list
 - Components:
   - `frontend/src/components/admin/BillingExcelSyncPanel.tsx` — Upload UI
 - API: `frontend/src/api/billing.ts` — Types + API functions
-- Hooks: `frontend/src/hooks/useBilling.ts`
+- Hooks: `frontend/src/hooks/useBilling.ts` — All billing hooks including `useTimeWindowedMetrics`
 
 **Documentation:**
 - `Billing/PARSING-GUIDE.md` — Complete parser reference (290 lines)
@@ -685,15 +720,30 @@
 
 ---
 
-**Document Version:** 2.0
-**Last Updated:** February 22, 2026
+**Document Version:** 3.0
+**Last Updated:** February 25, 2026
 **Status:** Living Document - Update as progress is made
 
 ---
 
-## Recent Updates (v2.0 - Feb 22, 2026)
+## Recent Updates (v3.0 - Feb 25, 2026)
 
-### What Changed — Phase 7: Finance Excel Sync Engine (v5.0.0)
+### What Changed — Phase 8: Billing Control Tower & Milestone Detection (v5.1.0)
+- ✅ **Control Tower — Three-View Architecture** — Finance View (invoice workflow), Management View (oversight), My Projects (attorney-filtered)
+- ✅ **Automatic Milestone Trigger Detection** — Three methods: lifecycle changes (real-time), date sweep (daily), AI sweep (daily)
+- ✅ **B&C Attorney Access** — Attorneys can now access Control Tower to see their own project triggers, risks, and unpaid invoices
+- ✅ **Collapsible Sections** — All Control Tower sections collapsible with count badges
+- ✅ **Best Practice Guide** — Updated with milestone detection workflow, Control Tower views, and role responsibilities
+- ✅ **React Query Performance** — Improved caching, reduced redundant API calls
+
+### Impact
+- Finance team has a structured invoice issuance workflow (confirm → queue → send)
+- B&C attorneys can self-serve billing awareness without admin intervention
+- Three complementary detection methods minimize missed milestones
+- Management has portfolio-level risk visibility (long stop dates, unpaid invoices)
+- Guides page educates all roles on the milestone → billing → invoicing chain
+
+### Previous Updates (v2.0 - Feb 22, 2026)
 - ✅ **Complete Excel Sync Engine** — Parses HKCM Project List Excel and syncs all billing data
 - ✅ **Strikethrough Detection Resolved** — 345 milestones auto-completed using character-level font data
 - ✅ **Period/Commencement Headers** — 5 regex patterns for engagement section detection
@@ -702,13 +752,6 @@
 - ✅ **Sync Report Page** — Print-friendly report with financial diffs
 - ✅ **Sync History** — Each upload stored with Excel file for audit trail
 - ✅ **AI Validation** — Optional Claude-powered milestone review
-
-### Impact
-- Finance department can now upload Excel directly via web UI
-- All billing data synced automatically (no manual entry)
-- Changes tracked with detailed before/after diffs
-- Staffing projects auto-linked for cross-system visibility
-- Full audit trail of every sync operation
 
 ### Previous Updates (v1.2 - Oct 7, 2025)
 - ✅ Fixed Milestone Update Display Issue (React Query cache)
