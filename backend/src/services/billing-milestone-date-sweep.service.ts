@@ -103,13 +103,42 @@ export class BillingMilestoneDateSweepService {
     const linkMap = new Map(existingLinks.map((r) => [r.billing_project_id!, r.staffing_project_id!]));
     const cmProjectMap = new Map(cmMatches.map((r) => [r.cmNumber!, r.id]));
 
+    // Pre-populate linkMap from CM fallback so parallel processing has no write races
+    const autoLinkedProjectIds = new Set<bigint>();
+    for (const c of candidates) {
+      const bpId = this.toBigInt(c.billing_project_id);
+      if (!linkMap.has(bpId) && c.cm_no) {
+        const staffingId = cmProjectMap.get(c.cm_no.trim());
+        if (staffingId) {
+          linkMap.set(bpId, staffingId);
+          autoLinkedProjectIds.add(bpId);
+        }
+      }
+    }
+
+    // Persist auto-links to DB (skip in dry-run; ON CONFLICT makes this idempotent)
+    if (!dryRun && autoLinkedProjectIds.size > 0) {
+      await Promise.all(
+        [...autoLinkedProjectIds].map((bpId) =>
+          prisma.$executeRaw(Prisma.sql`
+            INSERT INTO billing_staffing_project_link (
+              billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
+            ) VALUES (
+              ${bpId}, ${linkMap.get(bpId)!}, ${1.0}, NOW(),
+              ${'Auto-linked by milestone due-date sweep via C/M number'}
+            ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
+          `)
+        )
+      );
+    }
+
     // Process candidates in parallel batches
     const BATCH_SIZE = 10;
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
         batch.map((candidate) =>
-          this.processCandidateWithMaps(candidate, dryRun, triggeredSet, linkMap, cmProjectMap)
+          this.processCandidateWithMaps(candidate, dryRun, triggeredSet, linkMap, autoLinkedProjectIds)
         )
       );
       for (let j = 0; j < settled.length; j++) {
@@ -181,7 +210,7 @@ export class BillingMilestoneDateSweepService {
     dryRun: boolean,
     triggeredSet: Set<bigint>,
     linkMap: Map<bigint, number>,
-    cmProjectMap: Map<string, number>,
+    autoLinkedProjectIds: Set<bigint>,
   ): Promise<CandidateProcessResult> {
     const milestoneId = this.toBigInt(candidate.milestone_id);
     const billingProjectId = this.toBigInt(candidate.billing_project_id);
@@ -191,29 +220,9 @@ export class BillingMilestoneDateSweepService {
       return { processed: false, autoLinked: false, skippedNoStaffingProject: false, skippedAlreadyTriggered: true };
     }
 
-    // Link resolution — O(1) Map lookup instead of per-candidate DB query
-    let staffingProjectId: number | null = linkMap.get(billingProjectId) ?? null;
-    let autoLinked = false;
-
-    if (!staffingProjectId && candidate.cm_no) {
-      staffingProjectId = cmProjectMap.get(candidate.cm_no.trim()) ?? null;
-      if (staffingProjectId) {
-        autoLinked = true;
-        // Persist the auto-link for future runs (skip in dry-run)
-        if (!dryRun) {
-          await prisma.$executeRaw(Prisma.sql`
-            INSERT INTO billing_staffing_project_link (
-              billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
-            ) VALUES (
-              ${billingProjectId}, ${staffingProjectId}, ${1.0}, NOW(),
-              ${'Auto-linked by milestone due-date sweep via C/M number'}
-            ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
-          `);
-        }
-        // Update linkMap so later candidates for the same billing project don't double-count
-        linkMap.set(billingProjectId, staffingProjectId);
-      }
-    }
+    // Link resolution — O(1) Map lookup (linkMap already includes CM fallback entries)
+    const staffingProjectId: number | null = linkMap.get(billingProjectId) ?? null;
+    const autoLinked = autoLinkedProjectIds.has(billingProjectId);
 
     if (!staffingProjectId) {
       return { processed: false, autoLinked: false, skippedNoStaffingProject: true, skippedAlreadyTriggered: false };
