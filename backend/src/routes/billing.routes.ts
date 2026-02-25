@@ -1274,6 +1274,8 @@ router.patch(
  *         description: List of overdue milestones by attorney
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (non-admin accessing another attorney's portfolio)
  */
 router.get('/overdue-by-attorney', authenticate, checkBillingAccess, billingTriggerController.getOverdueByAttorney);
 
