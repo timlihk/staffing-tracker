@@ -29,6 +29,7 @@ export const useProjects = (params: ProjectsParams = {}) => {
       const response = await api.get<ProjectsResponse>('/projects', { params });
       return response.data;
     },
+    staleTime: 10 * 60 * 1000, // 10 minutes — project list rarely changes mid-session
   });
 };
 

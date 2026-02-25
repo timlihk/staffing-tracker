@@ -113,7 +113,7 @@ const ProjectDetail: React.FC = () => {
   const [cmSaving, setCmSaving] = useState(false);
   const cmLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: staffResponse, isLoading: staffLoading } = useStaff({ status: 'active', limit: 100 });
+  const { data: staffResponse, isLoading: staffLoading } = useStaff({ status: 'active', limit: 100, enabled: dialogOpen });
   const staffList = staffResponse?.data || [];
   const staffOptions = useMemo(
     () =>
