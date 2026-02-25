@@ -131,7 +131,7 @@ export class BillingMilestoneDateSweepService {
     const alreadyTriggered = await prisma.billing_milestone_trigger_queue.findFirst({
       where: {
         milestone_id: milestoneId,
-        new_status: DATE_SWEEP_TRIGGER_STATUS,
+        event_type: DATE_SWEEP_TRIGGER_STATUS,
         status: {
           in: ['pending', 'confirmed'],
         },
@@ -178,6 +178,7 @@ export class BillingMilestoneDateSweepService {
           staffing_project_id: projectResolution.staffingProjectId!,
           old_status: 'pending',
           new_status: DATE_SWEEP_TRIGGER_STATUS,
+          event_type: DATE_SWEEP_TRIGGER_STATUS,
           match_confidence: new Decimal('1.00'),
           trigger_reason: reason,
           status: 'confirmed',
