@@ -625,6 +625,7 @@ model billing_milestone_trigger_queue {
   project_event_id      Int?      @map("project_event_id")
   rule_id               Int?      @map("rule_id")
   match_method          String?   @map("match_method") // common_rule, bespoke_rule, legacy_text
+  event_type            String?   @map("event_type") // canonical event type (e.g. LISTING_COMPLETED)
   created_at            DateTime  @default(now()) @map("created_at")
 
   // Relations
@@ -643,6 +644,7 @@ model billing_milestone_trigger_queue {
   @@index([project_event_id], map: "idx_trigger_queue_event")
   @@index([rule_id], map: "idx_trigger_queue_rule")
   @@index([created_at], map: "idx_trigger_queue_created")
+  @@index([event_type], map: "idx_trigger_queue_event_type")
   @@map("billing_milestone_trigger_queue")
 }
 

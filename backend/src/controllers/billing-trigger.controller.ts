@@ -6,7 +6,7 @@
 
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { ProjectStatusTriggerService } from '../services/project-status-trigger.service';
+import { BillingTriggerQueueService } from '../services/billing-trigger-queue.service';
 import { BillingMilestoneDateSweepService } from '../services/billing-milestone-date-sweep.service';
 import { BillingMilestoneAISweepService } from '../services/billing-milestone-ai-sweep.service';
 import { BillingPipelineInsightsService } from '../services/billing-pipeline-insights.service';
@@ -81,6 +81,7 @@ const formatTrigger = (trigger: any) => {
     confirmedBy: toSafeNumber(trigger.confirmed_by),
     confirmedAt: trigger.confirmed_at,
     actionTaken: trigger.action_taken,
+    eventType: trigger.event_type || null,
     createdAt: trigger.created_at,
     milestone: trigger.milestone ? {
       title: trigger.milestone.title,
@@ -103,7 +104,7 @@ const formatTrigger = (trigger: any) => {
  */
 export const getPendingTriggers = async (req: AuthRequest, res: Response) => {
   try {
-    const triggers = await ProjectStatusTriggerService.getPendingTriggers();
+    const triggers = await BillingTriggerQueueService.getPendingTriggers();
     const formattedTriggers = triggers.map((trigger: any) => formatTrigger(trigger));
 
     res.json(formattedTriggers);
@@ -139,7 +140,7 @@ export const getTriggers = async (req: AuthRequest, res: Response) => {
     if (startDate) filters.startDate = new Date(startDate as string);
     if (endDate) filters.endDate = new Date(endDate as string);
 
-    const triggers = await ProjectStatusTriggerService.getTriggers(filters);
+    const triggers = await BillingTriggerQueueService.getTriggers(filters);
     const formattedTriggers = triggers.map((trigger: any) => formatTrigger(trigger));
 
     res.json(formattedTriggers);
@@ -161,7 +162,7 @@ export const updateTriggerActionItem = async (req: AuthRequest, res: Response) =
       return res.status(400).json({ error: 'Invalid trigger ID' });
     }
 
-    const actionItem = await ProjectStatusTriggerService.updateTriggerActionItem(triggerId, {
+    const actionItem = await BillingTriggerQueueService.updateTriggerActionItem(triggerId, {
       actionType: req.body?.actionType,
       description: req.body?.description,
       dueDate: req.body?.dueDate,
@@ -196,7 +197,7 @@ export const confirmTrigger = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const trigger = await ProjectStatusTriggerService.confirmTrigger(triggerId, userId);
+    const trigger = await BillingTriggerQueueService.confirmTrigger(triggerId, userId);
 
     res.json({
       message: 'Trigger confirmed successfully',
@@ -231,7 +232,7 @@ export const rejectTrigger = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const trigger = await ProjectStatusTriggerService.rejectTrigger(triggerId, userId);
+    const trigger = await BillingTriggerQueueService.rejectTrigger(triggerId, userId);
 
     res.json({
       message: 'Trigger rejected successfully',
@@ -261,7 +262,7 @@ export const getOverdueByAttorney = async (req: AuthRequest, res: Response) => {
     if (startDate) filters.startDate = new Date(startDate as string);
     if (endDate) filters.endDate = new Date(endDate as string);
 
-    const overdue = await ProjectStatusTriggerService.getOverdueByAttorney(filters);
+    const overdue = await BillingTriggerQueueService.getOverdueByAttorney(filters);
 
     // Format the results
     const formattedOverdue = (overdue as any[]).map(item => ({
