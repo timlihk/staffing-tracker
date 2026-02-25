@@ -206,23 +206,17 @@ export function useUpdateMilestones() {
     mutationFn: (variables: UpdateMilestonesArgs) =>
       billingApi.updateMilestones({ milestones: variables.milestones }),
     onSuccess: async (_result, variables) => {
-      // Simply invalidate and refetch the queries to get fresh data from the server
-      // Remove optimistic update to avoid cache conflicts
-
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.engagement(variables.projectId, variables.engagementId),
-      });
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: billingKeys.engagement(variables.projectId, variables.engagementId) }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.projectSummary(variables.projectId) }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.projects() }),
+      ];
       if (variables.cmId) {
-        await queryClient.invalidateQueries({
-          queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId),
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({ queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId) }),
+        );
       }
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.projectSummary(variables.projectId),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.projects(),
-      });
+      await Promise.all(invalidations);
 
       toast.success('Milestones updated successfully');
     },
@@ -257,17 +251,16 @@ export function useCreateMilestone() {
     mutationFn: ({ engagementId, data }: CreateMilestoneArgs) =>
       billingApi.createMilestone(engagementId, data),
     onSuccess: async (_result, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.engagement(variables.projectId, variables.engagementId),
-      });
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: billingKeys.engagement(variables.projectId, variables.engagementId) }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.projectSummary(variables.projectId) }),
+      ];
       if (variables.cmId) {
-        await queryClient.invalidateQueries({
-          queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId),
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({ queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId) }),
+        );
       }
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.projectSummary(variables.projectId),
-      });
+      await Promise.all(invalidations);
       toast.success('Milestone added successfully');
     },
     onError: (error: unknown) => {
@@ -316,17 +309,16 @@ export function useDeleteMilestone() {
   return useMutation({
     mutationFn: ({ milestoneId }: DeleteMilestoneArgs) => billingApi.deleteMilestone(milestoneId),
     onSuccess: async (_result, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.engagement(variables.projectId, variables.engagementId),
-      });
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: billingKeys.engagement(variables.projectId, variables.engagementId) }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.projectSummary(variables.projectId) }),
+      ];
       if (variables.cmId) {
-        await queryClient.invalidateQueries({
-          queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId),
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({ queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId) }),
+        );
       }
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.projectSummary(variables.projectId),
-      });
+      await Promise.all(invalidations);
       toast.success('Milestone removed successfully');
     },
     onError: (error: unknown) => {
@@ -366,17 +358,16 @@ export function useDeleteEngagement() {
   return useMutation({
     mutationFn: ({ engagementId }: DeleteEngagementArgs) => billingApi.deleteEngagement(engagementId),
     onSuccess: async (_result, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.projectSummary(variables.projectId),
-      });
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: billingKeys.projectSummary(variables.projectId) }),
+        queryClient.invalidateQueries({ queryKey: billingKeys.projects() }),
+      ];
       if (variables.cmId) {
-        await queryClient.invalidateQueries({
-          queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId),
-        });
+        invalidations.push(
+          queryClient.invalidateQueries({ queryKey: billingKeys.cmEngagements(variables.projectId, variables.cmId) }),
+        );
       }
-      await queryClient.invalidateQueries({
-        queryKey: billingKeys.projects(),
-      });
+      await Promise.all(invalidations);
       toast.success('Engagement deleted successfully');
     },
     onError: (error: unknown) => {
@@ -578,12 +569,8 @@ export function useConfirmBillingTrigger() {
   return useMutation({
     mutationFn: billingApi.confirmBillingTrigger,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.overdueByAttorney() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.projects() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.pipelineInsights() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.financeSummary() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.unpaidInvoices() });
+      // Single invalidation covers triggers, projects, pipeline, finance, overdue, unpaid
+      queryClient.invalidateQueries({ queryKey: billingKeys.all });
       toast.success('Trigger confirmed');
     },
     onError: (error: unknown) => {
@@ -598,10 +585,7 @@ export function useRejectBillingTrigger() {
   return useMutation({
     mutationFn: billingApi.rejectBillingTrigger,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.overdueByAttorney() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.pipelineInsights() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.financeSummary() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.all });
       toast.success('Trigger rejected');
     },
     onError: (error: unknown) => {
@@ -625,10 +609,7 @@ export function useUpdateTriggerActionItem() {
       }>;
     }) => billingApi.updateTriggerActionItem(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: billingKeys.triggers() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.pipelineInsights() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.financeSummary() });
-      queryClient.invalidateQueries({ queryKey: billingKeys.unpaidInvoices() });
+      queryClient.invalidateQueries({ queryKey: billingKeys.all });
       toast.success('Trigger action updated');
     },
     onError: (error: unknown) => {

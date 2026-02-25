@@ -71,8 +71,8 @@ const NAV_ITEMS = [
 // ---------------------------------------------------------------------------
 const corePrinciples = [
   {
-    title: 'One source of truth',
-    description: 'One project, one C/M stream, one engagement card per engagement.',
+    title: 'One C/M = one project',
+    description: 'Each C/M number belongs to exactly one project. A project can have multiple engagements under the same C/M (e.g. when an LSD passes and a supplementary engagement is signed), but a new project for the same client must get its own C/M number.',
     Icon: Hub,
   },
   {
@@ -102,7 +102,8 @@ const roleGuidelines = [
       'Create the project record first.',
       'Keep project status current for staffing visibility.',
       'Keep lifecycle stage current to support billing milestone tracking.',
-      'Create a new engagement (not a new project) when scope changes under the same C/M number.',
+      'When an LSD passes or supplementary scope is added to the same project, create a new engagement under the existing C/M — do not create a new project.',
+      'For a genuinely new project for the same client, set up a new C/M number — do not reuse the existing one.',
       'Draft and maintain milestone reference language from the engagement letter.',
     ],
   },
@@ -151,14 +152,14 @@ const lifecycleStages = [
 
 const billingPractices = [
   {
-    title: 'New scope = new engagement',
-    description: 'Under one C/M number, create a new engagement for new work scope. Do not create another project.',
-    Icon: AddCard,
+    title: 'One C/M = one project',
+    description: 'Each C/M number maps to exactly one project. When an LSD passes and a supplementary engagement is signed, add it under the same C/M. For a new project for the same client, create a new C/M number.',
+    Icon: Hub,
   },
   {
-    title: 'Link engagement first',
-    description: 'Select the correct engagement in billing detail, then paste milestone language into Milestone Reference Text.',
-    Icon: LinkIcon,
+    title: 'New scope = new engagement',
+    description: 'Under one C/M number, create a new engagement card for additional or follow-on scope. Do not create another project or C/M.',
+    Icon: AddCard,
   },
   {
     title: 'Keep milestones engagement-specific',

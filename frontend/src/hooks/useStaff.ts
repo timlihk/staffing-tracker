@@ -11,6 +11,7 @@ interface StaffParams {
   search?: string;
   page?: number;
   limit?: number;
+  enabled?: boolean;
 }
 
 interface StaffResponse {
@@ -24,12 +25,15 @@ interface StaffResponse {
 }
 
 export const useStaff = (params: StaffParams = {}) => {
+  const { enabled, ...queryParams } = params;
   return useQuery({
-    queryKey: ['staff', params],
+    queryKey: ['staff', queryParams],
     queryFn: async () => {
-      const response = await api.get<StaffResponse>('/staff', { params });
+      const response = await api.get<StaffResponse>('/staff', { params: queryParams });
       return response.data;
     },
+    enabled: enabled ?? true,
+    staleTime: 10 * 60 * 1000, // 10 minutes — staff data rarely changes
   });
 };
 
@@ -41,6 +45,7 @@ export const useStaffMember = (id: string | number) => {
       return response.data;
     },
     enabled: !!id,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
