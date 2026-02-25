@@ -350,75 +350,32 @@
 
 ## Pending Tasks
 
-### High Priority
+### Completed (Previously Pending)
 
 - [x] **Import Additional Financial Data** ✅
-  - Imported billing invoices and collection payments from JSON
-  - Imported finance comments with transaction details
-  - Fuzzy matching for project name variations
-  - Data verification completed
+- [x] **Milestone Completion UI** ✅ (Oct 2025)
+- [x] **Strikethrough Detection** ✅ (Feb 2026, v5.0.0)
+- [x] **Project Linking Interface** ✅ (v5.0.0) — Auto-linking + manual UI
+- [x] **Invoice & Payment Tracking** ✅ (v5.1.0) — Via Control Tower
+- [x] **B&C Attorney Mapping** ✅ — Auto-map script + manual mapping UI
 
-- [x] **Milestone Completion UI** ✅ (Completed Oct 7, 2025)
-  - Added checkboxes in Billing Detail page to mark milestones complete
-  - Updated backend API to handle milestone completion
-  - Shows completion status in milestones tab
-  - Tracks invoice sent and payment received dates
-  - Fixed cache management issue for real-time updates
-
-- [x] **Strikethrough Detection** ✅ (Completed Feb 2026, v5.0.0)
-  - Implemented in `billing-excel-sync.service.ts` using ExcelJS rich text character-level font data
-  - If >50% of non-whitespace characters struck through → milestone marked completed
-  - 345 milestones auto-detected as completed
-  - One-way latch: once marked completed, stays completed on re-upload
+### Remaining (Low Priority)
 
 - [ ] **Bonus Display Enhancement**
   - Show bonus in project detail page
-  - Add bonus description field to UI
-  - Parse more bonus formats (currently only 1/177 projects detected)
-
-### Medium Priority
-
-- [ ] **B&C Attorney Manual Mapping UI**
-  - Create interface to review 50 unmapped attorneys
-  - Show name similarity suggestions
-  - Allow manual selection from staff dropdown
-  - Bulk mapping operations
-
-- [ ] **Project Linking Interface**
-  - UI to link billing projects to staffing projects
-  - Search/autocomplete for project selection
-  - Show linked project details
-  - Unlink functionality
-
-- [ ] **Financial Data Entry Enhancement**
-  - Batch update UBT/Credits for multiple projects
-  - Import from CSV/Excel
-  - Audit trail for all changes
-  - Change history view
-
-- [ ] **Invoice & Payment Tracking**
-  - Frontend UI for invoice management
-  - Payment recording interface
-  - Reconciliation views
-  - Outstanding invoice reports
-
-### Low Priority
+  - Parse more bonus formats (currently only 1/210 projects detected)
 
 - [ ] **Reporting & Analytics**
   - B&C attorney performance dashboard
   - Collection rate reports
-  - Outstanding fees summary
   - Revenue projections
 
-- [ ] **Email Notifications**
+- [ ] **Email Notifications for Billing**
   - Milestone completion notifications
-  - Payment received alerts
   - Overdue invoice reminders
 
-- [ ] **Export Functionality**
-  - Export to Excel
-  - PDF reports
-  - Custom date range exports
+- [ ] **PDF Export**
+  - PDF reports for billing summaries (currently Excel-only)
 
 ---
 
@@ -474,7 +431,7 @@
 
 1. **Access Billing Module**
    - Navigate to Sidebar → Billing
-   - View all 177 billing projects
+   - View all 210+ billing projects
 
 2. **Configure Access**
    - Admin Panel → Billing Settings tab
@@ -522,13 +479,26 @@
    DATABASE_URL="postgresql://..." npm run billing:parse-completion
    ```
 
-2. **Access API Endpoints**
+2. **Access API Endpoints** (see README.md for full list of 87 endpoints)
    ```bash
+   # Billing Module (22 endpoints)
    GET  /api/billing/projects                  # List all projects
    GET  /api/billing/projects/:id              # Get project detail
    PATCH /api/billing/projects/:id/financials  # Update UBT/Credits
    GET  /api/billing/settings/access           # Get access settings
    PATCH /api/billing/settings/access          # Update access
+
+   # Billing Triggers & Control Tower (14 endpoints)
+   GET  /api/billing/triggers/pending          # Pending triggers
+   POST /api/billing/triggers/:id/confirm      # Confirm trigger
+   GET  /api/billing/long-stop-risks           # Long stop date risks
+   GET  /api/billing/unpaid-invoices           # Unpaid invoices 30+ days
+   GET  /api/billing/time-windowed-metrics     # 7/30/90-day metrics
+
+   # Excel Sync (5 endpoints)
+   POST /api/billing/excel-sync/preview        # Preview sync
+   POST /api/billing/excel-sync/apply          # Apply sync
+   GET  /api/billing/excel-sync/history        # Sync history
    ```
 
 3. **Database Scripts**
@@ -599,6 +569,9 @@
 - Services:
   - `backend/src/services/billing-excel-sync.service.ts` — Excel parser + sync engine (~1,200 lines)
   - `backend/src/services/ai-validation.service.ts` — AI-powered milestone validation
+  - `backend/src/services/project-status-trigger.service.ts` — Status-change trigger detection
+  - `backend/src/services/billing-milestone-date-sweep.service.ts` — Daily date-based milestone sweep
+  - `backend/src/services/billing-milestone-ai-sweep.service.ts` — Daily AI-assisted milestone sweep
 - Routes: `backend/src/routes/billing.routes.ts`
 - Scripts:
   - `backend/scripts/apply-sync.ts` — Apply Excel sync via CLI
@@ -632,56 +605,12 @@
 
 ## Next Steps
 
-### Immediate Actions (This Week)
+All major features are implemented and deployed. Remaining work is optional enhancements:
 
-1. **Add Milestone Completion UI**
-   - Create checkbox column in milestones table
-   - Add API endpoint for updating completion status
-   - Show completion date and source
-
-2. **Display Finance Comments**
-   - Add Finance Comments tab to project detail page
-   - Show parsed transaction details
-   - Enable editing/updating comments
-
-3. **Test B&C Attorney Access**
-   - Verify filtering works correctly
-   - Test with actual B&C attorney accounts
-   - Ensure data isolation
-
-### Short Term (Next 2 Weeks)
-
-1. **Attorney Mapping UI**
-   - Build interface for 50 unmapped attorneys
-   - Implement manual mapping functionality
-   - Add confidence score display
-
-2. **Project Linking**
-   - Create UI to link billing to staffing projects
-   - Show linked project details
-   - Enable bi-directional navigation
-
-3. **Enhanced Bonus Parsing**
-   - Add more regex patterns
-   - Manual review of all fee arrangements
-   - Update parser to find all bonuses
-
-### Long Term (Next Month)
-
-1. **Invoice & Payment Module**
-   - Design UI/UX
-   - Implement CRUD operations
-   - Add reconciliation logic
-
-2. **Reporting Dashboard**
-   - Design KPIs for B&C attorneys
-   - Build data aggregation queries
-   - Create visualization components
-
-3. **Data Quality Improvements**
-   - Regular import/sync from Excel
-   - Data validation rules
-   - Audit trail for all changes
+1. **Enhanced Bonus Parsing** — Add more regex patterns to detect bonus formats
+2. **B&C Attorney Performance Dashboard** — KPIs, collection rates, revenue projections
+3. **Billing Email Notifications** — Milestone completion and overdue invoice alerts
+4. **PDF Export** — Generate PDF billing summaries
 
 ---
 
@@ -693,7 +622,7 @@
 - ✅ 611 milestones parsed (100%)
 - ✅ 345 milestones auto-completed from strikethrough (100%)
 - ✅ 34 staffing projects auto-linked (76% of new CMs)
-- ✅ 100% backend API coverage (75+ endpoints total)
+- ✅ 100% backend API coverage (87 endpoints total)
 - ✅ 100% frontend UI coverage for core features
 - ✅ Sync history with Excel file storage
 - ✅ Print-friendly sync reports
@@ -713,7 +642,7 @@
 
 **Development:** Claude AI + Tim Li (User)
 **Database:** Railway PostgreSQL
-**Data Source:** Excel "HKCM Project List(81764217.1)_6Oct25.xlsx"
+**Data Source:** Excel "HKCM Project List (2026.02.12).xlsx"
 **Environment:**
 - Backend: Node.js + TypeScript + Prisma ORM
 - Frontend: React 19 + TypeScript + Material-UI v7 + TanStack Query v5
