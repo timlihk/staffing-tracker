@@ -282,12 +282,18 @@ Added `billing_overdue_by_attorney` view creation in `recreateBillingViews()`.
 
 ## Testing Checklist
 
-- [ ] Change project status to "Closed" → Pending trigger created with confidence >= 0.8
-- [ ] Same status change again → No duplicate trigger (deduplication works)
-- [ ] EA confirms trigger → Milestone marked complete, action item created
-- [ ] EA rejects trigger → Trigger status = 'rejected', no milestone change
-- [ ] `/api/billing/overdue-by-attorney` → Returns overdue milestones grouped by attorney
-- [ ] `/api/billing/triggers/pending` → Returns list of pending triggers
+- [x] Change project status to "Closed" → Pending trigger created with confidence >= 0.8
+- [x] Same status change again → No duplicate trigger (deduplication works)
+- [x] EA confirms trigger → Milestone marked complete, action item created
+- [x] EA rejects trigger → Trigger status = 'rejected', no milestone change
+- [x] `/api/billing/overdue-by-attorney` → Returns overdue milestones grouped by attorney
+- [x] `/api/billing/triggers/pending` → Returns list of pending triggers
+- [x] Lifecycle stage change → Creates project_event → Triggers milestone matching
+- [x] Date-based sweep → Catches date-driven milestones
+- [x] AI-assisted sweep → Reviews events against milestone language
+- [x] B&C attorney access → Filtered to own projects only
+- [x] Control Tower Finance View → Full invoice workflow functional
+- [x] Control Tower My Projects → Shows attorney-specific data
 
 ---
 
@@ -295,20 +301,23 @@ Added `billing_overdue_by_attorney` view creation in `recreateBillingViews()`.
 
 - ✅ Schema designed with proper relations
 - ✅ Service layer with deduplication
-- ✅ API endpoints implemented
-- ✅ Integration with project controller
+- ✅ API endpoints implemented (14 trigger/control tower endpoints)
+- ✅ Integration with project controller (status changes + lifecycle stage changes)
 - ✅ Dashboard view created
-- ✅ 89 projects linked to C/M numbers
-- ✅ Build successful
-- ⚠️  Database migration applied manually (Prisma wasn't accessible)
+- ✅ 89+ projects linked to C/M numbers
+- ✅ Build successful and deployed to production
+- ✅ Database migrations applied via Prisma
+- ✅ Frontend Control Tower with 3-view architecture (Finance, Management, My Projects)
+- ✅ Date-based and AI-assisted daily sweeps operational
+- ✅ Trigger rules with confidence scoring and auto-confirm
+- ✅ B&C attorney access enabled (filtered server-side)
+- ✅ In-app guides documenting the full workflow
 
 ---
 
 ## Outstanding Items
 
-1. **Database Access:** Ensure DATABASE_URL is accessible for future migrations
-2. **Testing:** Manual testing of trigger workflow
-3. **Email Notifications:** Not yet implemented (optional enhancement)
+1. **Email Notifications:** Billing-specific email alerts not yet implemented (optional enhancement)
 
 ## Recent Updates (Feb 25, 2026)
 

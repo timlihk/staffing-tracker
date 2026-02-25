@@ -1,467 +1,237 @@
 # Project Status Summary
 
 **Last Updated**: February 25, 2026
-**Overall Completion**: 97% (v5.1.0)
+**Current Version**: v5.1.0
+**Overall Completion**: 100% — Production Deployed
 
-## ✅ What's Been Completed
+---
 
-### 1. Backend API (100% Complete - Production Ready ✅)
+## Production URLs
 
-**Fully implemented and tested:**
-- ✅ Complete REST API with 5 controllers (Auth, Projects, Staff, Assignments, Dashboard)
-- ✅ PostgreSQL database schema with Prisma ORM
-- ✅ JWT-based authentication system
+- **Backend**: https://staffing-tracker-production.up.railway.app
+- **Frontend**: https://staffing-tracker-frontend-production.up.railway.app
+- **API Docs**: https://staffing-tracker-production.up.railway.app/api-docs
+- **Database**: PostgreSQL on Railway (hourly backups, 3-day retention)
+
+---
+
+## Module Status
+
+| Module | Status | Version |
+|--------|--------|---------|
+| Backend API | ✅ Production | v5.1.0 |
+| Frontend App | ✅ Production | v5.1.0 |
+| Billing Excel Sync | ✅ Production | v5.0.0 |
+| Billing Control Tower | ✅ Production | v5.1.0 |
+| Milestone Detection | ✅ Production | v5.1.0 |
+| Guides Page | ✅ Production | v5.1.0 |
+| Email Notifications | ✅ Production | v1.6.0 |
+| Daily Partner Reminders | ✅ Production | v1.6.0 |
+| Database Backups | ✅ Automated | Hourly |
+| Auto-deploy | ✅ GitHub → Railway | On push to main |
+
+---
+
+## Technical Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend Framework | Express.js + TypeScript |
+| Database | PostgreSQL + Prisma ORM |
+| Authentication | JWT + bcrypt + refresh tokens |
+| Frontend Framework | React 19 + TypeScript |
+| UI Library | Material-UI v7 (MUI) |
+| State Management | TanStack Query v5 (React Query) |
+| Form Validation | React Hook Form v7 + Zod v4 |
+| Charts | Recharts |
+| HTTP Client | Axios |
+| Build Tool | Vite v7 |
+| Excel Parsing | ExcelJS |
+| AI Integration | OpenAI SDK (DeepSeek) |
+| Scheduling | node-cron |
+| Email | Resend |
+| API Docs | Swagger / OpenAPI |
+| Hosting | Railway.app (backend + frontend + PostgreSQL) |
+
+---
+
+## API Summary
+
+**Total: 87 documented endpoints** across 10 categories:
+
+| Category | Endpoints | Description |
+|----------|-----------|-------------|
+| Authentication | 7 | Login, register, refresh, logout, password reset |
+| Projects | 11 | CRUD, categories, weekly review, B&C attorneys |
+| Staff | 7 | CRUD, workload, change history |
+| Assignments | 6 | CRUD, bulk create |
+| Dashboard | 4 | Summary, workload report, activity log, change history |
+| Reports | 4 | Staffing report (JSON + Excel), project report (JSON + Excel) |
+| Users (Admin) | 5 | User management, password resets |
+| Billing Module | 22 | Projects, engagements, milestones, financials, mapping, attorneys |
+| Billing Excel Sync | 5 | Preview, apply, history, download |
+| Billing Triggers & Control Tower | 14 | Triggers, sweeps, invoices, metrics, pipeline |
+| Settings | 2 | Email notification settings |
+
+---
+
+## Database Schema
+
+**30 models** across core staffing and billing domains:
+
+### Core Tables (10)
+- `User` — Application users with role-based access
+- `Staff` — Law firm employees (partners, associates, FLICs, interns, B&C attorneys)
+- `Project` — Client deals with lifecycle stage tracking
+- `ProjectAssignment` — Staff-to-project assignments with jurisdiction
+- `ProjectBcAttorney` — B&C attorney assignments to projects
+- `ProjectChangeHistory` — Field-level project audit trail
+- `StaffChangeHistory` — Field-level staff audit trail
+- `project_event` — Project lifecycle stage transitions
+- `ActivityLog` — System activity log
+- `RefreshToken` — JWT refresh token storage
+
+### Billing Tables (17)
+- `billing_project` — Billing project information (210+ rows)
+- `billing_project_cm_no` — C/M numbers with financials
+- `billing_project_bc_attorney` — B&C attorneys per billing project
+- `billing_engagement` — Engagement records (261+ rows)
+- `billing_fee_arrangement` — Fee agreement text and LSD dates
+- `billing_milestone` — Parsed milestones (611+ rows)
+- `billing_milestone_trigger_rule` — Trigger rules for milestone matching
+- `billing_milestone_trigger_queue` — Pending/confirmed billing triggers
+- `billing_action_item` — Action items from confirmed triggers
+- `billing_event` — Billing events for trigger evaluation
+- `billing_invoice` — Invoice records
+- `billing_payment` — Payment tracking
+- `billing_finance_comment` — Finance team comments
+- `billing_note` — General notes on billing projects
+- `billing_source_transactions_raw` — Raw parsed data from Excel
+- `billing_staffing_project_link` — Billing ↔ staffing project mapping
+- `billing_sync_run` — Excel sync audit trail with file storage
+
+### Settings Tables (3)
+- `EmailSettings` — Email notification configuration
+- `AppSettings` — Application-wide settings
+- `billing_access_settings` — Billing module access per role
+- `billing_bc_attorney_staff_map` — Attorney name → staff record mapping
+
+---
+
+## Feature Summary
+
+### Staffing Module
+- ✅ Project CRUD with categories, statuses, lifecycle stages, priorities
+- ✅ Staff CRUD with positions, departments, workload tracking
+- ✅ Assignment management with bulk operations and jurisdictions
+- ✅ Dashboard with charts, deal radar, staffing heatmap
+- ✅ Project Report with multi-filter, sorting, Excel export
+- ✅ Weekly partner review / project confirmation
+- ✅ Field-level change history for projects and staff
+- ✅ Team member assignment during project creation
+- ✅ Smart back navigation with 3-tier fallback
+
+### Billing Module (v5.0.0 + v5.1.0)
+- ✅ Finance Excel upload & sync with milestone extraction
+- ✅ Strikethrough-based completion detection from Excel rich text
+- ✅ Period/commencement engagement header detection
+- ✅ Unmatched C/M auto-creation with 3-strategy staffing linking
+- ✅ Sync report page (print-friendly) with financial diffs
+- ✅ Sync history with Excel download
+- ✅ AI validation of parsed milestones (optional)
+- ✅ Billing Control Tower with 3-view architecture:
+  - Finance View: Confirm triggers → Queue invoice → Mark sent → Track collections
+  - Management View: Portfolio oversight, long stop risks, pipeline metrics
+  - My Projects: B&C attorney filtered view of triggers, risks, unpaid invoices
+- ✅ Automatic milestone detection (3 methods):
+  - Lifecycle stage changes (real-time)
+  - Date-based sweep (daily 2 AM HKT)
+  - AI-assisted sweep (daily 2:30 AM HKT)
+- ✅ Trigger rule system with confidence scoring and auto-confirm
+- ✅ Time-windowed metrics (7/30/90-day billing analytics)
+- ✅ Invoice lifecycle tracking
+- ✅ B&C attorney access to filtered billing views
+
+### Authentication & Security
+- ✅ JWT + refresh token authentication
 - ✅ Role-based authorization (admin, editor, viewer)
-- ✅ All CRUD operations for Projects, Staff, and Assignments
-- ✅ Dashboard analytics and reporting endpoints
-- ✅ Activity logging and audit trails
-- ✅ **Comprehensive change history system** (field-level tracking)
-  - Project change history with all field updates
-  - Staff change history with all field updates
-  - Assignment change tracking (additions/removals)
-- ✅ Excel data migration script (from your existing Excel file)
-- ✅ Railway.app deployment configuration
-- ✅ Error handling and validation
-- ✅ Full TypeScript types and interfaces
-
-**Files created:**
-- 5 controllers (`auth`, `project`, `staff`, `assignment`, `dashboard`)
-- 5 route files
-- 1 authentication middleware
-- Database schema (6 models)
-- Migration script for Excel import
-- Configuration files (tsconfig, Railway config, etc.)
-
-**Total API Endpoints:** 25 (including change history endpoints)
-
-### 2. Frontend Application (85% Complete - Core Features Ready ✅)
-
-**Completed:**
-- ✅ Vite + React + TypeScript project scaffolding
-- ✅ Material-UI (MUI) installed and configured
-- ✅ React Router DOM with all routes configured
-- ✅ Axios API client with interceptors
-- ✅ Authentication context (AuthContext)
-- ✅ Complete TypeScript type definitions
-- ✅ Login page with authentication
-- ✅ Protected routes with authorization
-- ✅ Manual logout control and 30-minute inactivity timeout for sensitive data protection
-- ✅ Layout components (Header, Sidebar, Layout)
-- ✅ Dashboard with charts and analytics
-- ✅ **Projects List** - Clickable rows to navigate
-- ✅ **Project Detail** - Team assignments & comprehensive change history
-- ✅ Project Create/Edit forms
-- ✅ **Staff List** - Clickable names to navigate
-- ✅ **Staff Detail** - Workload metrics, assignments & change history
-- ✅ Staff Create/Edit forms
-- ✅ **Change History Display** - Field-level change tracking UI
-- ✅ Activity feed component
-- ✅ Summary cards with metrics
-- ✅ Railway deployment configuration
-
-**Remaining (Core Features):**
-- ⏳ Assignment management UI (dedicated page) - **2 hours**
-- ⏳ Bulk assignment interface - **1 hour**
-- ⏳ Reporting/Analytics pages - **1-2 hours**
-- ⏳ Data export functionality - **1 hour**
-
-### 3. Documentation (100% Complete)
-
-- ✅ `IMPLEMENTATION_PLAN.md` - 65-page detailed implementation plan
-- ✅ `DEPLOYMENT_GUIDE.md` - Step-by-step Railway deployment
-- ✅ `README.md` - Complete project documentation
-- ✅ Backend README with API documentation
-- ✅ This status summary
-
----
-
-## 📊 Technical Stack Implemented
-
-| Component | Technology | Status |
-|-----------|-----------|--------|
-| Backend Framework | Express.js + TypeScript | ✅ Complete |
-| Database | PostgreSQL + Prisma | ✅ Complete |
-| Authentication | JWT + bcrypt | ✅ Complete |
-| Frontend Framework | React 18 + TypeScript | ✅ Setup |
-| UI Library | Material-UI | ✅ Installed |
-| API Client | Axios | ✅ Configured |
-| State Management | React Context | ✅ Auth context |
-| Charts | Recharts | ✅ Installed |
-| Routing | React Router v6 | ✅ Installed |
-| Build Tool | Vite | ✅ Configured |
-
----
-
-## 🗄️ Database Schema
-
-Successfully designed and implemented:
-
-```
-User (authentication)
-  ↓
-Staff (law firm employees)
-  ↓  ↓
-  │  StaffChangeHistory (staff audit trail)
-  ↓
-ProjectAssignment (many-to-many)
-  ↓
-Project (client deals)
-  ↓
-ProjectChangeHistory (project audit trail)
-
-+ ActivityLog (system activity)
-```
-
-**7 tables total** with proper relationships, indexes, and constraints.
-- Removed: ProjectStatusHistory (redundant)
-- Added: ProjectChangeHistory (comprehensive field tracking)
-- Added: StaffChangeHistory (comprehensive staff tracking)
-
----
-
-## 🚀 Deployment Status
-
-### Backend → Railway.app
-
-**Status:** ✅ Ready to deploy
-
-**What you need to do:**
-1. Push code to GitHub
-2. Create Railway project
-3. Add PostgreSQL database
-4. Connect GitHub repository
-5. Set environment variables
-6. Deploy!
-
-**Configuration files ready:**
-- `railway.json` ✅
-- `Procfile` ✅
-- `.env.example` ✅
-
-### Frontend → Railway.app / Vercel
-
-**Status:** ⏳ Needs component completion first
-
-**After components are built:**
-1. Add to Railway project (or deploy to Vercel)
-2. Set `VITE_API_URL` environment variable
-3. Deploy!
-
----
-
-## 📝 Data Migration
-
-**Status:** ✅ Script ready
-
-Your Excel file (`CM Asia_Staffing List - 2025.09.09.xlsx`) has been analyzed and a migration script created.
-
-**What it migrates:**
-- ✅ ~100 projects from "Staffing List by Project" sheet
-- ✅ ~25-30 staff members (auto-extracted from projects)
-- ✅ All project-to-staff assignments with roles and jurisdictions
-- ✅ Project categories (HK Transaction, US Transaction, Compliance, etc.)
-- ✅ Project statuses (Active, Slow-down, Suspended)
-- ✅ Creates default admin user
-
-**To run migration:**
-```bash
-cd backend
-npx ts-node src/scripts/migrate-excel.ts
-```
-
----
-
-## 🔐 Security Implementation
-
-All security features implemented:
-
-- ✅ Password hashing (bcrypt with 10 rounds)
-- ✅ JWT token generation and validation
-- ✅ Protected routes with authentication middleware
-- ✅ Role-based authorization (admin, editor, viewer)
-- ✅ SQL injection protection (Prisma parameterized queries)
-- ✅ CORS configuration
-- ✅ Environment variable management
-- ✅ Input validation
+- ✅ 30-minute inactivity timeout with auto-logout
+- ✅ Secure password reset flow
 - ✅ Activity audit logging
+- ✅ Helmet CSP headers
+- ✅ CORS configuration
+
+### Email & Notifications
+- ✅ Project update email notifications to assigned staff
+- ✅ Daily partner reminders (9 AM HKT) for missing project data
+- ✅ Welcome email for new users with credentials
+- ✅ Granular email settings (global toggle, position-specific)
+- ✅ Rate-limited sending via Resend
+
+### In-App Guides (v5.1.0)
+- ✅ Best practices: C/M rules, role ownership, lifecycle stages, data quality
+- ✅ How-to guides: Projects, Staffing, Billing, Control Tower (admin-only)
+- ✅ Milestone detection workflow explanation
+- ✅ Annotated screenshot-style walkthroughs
+
+### Performance Optimizations (v5.1.0)
+- ✅ Disabled refetchOnWindowFocus globally (30-50% fewer API calls)
+- ✅ Increased staleTime to 10 minutes for stable data
+- ✅ Lazy-load staff list in ProjectDetail
+- ✅ Batched cache invalidations with Promise.all
+
+### Frontend Pages (19 pages)
+- Login, ResetPassword
+- Dashboard
+- Projects, ProjectDetail, ProjectForm
+- Staff, StaffDetail, StaffForm
+- ProjectReport, Reports
+- WeeklyReview
+- BillingMatters, BillingMatterDetail
+- BillingControlTower
+- SyncReport, SyncHistory
+- BestPracticeGuide
+- UserManagement (admin)
 
 ---
 
-## 📈 API Endpoints Implemented
+## Deployment Architecture
 
-**Total: 23 endpoints** across 5 main categories:
-
-### Auth (3 endpoints)
-- POST `/api/auth/login`
-- POST `/api/auth/register`
-- GET `/api/auth/me`
-
-### Projects (6 endpoints)
-- GET `/api/projects` (with filtering, pagination, search)
-- GET `/api/projects/:id`
-- GET `/api/projects/categories`
-- POST `/api/projects`
-- PUT `/api/projects/:id`
-- DELETE `/api/projects/:id`
-
-### Staff (6 endpoints)
-- GET `/api/staff` (with filtering)
-- GET `/api/staff/:id`
-- GET `/api/staff/:id/workload`
-- POST `/api/staff`
-- PUT `/api/staff/:id`
-- DELETE `/api/staff/:id`
-
-### Assignments (6 endpoints)
-- GET `/api/assignments` (with filtering)
-- GET `/api/assignments/:id`
-- POST `/api/assignments`
-- POST `/api/assignments/bulk`
-- PUT `/api/assignments/:id`
-- DELETE `/api/assignments/:id`
-
-### Dashboard (3 endpoints)
-- GET `/api/dashboard/summary`
-- GET `/api/dashboard/workload-report`
-- GET `/api/dashboard/activity-log`
-
----
-
-## 🎯 Next Steps (Priority Order)
-
-### 1. Assignment Management UI (2 hours) - HIGH PRIORITY
-
-**What needs to be built:**
-
-**A. Assignment List Page** (`/assignments`)
-- Table showing all assignments with filters:
-  - Filter by project
-  - Filter by staff member
-  - Filter by role/jurisdiction
-  - Filter by date range
-- Columns: Project Name, Staff Name, Role, Jurisdiction, Allocation %, Start/End Date
-- Actions: Edit, Delete
-- "Create Assignment" button
-
-**B. Assignment Form/Modal**
-- Create new assignment
-- Edit existing assignment
-- Fields:
-  - Project (dropdown/autocomplete)
-  - Staff member (dropdown/autocomplete)
-  - Role in project (dropdown)
-  - Jurisdiction (dropdown)
-  - Allocation percentage (0-100%)
-  - Start/End date (date pickers)
-  - Is Lead (checkbox)
-  - Notes (textarea)
-- Validation: Prevent duplicate assignments
-- Show allocation warning if staff > 100%
-
-**C. Bulk Assignment Interface**
-- Select one project
-- Assign multiple staff members at once
-- Quick role/jurisdiction selection
-- Batch create assignments
-
-**API endpoints already available:**
-- GET /api/assignments - ✅
-- POST /api/assignments - ✅
-- POST /api/assignments/bulk - ✅
-- PUT /api/assignments/:id - ✅
-- DELETE /api/assignments/:id - ✅
-
-### 2. Reporting/Analytics Pages (1-2 hours) - MEDIUM PRIORITY
-
-**What needs to be built:**
-
-**A. Workload Report** (`/reports/workload`)
-- Staff workload distribution (already in dashboard)
-- Enhanced version with:
-  - Bar chart showing allocation % per staff
-  - Table with breakdown by project
-  - Export to Excel/PDF
-  - Filter by department, role, status
-  - Over-allocation highlighting
-
-**B. Project Status Report** (`/reports/projects`)
-- Projects grouped by status (Active, Slow-down, Suspended)
-- Timeline view with target filing dates
-- Charts: Projects by category, Projects by status
-- Export functionality
-
-**C. Resource Allocation Report** (`/reports/resources`)
-- Matrix view: Staff (rows) x Projects (columns)
-- Color-coded by allocation percentage
-- Quick overview of who's working on what
-- Export to Excel
-
-**API endpoints already available:**
-- GET /api/dashboard/summary - ✅
-- GET /api/dashboard/workload-report - ✅
-- GET /api/projects (with filters) - ✅
-- GET /api/staff (with filters) - ✅
-
-### 3. Data Export Functionality (1 hour) - LOW PRIORITY
-
-**What needs to be built:**
-
-**A. Export to Excel**
-- Export projects list
-- Export staff list
-- Export assignments
-- Export reports
-- Use library: `xlsx` or `exceljs`
-
-**B. Export to PDF** (Optional)
-- Generate PDF reports
-- Use library: `jspdf` or `react-pdf`
-
-### 4. Testing & Launch (1 hour)
-- Test all functionality
-- Test assignment management
-- Test reporting features
-- Verify exports working
-- User acceptance testing
-- Change default admin password
-- Train users
-- Go live!
-
----
-
-## 💰 Estimated Costs
-
-### Development Time Remaining
-- Frontend components: 4-6 hours
-- Testing: 1 hour
-- **Total: 5-7 hours** to complete
-
-### Hosting (Monthly)
-**Railway.app:**
-- Hobby plan: $5/month (includes $5 credit)
-- Database: Included
-- **Estimated: $5-10/month** for small team usage
-
-**Alternative (Vercel + Railway):**
-- Vercel (frontend): Free
-- Railway (backend + DB): $5-10/month
-- **Total: $5-10/month**
-
----
-
-## 📦 Deliverables Summary
-
-### Completed Deliverables
-
-1. ✅ **Backend API** - Full REST API, production-ready
-2. ✅ **Database Schema** - PostgreSQL with Prisma, fully normalized
-3. ✅ **Authentication System** - JWT with role-based access
-4. ✅ **Data Migration Script** - Excel import automation
-5. ✅ **Documentation** - 3 comprehensive documents (120+ pages)
-6. ✅ **Deployment Configuration** - Railway.app ready
-7. ✅ **Frontend Foundation** - React + TypeScript + MUI scaffolding
-8. ✅ **Type Definitions** - Complete TypeScript types
-9. ✅ **API Client** - Axios with auth interceptors
-10. ✅ **Project Structure** - Professional folder organization
-
-### Remaining Deliverables
-
-1. ⏳ **Frontend Components** - React UI components
-2. ⏳ **Frontend Deployment** - Deploy to hosting platform
-3. ⏳ **End-to-end Testing** - Full system testing
-4. ⏳ **User Training** - Staff onboarding
-
----
-
-## 🔥 What You Can Do Right Now
-
-### Option A: Deploy Backend Only
-**Time: 30 minutes**
-
-1. Push code to GitHub
-2. Deploy to Railway.app
-3. Import Excel data
-4. Use API directly (Postman, etc.)
-
-**Benefit:** Backend is live, can be tested, data is migrated
-
-### Option B: Complete Frontend First
-**Time: 6 hours**
-
-1. Build React components (I can help with this!)
-2. Test locally with backend
-3. Deploy both simultaneously
-
-**Benefit:** Full application ready to go
-
-### Option C: Hybrid Approach
-**Time: 1 hour + ongoing**
-
-1. Deploy backend now (30 min)
-2. Build frontend incrementally (30 min per feature)
-3. Deploy frontend as features complete
-
-**Benefit:** Backend live immediately, frontend rolls out progressively
-
----
-
-## 🎓 How to Continue
-
-### If you want to deploy backend now:
-
-```bash
-# Initialize git
-cd /home/timlihk/staffing-tracker
-git init
-git add .
-git commit -m "Initial commit: Backend complete, frontend in progress"
-
-# Push to GitHub (create repo first)
-git remote add origin https://github.com/YOUR_USERNAME/staffing-tracker.git
-git push -u origin main
-
-# Then follow DEPLOYMENT_GUIDE.md for Railway setup
+```
+GitHub (main branch)
+  ↓ auto-deploy on push
+Railway.app
+  ├── Backend Service (Express.js)
+  │     Port 3000, Node.js
+  ├── Frontend Service (Vite build → static)
+  │     Served via Railway
+  ├── Worker Service (node-cron)
+  │     Daily reminders, milestone sweeps
+  └── PostgreSQL Database
+        Hourly backups → GitHub Actions artifacts (3-day retention)
 ```
 
-### If you want to complete frontend first:
+---
 
-I can help you build the frontend components! Just let me know and I'll create:
-1. Login page
-2. Dashboard with charts
-3. Project management pages
-4. Staff management pages
-5. All necessary UI components
+## Remaining Enhancements (Low Priority)
 
-### If you want to customize:
+These are optional improvements — the application is fully functional in production:
 
-- Backend code is in `/backend/src/`
-- All controllers are well-documented
-- TypeScript types are defined
-- Easy to modify and extend
+- [ ] Advanced full-text search
+- [ ] Password strength requirements
+- [ ] Rate limiting for auth endpoints
+- [ ] PDF export (currently Excel-only)
+- [ ] CI/CD pipeline with automated tests
+- [ ] APM / production monitoring integration
 
 ---
 
-## 📞 Summary
+## Version History
 
-**What we've built:**
-- Production-ready backend API
-- Complete database design
-- Data migration solution
-- Frontend foundation
-- Comprehensive documentation
-
-**What's needed:**
-- Frontend UI components (4-6 hours)
-- Deployment (30-45 minutes)
-- Testing (1 hour)
-
-**Total project completion: ~85%**
-
-**Backend deployment readiness: 100%** ✅
-
----
-
-Ready to proceed? Let me know if you want to:
-1. Deploy the backend to Railway right now
-2. Build the frontend components together
-3. Both!
+| Version | Date | Highlights |
+|---------|------|-----------|
+| v5.1.0 | Feb 2026 | Control Tower, milestone detection, guides, performance optimizations, B&C access |
+| v5.0.0 | Feb 2026 | Billing Excel sync engine, unmatched C/M creation, auto-linking, sync reports |
+| v1.6.0 | Jan 2026 | Controller refactoring, type safety, health monitoring, test suite |
+| v1.5.0 | Oct 2025 | Weekly review, email settings, deal radar, partner reminders, Excel export |
+| v1.0.0 | Oct 2025 | Initial release — full staffing CRUD, dashboard, authentication |
