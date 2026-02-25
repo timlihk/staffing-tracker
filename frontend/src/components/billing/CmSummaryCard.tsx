@@ -2,7 +2,7 @@ import { Box, Paper, Stack, Chip, Divider, Typography, IconButton, Tooltip } fro
 import { Edit as EditIcon } from '@mui/icons-material';
 import { alpha, type Theme } from '@mui/material/styles';
 import { InfoField } from './InfoField';
-import { formatDate, formatDateYmd, formatCurrencyWholeWithFallback } from '../../lib/billing/utils';
+import { formatDate, formatCurrencyWholeWithFallback } from '../../lib/billing/utils';
 import { formatCurrency } from '../../lib/currency';
 import type {
   BillingProjectSummaryResponse,
@@ -40,7 +40,6 @@ export interface CmSummaryCardProps {
  * Displays key metrics for a specific C/M number including:
  * - C/M status and dates
  * - Financial metrics (agreed fee, billing, collection, UBT)
- * - Long stop date
  */
 export function CmSummaryCard({
   project,
@@ -54,8 +53,6 @@ export function CmSummaryCard({
   const statusNormalized = (cm?.status || '').trim().toLowerCase();
   const statusColor: 'default' | 'success' | 'warning' =
     statusNormalized === 'closed' ? 'default' : statusNormalized === 'active' ? 'success' : 'warning';
-
-  const longStopDate = detail?.feeArrangement?.lsd_date || null;
 
   const agreedFeeValue =
     detail?.total_agreed_fee_value ??
@@ -107,7 +104,6 @@ export function CmSummaryCard({
           <InfoField label="B&C Attorney" value={project.bc_attorney_name || '—'} loading={loading} />
           <InfoField label="Opened" value={formatDate(cm?.open_date)} loading={loading} />
           <InfoField label="Closed" value={formatDate(cm?.closed_date)} loading={loading} />
-          <InfoField label="Long Stop Date" value={formatDateYmd(longStopDate)} loading={loading} />
           <InfoField
             label="Agreed Fee"
             value={formatCurrency(agreedFeeValue ?? null, agreedFeeCurrency ?? null)}
