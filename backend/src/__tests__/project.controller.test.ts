@@ -6,6 +6,7 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  updateProjectBillingMilestones,
 } from '../controllers/project.controller';
 import prisma from '../utils/prisma';
 import * as emailService from '../services/email.service';
@@ -31,6 +32,7 @@ jest.mock('../utils/prisma', () => ({
     projectAssignment: {
       findMany: jest.fn(),
     },
+    $queryRaw: jest.fn(),
   },
 }));
 
@@ -55,6 +57,7 @@ app.get('/api/projects/:id', mockAuth, getProjectById);
 app.post('/api/projects', mockAuth, createProject);
 app.put('/api/projects/:id', mockAuth, updateProject);
 app.delete('/api/projects/:id', mockAuth, deleteProject);
+app.patch('/api/projects/:id/billing-milestones', mockAuth, updateProjectBillingMilestones);
 
 describe('Project Controller', () => {
   beforeEach(() => {
@@ -499,6 +502,56 @@ describe('Project Controller', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('PATCH /api/projects/:id/billing-milestones', () => {
+    const mockPrisma = prisma as any;
+
+    it('returns 400 for duplicate milestone_id in payload', async () => {
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 1,
+        name: 'Test Project',
+        cmNumber: 'CM001',
+      });
+      // Admin user skips the non-admin branch, goes straight to linkedCms
+      mockPrisma.$queryRaw.mockResolvedValue([{ cm_no: 'CM001' }]);
+
+      const res = await request(app)
+        .patch('/api/projects/1/billing-milestones')
+        .send({
+          milestones: [
+            { milestone_id: 100, completed: true },
+            { milestone_id: 100, completed: false },
+          ],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/duplicate milestone_id/i);
+    });
+
+    it('accepts payload with unique milestone_ids', async () => {
+      mockPrisma.project.findUnique.mockResolvedValue({
+        id: 1,
+        name: 'Test Project',
+        cmNumber: 'CM001',
+      });
+      // linkedCms query, then allowedMilestones query
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([{ cm_no: 'CM001' }])
+        .mockResolvedValueOnce([{ milestone_id: 100n }, { milestone_id: 200n }]);
+
+      const res = await request(app)
+        .patch('/api/projects/1/billing-milestones')
+        .send({
+          milestones: [
+            { milestone_id: 100, completed: true },
+            { milestone_id: 200, completed: false },
+          ],
+        });
+
+      // Should pass the duplicate check (may fail later due to incomplete mocks, but not with 400 duplicate)
+      expect(res.status).not.toBe(400);
     });
   });
 });

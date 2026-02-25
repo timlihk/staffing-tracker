@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -130,24 +130,25 @@ const StaffingHeatmapCard = ({ days, onSelectStaff }: StaffingHeatmapCardProps) 
     });
   };
 
-  const getSortedRows = useCallback((rows: DashboardSummary['staffingHeatmap'], groupLabel: string) => {
-    const config = sortConfig[groupLabel];
-    if (!config) {
-      // Default: sort by name alphabetically
-      return [...rows].sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    return [...rows].sort((a, b) => {
-      if (config.field === 'name') {
-        return config.order === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+  const sortedRowsByGroup = useMemo(() => {
+    const map = new Map<string, DashboardSummary['staffingHeatmap']>();
+    for (const group of groups) {
+      const config = sortConfig[group.label];
+      if (!config) {
+        map.set(group.label, [...group.rows].sort((a, b) => a.name.localeCompare(b.name)));
+      } else {
+        map.set(group.label, [...group.rows].sort((a, b) => {
+          if (config.field === 'name') {
+            return config.order === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+          }
+          const weekA = a.weeks.find((w) => w.week === config.field)?.count ?? 0;
+          const weekB = b.weeks.find((w) => w.week === config.field)?.count ?? 0;
+          return config.order === 'asc' ? weekA - weekB : weekB - weekA;
+        }));
       }
-
-      // Sorting by week column
-      const weekA = a.weeks.find((w) => w.week === config.field)?.count ?? 0;
-      const weekB = b.weeks.find((w) => w.week === config.field)?.count ?? 0;
-      return config.order === 'asc' ? weekA - weekB : weekB - weekA;
-    });
-  }, [sortConfig]);
+    }
+    return map;
+  }, [groups, sortConfig]);
 
   return (
     <Paper sx={{ p: 2.5, flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -252,7 +253,7 @@ const StaffingHeatmapCard = ({ days, onSelectStaff }: StaffingHeatmapCardProps) 
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {getSortedRows(group.rows, group.label).map((row) => (
+                      {(sortedRowsByGroup.get(group.label) ?? group.rows).map((row) => (
                         <TableRow
                           key={row.staffId}
                           hover
