@@ -11,16 +11,19 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
 import { isAxiosError } from 'axios';
 import { Page, PageHeader, Section } from '../components/ui';
+import { BillingExcelSyncPanel } from '../components/admin/BillingExcelSyncPanel';
 import {
   useBillingTriggers,
   useConfirmBillingTrigger,
@@ -81,6 +84,7 @@ const getErrorMessage = (error: unknown) => {
 };
 
 const BillingControlTower: React.FC = () => {
+  const [activeTab, setActiveTab] = useState(0);
   const [attorneyFilter, setAttorneyFilter] = useState<number | undefined>(undefined);
   const [minAmount, setMinAmount] = useState<number | undefined>(undefined);
   const [triggerStatus, setTriggerStatus] = useState<'pending' | 'confirmed' | 'rejected' | 'all'>('pending');
@@ -255,10 +259,25 @@ const BillingControlTower: React.FC = () => {
     <Page>
       <PageHeader
         title="Billing Control Tower"
-        subtitle="Manager view of overdue exposure, trigger operations, and B&C accountability"
+        subtitle="Central hub for billing operations, oversight, and finance data sync"
       />
 
-      {isLoading ? (
+      <Paper sx={{ mb: 2 }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="Management View" />
+          <Tab label="Finance View" />
+        </Tabs>
+      </Paper>
+
+      {activeTab === 1 && (
+        <Stack spacing={2.5}>
+          <Section>
+            <BillingExcelSyncPanel />
+          </Section>
+        </Stack>
+      )}
+
+      {activeTab === 0 && (isLoading ? (
         <Section>
           <Box display="flex" justifyContent="center" py={6}>
             <CircularProgress />
@@ -501,7 +520,7 @@ const BillingControlTower: React.FC = () => {
             </Table>
           </Section>
         </Stack>
-      )}
+      ))}
 
       <Dialog open={!!editingTrigger} onClose={closeActionEditor} maxWidth="sm" fullWidth>
         <DialogTitle>
