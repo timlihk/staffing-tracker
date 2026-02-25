@@ -143,7 +143,6 @@ const DealRadarCard = ({
   }, [groups]);
 
   // Memoize to prevent re-creating the component on every render
-  // eslint-disable-next-line react/no-unstable-nested-components
   const CustomDay = useCallback((props: PickersDayProps) => {
     const { day, outsideCurrentMonth, ...other } = props;
     // Format date in local timezone to avoid UTC conversion issues

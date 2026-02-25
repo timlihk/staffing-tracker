@@ -115,24 +115,28 @@ export class BillingMilestoneDateSweepService {
       }
     }
 
-    // Persist auto-links to DB (skip in dry-run; ON CONFLICT makes this idempotent)
+    const BATCH_SIZE = 10;
+
+    // Persist auto-links to DB in bounded batches (skip in dry-run)
     if (!dryRun && autoLinkedProjectIds.size > 0) {
-      await Promise.all(
-        [...autoLinkedProjectIds].map((bpId) =>
-          prisma.$executeRaw(Prisma.sql`
-            INSERT INTO billing_staffing_project_link (
-              billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
-            ) VALUES (
-              ${bpId}, ${linkMap.get(bpId)!}, ${1.0}, NOW(),
-              ${'Auto-linked by milestone due-date sweep via C/M number'}
-            ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
-          `)
-        )
-      );
+      const autoLinkBatch = [...autoLinkedProjectIds];
+      for (let i = 0; i < autoLinkBatch.length; i += BATCH_SIZE) {
+        await Promise.all(
+          autoLinkBatch.slice(i, i + BATCH_SIZE).map((bpId) =>
+            prisma.$executeRaw(Prisma.sql`
+              INSERT INTO billing_staffing_project_link (
+                billing_project_id, staffing_project_id, auto_match_score, linked_at, notes
+              ) VALUES (
+                ${bpId}, ${linkMap.get(bpId)!}, ${1.0}, NOW(),
+                ${'Auto-linked by milestone due-date sweep via C/M number'}
+              ) ON CONFLICT (billing_project_id, staffing_project_id) DO NOTHING
+            `)
+          )
+        );
+      }
     }
 
     // Process candidates in parallel batches
-    const BATCH_SIZE = 10;
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
