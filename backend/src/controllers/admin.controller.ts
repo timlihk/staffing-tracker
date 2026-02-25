@@ -292,8 +292,9 @@ export async function updateBillingFinancials(req: AuthRequest, res: Response) {
     });
 
     let matchedCount = 0;
-    let updatedCount = 0;
 
+    // Build all updates, then execute in a single transaction instead of N individual updates
+    const updates: Array<{ cm_id: bigint; data: any }> = [];
     for (const cmRecord of allCmNos) {
       const cmNo = cmRecord.cm_no.trim();
       const excelData = excelMap.get(cmNo);
@@ -301,7 +302,7 @@ export async function updateBillingFinancials(req: AuthRequest, res: Response) {
       if (excelData) {
         matchedCount++;
         const updateData: any = { financials_updated_at: new Date() };
-        
+
         const billingValue = excelData.billingUsd || excelData.feesUsd;
         if (billingValue > 0) updateData.billing_to_date_usd = billingValue;
         if (excelData.collectionUsd > 0) updateData.collected_to_date_usd = excelData.collectionUsd;
@@ -309,13 +310,21 @@ export async function updateBillingFinancials(req: AuthRequest, res: Response) {
         if (excelData.ubtUsd > 0) updateData.ubt_usd = excelData.ubtUsd;
 
         if (Object.keys(updateData).length > 1) {
-          await prisma.billing_project_cm_no.update({
-            where: { cm_id: cmRecord.cm_id },
-            data: updateData
-          });
-          updatedCount++;
+          updates.push({ cm_id: cmRecord.cm_id, data: updateData });
         }
       }
+    }
+
+    const updatedCount = updates.length;
+    if (updatedCount > 0) {
+      await prisma.$transaction(
+        updates.map((u) =>
+          prisma.billing_project_cm_no.update({
+            where: { cm_id: u.cm_id },
+            data: u.data,
+          })
+        )
+      );
     }
 
     logger.info(`Billing financials update complete: ${matchedCount} matched, ${updatedCount} updated`);
