@@ -63,10 +63,16 @@ export const getCached = <T>(key: string): T | null => {
 };
 
 export const setCached = <T>(key: string, data: T): void => {
-  // Clean up if cache is too large
+  // Clean up if cache is too large — O(n) min-scan instead of O(n log n) sort
   if (cache.size >= MAX_CACHE_SIZE) {
-    const oldestKey = Array.from(cache.entries())
-      .sort(([, a], [, b]) => a.timestamp - b.timestamp)[0]?.[0];
+    let oldestKey: string | undefined;
+    let oldestTimestamp = Infinity;
+    for (const [k, v] of cache.entries()) {
+      if (v.timestamp < oldestTimestamp) {
+        oldestTimestamp = v.timestamp;
+        oldestKey = k;
+      }
+    }
     if (oldestKey) {
       cache.delete(oldestKey);
       cacheStats.evictions++;
@@ -81,9 +87,9 @@ export const setCached = <T>(key: string, data: T): void => {
 };
 
 export const invalidateCache = (pattern: string): void => {
-  const cacheKey = getCacheKey(pattern);
+  const sanitized = sanitizeCacheKey(pattern);
   for (const key of cache.keys()) {
-    if (key.includes(pattern)) {
+    if (key.includes(sanitized)) {
       cache.delete(key);
     }
   }
