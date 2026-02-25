@@ -17,7 +17,7 @@ import {
   DeleteOutline as DeleteOutlineIcon,
 } from '@mui/icons-material';
 import { Page, PageHeader } from '../components/ui';
-import { CmSummaryCard, EngagementCard, EngagementFormCard, BillingInfoEditDialog, DeleteConfirmDialog, BillingChangeLog, BillingNotesSection, type BillingInfoFormData } from '../components/billing';
+import { CmSummaryCard, EngagementCard, EngagementFormCard, BillingInfoEditDialog, DeleteConfirmDialog, BillingChangeLog, type BillingInfoFormData } from '../components/billing';
 import { useBillingProjectSummary, useDeleteProject, useUpdateBillingProject } from '../hooks/useBilling';
 import { parseEngagementId } from '../lib/billing/utils';
 import { usePermissions } from '../hooks/usePermissions';
@@ -158,6 +158,7 @@ export default function BillingMatterDetail() {
                 projectId={projectId}
                 cmId={selectedCmId}
                 engagement={engagement}
+                cm={selectedCm}
               />
             ))
           )}
@@ -180,12 +181,6 @@ export default function BillingMatterDetail() {
               </Button>
             )
           )}
-
-          <BillingNotesSection
-            projectId={projectId}
-            cm={selectedCm}
-            canEdit={permissions.isAdmin}
-          />
 
           <BillingChangeLog projectId={projectId} />
         </Stack>

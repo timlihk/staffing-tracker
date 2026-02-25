@@ -22,6 +22,7 @@ import type { BillingProjectCM } from '../../api/billing';
 export interface BillingNotesSectionProps {
   projectId: number;
   cm: BillingProjectCM | null;
+  engagementId?: number;
   canEdit: boolean;
 }
 
@@ -50,8 +51,8 @@ function buildFinanceNoteContent(cm: BillingProjectCM | null): string | null {
   return parts.length > 0 ? parts.join('\n') : null;
 }
 
-export function BillingNotesSection({ projectId, cm, canEdit }: BillingNotesSectionProps) {
-  const { data: notes, isLoading } = useBillingNotes(projectId);
+export function BillingNotesSection({ projectId, cm, engagementId, canEdit }: BillingNotesSectionProps) {
+  const { data: notes, isLoading } = useBillingNotes(projectId, engagementId);
   const createNote = useCreateBillingNote();
   const [newNote, setNewNote] = useState('');
 
@@ -62,7 +63,7 @@ export function BillingNotesSection({ projectId, cm, canEdit }: BillingNotesSect
   const handleSubmit = async () => {
     const trimmed = newNote.trim();
     if (!trimmed) return;
-    await createNote.mutateAsync({ projectId, content: trimmed });
+    await createNote.mutateAsync({ projectId, content: trimmed, engagementId });
     setNewNote('');
   };
 

@@ -41,7 +41,7 @@ export const billingKeys = {
   financeSummary: (params?: Record<string, unknown>) => [...billingKeys.all, 'finance-summary', params ?? {}] as const,
   longStopRisks: (params?: Record<string, unknown>) => [...billingKeys.all, 'long-stop-risks', params ?? {}] as const,
   unpaidInvoices: (params?: Record<string, unknown>) => [...billingKeys.all, 'unpaid-invoices', params ?? {}] as const,
-  notes: (id: number) => [...billingKeys.all, 'project', id, 'notes'] as const,
+  notes: (id: number, engagementId?: number) => [...billingKeys.all, 'project', id, 'notes', engagementId ?? 'all'] as const,
 };
 
 // Get all billing projects
@@ -629,10 +629,10 @@ export function useUpdateTriggerActionItem() {
   });
 }
 
-export function useBillingNotes(projectId: number) {
+export function useBillingNotes(projectId: number, engagementId?: number) {
   return useQuery({
-    queryKey: billingKeys.notes(projectId),
-    queryFn: () => billingApi.getBillingNotes(projectId),
+    queryKey: billingKeys.notes(projectId, engagementId),
+    queryFn: () => billingApi.getBillingNotes(projectId, engagementId),
     enabled: !!projectId,
     staleTime: 30 * 1000,
   });
@@ -641,10 +641,10 @@ export function useBillingNotes(projectId: number) {
 export function useCreateBillingNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ projectId, content }: { projectId: number; content: string }) =>
-      billingApi.createBillingNote(projectId, content),
+    mutationFn: ({ projectId, content, engagementId }: { projectId: number; content: string; engagementId?: number }) =>
+      billingApi.createBillingNote(projectId, content, engagementId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: billingKeys.notes(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: billingKeys.notes(variables.projectId, variables.engagementId) });
       toast.success('Note added');
     },
     onError: (error: unknown) => {

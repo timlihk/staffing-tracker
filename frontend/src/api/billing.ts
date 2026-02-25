@@ -72,6 +72,7 @@ export interface BillingNote {
   id: number;
   project_id: number;
   cm_id: number | null;
+  engagement_id: number | null;
   author_name: string;
   author_id: number;
   content: string;
@@ -774,12 +775,13 @@ export const getUnpaidInvoices = async (params?: {
   return response.data;
 };
 
-export const getBillingNotes = async (projectId: number): Promise<BillingNote[]> => {
-  const response = await apiClient.get(`/billing/projects/${projectId}/notes`);
+export const getBillingNotes = async (projectId: number, engagementId?: number): Promise<BillingNote[]> => {
+  const params = engagementId ? { engagement_id: engagementId } : undefined;
+  const response = await apiClient.get(`/billing/projects/${projectId}/notes`, { params });
   return response.data;
 };
 
-export const createBillingNote = async (projectId: number, content: string): Promise<BillingNote> => {
-  const response = await apiClient.post(`/billing/projects/${projectId}/notes`, { content });
+export const createBillingNote = async (projectId: number, content: string, engagementId?: number): Promise<BillingNote> => {
+  const response = await apiClient.post(`/billing/projects/${projectId}/notes`, { content, engagement_id: engagementId });
   return response.data;
 };

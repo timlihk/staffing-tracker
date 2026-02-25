@@ -21,6 +21,7 @@ import { MilestoneReferenceDialog } from './MilestoneReferenceDialog';
 import { MilestoneFormDialog } from './MilestoneFormDialog';
 import { MilestoneDeleteDialog } from './MilestoneDeleteDialog';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { BillingNotesSection } from './BillingNotesSection';
 import {
   useUpdateFeeArrangement,
   useUpdateMilestones,
@@ -41,7 +42,7 @@ import {
   type Milestone,
   type MilestoneFormState,
 } from '../../lib/billing/utils';
-import type { EngagementDetailResponse } from '../../api/billing';
+import type { EngagementDetailResponse, BillingProjectCM } from '../../api/billing';
 
 const cardSx = {
   p: { xs: 2.5, md: 3 },
@@ -51,9 +52,10 @@ export interface EngagementCardProps {
   projectId: number;
   cmId: number | null;
   engagement: EngagementDetailResponse;
+  cm: BillingProjectCM | null;
 }
 
-export function EngagementCard({ projectId, cmId, engagement }: EngagementCardProps) {
+export function EngagementCard({ projectId, cmId, engagement, cm }: EngagementCardProps) {
   const permissions = usePermissions();
   const [expanded, setExpanded] = useState(false);
 
@@ -375,6 +377,16 @@ export function EngagementCard({ projectId, cmId, engagement }: EngagementCardPr
                 onAdd={() => handleOpenMilestoneDialog('add')}
                 onEdit={(milestone) => handleOpenMilestoneDialog('edit', milestone)}
                 onDelete={handleOpenDeleteDialog}
+              />
+
+              <Divider />
+
+              {/* Notes section */}
+              <BillingNotesSection
+                projectId={projectId}
+                cm={cm}
+                engagementId={engagement.engagement_id}
+                canEdit={permissions.isAdmin}
               />
             </Stack>
           </Collapse>

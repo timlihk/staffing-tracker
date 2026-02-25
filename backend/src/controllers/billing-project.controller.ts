@@ -948,8 +948,15 @@ export async function getBillingNotes(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 
+    const engagementId = req.query.engagement_id ? parseInt(String(req.query.engagement_id), 10) : undefined;
+
+    const where: Record<string, unknown> = { project_id: projectId };
+    if (engagementId && !isNaN(engagementId)) {
+      where.engagement_id = engagementId;
+    }
+
     const notes = await prisma.billing_note.findMany({
-      where: { project_id: projectId },
+      where,
       include: {
         author: { select: { id: true, username: true } },
       },
@@ -960,6 +967,7 @@ export async function getBillingNotes(req: AuthRequest, res: Response) {
       id: n.id,
       project_id: Number(n.project_id),
       cm_id: n.cm_id ? Number(n.cm_id) : null,
+      engagement_id: n.engagement_id ? Number(n.engagement_id) : null,
       author_name: n.author.username,
       author_id: n.author.id,
       content: n.content,
@@ -982,7 +990,7 @@ export async function createBillingNote(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 
-    const { content, cm_id } = req.body;
+    const { content, cm_id, engagement_id } = req.body;
     if (!content || typeof content !== 'string' || !content.trim()) {
       return res.status(400).json({ error: 'Note content is required' });
     }
@@ -991,6 +999,7 @@ export async function createBillingNote(req: AuthRequest, res: Response) {
       data: {
         project_id: projectId,
         cm_id: cm_id ? BigInt(cm_id) : null,
+        engagement_id: engagement_id ? BigInt(engagement_id) : null,
         author_id: req.user!.userId,
         content: content.trim(),
       },
@@ -1003,6 +1012,7 @@ export async function createBillingNote(req: AuthRequest, res: Response) {
       id: note.id,
       project_id: Number(note.project_id),
       cm_id: note.cm_id ? Number(note.cm_id) : null,
+      engagement_id: note.engagement_id ? Number(note.engagement_id) : null,
       author_name: note.author.username,
       author_id: note.author.id,
       content: note.content,
