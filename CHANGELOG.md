@@ -2,6 +2,45 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [5.3.0] - 2026-02-26
+
+### Finance Role
+
+#### New "Finance" User Role
+- **Role-based access**: New `finance` role sits alongside `admin`, `editor`, and `viewer` — designed to clarify team membership so it's clear "who's who"
+- **Full billing authority**: Finance users have the same read/write access to all billing data as admins — can confirm milestones, issue invoices, track collections, upload Excel syncs, and manage billing projects
+- **Full project authority**: Finance users can create, edit, and delete projects and assignments (same level as admin for project data)
+- **Control Tower access**: Finance users see the Finance View and My Projects tabs; Management View is hidden by default but can be enabled per the toggle below
+- **Management View toggle**: New "Finance Management View" switch in Admin > Billing Settings lets admins grant finance users access to the Management View tab
+- **User management remains admin-only**: Only admins can create/edit users and modify billing settings
+
+#### Backend Changes
+- Added `FINANCE` to `UserRole` constants and `ALLOWED_ROLES`
+- New `adminOrFinance` middleware in billing routes (replaces `adminOnly` on 24+ endpoints; settings PATCH stays admin-only)
+- `checkBillingAccess` middleware now lets finance bypass billing module checks (like admin)
+- Project and assignment routes updated: `authorize('admin', 'editor')` → `authorize('admin', 'finance', 'editor')`
+- Project delete: `authorize('admin')` → `authorize('admin', 'finance')`
+- New `finance_management_view_enabled` column on `billing_access_settings` table
+- Billing settings controller handles the new column in GET/PATCH
+
+#### Frontend Changes
+- `usePermissions` hook: new `isFinance` flag; updated `canCreateProject`, `canEditProject`, `canDeleteProject`, `canEditBillingMilestones`, and all assignment permissions
+- New `AdminOrFinanceRoute` component for Control Tower and sync routes
+- `AdminOrBcAttorneyRoute` updated to include finance
+- Sidebar: Control Tower visible for finance users
+- Control Tower: dynamic tab array (`tabs[]`) replaces hardcoded index math — Finance View and My Projects always visible; Management View conditional on settings toggle
+- User Management: Finance option added to role dropdown
+- Billing Settings Panel: new "Finance Management View" toggle
+- Validation schemas updated across frontend and backend
+
+#### Database Migration
+- `20260226000000_add_finance_management_view_enabled` — adds `finance_management_view_enabled BOOLEAN DEFAULT false` to `billing_access_settings`
+
+### Files Changed
+- 18 files modified across backend and frontend
+
+---
+
 ## [5.2.0] - 2026-02-26
 
 ### Performance, Reliability & UX Polish

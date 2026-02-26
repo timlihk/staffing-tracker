@@ -40,7 +40,14 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ### 🎉 Recent Updates (Feb 2026)
 
-**Latest Release v5.2.0 — Performance, Reliability & UX Polish:**
+**Latest Release v5.3.0 — Finance Role:**
+- **New "Finance" user role** — Distinct from admin to clarify team membership; full read/write authority on all billing and project data
+- **Control Tower access** — Finance users see Finance View + My Projects tabs; can confirm milestones, issue invoices, and track collections
+- **Management View toggle** — New switch in Admin > Billing Settings allows admins to grant finance users access to the Management View tab
+- **Backend** — New `adminOrFinance` middleware on 24+ billing endpoints; project/assignment routes include finance; `finance_management_view_enabled` column on billing settings
+- **Frontend** — Dynamic tab rendering in Control Tower, `AdminOrFinanceRoute` for routing, finance option in user management, new billing settings toggle
+
+**Release v5.2.0 — Performance, Reliability & UX Polish:**
 - **Backend Performance** — Billing date sweep refactored to batch-prefetch architecture (3 upfront queries, O(1) lookups, bounded batch inserts) eliminating N+1 queries and race conditions
 - **Input Validation** — `parseInt` → `Number()` for strict numeric rejection; duplicate milestone_id detection
 - **Frontend Render Optimization** — `useCallback` / `useMemo` applied to DealRadarCard, InsightsPanel, and StaffingHeatmapCard to prevent unnecessary re-renders

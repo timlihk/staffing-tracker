@@ -333,8 +333,10 @@ export default function BestPracticeGuide() {
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isFinance = user?.role === 'finance';
+  const isAdminOrFinance = isAdmin || isFinance;
   const isBcAttorney = user?.staff?.position === 'B&C Working Attorney';
-  const canAccessControlTower = isAdmin || isBcAttorney;
+  const canAccessControlTower = isAdminOrFinance || isBcAttorney;
 
   const ALL_LANDING_SECTIONS: {
     key: SectionKey;
@@ -780,7 +782,7 @@ export default function BestPracticeGuide() {
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
                     Finance View
                   </Typography>
-                  <Chip label="Admin only" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Chip label="Admin + Finance" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
                   <Typography variant="body2" color="text.secondary">
                     Invoice issuance workflow: review triggered milestones → Confirm + Queue Invoice → Mark Invoice Sent.
                     Also tracks unpaid invoices 30+ days for collections follow-up.
@@ -792,10 +794,10 @@ export default function BestPracticeGuide() {
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
                     Management View
                   </Typography>
-                  <Chip label="Admin only" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Chip label="Admin (Finance if enabled)" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
                   <Typography variant="body2" color="text.secondary">
                     Portfolio oversight: monitors long stop date risks, overall billing pipeline, and unpaid invoices.
-                    Read-only view of the invoice queue for awareness.
+                    Read-only view of the invoice queue for awareness. Finance users see this tab only if enabled in Billing Settings.
                   </Typography>
                 </Box>
               </Grid>
@@ -804,7 +806,7 @@ export default function BestPracticeGuide() {
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
                     My Projects
                   </Typography>
-                  <Chip label="B&C Attorneys + Admin" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Chip label="All Control Tower users" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
                   <Typography variant="body2" color="text.secondary">
                     Shows triggered milestones, long stop date risks, and unpaid invoices filtered to your own projects.
                     Helps attorneys stay on top of billing activity for their matters.
@@ -1393,7 +1395,7 @@ export default function BestPracticeGuide() {
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <Callout n={4} />
                       <MockBtn label="+ Add Engagement" />
-                      <Typography variant="caption" fontSize="0.45rem" color="text.secondary">(Admin only)</Typography>
+                      <Typography variant="caption" fontSize="0.45rem" color="text.secondary">(Admin + Finance)</Typography>
                     </Stack>
                     {/* Change log */}
                     <Stack direction="row" spacing={0.5} alignItems="center">
@@ -1427,8 +1429,8 @@ export default function BestPracticeGuide() {
       <Box id={SECTION_IDS.howToControlTower} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<DevicesOther sx={{ color: tokens.colors.violet[500] }} />} label="How To — Control Tower" />}>
           <Stack spacing={3}>
-            {/* Guide 1: Finance View — Invoice Queue (admin only) */}
-            {isAdmin && <GuideCard title="Finance View — Process the Invoice Queue">
+            {/* Guide 1: Finance View — Invoice Queue (admin + finance) */}
+            {isAdminOrFinance && <GuideCard title="Finance View — Process the Invoice Queue">
               <Stack spacing={2}>
                 <ScreenFrame title="Control Tower — Finance View">
                   <Stack spacing={1}>
@@ -1528,8 +1530,8 @@ export default function BestPracticeGuide() {
               </Stack>
             </GuideCard>}
 
-            {/* Guide 1b: Finance View — Excel Upload (admin only) */}
-            {isAdmin && <GuideCard title="Finance View — Upload & Sync Excel Data">
+            {/* Guide 1b: Finance View — Excel Upload (admin + finance) */}
+            {isAdminOrFinance && <GuideCard title="Finance View — Upload & Sync Excel Data">
               <Stack spacing={2}>
                 <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
                   The Finance Excel Upload is now in <strong>Control Tower &gt; Finance View</strong>. It syncs billing data from the HKCM Project List Excel into the system — creating/updating billing projects, engagements, milestones, and financial figures.
@@ -1609,8 +1611,8 @@ export default function BestPracticeGuide() {
               </Stack>
             </GuideCard>}
 
-            {/* Guide 2: Management View (admin only) */}
-            {isAdmin && <GuideCard title="Management View — Monitor Portfolio Risks">
+            {/* Guide 2: Management View (admin + finance if enabled) */}
+            {isAdminOrFinance && <GuideCard title="Management View — Monitor Portfolio Risks">
               <Stack spacing={2}>
                 <ScreenFrame title="Control Tower — Management View">
                   <Stack spacing={1}>
@@ -1751,7 +1753,7 @@ export default function BestPracticeGuide() {
                   <StepItem n={3} text={<>The <strong>Unpaid Invoices</strong> section shows invoices 30+ days overdue on your matters. Coordinate with Finance for follow-up on collections.</>} />
                 </Stack>
                 <Alert severity="info" sx={{ mt: 1, '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
-                  B&C Working Attorneys and Admins can access the Control Tower from the sidebar. Finance View and Management View are admin-only.
+                  Admins, Finance users, and B&C Working Attorneys can access the Control Tower from the sidebar. Finance View is available to Admin and Finance roles. Management View is available to Admins (and Finance users if enabled in Billing Settings).
                 </Alert>
               </Stack>
             </GuideCard>
