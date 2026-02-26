@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Autocomplete,
   Box,
@@ -131,6 +130,50 @@ const sortLabelSx = {
 };
 
 // ---------------------------------------------------------------------------
+// Default column widths (pixels) for the resizable table
+// ---------------------------------------------------------------------------
+
+const DEFAULT_COL_WIDTHS = [100, 220, 140, 80, 100, 200, 100, 110, 120, 80, 80, 200];
+
+const COL_HEADERS = [
+  'C/M Number', 'Project Name', 'B&C Attorney', 'SCA', 'Fee (US$)',
+  'Milestone', 'Billing ($)', 'Collections ($)', 'Billing Credit ($)',
+  'UBT', 'AR', 'Notes',
+];
+
+const COL_ALIGNS: Array<'left' | 'right'> = [
+  'left', 'left', 'left', 'left', 'right',
+  'left', 'right', 'right', 'right',
+  'right', 'right', 'left',
+];
+
+// ---------------------------------------------------------------------------
+// Print helpers — build self-contained HTML for window.open()
+// ---------------------------------------------------------------------------
+
+const escHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const milestoneCellHtml = (row: BillingExportRow) => {
+  const ms = row.milestones ?? [];
+  if (!ms.length) return '\u2014';
+  const done = ms.filter((m) => m.completed).length;
+  const borderColor =
+    done === ms.length ? '#2e7d32' : done === 0 ? '#999' : '#ed6c02';
+  const chip = `<span style="display:inline-block;border:1px solid ${borderColor};border-radius:10px;padding:0 5px;font-size:7pt;margin-bottom:2px;">${done}/${ms.length}</span>`;
+  const items = ms
+    .map((m) => {
+      const dot = m.completed
+        ? '<span style="color:#2e7d32;">&#9679;</span>'
+        : '<span style="color:#bbb;">&#9675;</span>';
+      const color = m.completed ? '#666' : '#111';
+      return `<div style="padding:1px 0;">${dot} <span style="color:${color};">${escHtml(m.title)}</span></div>`;
+    })
+    .join('');
+  return chip + items;
+};
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -138,12 +181,6 @@ interface BillingExportDialogProps {
   open: boolean;
   onClose: () => void;
 }
-
-// ---------------------------------------------------------------------------
-// Body class name used by print.css to hide #root
-// ---------------------------------------------------------------------------
-
-const BODY_CLASS = 'billing-export-open';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -158,17 +195,39 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
   const [orderBy, setOrderBy] = useState<SortKey>('projectName');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Toggle body class so print.css can hide #root (more reliable than :has())
-  useEffect(() => {
-    if (open) {
-      document.body.classList.add(BODY_CLASS);
-    } else {
-      document.body.classList.remove(BODY_CLASS);
-    }
-    return () => {
-      document.body.classList.remove(BODY_CLASS);
+  // Column widths state (resizable via drag handles)
+  const [colWidths, setColWidths] = useState<number[]>(DEFAULT_COL_WIDTHS);
+  const colWidthsRef = useRef(colWidths);
+  colWidthsRef.current = colWidths;
+
+  // Column resize — stable callback via ref
+  const handleResizeStart = useCallback((colIdx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = colWidthsRef.current[colIdx];
+
+    const onMove = (ev: MouseEvent) => {
+      const newW = Math.max(40, startW + ev.clientX - startX);
+      setColWidths((prev) => {
+        const next = [...prev];
+        next[colIdx] = newW;
+        return next;
+      });
     };
-  }, [open]);
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
 
   // Build query params from filters
   const queryParams = useMemo(() => ({
@@ -225,9 +284,93 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     return parts.length ? parts.join('  |  ') : 'All Projects';
   }, [selectedAttorneys, selectedStatuses]);
 
+  // Print via new window — completely bypasses MUI Dialog portal issues
   const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
+    const totalW = colWidths.reduce((a, b) => a + b, 0);
+    const pctWidths = colWidths.map((w) => ((w / totalW) * 100).toFixed(1) + '%');
+
+    const colgroup = pctWidths.map((w) => `<col style="width:${w}"/>`).join('');
+
+    const headerCells = COL_HEADERS.map(
+      (h, i) => `<th style="text-align:${COL_ALIGNS[i]};">${escHtml(h)}</th>`,
+    ).join('');
+
+    const bodyRows = sortedRows
+      .map((row, idx) => {
+        const bg = idx % 2 === 0 ? '#fff' : '#f3f4f6';
+        const cells = [
+          `<td style="font-family:monospace;font-size:7pt;">${escHtml(row.cmNumbers || '\u2014')}</td>`,
+          `<td>${escHtml(row.projectName)}</td>`,
+          `<td>${escHtml(row.bcAttorneyName)}</td>`,
+          `<td>${escHtml(row.sca || '\u2014')}</td>`,
+          `<td style="text-align:right;">${row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}</td>`,
+          `<td style="vertical-align:top;">${milestoneCellHtml(row)}</td>`,
+          `<td style="text-align:right;">${fmt.format(row.billingUsd)}</td>`,
+          `<td style="text-align:right;">${fmt.format(row.collectionUsd)}</td>`,
+          `<td style="text-align:right;">${row.billingCreditUsd ? fmt.format(row.billingCreditUsd) : '\u2014'}</td>`,
+          `<td style="text-align:right;">${row.ubtUsd ? fmt.format(row.ubtUsd) : '\u2014'}</td>`,
+          `<td style="text-align:right;">${row.arUsd ? fmt.format(row.arUsd) : '\u2014'}</td>`,
+          `<td style="font-size:7pt;">${escHtml(row.notes || '\u2014')}</td>`,
+        ].join('');
+        return `<tr style="background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">${cells}</tr>`;
+      })
+      .join('');
+
+    let totalsHtml = '';
+    if (totals) {
+      totalsHtml = `<tr style="background:#f1f5f9;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+        <td></td>
+        <td><strong>Total (${rows.length} projects)</strong></td>
+        <td></td><td></td>
+        <td style="text-align:right;border-top:2px solid #1e3a5f;">${fmtFull.format(totals.agreedFeeUsd)}</td>
+        <td></td>
+        <td style="text-align:right;border-top:2px solid #1e3a5f;">${fmtFull.format(totals.billingUsd)}</td>
+        <td style="text-align:right;border-top:2px solid #1e3a5f;">${fmtFull.format(totals.collectionUsd)}</td>
+        <td style="text-align:right;border-top:2px solid #1e3a5f;">${fmtFull.format(totals.billingCreditUsd)}</td>
+        <td style="text-align:right;border-top:2px solid #1e3a5f;">${fmtFull.format(totals.ubtUsd)}</td>
+        <td style="text-align:right;border-top:2px solid #1e3a5f;">${fmtFull.format(totals.arUsd)}</td>
+        <td></td>
+      </tr>`;
+    }
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><title>Billing Report</title>
+<style>
+@page{margin:10mm;size:landscape}
+body{font-family:Arial,Helvetica,sans-serif;font-size:8pt;margin:0;padding:10px}
+h2{font-size:14pt;margin:0 0 4px}
+.sub{color:#666;font-size:9pt;margin-bottom:2px}
+.gen{color:#999;font-size:7pt;margin-bottom:8px}
+hr{border:0;border-top:1px solid #ddd;margin:4px 0 8px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{background:#1e3a5f;color:#fff;font-weight:700;font-size:7pt;padding:4px 5px;border:1px solid #94a3b8;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+td{border:1px solid #e5e7eb;padding:3px 5px;font-size:8pt;word-wrap:break-word;overflow-wrap:break-word}
+tr{page-break-inside:avoid}
+.ft{margin-top:16px;padding-top:8px;border-top:1px solid #ccc;font-size:7pt;color:#999}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+</style></head><body>
+<h2>Billing Control Tower Report</h2>
+<div class="sub">${escHtml(subtitle)}</div>
+<div class="gen">Generated: ${new Date().toLocaleString()}</div><hr/>
+<table><colgroup>${colgroup}</colgroup>
+<thead><tr>${headerCells}</tr></thead>
+<tbody>${bodyRows}${totalsHtml}</tbody>
+</table>
+<div class="ft">Kirkland &amp; Ellis - Billing Control Tower Report</div>
+</body></html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) {
+      alert('Please allow popups for this site to print the report.');
+      return;
+    }
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => {
+      win.focus();
+      win.print();
+    }, 300);
+  }, [sortedRows, totals, subtitle, colWidths, rows.length]);
 
   const handleCsvExport = useCallback(() => {
     if (!rows.length) return;
@@ -247,7 +390,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     </TableSortLabel>
   );
 
-  // ----- Render milestone cell content (shared between screen + print) -----
+  // Render milestone cell content for the on-screen table
   const renderMilestoneCell = (row: BillingExportRow) => {
     const milestones = row.milestones ?? [];
     if (milestones.length === 0) {
@@ -288,83 +431,24 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     );
   };
 
-  // ----- Print portal: render table directly on document.body -----
-  const printPortal = open && sortedRows.length > 0 ? createPortal(
-    <div className="billing-export-print">
-      <Typography variant="h5" fontWeight={700} gutterBottom>
-        Billing Control Tower Report
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {subtitle}
-      </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        Generated: {new Date().toLocaleString()}
-      </Typography>
-      <Divider sx={{ mb: 2 }} />
-      <Table size="small" className="billing-export-print-table">
-        <TableHead>
-          <TableRow>
-            <TableCell>C/M Number</TableCell>
-            <TableCell>Project Name</TableCell>
-            <TableCell>B&C Attorney</TableCell>
-            <TableCell>SCA</TableCell>
-            <TableCell align="right">Fee (US$)</TableCell>
-            <TableCell>Milestone</TableCell>
-            <TableCell align="right">Billing ($)</TableCell>
-            <TableCell align="right">Collections ($)</TableCell>
-            <TableCell align="right">Billing Credit ($)</TableCell>
-            <TableCell align="right">UBT</TableCell>
-            <TableCell align="right">AR</TableCell>
-            <TableCell>Notes</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {sortedRows.map((row, idx) => (
-            <TableRow key={row.projectId} className={idx % 2 === 0 ? 'even-row' : 'odd-row'}>
-              <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>{row.cmNumbers || '\u2014'}</TableCell>
-              <TableCell>{row.projectName}</TableCell>
-              <TableCell>{row.bcAttorneyName}</TableCell>
-              <TableCell>{row.sca || '\u2014'}</TableCell>
-              <TableCell align="right">{row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}</TableCell>
-              <TableCell sx={{ verticalAlign: 'top' }}>{renderMilestoneCell(row)}</TableCell>
-              <TableCell align="right">{fmt.format(row.billingUsd)}</TableCell>
-              <TableCell align="right">{fmt.format(row.collectionUsd)}</TableCell>
-              <TableCell align="right">{row.billingCreditUsd ? fmt.format(row.billingCreditUsd) : '\u2014'}</TableCell>
-              <TableCell align="right">{row.ubtUsd ? fmt.format(row.ubtUsd) : '\u2014'}</TableCell>
-              <TableCell align="right">{row.arUsd ? fmt.format(row.arUsd) : '\u2014'}</TableCell>
-              <TableCell>{row.notes || '\u2014'}</TableCell>
-            </TableRow>
-          ))}
-          {totals && (
-            <TableRow className="totals-row">
-              <TableCell />
-              <TableCell><strong>Total ({rows.length} projects)</strong></TableCell>
-              <TableCell />
-              <TableCell />
-              <TableCell align="right"><strong>{fmtFull.format(totals.agreedFeeUsd)}</strong></TableCell>
-              <TableCell />
-              <TableCell align="right"><strong>{fmtFull.format(totals.billingUsd)}</strong></TableCell>
-              <TableCell align="right"><strong>{fmtFull.format(totals.collectionUsd)}</strong></TableCell>
-              <TableCell align="right"><strong>{fmtFull.format(totals.billingCreditUsd)}</strong></TableCell>
-              <TableCell align="right"><strong>{fmtFull.format(totals.ubtUsd)}</strong></TableCell>
-              <TableCell align="right"><strong>{fmtFull.format(totals.arUsd)}</strong></TableCell>
-              <TableCell />
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid #ccc' }}>
-        <Typography variant="caption" color="text.secondary">
-          Kirkland & Ellis - Billing Control Tower Report
-        </Typography>
-      </Box>
-    </div>,
-    document.body,
-  ) : null;
+  // Resize handle element for column headers
+  const resizeHandle = (colIdx: number) => (
+    <Box
+      onMouseDown={(e) => handleResizeStart(colIdx, e)}
+      sx={{
+        position: 'absolute',
+        right: -2,
+        top: 0,
+        bottom: 0,
+        width: 5,
+        cursor: 'col-resize',
+        zIndex: 1,
+        '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+      }}
+    />
+  );
 
   return (
-    <>
-    {printPortal}
     <Dialog
       open={open}
       onClose={onClose}
@@ -372,7 +456,6 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
       maxWidth={false}
       aria-labelledby="billing-export-dialog-title"
       PaperProps={{
-        className: 'billing-export-dialog',
         sx: {
           width: '95vw',
           maxWidth: '95vw',
@@ -383,8 +466,8 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
         },
       }}
     >
-      {/* Dialog title - hidden when printing */}
-      <DialogTitle id="billing-export-dialog-title" className="no-print" sx={{ pb: 1 }}>
+      {/* Dialog title */}
+      <DialogTitle id="billing-export-dialog-title" sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <FilterIcon color="primary" />
           <Typography variant="h6" fontWeight={700}>
@@ -393,8 +476,8 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
         </Stack>
       </DialogTitle>
 
-      {/* Filter bar - hidden when printing */}
-      <Box className="no-print" sx={{ px: 3, pb: 2 }}>
+      {/* Filter bar */}
+      <Box sx={{ px: 3, pb: 2 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <Autocomplete
             multiple
@@ -453,9 +536,9 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
         )}
       </Box>
 
-      <Divider className="no-print" />
+      <Divider />
 
-      {/* Main content - this is what gets printed */}
+      {/* Main content */}
       <DialogContent
         sx={{
           flex: 1,
@@ -464,9 +547,9 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           position: 'relative',
         }}
       >
-        {/* Subtle loading bar when refetching after filter change */}
+        {/* Loading bar */}
         {isFetching && !isLoading && (
-          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} className="no-print" />
+          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
         )}
 
         {isLoading ? (
@@ -487,7 +570,12 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           </Box>
         ) : (
           <TableContainer sx={{ px: 1 }}>
-            <Table size="small" sx={{ tableLayout: 'auto' }}>
+            <Table size="small" sx={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={i} style={{ width: w }} />
+                ))}
+              </colgroup>
               <TableHead>
                 <TableRow
                   sx={{
@@ -499,21 +587,23 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                       color: '#fff',
                       py: 1,
                       borderBottom: 'none',
+                      position: 'relative',
+                      overflow: 'hidden',
                     },
                   }}
                 >
-                  <TableCell>{sortableHeader('cmNumbers', 'C/M Number')}</TableCell>
-                  <TableCell>{sortableHeader('projectName', 'Project Name')}</TableCell>
-                  <TableCell>{sortableHeader('bcAttorneyName', 'B&C Attorney')}</TableCell>
-                  <TableCell>{sortableHeader('sca', 'SCA')}</TableCell>
-                  <TableCell align="right">{sortableHeader('agreedFeeUsd', 'Fee (US$)')}</TableCell>
-                  <TableCell>Milestone</TableCell>
-                  <TableCell align="right">{sortableHeader('billingUsd', 'Billing ($)')}</TableCell>
-                  <TableCell align="right">{sortableHeader('collectionUsd', 'Collections ($)')}</TableCell>
-                  <TableCell align="right">{sortableHeader('billingCreditUsd', 'Billing Credit ($)')}</TableCell>
-                  <TableCell align="right">{sortableHeader('ubtUsd', 'UBT')}</TableCell>
-                  <TableCell align="right">AR</TableCell>
-                  <TableCell>Notes</TableCell>
+                  <TableCell>{sortableHeader('cmNumbers', 'C/M Number')}{resizeHandle(0)}</TableCell>
+                  <TableCell>{sortableHeader('projectName', 'Project Name')}{resizeHandle(1)}</TableCell>
+                  <TableCell>{sortableHeader('bcAttorneyName', 'B&C Attorney')}{resizeHandle(2)}</TableCell>
+                  <TableCell>{sortableHeader('sca', 'SCA')}{resizeHandle(3)}</TableCell>
+                  <TableCell align="right">{sortableHeader('agreedFeeUsd', 'Fee (US$)')}{resizeHandle(4)}</TableCell>
+                  <TableCell>Milestone{resizeHandle(5)}</TableCell>
+                  <TableCell align="right">{sortableHeader('billingUsd', 'Billing ($)')}{resizeHandle(6)}</TableCell>
+                  <TableCell align="right">{sortableHeader('collectionUsd', 'Collections ($)')}{resizeHandle(7)}</TableCell>
+                  <TableCell align="right">{sortableHeader('billingCreditUsd', 'Billing Credit ($)')}{resizeHandle(8)}</TableCell>
+                  <TableCell align="right">{sortableHeader('ubtUsd', 'UBT')}{resizeHandle(9)}</TableCell>
+                  <TableCell align="right">AR{resizeHandle(10)}</TableCell>
+                  <TableCell>Notes{resizeHandle(11)}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -527,13 +617,15 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                         fontSize: '0.75rem',
                         py: 0.75,
                         borderColor: '#e5e7eb',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                       },
                     }}
                   >
                     <TableCell sx={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '0.7rem !important' }}>
                       {row.cmNumbers || '\u2014'}
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {row.projectName}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.bcAttorneyName}</TableCell>
@@ -541,7 +633,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}
                     </TableCell>
-                    <TableCell sx={{ verticalAlign: 'top', py: '6px !important' }}>
+                    <TableCell sx={{ verticalAlign: 'top', py: '6px !important', overflow: 'hidden' }}>
                       {renderMilestoneCell(row)}
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -559,7 +651,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {row.arUsd ? fmt.format(row.arUsd) : '\u2014'}
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.7rem !important' }}>
+                    <TableCell sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.7rem !important' }}>
                       {row.notes || '\u2014'}
                     </TableCell>
                   </TableRow>
@@ -598,12 +690,11 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
             </Table>
           </TableContainer>
         )}
-
       </DialogContent>
 
-      {/* Action buttons - hidden when printing */}
-      <Divider className="no-print" />
-      <DialogActions className="no-print" sx={{ px: 3, py: 1.5 }}>
+      {/* Action buttons */}
+      <Divider />
+      <DialogActions sx={{ px: 3, py: 1.5 }}>
         <Button onClick={onClose} startIcon={<CloseIcon />} color="inherit">
           Close
         </Button>
@@ -626,7 +717,6 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
         </Button>
       </DialogActions>
     </Dialog>
-    </>
   );
 };
 
