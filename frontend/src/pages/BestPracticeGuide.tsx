@@ -784,7 +784,7 @@ export default function BestPracticeGuide() {
                   </Typography>
                   <Chip label="Admin + Finance" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
                   <Typography variant="body2" color="text.secondary">
-                    Invoice issuance workflow: review triggered milestones → Confirm + Queue Invoice → Mark Invoice Sent.
+                    Invoice issuance workflow: review triggered milestones → Confirm + Bill → Mark Invoice Sent.
                     Also tracks unpaid invoices 30+ days for collections follow-up.
                   </Typography>
                 </Box>
@@ -1523,10 +1523,57 @@ export default function BestPracticeGuide() {
                   <StepItem n={1} text={<>Use the <strong>tabs</strong> to switch views. Finance View is for processing invoices. Management View is for monitoring risks. My Projects shows your own matters.</>} />
                   <StepItem n={2} text={<>The <strong>time-windowed metrics</strong> at top show activity for the last 7 and 30 days — triggered milestones, invoiced amounts, collections, and overdue counts.</>} />
                   <StepItem n={3} text={<>The <strong>Invoice Queue</strong> lists milestones triggered by lifecycle changes, date sweeps, or AI detection. Click the arrow to collapse or expand. The badge shows the count. Click the <strong>Project</strong> or <strong>Billing Matter</strong> column header to sort alphabetically.</>} />
-                  <StepItem n={4} text={<>For each triggered milestone: click <strong>Confirm + Queue Invoice</strong> to approve it, or <strong>Reject</strong> if it&apos;s a false positive. After confirming, click <strong>Mark Invoice Sent</strong> when the invoice goes out.</>} />
+                  <StepItem n={4} text={<>For each triggered milestone: click <strong>Confirm + Bill</strong> to approve it, or <strong>Reject</strong> if it&apos;s a false positive. After confirming, the row moves to &quot;Ready To Invoice&quot; — click <strong>Mark Invoice Sent</strong> when the invoice goes out.</>} />
                   <StepItem n={5} text={<>The <strong>Unpaid Invoices</strong> section shows invoices sent 30+ days ago without payment. Aging chips show how long it&apos;s been overdue (blue = 30d, orange = 60d, red = 90d+).</>} />
                   <StepItem n={6} text={<>Click <strong>Move to Follow-up</strong> to flag an unpaid invoice for collections action.</>} />
                 </Stack>
+
+                {/* Workflow lifecycle illustration */}
+                <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${tokens.colors.slate[200]}` }}>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+                    What happens at each step
+                  </Typography>
+                  <ScreenFrame title="Invoice Queue — Lifecycle">
+                    <Stack spacing={1.5}>
+                      {/* Stage 1: Needs Confirmation */}
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Callout n={1} />
+                        <Chip label="Needs Confirmation" size="small" color="warning" sx={{ height: 18, fontSize: '0.5rem' }} />
+                        <Typography variant="caption" color="text.secondary" fontSize="0.5rem">{'\u2192'}</Typography>
+                        <MockBtn label="Confirm + Bill" primary />
+                        <Typography variant="caption" color="text.secondary" fontSize="0.5rem">or</Typography>
+                        <MockBtn label="Reject" />
+                      </Stack>
+                      {/* Arrow down */}
+                      <Typography variant="caption" color="text.secondary" sx={{ pl: 5 }}>{'\u2193'} after confirm</Typography>
+                      {/* Stage 2: Ready To Invoice */}
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Callout n={2} />
+                        <Chip label="Ready To Invoice" size="small" color="success" sx={{ height: 18, fontSize: '0.5rem' }} />
+                        <Typography variant="caption" color="text.secondary" fontSize="0.5rem">{'\u2192'}</Typography>
+                        <MockBtn label="Mark Invoice Sent" primary />
+                        <Typography variant="caption" color="text.secondary" fontSize="0.5rem">or</Typography>
+                        <MockBtn label="Move to Follow-up" />
+                      </Stack>
+                      {/* Arrow down */}
+                      <Typography variant="caption" color="text.secondary" sx={{ pl: 5 }}>{'\u2193'} after invoice sent</Typography>
+                      {/* Stage 3: Done */}
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Callout n={3} />
+                        <Chip label="Done — monitoring" size="small" sx={{ height: 18, fontSize: '0.5rem' }} />
+                        <Typography variant="caption" color="text.secondary" fontSize="0.5rem">
+                          Appears in &quot;Unpaid Invoices 30+ Days&quot; if unpaid
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  </ScreenFrame>
+
+                  <Stack spacing={1} sx={{ mt: 2 }}>
+                    <StepItem n={1} text={<><strong>Confirm + Bill</strong> confirms the milestone trigger and creates an invoice action item with a 3-day due date. The row moves from &quot;Needs Confirmation&quot; to &quot;Ready To Invoice.&quot;</>} />
+                    <StepItem n={2} text={<><strong>Ready To Invoice</strong> means the milestone is confirmed. Click <strong>Mark Invoice Sent</strong> once the invoice goes out, or <strong>Move to Follow-up</strong> to set a 7-day reminder if more work is needed before sending.</>} />
+                    <StepItem n={3} text={<>After marking an invoice as sent, the item leaves the queue. If payment isn&apos;t received within 30 days, it automatically appears in the <strong>Unpaid Invoices 30+ Days</strong> section for collections follow-up.</>} />
+                  </Stack>
+                </Box>
               </Stack>
             </GuideCard>}
 

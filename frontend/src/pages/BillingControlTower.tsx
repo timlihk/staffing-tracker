@@ -382,6 +382,7 @@ const BillingControlTower: React.FC = () => {
   const [showLongStopRisks, setShowLongStopRisks] = useState(false);
   const [showTriggerQueue, setShowTriggerQueue] = useState(false);
   const [showUnpaidInvoices, setShowUnpaidInvoices] = useState(false);
+  const [showQueueHelp, setShowQueueHelp] = useState(false);
 
   // Admin data hooks — called unconditionally (React rules of hooks)
   const metricsQuery = useTimeWindowedMetrics();
@@ -574,6 +575,48 @@ const BillingControlTower: React.FC = () => {
                 </Stack>
                 <Collapse in={showTriggerQueue}>
                   <Box sx={{ mt: 1 }}>
+                    <Box sx={{ mb: 1.5 }}>
+                      <Typography
+                        variant="body2"
+                        color="primary"
+                        sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.5, '&:hover': { textDecoration: 'underline' } }}
+                        onClick={() => setShowQueueHelp(!showQueueHelp)}
+                      >
+                        {showQueueHelp ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                        How does this work?
+                      </Typography>
+                      <Collapse in={showQueueHelp}>
+                        <Alert severity="info" icon={false} sx={{ mt: 1 }}>
+                          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+                            Invoice Queue Workflow
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 2 }}>
+                            <Chip label={'\u2460 Needs Confirmation'} color="warning" size="small" variant="outlined" />
+                            <Typography variant="body2" color="text.secondary">{'\u2192'}</Typography>
+                            <Chip label={'\u2461 Ready To Invoice'} color="success" size="small" variant="outlined" />
+                            <Typography variant="body2" color="text.secondary">{'\u2192'}</Typography>
+                            <Chip label={'\u2462 Done'} size="small" variant="outlined" />
+                          </Box>
+                          <Stack spacing={1}>
+                            <Typography variant="body2">
+                              <strong>Confirm + Bill</strong> {'\u2014'} Confirms the triggered milestone and creates an invoice action item (due in 3 days). The row moves from {'\u201C'}Needs Confirmation{'\u201D'} to {'\u201C'}Ready To Invoice{'\u201D'}.
+                            </Typography>
+                            <Typography variant="body2">
+                              <strong>Reject</strong> {'\u2014'} Dismisses a false-positive trigger. The row is removed from the queue.
+                            </Typography>
+                            <Typography variant="body2">
+                              <strong>Mark Invoice Sent</strong> {'\u2014'} Records that the invoice has been sent to the client. The row is removed from the queue. If payment isn{'\u2019'}t received within 30 days, it will appear in the {'\u201C'}Unpaid Invoices 30+ Days{'\u201D'} section below.
+                            </Typography>
+                            <Typography variant="body2">
+                              <strong>Move to Follow-up</strong> {'\u2014'} Flags a confirmed item for collections follow-up (sets a 7-day reminder). Use this when additional action is needed before sending.
+                            </Typography>
+                          </Stack>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, fontStyle: 'italic' }}>
+                            Tip: Click {'\u201C'}Open{'\u201D'} to view the full billing project page for any row.
+                          </Typography>
+                        </Alert>
+                      </Collapse>
+                    </Box>
                     {renderTriggerQueueTable(invoiceQueueRows, { ...triggerActions, sort: triggerSort, onToggleSort: toggleSort(setTriggerSort) })}
                   </Box>
                 </Collapse>
