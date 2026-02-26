@@ -163,14 +163,13 @@ function renderTriggerQueueTable(
               <TableCell align="right">Amount</TableCell>
               <TableCell>Reason</TableCell>
               <TableCell align="right">Confidence</TableCell>
-              {!options.readOnly && <TableCell align="right">Actions</TableCell>}
-              <TableCell align="right" />
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {sorted.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={options.readOnly ? 7 : 8} align="center">
+                <TableCell colSpan={7} align="center">
                   No invoice queue items
                 </TableCell>
               </TableRow>
@@ -190,37 +189,34 @@ function renderTriggerQueueTable(
                   <TableCell align="right">{currencyFormatter.format(toNumber(trigger.milestone?.amountValue))}</TableCell>
                   <TableCell>{trigger.triggerReason || '—'}</TableCell>
                   <TableCell align="right">{(toNumber(trigger.matchConfidence) * 100).toFixed(0)}%</TableCell>
-                  {!options.readOnly && (
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={0.75} justifyContent="flex-end" flexWrap="wrap" useFlexGap>
-                        {stage === 'needs_confirmation' ? (
-                          <>
-                            <Button size="small" variant="contained" onClick={() => options.onConfirm(trigger)} disabled={!options.canOperate || options.isMutating}>
-                              Confirm + Queue Invoice
-                            </Button>
-                            <Button size="small" variant="outlined" color="error" onClick={() => options.onReject(trigger)} disabled={!options.canOperate || options.isMutating}>
-                              Reject
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="small" variant="outlined" color="success" onClick={() => options.onMarkSent(trigger)} disabled={!options.canOperate || options.isMutating}>
-                              Mark Invoice Sent
-                            </Button>
-                            <Button size="small" variant="outlined" onClick={() => options.onFollowUp(trigger)} disabled={!options.canOperate || options.isMutating}>
-                              Move to Follow-up
-                            </Button>
-                          </>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  )}
                   <TableCell align="right">
-                    {trigger.billingProjectId ? (
-                      <Button size="small" variant="text" onClick={() => options.navigate(`/billing/${trigger.billingProjectId}`)}>
-                        Open
-                      </Button>
-                    ) : null}
+                    <Stack direction="row" spacing={0.75} justifyContent="flex-end" flexWrap="nowrap">
+                      {trigger.billingProjectId && (
+                        <Button size="small" variant="text" onClick={() => options.navigate(`/billing/${trigger.billingProjectId}`)}>
+                          Open
+                        </Button>
+                      )}
+                      {!options.readOnly && stage === 'needs_confirmation' && (
+                        <>
+                          <Button size="small" variant="contained" onClick={() => options.onConfirm(trigger)} disabled={!options.canOperate || options.isMutating}>
+                            Confirm + Bill
+                          </Button>
+                          <Button size="small" variant="outlined" color="error" onClick={() => options.onReject(trigger)} disabled={!options.canOperate || options.isMutating}>
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      {!options.readOnly && stage !== 'needs_confirmation' && (
+                        <>
+                          <Button size="small" variant="outlined" color="success" onClick={() => options.onMarkSent(trigger)} disabled={!options.canOperate || options.isMutating}>
+                            Mark Invoice Sent
+                          </Button>
+                          <Button size="small" variant="outlined" onClick={() => options.onFollowUp(trigger)} disabled={!options.canOperate || options.isMutating}>
+                            Move to Follow-up
+                          </Button>
+                        </>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))
