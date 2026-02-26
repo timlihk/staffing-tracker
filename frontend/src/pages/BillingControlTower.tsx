@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Chip,
   CircularProgress,
-  MenuItem,
   Paper,
   Stack,
   Table,
@@ -14,6 +14,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from '@mui/material';
@@ -151,6 +152,9 @@ const BillingControlTower: React.FC = () => {
   const [windowDays, setWindowDays] = useState(30);
   const [unpaidThresholdDays, setUnpaidThresholdDays] = useState(30);
   const [triggerSearch, setTriggerSearch] = useState('');
+  const [invoiceQueueSort, setInvoiceQueueSort] = useState<'asc' | 'desc'>('asc');
+  const [longStopSort, setLongStopSort] = useState<'asc' | 'desc'>('asc');
+  const [unpaidSort, setUnpaidSort] = useState<'asc' | 'desc'>('asc');
 
   const scopedParams = attorneyFilter ? { attorneyId: attorneyFilter } : undefined;
 
@@ -281,6 +285,30 @@ const BillingControlTower: React.FC = () => {
     return [...reviewRows, ...readyRows];
   }, [invoiceReviewQueue, invoiceReadyQueue]);
 
+  const sortedInvoiceQueueRows = useMemo(() => {
+    return [...invoiceQueueRows].sort((a, b) => {
+      const nameA = (a.trigger.project?.name || '').toLowerCase();
+      const nameB = (b.trigger.project?.name || '').toLowerCase();
+      return invoiceQueueSort === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+  }, [invoiceQueueRows, invoiceQueueSort]);
+
+  const sortedLongStopRows = useMemo(() => {
+    return [...longStopRows].sort((a, b) => {
+      const nameA = (a.billingProjectName || '').toLowerCase();
+      const nameB = (b.billingProjectName || '').toLowerCase();
+      return longStopSort === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+  }, [longStopRows, longStopSort]);
+
+  const sortedUnpaidRows = useMemo(() => {
+    return [...unpaidRows].sort((a, b) => {
+      const nameA = (a.billingProjectName || '').toLowerCase();
+      const nameB = (b.billingProjectName || '').toLowerCase();
+      return unpaidSort === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+  }, [unpaidRows, unpaidSort]);
+
   const overdueUnpaidAmount = useMemo(
     () => unpaidRows.reduce((sum, row) => sum + toNumber(row.milestoneAmount), 0),
     [unpaidRows]
@@ -371,21 +399,16 @@ const BillingControlTower: React.FC = () => {
 
       <Section>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
-          <TextField
-            select
-            label="B&C Attorney"
-            value={attorneyFilter ?? ''}
-            onChange={(e) => setAttorneyFilter(e.target.value ? Number(e.target.value) : undefined)}
+          <Autocomplete
             size="small"
+            options={attorneyOptions}
+            value={attorneyOptions.find((a) => a.staffId === attorneyFilter) ?? null}
+            onChange={(_, v) => setAttorneyFilter(v?.staffId)}
+            getOptionLabel={(option) => option.attorneyName}
+            renderInput={(params) => <TextField {...params} label="B&C Attorney" />}
             sx={{ minWidth: 220 }}
-          >
-            <MenuItem value="">All Attorneys</MenuItem>
-            {attorneyOptions.map((attorney) => (
-              <MenuItem key={attorney.staffId} value={attorney.staffId}>
-                {attorney.attorneyName}
-              </MenuItem>
-            ))}
-          </TextField>
+            isOptionEqualToValue={(option, value) => option.staffId === value.staffId}
+          />
 
           <TextField
             label="Min Amount (USD)"
@@ -511,7 +534,15 @@ const BillingControlTower: React.FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Stage</TableCell>
-                    <TableCell>Project</TableCell>
+                    <TableCell sortDirection={invoiceQueueSort}>
+                      <TableSortLabel
+                        active
+                        direction={invoiceQueueSort}
+                        onClick={() => setInvoiceQueueSort((prev) => prev === 'asc' ? 'desc' : 'asc')}
+                      >
+                        Project
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell>Milestone</TableCell>
                     <TableCell align="right">Amount</TableCell>
                     <TableCell>Reason</TableCell>
@@ -521,14 +552,14 @@ const BillingControlTower: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {invoiceQueueRows.length === 0 ? (
+                  {sortedInvoiceQueueRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} align="center">
                         No invoice queue items for selected filters
                       </TableCell>
                     </TableRow>
                   ) : (
-                    invoiceQueueRows.map(({ stage, trigger }) => (
+                    sortedInvoiceQueueRows.map(({ stage, trigger }) => (
                       <TableRow key={`${stage}-${trigger.id}`} hover>
                         <TableCell>
                           <Chip
@@ -616,7 +647,15 @@ const BillingControlTower: React.FC = () => {
                   <TableRow>
                     <TableCell>Risk</TableCell>
                     <TableCell>B&C Attorney</TableCell>
-                    <TableCell>Billing Matter</TableCell>
+                    <TableCell sortDirection={longStopSort}>
+                      <TableSortLabel
+                        active
+                        direction={longStopSort}
+                        onClick={() => setLongStopSort((prev) => prev === 'asc' ? 'desc' : 'asc')}
+                      >
+                        Billing Matter
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell>Long Stop Date</TableCell>
                     <TableCell align="right">Days To/Past</TableCell>
                     <TableCell align="right">UBT</TableCell>
@@ -625,14 +664,14 @@ const BillingControlTower: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {longStopRows.length === 0 ? (
+                  {sortedLongStopRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} align="center">
                         No long-stop risks found for selected filters
                       </TableCell>
                     </TableRow>
                   ) : (
-                    longStopRows.map((row) => {
+                    sortedLongStopRows.map((row) => {
                       const risk = getLongStopRiskChip(row);
                       return (
                         <TableRow key={`${row.billingProjectId}-${row.staffId}-${row.lsdDate}`} hover>
@@ -669,7 +708,15 @@ const BillingControlTower: React.FC = () => {
                   <TableRow>
                     <TableCell>Aging</TableCell>
                     <TableCell>B&C Attorney</TableCell>
-                    <TableCell>Billing Matter</TableCell>
+                    <TableCell sortDirection={unpaidSort}>
+                      <TableSortLabel
+                        active
+                        direction={unpaidSort}
+                        onClick={() => setUnpaidSort((prev) => prev === 'asc' ? 'desc' : 'asc')}
+                      >
+                        Billing Matter
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell>Milestone</TableCell>
                     <TableCell>Invoice Sent</TableCell>
                     <TableCell align="right">Days Outstanding</TableCell>
@@ -678,14 +725,14 @@ const BillingControlTower: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {unpaidRows.length === 0 ? (
+                  {sortedUnpaidRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} align="center">
                         No unpaid invoice alerts for selected filters
                       </TableCell>
                     </TableRow>
                   ) : (
-                    unpaidRows.map((row) => {
+                    sortedUnpaidRows.map((row) => {
                       const aging = getAgingChip(row.daysSinceInvoice);
                       return (
                         <TableRow key={`${row.milestoneId}-${row.staffId}-${row.invoiceSentDate}`} hover>
