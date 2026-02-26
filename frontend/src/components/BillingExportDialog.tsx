@@ -111,19 +111,19 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
 
   const { data, isLoading, error } = useBillingExportReport(queryParams);
 
-  const rows = data?.rows ?? [];
-  const attorneys = data?.attorneys ?? [];
+  const rows = useMemo(() => data?.rows ?? [], [data?.rows]);
+  const attorneys = useMemo(() => data?.attorneys ?? [], [data?.attorneys]);
 
   // Compute totals for summary row
   const totals = useMemo(() => {
     if (!rows.length) return null;
     return {
-      agreedFeeUsd: rows.reduce((sum, r) => sum + r.agreedFeeUsd, 0),
-      billingUsd: rows.reduce((sum, r) => sum + r.billingUsd, 0),
-      collectionUsd: rows.reduce((sum, r) => sum + r.collectionUsd, 0),
-      billingCreditUsd: rows.reduce((sum, r) => sum + r.billingCreditUsd, 0),
-      ubtUsd: rows.reduce((sum, r) => sum + r.ubtUsd, 0),
-      arUsd: rows.reduce((sum, r) => sum + r.arUsd, 0),
+      agreedFeeUsd: rows.reduce((sum, r) => sum + (r.agreedFeeUsd || 0), 0),
+      billingUsd: rows.reduce((sum, r) => sum + (r.billingUsd || 0), 0),
+      collectionUsd: rows.reduce((sum, r) => sum + (r.collectionUsd || 0), 0),
+      billingCreditUsd: rows.reduce((sum, r) => sum + (r.billingCreditUsd || 0), 0),
+      ubtUsd: rows.reduce((sum, r) => sum + (r.ubtUsd || 0), 0),
+      arUsd: rows.reduce((sum, r) => sum + (r.arUsd || 0), 0),
     };
   }, [rows]);
 
@@ -155,6 +155,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
       onClose={onClose}
       fullWidth
       maxWidth={false}
+      aria-labelledby="billing-export-dialog-title"
       PaperProps={{
         className: 'billing-export-dialog',
         sx: {
@@ -168,7 +169,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
       }}
     >
       {/* Dialog title - hidden when printing */}
-      <DialogTitle className="no-print" sx={{ pb: 1 }}>
+      <DialogTitle id="billing-export-dialog-title" className="no-print" sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <FilterIcon color="primary" />
           <Typography variant="h6" fontWeight={700}>
@@ -347,17 +348,22 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                       {row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}
                     </TableCell>
                     <TableCell align="center">
-                      <Chip
-                        size="small"
-                        label={row.milestoneStatus}
-                        variant="outlined"
-                        color={
-                          row.milestoneStatus.startsWith('0/') ? 'default' :
-                          row.milestoneStatus.split('/')[0] === row.milestoneStatus.split('/')[1] ? 'success' :
-                          'warning'
-                        }
-                        sx={{ fontSize: '0.7rem', height: 22 }}
-                      />
+                      {(() => {
+                        const ms = row.milestoneStatus || '0/0';
+                        const parts = ms.split('/');
+                        const completed = parts[0] ?? '0';
+                        const total = parts[1] ?? '0';
+                        const color = completed === '0' ? 'default' : completed === total ? 'success' : 'warning';
+                        return (
+                          <Chip
+                            size="small"
+                            label={ms}
+                            variant="outlined"
+                            color={color}
+                            sx={{ fontSize: '0.7rem', height: 22 }}
+                          />
+                        );
+                      })()}
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {fmt.format(row.billingUsd)}

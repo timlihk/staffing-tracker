@@ -774,6 +774,9 @@ export const getTimeWindowedMetrics = async (_req: AuthRequest, res: Response) =
 /**
  * Get export report data for Control Tower PDF/CSV export.
  * Aggregates per-project billing data with filters for attorney and status.
+ *
+ * NOTE: All dynamic SQL fragments are built from validated/whitelisted values only.
+ * User-supplied values are always passed as parameterized $N placeholders.
  */
 export const getExportReport = async (req: AuthRequest, res: Response) => {
   try {
@@ -781,23 +784,26 @@ export const getExportReport = async (req: AuthRequest, res: Response) => {
     const rawStatuses = req.query.statuses;
 
     // Parse attorneyIds: accept comma-separated string or repeated query params
-    let attorneyIds: number[] = [];
+    const attorneyIds: number[] = [];
     if (rawAttorneyIds) {
-      const idStrings = Array.isArray(rawAttorneyIds)
-        ? rawAttorneyIds.map(String)
-        : String(rawAttorneyIds).split(',');
-      for (const s of idStrings) {
-        const n = Number(s.trim());
-        if (!Number.isInteger(n) || n <= 0) {
-          return res.status(400).json({ error: 'Invalid attorneyIds' });
+      const raw = String(rawAttorneyIds).trim();
+      if (raw) {
+        const idStrings = Array.isArray(rawAttorneyIds)
+          ? rawAttorneyIds.map(String)
+          : raw.split(',');
+        for (const s of idStrings) {
+          const n = Number(s.trim());
+          if (!Number.isInteger(n) || n <= 0) {
+            return res.status(400).json({ error: 'Invalid attorneyIds' });
+          }
+          attorneyIds.push(n);
         }
-        attorneyIds.push(n);
       }
     }
 
     // Parse statuses: accept comma-separated string or repeated query params
     const validStatuses = ['lsd_past_due', 'lsd_due_30d', 'unpaid_30d', 'active', 'slow_down', 'suspended'];
-    let statuses: string[] = [];
+    const statuses: string[] = [];
     if (rawStatuses) {
       const statusStrings = Array.isArray(rawStatuses)
         ? rawStatuses.map(String)
@@ -811,132 +817,139 @@ export const getExportReport = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // Build the query with conditional filters
-    const conditions: string[] = [];
+    // ----- Build parameterized query -----
     const params: any[] = [];
+    const cteWhereConditions: string[] = [];
 
+    // Attorney filter (applied inside the CTE WHERE)
     if (attorneyIds.length > 0) {
       params.push(attorneyIds);
-      conditions.push(`s.id = ANY($${params.length}::int[])`);
+      cteWhereConditions.push(`bpa.staff_id = ANY($${params.length}::int[])`);
     }
 
-    // Status filters are applied as HAVING/WHERE conditions
-    const statusConditions: string[] = [];
+    // Status filters use OR semantics across all selected statuses.
+    // We collect all status conditions and apply them as a single OR group
+    // in the outer query (after pre-aggregation in the CTE).
+    const outerOrConditions: string[] = [];
+
+    // Project-status filters (row-level, applied in outer WHERE)
+    const projectStatusValues: string[] = [];
+    if (statuses.includes('active')) projectStatusValues.push('Active');
+    if (statuses.includes('slow_down')) projectStatusValues.push('Slow-down');
+    if (statuses.includes('suspended')) projectStatusValues.push('Suspended');
+    if (projectStatusValues.length > 0) {
+      params.push(projectStatusValues);
+      outerOrConditions.push(`d.staffing_project_status = ANY($${params.length}::text[])`);
+    }
+
+    // LSD-based filters (aggregate-level, applied in outer WHERE using pre-computed lsd_date)
     if (statuses.includes('lsd_past_due')) {
-      statusConditions.push('MIN(fa.lsd_date) < CURRENT_DATE');
+      outerOrConditions.push('(d.lsd_date IS NOT NULL AND d.lsd_date < CURRENT_DATE)');
     }
     if (statuses.includes('lsd_due_30d')) {
-      statusConditions.push('MIN(fa.lsd_date) <= (CURRENT_DATE + INTERVAL \'30 day\')');
+      outerOrConditions.push('(d.lsd_date IS NOT NULL AND d.lsd_date <= (CURRENT_DATE + INTERVAL \'30 day\'))');
     }
+
+    // Unpaid invoices 30+ days (correlated subquery, applied in outer WHERE)
     if (statuses.includes('unpaid_30d')) {
-      statusConditions.push(`EXISTS (
+      outerOrConditions.push(`EXISTS (
         SELECT 1 FROM billing_milestone um
         JOIN billing_engagement ue ON ue.engagement_id = um.engagement_id
         JOIN billing_project_cm_no ucm ON ucm.cm_id = ue.cm_id
-        WHERE ucm.project_id = bp.project_id
+        WHERE ucm.project_id = d.project_id
           AND um.invoice_sent_date IS NOT NULL
           AND um.payment_received_date IS NULL
           AND um.invoice_sent_date::date <= (CURRENT_DATE - INTERVAL '30 day')
       )`);
     }
-    if (statuses.includes('active')) {
-      statusConditions.push("p.status = 'Active'");
-    }
-    if (statuses.includes('slow_down')) {
-      statusConditions.push("p.status = 'Slow-down'");
-    }
-    if (statuses.includes('suspended')) {
-      statusConditions.push("p.status = 'Suspended'");
-    }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const cteWhere = cteWhereConditions.length > 0
+      ? 'WHERE ' + cteWhereConditions.join(' AND ')
+      : '';
+    const outerWhere = outerOrConditions.length > 0
+      ? 'WHERE (' + outerOrConditions.join(' OR ') + ')'
+      : '';
 
-    // For status filters, some are HAVING (aggregate-based) and some are WHERE
-    // We'll separate them: project status goes in WHERE, LSD/unpaid go in HAVING
-    const projectStatusFilters = statuses.filter(s => ['active', 'slow_down', 'suspended'].includes(s));
-    const aggregateFilters = statuses.filter(s => ['lsd_past_due', 'lsd_due_30d', 'unpaid_30d'].includes(s));
-
-    const extraWhereConditions: string[] = [...conditions];
-    if (projectStatusFilters.length > 0) {
-      const statusValues = projectStatusFilters.map(s => {
-        if (s === 'active') return 'Active';
-        if (s === 'slow_down') return 'Slow-down';
-        if (s === 'suspended') return 'Suspended';
-        return s;
-      });
-      params.push(statusValues);
-      extraWhereConditions.push(`p.status = ANY($${params.length}::text[])`);
-    }
-
-    const havingConditions: string[] = [];
-    if (aggregateFilters.includes('lsd_past_due')) {
-      havingConditions.push('MIN(fa.lsd_date) < CURRENT_DATE');
-    }
-    if (aggregateFilters.includes('lsd_due_30d')) {
-      havingConditions.push('(MIN(fa.lsd_date) IS NOT NULL AND MIN(fa.lsd_date) <= (CURRENT_DATE + INTERVAL \'30 day\'))');
-    }
-
-    const whereStr = extraWhereConditions.length > 0 ? 'WHERE ' + extraWhereConditions.join(' AND ') : '';
-    const havingStr = havingConditions.length > 0 ? 'HAVING ' + havingConditions.join(' OR ') : '';
-
-    // We handle unpaid_30d as a WHERE-level EXISTS (not aggregate)
-    let unpaidFilter = '';
-    if (aggregateFilters.includes('unpaid_30d')) {
-      unpaidFilter = `AND EXISTS (
-        SELECT 1 FROM billing_milestone um
-        JOIN billing_engagement ue ON ue.engagement_id = um.engagement_id
-        JOIN billing_project_cm_no ucm ON ucm.cm_id = ue.cm_id
-        WHERE ucm.project_id = bp.project_id
-          AND um.invoice_sent_date IS NOT NULL
-          AND um.payment_received_date IS NULL
-          AND um.invoice_sent_date::date <= (CURRENT_DATE - INTERVAL '30 day')
-      )`;
-    }
-
-    // If we have both aggregate and non-aggregate status filters, combine with OR logic
-    // by wrapping the whole thing in a CTE approach
+    // Pre-aggregate financials per project in a CTE to avoid cartesian product inflation.
+    // Milestone counts and LSD are computed in separate CTEs for the same reason.
     const query = `
-      WITH project_data AS (
+      WITH project_financials AS (
         SELECT
-          bp.project_id,
-          bp.project_name,
-          bp.sca,
-          STRING_AGG(DISTINCT pcm.cm_no, ', ' ORDER BY pcm.cm_no) AS cm_numbers,
-          (
-            SELECT STRING_AGG(DISTINCT s2.name, ' & ' ORDER BY s2.name)
-            FROM billing_project_bc_attorneys bpba
-            JOIN staff s2 ON s2.id = bpba.staff_id
-            WHERE bpba.billing_project_id = bp.project_id
-          ) AS bc_attorney_name,
+          pcm.project_id,
           COALESCE(SUM(COALESCE(pcm.agreed_fee_usd, 0)::numeric), 0) AS agreed_fee_usd,
           COALESCE(SUM(COALESCE(pcm.billing_to_date_usd, 0)::numeric), 0) AS billing_usd,
           COALESCE(SUM(COALESCE(pcm.collected_to_date_usd, 0)::numeric), 0) AS collection_usd,
           COALESCE(SUM(COALESCE(pcm.billing_credit_usd, 0)::numeric), 0) AS billing_credit_usd,
           COALESCE(SUM(COALESCE(pcm.ubt_usd, 0)::numeric), 0) AS ubt_usd,
           COALESCE(SUM(COALESCE(pcm.ar_usd, 0)::numeric), 0) AS ar_usd,
+          STRING_AGG(DISTINCT pcm.cm_no, ', ' ORDER BY pcm.cm_no) AS cm_numbers,
           STRING_AGG(DISTINCT NULLIF(pcm.finance_remarks, ''), '; ') AS finance_remarks,
-          STRING_AGG(DISTINCT NULLIF(pcm.matter_notes, ''), '; ') AS matter_notes,
+          STRING_AGG(DISTINCT NULLIF(pcm.matter_notes, ''), '; ') AS matter_notes
+        FROM billing_project_cm_no pcm
+        GROUP BY pcm.project_id
+      ),
+      project_milestones AS (
+        SELECT
+          pcm.project_id,
           COUNT(DISTINCT m.milestone_id) AS total_milestones,
-          COUNT(DISTINCT m.milestone_id) FILTER (WHERE m.completed) AS completed_milestones,
-          MIN(fa.lsd_date) AS lsd_date,
+          COUNT(DISTINCT m.milestone_id) FILTER (WHERE m.completed) AS completed_milestones
+        FROM billing_project_cm_no pcm
+        JOIN billing_engagement e ON e.cm_id = pcm.cm_id
+        JOIN billing_milestone m ON m.engagement_id = e.engagement_id
+        GROUP BY pcm.project_id
+      ),
+      project_lsd AS (
+        SELECT
+          pcm.project_id,
+          MIN(fa.lsd_date) AS lsd_date
+        FROM billing_project_cm_no pcm
+        JOIN billing_engagement e ON e.cm_id = pcm.cm_id
+        JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
+        GROUP BY pcm.project_id
+      ),
+      project_data AS (
+        SELECT
+          bp.project_id,
+          bp.project_name,
+          bp.sca,
+          pf.cm_numbers,
+          (
+            SELECT STRING_AGG(DISTINCT s2.name, ' & ' ORDER BY s2.name)
+            FROM billing_project_bc_attorneys bpba
+            JOIN staff s2 ON s2.id = bpba.staff_id
+            WHERE bpba.billing_project_id = bp.project_id
+          ) AS bc_attorney_name,
+          COALESCE(pf.agreed_fee_usd, 0) AS agreed_fee_usd,
+          COALESCE(pf.billing_usd, 0) AS billing_usd,
+          COALESCE(pf.collection_usd, 0) AS collection_usd,
+          COALESCE(pf.billing_credit_usd, 0) AS billing_credit_usd,
+          COALESCE(pf.ubt_usd, 0) AS ubt_usd,
+          COALESCE(pf.ar_usd, 0) AS ar_usd,
+          pf.finance_remarks,
+          pf.matter_notes,
+          COALESCE(pm.total_milestones, 0) AS total_milestones,
+          COALESCE(pm.completed_milestones, 0) AS completed_milestones,
+          pl.lsd_date,
           p.status AS staffing_project_status,
           p.name AS staffing_project_name
         FROM billing_project bp
-        LEFT JOIN billing_project_cm_no pcm ON pcm.project_id = bp.project_id
-        LEFT JOIN billing_engagement e ON e.cm_id = pcm.cm_id
-        LEFT JOIN billing_milestone m ON m.engagement_id = e.engagement_id
-        LEFT JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
+        LEFT JOIN project_financials pf ON pf.project_id = bp.project_id
+        LEFT JOIN project_milestones pm ON pm.project_id = bp.project_id
+        LEFT JOIN project_lsd pl ON pl.project_id = bp.project_id
         LEFT JOIN billing_project_bc_attorneys bpa ON bpa.billing_project_id = bp.project_id
-        LEFT JOIN staff s ON s.id = bpa.staff_id
         LEFT JOIN billing_staffing_project_link bspl ON bspl.billing_project_id = bp.project_id
         LEFT JOIN projects p ON p.id = bspl.staffing_project_id
-        ${whereStr}
-        GROUP BY bp.project_id, bp.project_name, bp.sca, p.status, p.name
-        ${havingStr}
+        ${cteWhere}
+        GROUP BY bp.project_id, bp.project_name, bp.sca,
+                 pf.cm_numbers, pf.agreed_fee_usd, pf.billing_usd, pf.collection_usd,
+                 pf.billing_credit_usd, pf.ubt_usd, pf.ar_usd, pf.finance_remarks, pf.matter_notes,
+                 pm.total_milestones, pm.completed_milestones, pl.lsd_date,
+                 p.status, p.name
       )
-      SELECT * FROM project_data
-      WHERE 1=1 ${unpaidFilter}
-      ORDER BY project_name ASC
+      SELECT DISTINCT ON (d.project_id) d.*
+      FROM project_data d
+      ${outerWhere}
+      ORDER BY d.project_id, d.project_name ASC
     `;
 
     const rows = await prisma.$queryRawUnsafe<any[]>(query, ...params);

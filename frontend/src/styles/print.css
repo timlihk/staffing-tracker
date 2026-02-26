@@ -117,10 +117,16 @@
     overflow: visible !important;
   }
 
-  /* Hide the dialog backdrop/overlay */
+  /* Hide the dialog backdrop/overlay and reset modal positioning */
   .MuiModal-backdrop,
   .MuiBackdrop-root {
     display: none !important;
+  }
+
+  .MuiModal-root,
+  .MuiDialog-root {
+    position: static !important;
+    overflow: visible !important;
   }
 
   /* Make dialog content overflow visible for multi-page tables */
