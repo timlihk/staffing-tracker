@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -384,16 +384,16 @@ const BillingControlTower: React.FC = () => {
   const [showUnpaidInvoices, setShowUnpaidInvoices] = useState(false);
   const [showQueueHelp, setShowQueueHelp] = useState(false);
 
-  // Admin data hooks — called unconditionally (React rules of hooks)
+  // Admin data hooks — enabled only when finance/management tabs are accessible
   const metricsQuery = useTimeWindowedMetrics();
-  const triggersQuery = useBillingTriggers();
-  const longStopQuery = useLongStopRisks({ windowDays: 90, limit: 1000 });
-  const unpaidQuery = useUnpaidInvoices({ thresholdDays: 30, limit: 1000 });
+  const triggersQuery = useBillingTriggers({ enabled: canSeeFinanceView });
+  const longStopQuery = useLongStopRisks({ windowDays: 90, limit: 100, enabled: canSeeFinanceView });
+  const unpaidQuery = useUnpaidInvoices({ thresholdDays: 30, limit: 100, enabled: canSeeFinanceView });
 
-  // B&C Attorney View — filtered to current user's projects
-  const myTriggersQuery = useBillingTriggers(myStaffId ? { attorneyId: myStaffId } : undefined);
-  const myLongStopQuery = useLongStopRisks(myStaffId ? { attorneyId: myStaffId, windowDays: 90, limit: 1000 } : undefined);
-  const myUnpaidQuery = useUnpaidInvoices(myStaffId ? { attorneyId: myStaffId, thresholdDays: 30, limit: 1000 } : undefined);
+  // My Projects view — filtered to current user's projects, enabled only when staffId is known
+  const myTriggersQuery = useBillingTriggers(myStaffId ? { attorneyId: myStaffId, enabled: true } : { enabled: false });
+  const myLongStopQuery = useLongStopRisks(myStaffId ? { attorneyId: myStaffId, windowDays: 90, limit: 100 } : { enabled: false });
+  const myUnpaidQuery = useUnpaidInvoices(myStaffId ? { attorneyId: myStaffId, thresholdDays: 30, limit: 100 } : { enabled: false });
 
   // Mutations (Finance View only)
   const confirmTrigger = useConfirmBillingTrigger();
@@ -455,32 +455,32 @@ const BillingControlTower: React.FC = () => {
     return [...review, ...ready];
   }, [myTriggerRows]);
 
-  // Action handlers
-  const handleConfirmAndInvoice = async (trigger: BillingTriggerRow) => {
+  // Action handlers (memoized to avoid table re-renders)
+  const handleConfirmAndInvoice = useCallback(async (trigger: BillingTriggerRow) => {
     if (!canOperateQueue) return;
     if (trigger.status === 'pending') await confirmTrigger.mutateAsync(trigger.id);
     await updateTriggerActionItem.mutateAsync({
       id: trigger.id,
       data: { actionType: 'issue_invoice', description: 'Issue invoice for confirmed milestone trigger', dueDate: plusDaysYmd(3), status: 'pending' },
     });
-  };
+  }, [canOperateQueue, confirmTrigger, updateTriggerActionItem]);
 
-  const handleReject = async (trigger: BillingTriggerRow) => {
+  const handleReject = useCallback(async (trigger: BillingTriggerRow) => {
     if (!canOperateQueue || trigger.status !== 'pending') return;
     await rejectTrigger.mutateAsync(trigger.id);
-  };
+  }, [canOperateQueue, rejectTrigger]);
 
-  const handleMarkInvoiceSent = async (trigger: BillingTriggerRow) => {
+  const handleMarkInvoiceSent = useCallback(async (trigger: BillingTriggerRow) => {
     if (!canOperateQueue) return;
     await updateTriggerActionItem.mutateAsync({ id: trigger.id, data: { actionType: 'issue_invoice', status: 'completed' } });
-  };
+  }, [canOperateQueue, updateTriggerActionItem]);
 
-  const handleMoveToFollowUp = async (trigger: BillingTriggerRow) => {
+  const handleMoveToFollowUp = useCallback(async (trigger: BillingTriggerRow) => {
     if (!canOperateQueue) return;
     await updateTriggerActionItem.mutateAsync({ id: trigger.id, data: { actionType: 'follow_up_payment', status: 'pending', dueDate: plusDaysYmd(7) } });
-  };
+  }, [canOperateQueue, updateTriggerActionItem]);
 
-  const triggerActions = {
+  const triggerActions = useMemo(() => ({
     readOnly: false,
     canOperate: canOperateQueue,
     isMutating,
@@ -489,7 +489,7 @@ const BillingControlTower: React.FC = () => {
     onReject: handleReject,
     onMarkSent: handleMarkInvoiceSent,
     onFollowUp: handleMoveToFollowUp,
-  };
+  }), [canOperateQueue, isMutating, navigate, handleConfirmAndInvoice, handleReject, handleMarkInvoiceSent, handleMoveToFollowUp]);
 
   // Collapsible state for the attorney view (separate from admin views)
   const [showMyTriggerQueue, setShowMyTriggerQueue] = useState(false);
@@ -499,8 +499,11 @@ const BillingControlTower: React.FC = () => {
   const [triggerSort, setTriggerSort] = useState<'asc' | 'desc'>('asc');
   const [longStopSort, setLongStopSort] = useState<'asc' | 'desc'>('asc');
   const [unpaidSort, setUnpaidSort] = useState<'asc' | 'desc'>('asc');
-  const toggleSort = (setter: React.Dispatch<React.SetStateAction<'asc' | 'desc'>>) => () =>
-    setter((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  const toggleSort = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<'asc' | 'desc'>>) => () =>
+      setter((prev) => (prev === 'asc' ? 'desc' : 'asc')),
+    []
+  );
 
   return (
     <Page>

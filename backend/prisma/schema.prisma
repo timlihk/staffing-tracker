@@ -326,6 +326,7 @@ model billing_event {
 
   @@index([engagement_id, event_date], map: "idx_billing_event_engagement_date")
   @@index([event_type], map: "idx_billing_event_type")
+  @@index([source_id], map: "idx_billing_event_source_id")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -393,6 +394,8 @@ model billing_invoice {
   @@unique([engagement_id, invoice_no])
   @@index([engagement_id, issued_date, paid_date], map: "idx_billing_invoice_dates")
   @@index([engagement_id], map: "idx_billing_invoice_engagement")
+  @@index([status], map: "idx_billing_invoice_status")
+  @@index([paid_date], map: "idx_billing_invoice_paid_date")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -443,6 +446,8 @@ model billing_milestone {
   @@index([completed, due_date], map: "idx_billing_milestone_completed_due_date")
   @@index([engagement_id], map: "idx_billing_milestone_engagement")
   @@index([engagement_id, sort_order], map: "idx_billing_milestone_engagement_sort")
+  @@index([engagement_id, completed, due_date], map: "idx_billing_milestone_engagement_completion")
+  @@index([completion_date(sort: Desc)], map: "idx_billing_milestone_completion_date")
   @@index([fee_id, sort_order], map: "idx_billing_milestone_fee_sort")
   @@index([last_reminder_sent_at], map: "idx_billing_milestone_last_reminder_sent")
 }
@@ -666,6 +671,8 @@ model billing_milestone_trigger_queue {
   @@index([project_event_id], map: "idx_trigger_queue_event")
   @@index([rule_id], map: "idx_trigger_queue_rule")
   @@index([created_at], map: "idx_trigger_queue_created")
+  @@index([milestone_id, status], map: "idx_trigger_queue_milestone_status")
+  @@index([created_at(sort: Desc), status], map: "idx_trigger_queue_created_status")
   @@index([event_type], map: "idx_trigger_queue_event_type")
   @@map("billing_milestone_trigger_queue")
 }
@@ -690,6 +697,8 @@ model billing_action_item {
   @@index([status], map: "idx_action_item_status")
   @@index([assigned_to], map: "idx_action_item_assigned")
   @@index([trigger_queue_id], map: "idx_action_item_trigger_queue")
+  @@index([milestone_id, status], map: "idx_action_item_milestone_status")
+  @@index([created_at(sort: Desc)], map: "idx_action_item_created_at")
   @@map("billing_action_item")
 }
 

@@ -91,7 +91,9 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
       return res.status(accessCheck.status).json({ error: accessCheck.error });
     }
 
-    // Process each milestone update sequentially to avoid transaction timeout
+    // Build all update statements, then execute in a single transaction
+    const updateStatements: Prisma.Sql[] = [];
+
     for (const milestone of milestones) {
       const milestoneId = Number(milestone.milestone_id);
       if (Number.isNaN(milestoneId)) {
@@ -167,15 +169,20 @@ export async function updateMilestones(req: AuthRequest, res: Response) {
 
       updateExpressions.push(Prisma.sql`updated_at = NOW()`);
 
-      const updateResult = await prisma.$executeRaw(
+      updateStatements.push(
         Prisma.sql`
           UPDATE billing_milestone
           SET ${Prisma.join(updateExpressions, ', ')}
           WHERE milestone_id = ${milestoneId}
         `
       );
+    }
 
-      logger.info('Milestone updated', { milestoneId, rowsAffected: updateResult });
+    if (updateStatements.length > 0) {
+      await prisma.$transaction(
+        updateStatements.map((stmt) => prisma.$executeRaw(stmt))
+      );
+      logger.info('Milestones batch updated', { count: updateStatements.length });
     }
 
     // Auto-resolve pending triggers for milestones marked complete via dialog

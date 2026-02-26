@@ -105,7 +105,7 @@ export function useCMEngagements(projectId: number, cmId: number, enabled: boole
     queryKey: billingKeys.cmEngagements(projectId, cmId),
     queryFn: () => billingApi.getProjectCMEngagements(projectId, cmId),
     enabled: enabled && !!projectId && !!cmId,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -114,7 +114,7 @@ export function useEngagementDetail(projectId: number, engagementId: number, ena
     queryKey: billingKeys.engagement(projectId, engagementId),
     queryFn: () => billingApi.getEngagementDetail(projectId, engagementId),
     enabled: enabled && !!projectId && !!engagementId,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -445,22 +445,25 @@ export function useBillingTriggers(params?: {
   attorneyId?: number;
   startDate?: string;
   endDate?: string;
+  enabled?: boolean;
 }) {
+  const { enabled = true, ...filterParams } = params ?? {};
   const stableParams = useMemo(
     () => ({
-      status: params?.status ?? null,
-      staffingProjectId: params?.staffingProjectId ?? null,
-      attorneyId: params?.attorneyId ?? null,
-      startDate: params?.startDate ?? null,
-      endDate: params?.endDate ?? null,
+      status: filterParams.status ?? null,
+      staffingProjectId: filterParams.staffingProjectId ?? null,
+      attorneyId: filterParams.attorneyId ?? null,
+      startDate: filterParams.startDate ?? null,
+      endDate: filterParams.endDate ?? null,
     }),
-    [params?.status, params?.staffingProjectId, params?.attorneyId, params?.startDate, params?.endDate]
+    [filterParams.status, filterParams.staffingProjectId, filterParams.attorneyId, filterParams.startDate, filterParams.endDate]
   );
 
   return useQuery({
     queryKey: billingKeys.triggers(stableParams),
-    queryFn: () => billingApi.getBillingTriggers(params),
+    queryFn: () => billingApi.getBillingTriggers(filterParams),
     staleTime: 30 * 1000,
+    enabled,
   });
 }
 
@@ -483,7 +486,7 @@ export function useOverdueByAttorney(params?: {
   return useQuery({
     queryKey: billingKeys.overdueByAttorney(stableParams),
     queryFn: () => billingApi.getOverdueByAttorney(params),
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -491,7 +494,7 @@ export function useBillingPipelineInsights() {
   return useQuery({
     queryKey: billingKeys.pipelineInsights(),
     queryFn: () => billingApi.getBillingPipelineInsights(),
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -508,7 +511,7 @@ export function useBillingFinanceSummary(params?: {
   return useQuery({
     queryKey: billingKeys.financeSummary(stableParams),
     queryFn: () => billingApi.getBillingFinanceSummary(params),
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -517,21 +520,24 @@ export function useLongStopRisks(params?: {
   windowDays?: number;
   minUbtAmount?: number;
   limit?: number;
+  enabled?: boolean;
 }) {
+  const { enabled = true, ...filterParams } = params ?? {};
   const stableParams = useMemo(
     () => ({
-      attorneyId: params?.attorneyId ?? null,
-      windowDays: params?.windowDays ?? 30,
-      minUbtAmount: params?.minUbtAmount ?? null,
-      limit: params?.limit ?? 500,
+      attorneyId: filterParams.attorneyId ?? null,
+      windowDays: filterParams.windowDays ?? 30,
+      minUbtAmount: filterParams.minUbtAmount ?? null,
+      limit: filterParams.limit ?? 100,
     }),
-    [params?.attorneyId, params?.windowDays, params?.minUbtAmount, params?.limit]
+    [filterParams.attorneyId, filterParams.windowDays, filterParams.minUbtAmount, filterParams.limit]
   );
 
   return useQuery({
     queryKey: billingKeys.longStopRisks(stableParams),
-    queryFn: () => billingApi.getLongStopRisks(params),
-    staleTime: 30 * 1000,
+    queryFn: () => billingApi.getLongStopRisks(filterParams),
+    staleTime: 5 * 60 * 1000,
+    enabled,
   });
 }
 
@@ -540,21 +546,24 @@ export function useUnpaidInvoices(params?: {
   thresholdDays?: number;
   minAmount?: number;
   limit?: number;
+  enabled?: boolean;
 }) {
+  const { enabled = true, ...filterParams } = params ?? {};
   const stableParams = useMemo(
     () => ({
-      attorneyId: params?.attorneyId ?? null,
-      thresholdDays: params?.thresholdDays ?? 30,
-      minAmount: params?.minAmount ?? null,
-      limit: params?.limit ?? 1000,
+      attorneyId: filterParams.attorneyId ?? null,
+      thresholdDays: filterParams.thresholdDays ?? 30,
+      minAmount: filterParams.minAmount ?? null,
+      limit: filterParams.limit ?? 100,
     }),
-    [params?.attorneyId, params?.thresholdDays, params?.minAmount, params?.limit]
+    [filterParams.attorneyId, filterParams.thresholdDays, filterParams.minAmount, filterParams.limit]
   );
 
   return useQuery({
     queryKey: billingKeys.unpaidInvoices(stableParams),
-    queryFn: () => billingApi.getUnpaidInvoices(params),
-    staleTime: 30 * 1000,
+    queryFn: () => billingApi.getUnpaidInvoices(filterParams),
+    staleTime: 5 * 60 * 1000,
+    enabled,
   });
 }
 
@@ -626,7 +635,7 @@ export function useBillingNotes(projectId: number, engagementId?: number) {
     queryKey: billingKeys.notes(projectId, engagementId),
     queryFn: () => billingApi.getBillingNotes(projectId, engagementId),
     enabled: !!projectId,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

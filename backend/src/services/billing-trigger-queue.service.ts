@@ -19,29 +19,33 @@ export class BillingTriggerQueueService {
       orderBy: { created_at: 'desc' },
       include: {
         milestone: {
-          include: {
+          select: {
+            title: true,
+            trigger_text: true,
+            amount_value: true,
+            due_date: true,
             billing_engagement: {
-              include: {
+              select: {
                 billing_project_cm_no: {
-                  include: {
-                    billing_project: true,
+                  select: {
+                    billing_project: {
+                      select: { project_id: true },
+                    },
                   },
                 },
               },
             },
           },
         },
-        project: true,
+        project: {
+          select: { name: true, status: true },
+        },
         billing_action_item: {
           orderBy: { created_at: 'desc' },
           take: 1,
           include: {
             assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                position: true,
-              },
+              select: { id: true, name: true, position: true },
             },
           },
         },
@@ -70,72 +74,71 @@ export class BillingTriggerQueueService {
       if (filters?.endDate) where.created_at.lte = filters.endDate;
     }
 
-    const triggers = await (prisma as any).billing_milestone_trigger_queue.findMany({
+    // Pre-filter by attorney's billing projects in SQL instead of loading all then filtering in memory
+    if (filters?.attorneyId !== undefined && filters.attorneyId !== null) {
+      const attorneyProjectRows = await (prisma as any).billing_project_bc_attorney.findMany({
+        where: { staff_id: filters.attorneyId },
+        select: { billing_project_id: true },
+      });
+
+      const allowedProjectIds = attorneyProjectRows
+        .map((row: { billing_project_id: bigint | number | string | null }) =>
+          row.billing_project_id === null || row.billing_project_id === undefined
+            ? NaN
+            : Number(row.billing_project_id)
+        )
+        .filter((value: number) => Number.isFinite(value));
+
+      if (allowedProjectIds.length === 0) {
+        return [];
+      }
+
+      // Filter triggers to only those whose milestone belongs to an allowed billing project
+      where.milestone = {
+        billing_engagement: {
+          billing_project_cm_no: {
+            project_id: { in: allowedProjectIds.map((id: number) => BigInt(id)) },
+          },
+        },
+      };
+    }
+
+    return (prisma as any).billing_milestone_trigger_queue.findMany({
       where,
       orderBy: { created_at: 'desc' },
       include: {
         milestone: {
-          include: {
+          select: {
+            title: true,
+            trigger_text: true,
+            amount_value: true,
+            due_date: true,
             billing_engagement: {
-              include: {
+              select: {
                 billing_project_cm_no: {
-                  include: {
-                    billing_project: true,
+                  select: {
+                    billing_project: {
+                      select: { project_id: true },
+                    },
                   },
                 },
               },
             },
           },
         },
-        project: true,
+        project: {
+          select: { name: true, status: true },
+        },
         billing_action_item: {
           orderBy: { created_at: 'desc' },
           take: 1,
           include: {
             assignedTo: {
-              select: {
-                id: true,
-                name: true,
-                position: true,
-              },
+              select: { id: true, name: true, position: true },
             },
           },
         },
       },
-    });
-
-    if (filters?.attorneyId === undefined || filters.attorneyId === null) {
-      return triggers;
-    }
-
-    const attorneyProjectRows = await (prisma as any).billing_project_bc_attorney.findMany({
-      where: {
-        staff_id: filters.attorneyId,
-      },
-      select: {
-        billing_project_id: true,
-      },
-    });
-
-    const allowedProjectIds = new Set(
-      attorneyProjectRows
-        .map((row: { billing_project_id: bigint | number | string | null }) =>
-          row.billing_project_id === null || row.billing_project_id === undefined
-            ? NaN
-            : Number(row.billing_project_id)
-        )
-        .filter((value: number) => Number.isFinite(value))
-    );
-
-    if (allowedProjectIds.size === 0) {
-      return [];
-    }
-
-    return triggers.filter((trigger: any) => {
-      const projectId = Number(
-        trigger?.milestone?.billing_engagement?.billing_project_cm_no?.billing_project?.project_id
-      );
-      return Number.isFinite(projectId) && allowedProjectIds.has(projectId);
     });
   }
 

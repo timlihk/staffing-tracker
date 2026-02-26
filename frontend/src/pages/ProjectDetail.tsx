@@ -154,47 +154,33 @@ const ProjectDetail: React.FC = () => {
     fetchData();
   }, [id]);
 
-  // Look up billing project ID via staffing-billing link table, then fall back to C/M lookup
+  // Look up billing project ID — fire link table + C/M lookup in parallel, prefer link result
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
 
-    // Try the direct link table first
-    api.get(`/billing/mapping/by-staffing-project/${id}`)
-      .then((res) => {
-        if (!cancelled && res.data.billingProjectId) {
-          setBillingProjectId(res.data.billingProjectId);
-        } else if (!cancelled && project?.cmNumber) {
-          // Fall back to C/M number lookup
-          api.get(`/billing/cm-lookup/${project.cmNumber}`)
-            .then((cmRes) => {
-              if (!cancelled && cmRes.data.found) {
-                setBillingProjectId(cmRes.data.billingProjectId);
-              } else if (!cancelled) {
-                setBillingProjectId(null);
-              }
-            })
-            .catch(() => { if (!cancelled) setBillingProjectId(null); });
-        } else if (!cancelled) {
-          setBillingProjectId(null);
-        }
-      })
-      .catch(() => {
-        // Link endpoint failed, try C/M lookup
-        if (!cancelled && project?.cmNumber) {
-          api.get(`/billing/cm-lookup/${project.cmNumber}`)
-            .then((cmRes) => {
-              if (!cancelled && cmRes.data.found) {
-                setBillingProjectId(cmRes.data.billingProjectId);
-              } else if (!cancelled) {
-                setBillingProjectId(null);
-              }
-            })
-            .catch(() => { if (!cancelled) setBillingProjectId(null); });
-        } else if (!cancelled) {
-          setBillingProjectId(null);
-        }
-      });
+    const lookupBillingProject = async () => {
+      // Fire both lookups concurrently
+      const linkPromise = api.get(`/billing/mapping/by-staffing-project/${id}`).catch(() => null);
+      const cmPromise = project?.cmNumber
+        ? api.get(`/billing/cm-lookup/${project.cmNumber}`).catch(() => null)
+        : Promise.resolve(null);
+
+      const [linkRes, cmRes] = await Promise.all([linkPromise, cmPromise]);
+
+      if (cancelled) return;
+
+      // Prefer direct link result
+      if (linkRes?.data?.billingProjectId) {
+        setBillingProjectId(linkRes.data.billingProjectId);
+      } else if (cmRes?.data?.found) {
+        setBillingProjectId(cmRes.data.billingProjectId);
+      } else {
+        setBillingProjectId(null);
+      }
+    };
+
+    lookupBillingProject();
     return () => { cancelled = true; };
   }, [id, project?.cmNumber]);
 
