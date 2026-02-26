@@ -103,74 +103,62 @@
     print-color-adjust: exact;
   }
 
-  /* ---- Billing Export Dialog: make dialog content full-page when printing ---- */
+  /* ---- Billing Export: portal-based print approach ---- */
 
   /*
-   * The component toggles a 'billing-export-open' class on <body> via useEffect.
-   * This is more reliable than :has() which lacks support in some print contexts.
+   * BillingExportDialog renders a .billing-export-print container via
+   * ReactDOM.createPortal directly on document.body.  This avoids all
+   * issues with MUI Dialog's portal (position:fixed, z-index, etc.).
+   *
+   * On screen the print container is hidden (display:none).
+   * When printing, we hide everything EXCEPT .billing-export-print.
    */
 
-  /* Hide main app content when billing export dialog is open */
-  body.billing-export-open > #root {
+  /* Hide entire app + MUI modals when billing export is open */
+  body.billing-export-open > *:not(.billing-export-print) {
     display: none !important;
   }
 
-  /* Reset MUI modal/dialog infrastructure for full-page printing */
-  body.billing-export-open > .MuiModal-root {
-    position: static !important;
-    overflow: visible !important;
-  }
-
-  body.billing-export-open .MuiBackdrop-root {
-    display: none !important;
-  }
-
-  body.billing-export-open .MuiDialog-container {
-    height: auto !important;
+  /* Show the print portal container */
+  body.billing-export-open > .billing-export-print {
     display: block !important;
-    overflow: visible !important;
-  }
-
-  .billing-export-dialog {
-    position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    overflow: visible !important;
-  }
-
-  /* Make dialog content overflow visible for multi-page tables */
-  .billing-export-dialog .MuiDialogContent-root {
-    overflow: visible !important;
-    padding: 0 !important;
-    flex: none !important;
   }
 
   /* Ensure Chip colors print in milestone status column */
-  .billing-export-dialog .MuiChip-root {
+  .billing-export-print .MuiChip-root {
     border: 1px solid #999 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Preserve totals row styling in print (override nth-of-type rules) */
-  .billing-export-dialog .MuiTableBody-root .MuiTableRow-root:last-child {
+  /* Preserve totals row styling in print */
+  .billing-export-print .totals-row {
     background: #f1f5f9 !important;
+    font-weight: 700;
   }
 
-  /* Hide sort icons in printed output */
-  .billing-export-dialog .MuiTableSortLabel-icon {
-    display: none !important;
+  .billing-export-print .totals-row .MuiTableCell-root {
+    border-top: 2px solid #1e3a5f !important;
+    font-weight: 700 !important;
   }
 
   /* Compact milestone icons in print */
-  .billing-export-dialog .MuiTableCell-root .MuiSvgIcon-root {
+  .billing-export-print .MuiTableCell-root .MuiSvgIcon-root {
     width: 8pt !important;
     height: 8pt !important;
   }
+
+  /* Alternate row colors */
+  .billing-export-print .even-row {
+    background: white !important;
+  }
+
+  .billing-export-print .odd-row {
+    background: #f3f4f6 !important;
+  }
+}
+
+/* Hide print portal on screen */
+.billing-export-print {
+  display: none;
 }

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Autocomplete,
   Box,
@@ -246,7 +247,124 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     </TableSortLabel>
   );
 
+  // ----- Render milestone cell content (shared between screen + print) -----
+  const renderMilestoneCell = (row: BillingExportRow) => {
+    const milestones = row.milestones ?? [];
+    if (milestones.length === 0) {
+      return <Typography variant="caption" color="text.secondary">{'\u2014'}</Typography>;
+    }
+    const completedCount = milestones.filter((m) => m.completed).length;
+    const chipColor = completedCount === 0 ? 'default' : completedCount === milestones.length ? 'success' : 'warning';
+    return (
+      <Stack spacing={0}>
+        <Chip
+          size="small"
+          label={`${completedCount}/${milestones.length}`}
+          variant="outlined"
+          color={chipColor}
+          sx={{ fontSize: '0.65rem', height: 20, mb: 0.5, alignSelf: 'flex-start' }}
+        />
+        {milestones.map((m) => (
+          <Stack key={m.milestoneId} direction="row" spacing={0.5} alignItems="center" sx={{ py: 0.125 }}>
+            {m.completed ? (
+              <CheckCircleIcon sx={{ fontSize: 12, color: 'success.main', flexShrink: 0 }} />
+            ) : (
+              <PendingIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+            )}
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: '0.65rem',
+                lineHeight: 1.2,
+                color: m.completed ? 'text.secondary' : 'text.primary',
+                wordBreak: 'break-word',
+              }}
+            >
+              {m.title}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    );
+  };
+
+  // ----- Print portal: render table directly on document.body -----
+  const printPortal = open && sortedRows.length > 0 ? createPortal(
+    <div className="billing-export-print">
+      <Typography variant="h5" fontWeight={700} gutterBottom>
+        Billing Control Tower Report
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {subtitle}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+        Generated: {new Date().toLocaleString()}
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
+      <Table size="small" className="billing-export-print-table">
+        <TableHead>
+          <TableRow>
+            <TableCell>C/M Number</TableCell>
+            <TableCell>Project Name</TableCell>
+            <TableCell>B&C Attorney</TableCell>
+            <TableCell>SCA</TableCell>
+            <TableCell align="right">Fee (US$)</TableCell>
+            <TableCell>Milestone</TableCell>
+            <TableCell align="right">Billing ($)</TableCell>
+            <TableCell align="right">Collections ($)</TableCell>
+            <TableCell align="right">Billing Credit ($)</TableCell>
+            <TableCell align="right">UBT</TableCell>
+            <TableCell align="right">AR</TableCell>
+            <TableCell>Notes</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {sortedRows.map((row, idx) => (
+            <TableRow key={row.projectId} className={idx % 2 === 0 ? 'even-row' : 'odd-row'}>
+              <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>{row.cmNumbers || '\u2014'}</TableCell>
+              <TableCell>{row.projectName}</TableCell>
+              <TableCell>{row.bcAttorneyName}</TableCell>
+              <TableCell>{row.sca || '\u2014'}</TableCell>
+              <TableCell align="right">{row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}</TableCell>
+              <TableCell sx={{ verticalAlign: 'top' }}>{renderMilestoneCell(row)}</TableCell>
+              <TableCell align="right">{fmt.format(row.billingUsd)}</TableCell>
+              <TableCell align="right">{fmt.format(row.collectionUsd)}</TableCell>
+              <TableCell align="right">{row.billingCreditUsd ? fmt.format(row.billingCreditUsd) : '\u2014'}</TableCell>
+              <TableCell align="right">{row.ubtUsd ? fmt.format(row.ubtUsd) : '\u2014'}</TableCell>
+              <TableCell align="right">{row.arUsd ? fmt.format(row.arUsd) : '\u2014'}</TableCell>
+              <TableCell>{row.notes || '\u2014'}</TableCell>
+            </TableRow>
+          ))}
+          {totals && (
+            <TableRow className="totals-row">
+              <TableCell />
+              <TableCell><strong>Total ({rows.length} projects)</strong></TableCell>
+              <TableCell />
+              <TableCell />
+              <TableCell align="right"><strong>{fmtFull.format(totals.agreedFeeUsd)}</strong></TableCell>
+              <TableCell />
+              <TableCell align="right"><strong>{fmtFull.format(totals.billingUsd)}</strong></TableCell>
+              <TableCell align="right"><strong>{fmtFull.format(totals.collectionUsd)}</strong></TableCell>
+              <TableCell align="right"><strong>{fmtFull.format(totals.billingCreditUsd)}</strong></TableCell>
+              <TableCell align="right"><strong>{fmtFull.format(totals.ubtUsd)}</strong></TableCell>
+              <TableCell align="right"><strong>{fmtFull.format(totals.arUsd)}</strong></TableCell>
+              <TableCell />
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid #ccc' }}>
+        <Typography variant="caption" color="text.secondary">
+          Kirkland & Ellis - Billing Control Tower Report
+        </Typography>
+      </Box>
+    </div>,
+    document.body,
+  ) : null;
+
   return (
+    <>
+    {printPortal}
     <Dialog
       open={open}
       onClose={onClose}
@@ -344,35 +462,8 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           overflow: 'auto',
           p: 0,
           position: 'relative',
-          '@media print': {
-            overflow: 'visible',
-            p: 0,
-          },
         }}
       >
-        {/* Print-only header */}
-        <Box
-          className="print-only"
-          sx={{
-            display: 'none',
-            '@media print': {
-              display: 'block',
-              mb: 2,
-            },
-          }}
-        >
-          <Typography variant="h5" fontWeight={700} gutterBottom>
-            Billing Control Tower Report
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {subtitle}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Generated: {new Date().toLocaleString()}
-          </Typography>
-          <Divider sx={{ mt: 1.5 }} />
-        </Box>
-
         {/* Subtle loading bar when refetching after filter change */}
         {isFetching && !isLoading && (
           <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} className="no-print" />
@@ -451,49 +542,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                       {row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top', py: '6px !important' }}>
-                      {(() => {
-                        const milestones = row.milestones ?? [];
-                        if (milestones.length === 0) {
-                          return <Typography variant="caption" color="text.secondary">{'\u2014'}</Typography>;
-                        }
-                        const completedCount = milestones.filter((m) => m.completed).length;
-                        const chipColor = completedCount === 0 ? 'default' : completedCount === milestones.length ? 'success' : 'warning';
-                        return (
-                          <Stack spacing={0}>
-                            <Chip
-                              size="small"
-                              label={`${completedCount}/${milestones.length}`}
-                              variant="outlined"
-                              color={chipColor}
-                              sx={{ fontSize: '0.65rem', height: 20, mb: 0.5, alignSelf: 'flex-start' }}
-                            />
-                            {milestones.map((m) => (
-                              <Stack key={m.milestoneId} direction="row" spacing={0.5} alignItems="center" sx={{ py: 0.125 }}>
-                                {m.completed ? (
-                                  <CheckCircleIcon sx={{ fontSize: 12, color: 'success.main', flexShrink: 0 }} />
-                                ) : (
-                                  <PendingIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
-                                )}
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    fontSize: '0.65rem',
-                                    lineHeight: 1.2,
-                                    color: m.completed ? 'text.secondary' : 'text.primary',
-                                    textDecoration: m.completed ? 'line-through' : 'none',
-                                    maxWidth: 140,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {m.title}
-                                </Typography>
-                              </Stack>
-                            ))}
-                          </Stack>
-                        );
-                      })()}
+                      {renderMilestoneCell(row)}
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {fmt.format(row.billingUsd)}
@@ -550,23 +599,6 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           </TableContainer>
         )}
 
-        {/* Print-only footer */}
-        <Box
-          className="print-only"
-          sx={{
-            display: 'none',
-            '@media print': {
-              display: 'block',
-              mt: 4,
-              pt: 2,
-              borderTop: '1px solid #ccc',
-            },
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
-            Kirkland & Ellis - Billing Control Tower Report
-          </Typography>
-        </Box>
       </DialogContent>
 
       {/* Action buttons - hidden when printing */}
@@ -594,6 +626,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
         </Button>
       </DialogActions>
     </Dialog>
+    </>
   );
 };
 
