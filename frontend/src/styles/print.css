@@ -69,7 +69,7 @@
   }
 
   .MuiTableHead-root .MuiTableCell-root {
-    background: #1e40af !important;
+    background: #1e3a5f !important;
     color: white !important;
     font-weight: 700 !important;
     -webkit-print-color-adjust: exact;
@@ -104,6 +104,33 @@
   }
 
   /* ---- Billing Export Dialog: make dialog content full-page when printing ---- */
+
+  /*
+   * The component toggles a 'billing-export-open' class on <body> via useEffect.
+   * This is more reliable than :has() which lacks support in some print contexts.
+   */
+
+  /* Hide main app content when billing export dialog is open */
+  body.billing-export-open > #root {
+    display: none !important;
+  }
+
+  /* Reset MUI modal/dialog infrastructure for full-page printing */
+  body.billing-export-open > .MuiModal-root {
+    position: static !important;
+    overflow: visible !important;
+  }
+
+  body.billing-export-open .MuiBackdrop-root {
+    display: none !important;
+  }
+
+  body.billing-export-open .MuiDialog-container {
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
   .billing-export-dialog {
     position: static !important;
     width: 100% !important;
@@ -114,18 +141,6 @@
     padding: 0 !important;
     box-shadow: none !important;
     border-radius: 0 !important;
-    overflow: visible !important;
-  }
-
-  /* Hide the dialog backdrop/overlay and reset modal positioning */
-  .MuiModal-backdrop,
-  .MuiBackdrop-root {
-    display: none !important;
-  }
-
-  .MuiModal-root,
-  .MuiDialog-root {
-    position: static !important;
     overflow: visible !important;
   }
 
@@ -141,5 +156,15 @@
     border: 1px solid #999 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* Preserve totals row styling in print (override nth-of-type rules) */
+  .billing-export-dialog .MuiTableBody-root .MuiTableRow-root:last-child {
+    background: #f1f5f9 !important;
+  }
+
+  /* Hide sort icons in printed output */
+  .billing-export-dialog .MuiTableSortLabel-icon {
+    display: none !important;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Autocomplete,
   Box,
@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  LinearProgress,
   Stack,
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from '@mui/material';
@@ -47,6 +49,29 @@ const STATUS_OPTIONS: StatusOption[] = [
   { value: 'slow_down', label: 'Slow-down' },
   { value: 'suspended', label: 'Suspended' },
 ];
+
+// ---------------------------------------------------------------------------
+// Sort
+// ---------------------------------------------------------------------------
+
+type SortKey =
+  | 'cmNumbers'
+  | 'projectName'
+  | 'bcAttorneyName'
+  | 'sca'
+  | 'agreedFeeUsd'
+  | 'billingUsd'
+  | 'collectionUsd'
+  | 'billingCreditUsd'
+  | 'ubtUsd';
+
+const numericSortKeys = new Set<SortKey>([
+  'agreedFeeUsd',
+  'billingUsd',
+  'collectionUsd',
+  'billingCreditUsd',
+  'ubtUsd',
+]);
 
 // ---------------------------------------------------------------------------
 // Currency formatter
@@ -85,6 +110,16 @@ const csvColumns: CsvColumn<BillingExportRow>[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Shared header style for TableSortLabel on dark background
+// ---------------------------------------------------------------------------
+
+const sortLabelSx = {
+  color: '#fff !important',
+  '&.Mui-active': { color: '#fff !important' },
+  '& .MuiTableSortLabel-icon': { color: 'rgba(255,255,255,0.7) !important' },
+};
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -92,6 +127,12 @@ interface BillingExportDialogProps {
   open: boolean;
   onClose: () => void;
 }
+
+// ---------------------------------------------------------------------------
+// Body class name used by print.css to hide #root
+// ---------------------------------------------------------------------------
+
+const BODY_CLASS = 'billing-export-open';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -102,6 +143,22 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
   const [selectedAttorneys, setSelectedAttorneys] = useState<BillingExportAttorney[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusOption[]>([]);
 
+  // Sort state
+  const [orderBy, setOrderBy] = useState<SortKey>('projectName');
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Toggle body class so print.css can hide #root (more reliable than :has())
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add(BODY_CLASS);
+    } else {
+      document.body.classList.remove(BODY_CLASS);
+    }
+    return () => {
+      document.body.classList.remove(BODY_CLASS);
+    };
+  }, [open]);
+
   // Build query params from filters
   const queryParams = useMemo(() => ({
     attorneyIds: selectedAttorneys.map((a) => a.staffId),
@@ -109,10 +166,28 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     enabled: open,
   }), [selectedAttorneys, selectedStatuses, open]);
 
-  const { data, isLoading, error } = useBillingExportReport(queryParams);
+  const { data, isLoading, isFetching, error } = useBillingExportReport(queryParams);
 
   const rows = useMemo(() => data?.rows ?? [], [data?.rows]);
   const attorneys = useMemo(() => data?.attorneys ?? [], [data?.attorneys]);
+
+  // Sort rows
+  const handleSort = useCallback((key: SortKey) => {
+    setOrder((prev) => (orderBy === key ? (prev === 'asc' ? 'desc' : 'asc') : 'asc'));
+    setOrderBy(key);
+  }, [orderBy]);
+
+  const sortedRows = useMemo(() => {
+    if (!rows.length) return rows;
+    return [...rows].sort((a, b) => {
+      if (numericSortKeys.has(orderBy)) {
+        const cmp = (Number(a[orderBy]) || 0) - (Number(b[orderBy]) || 0);
+        return order === 'asc' ? cmp : -cmp;
+      }
+      const cmp = String(a[orderBy] || '').localeCompare(String(b[orderBy] || ''));
+      return order === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, orderBy, order]);
 
   // Compute totals for summary row
   const totals = useMemo(() => {
@@ -148,6 +223,18 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     const timestamp = new Date().toISOString().slice(0, 10);
     downloadCsv(rows, csvColumns, `billing-report-${timestamp}`);
   }, [rows]);
+
+  // Helper to render sortable header
+  const sortableHeader = (key: SortKey, label: string) => (
+    <TableSortLabel
+      active={orderBy === key}
+      direction={orderBy === key ? order : 'asc'}
+      onClick={() => handleSort(key)}
+      sx={sortLabelSx}
+    >
+      {label}
+    </TableSortLabel>
+  );
 
   return (
     <Dialog
@@ -246,6 +333,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           flex: 1,
           overflow: 'auto',
           p: 0,
+          position: 'relative',
           '@media print': {
             overflow: 'visible',
             p: 0,
@@ -274,6 +362,11 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           </Typography>
           <Divider sx={{ mt: 1.5 }} />
         </Box>
+
+        {/* Subtle loading bar when refetching after filter change */}
+        {isFetching && !isLoading && (
+          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} className="no-print" />
+        )}
 
         {isLoading ? (
           <Box display="flex" justifyContent="center" alignItems="center" py={8}>
@@ -308,22 +401,22 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                     },
                   }}
                 >
-                  <TableCell>C/M Number</TableCell>
-                  <TableCell>Project Name</TableCell>
-                  <TableCell>B&C Attorney</TableCell>
-                  <TableCell>SCA</TableCell>
-                  <TableCell align="right">Fee (US$)</TableCell>
+                  <TableCell>{sortableHeader('cmNumbers', 'C/M Number')}</TableCell>
+                  <TableCell>{sortableHeader('projectName', 'Project Name')}</TableCell>
+                  <TableCell>{sortableHeader('bcAttorneyName', 'B&C Attorney')}</TableCell>
+                  <TableCell>{sortableHeader('sca', 'SCA')}</TableCell>
+                  <TableCell align="right">{sortableHeader('agreedFeeUsd', 'Fee (US$)')}</TableCell>
                   <TableCell align="center">Milestone</TableCell>
-                  <TableCell align="right">Billing ($)</TableCell>
-                  <TableCell align="right">Collections ($)</TableCell>
-                  <TableCell align="right">Billing Credit ($)</TableCell>
-                  <TableCell align="right">UBT</TableCell>
+                  <TableCell align="right">{sortableHeader('billingUsd', 'Billing ($)')}</TableCell>
+                  <TableCell align="right">{sortableHeader('collectionUsd', 'Collections ($)')}</TableCell>
+                  <TableCell align="right">{sortableHeader('billingCreditUsd', 'Billing Credit ($)')}</TableCell>
+                  <TableCell align="right">{sortableHeader('ubtUsd', 'UBT')}</TableCell>
                   <TableCell align="right">AR</TableCell>
                   <TableCell>Notes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((row, idx) => (
+                {sortedRows.map((row, idx) => (
                   <TableRow
                     key={row.projectId}
                     sx={{
