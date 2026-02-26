@@ -23,6 +23,7 @@ export async function getBillingAccessSettings(req: AuthRequest, res: Response) 
       return res.json({
         billing_module_enabled: false,
         access_level: 'admin_only',
+        finance_management_view_enabled: false,
       });
     }
 
@@ -39,8 +40,9 @@ export async function getBillingAccessSettings(req: AuthRequest, res: Response) 
  */
 export async function updateBillingAccessSettings(req: AuthRequest, res: Response) {
   try {
-    const { billing_module_enabled, access_level } = req.body;
+    const { billing_module_enabled, access_level, finance_management_view_enabled } = req.body;
     const userId = req.user?.userId;
+    const finMgmtView = finance_management_view_enabled ?? false;
 
     // Use upsert pattern: try to get existing row first
     const existing = await prisma.$queryRaw<any[]>`
@@ -54,6 +56,7 @@ export async function updateBillingAccessSettings(req: AuthRequest, res: Respons
         SET
           billing_module_enabled = ${billing_module_enabled},
           access_level = ${access_level},
+          finance_management_view_enabled = ${finMgmtView},
           updated_by = ${userId},
           updated_at = NOW()
         WHERE id = ${existing[0].id}
@@ -61,8 +64,8 @@ export async function updateBillingAccessSettings(req: AuthRequest, res: Respons
     } else {
       // Insert new row if none exists
       await prisma.$executeRaw`
-        INSERT INTO billing_access_settings (billing_module_enabled, access_level, updated_by, updated_at)
-        VALUES (${billing_module_enabled}, ${access_level}, ${userId}, NOW())
+        INSERT INTO billing_access_settings (billing_module_enabled, access_level, finance_management_view_enabled, updated_by, updated_at)
+        VALUES (${billing_module_enabled}, ${access_level}, ${finMgmtView}, ${userId}, NOW())
       `;
     }
 

@@ -14,8 +14,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUserSchema, type CreateUserFormData } from '../../lib/validations';
 
-const Roles: Array<{ label: string; value: 'admin' | 'editor' | 'viewer' }> = [
+const Roles: Array<{ label: string; value: 'admin' | 'finance' | 'editor' | 'viewer' }> = [
   { label: 'Admin', value: 'admin' },
+  { label: 'Finance', value: 'finance' },
   { label: 'Editor', value: 'editor' },
   { label: 'Viewer', value: 'viewer' },
 ];

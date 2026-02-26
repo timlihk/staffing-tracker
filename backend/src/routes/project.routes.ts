@@ -138,7 +138,7 @@ router.get('/:id/events', authenticate, validate(idParamSchema, 'params'), async
 router.post(
   '/:id/events',
   authenticate,
-  authorize('admin', 'editor'),
+  authorize('admin', 'finance', 'editor'),
   validate(idParamSchema, 'params'),
   validate(projectEventCreateSchema),
   asyncHandler(projectController.addProjectEvent)
@@ -257,7 +257,7 @@ router.get('/:id/change-history', authenticate, validate(idParamSchema, 'params'
 router.post(
   '/',
   authenticate,
-  authorize('admin', 'editor'),
+  authorize('admin', 'finance', 'editor'),
   express.json({ limit: '2mb' }),
   validate(projectSchema),
   asyncHandler(projectController.createProject)
@@ -361,7 +361,7 @@ router.post('/:id/confirm', authenticate, validate(idParamSchema, 'params'), asy
 router.put(
   '/:id',
   authenticate,
-  authorize('admin', 'editor'),
+  authorize('admin', 'finance', 'editor'),
   express.json({ limit: '2mb' }),
   validate(idParamSchema, 'params'),
   validate(projectSchema),
@@ -394,7 +394,7 @@ router.put(
  *       404:
  *         description: Project not found
  */
-router.delete('/:id', authenticate, authorize('admin'), validate(idParamSchema, 'params'), asyncHandler(projectController.deleteProject));
+router.delete('/:id', authenticate, authorize('admin', 'finance'), validate(idParamSchema, 'params'), asyncHandler(projectController.deleteProject));
 
 /**
  * @openapi
@@ -433,7 +433,7 @@ router.delete('/:id', authenticate, authorize('admin'), validate(idParamSchema, 
  *       404:
  *         description: Project or staff member not found
  */
-router.post('/:id/bc-attorneys', authenticate, authorize('admin', 'editor'), validate(idParamSchema, 'params'), validate(bcAttorneySchema), asyncHandler(bcAttorneyController.addBcAttorney));
+router.post('/:id/bc-attorneys', authenticate, authorize('admin', 'finance', 'editor'), validate(idParamSchema, 'params'), validate(bcAttorneySchema), asyncHandler(bcAttorneyController.addBcAttorney));
 
 /**
  * @openapi
@@ -467,6 +467,6 @@ router.post('/:id/bc-attorneys', authenticate, authorize('admin', 'editor'), val
  *       404:
  *         description: Project or B&C attorney association not found
  */
-router.delete('/:id/bc-attorneys/:staffId', authenticate, authorize('admin', 'editor'), validate(idParamSchema, 'params'), asyncHandler(bcAttorneyController.removeBcAttorney));
+router.delete('/:id/bc-attorneys/:staffId', authenticate, authorize('admin', 'finance', 'editor'), validate(idParamSchema, 'params'), asyncHandler(bcAttorneyController.removeBcAttorney));
 
 export default router;

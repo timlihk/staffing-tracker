@@ -121,6 +121,34 @@ export function BillingSettingsPanel({ billingSettings, loading, onUpdate, extra
                 color="primary"
               />
             </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Stack>
+                <Typography variant="body1" fontWeight={600}>
+                  Finance Management View
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Allow finance users to see the Management View tab in Control Tower
+                </Typography>
+              </Stack>
+              <Switch
+                checked={billingSettings?.finance_management_view_enabled ?? false}
+                onChange={async (e) => {
+                  try {
+                    await onUpdate({
+                      billing_module_enabled: billingSettings?.billing_module_enabled ?? false,
+                      access_level: billingSettings?.access_level ?? 'admin_only',
+                      finance_management_view_enabled: e.target.checked,
+                    });
+                    toast.success('Settings updated', 'Finance management view setting has been saved.');
+                  } catch (error: unknown) {
+                    toast.error('Update failed', extractError(error, 'Failed to update settings.'));
+                  }
+                }}
+                disabled={!billingSettings?.billing_module_enabled}
+                color="primary"
+              />
+            </Box>
           </Stack>
         </Box>
 

@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
 import config from '../config';
 import { logger } from '../utils/logger';
 
-const ALLOWED_ROLES = new Set(['admin', 'editor', 'viewer']);
+const ALLOWED_ROLES = new Set(['admin', 'finance', 'editor', 'viewer']);
 
 interface UserWithStats {
   id: number;

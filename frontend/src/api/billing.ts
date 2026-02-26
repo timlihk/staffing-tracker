@@ -184,6 +184,7 @@ export interface EngagementDetailResponse {
 export interface BillingAccessSettings {
   billing_module_enabled: boolean;
   access_level: 'admin_only' | 'admin_and_bc_attorney';
+  finance_management_view_enabled?: boolean;
   updated_by: number | null;
   updated_at: string | null;
 }

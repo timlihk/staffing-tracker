@@ -33,6 +33,7 @@ import {
   useUnpaidInvoices,
   useUpdateTriggerActionItem,
   useTimeWindowedMetrics,
+  useBillingSettings,
 } from '../hooks/useBilling';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../hooks/useAuth';
@@ -364,10 +365,22 @@ const BillingControlTower: React.FC = () => {
   const navigate = useNavigate();
   const permissions = usePermissions();
   const { user } = useAuth();
-  const canOperateQueue = permissions.isAdmin;
+  const billingSettingsQuery = useBillingSettings();
+  const billingSettings = billingSettingsQuery.data;
+  const canOperateQueue = permissions.isAdmin || permissions.isFinance;
+  const canSeeFinanceView = permissions.isAdmin || permissions.isFinance;
+  const canSeeManagementView = permissions.isAdmin || (permissions.isFinance && !!billingSettings?.finance_management_view_enabled);
   const myStaffId = user?.staff?.id;
 
-  // Non-admin users see only "My Projects" tab (index 0); admins see all 3 tabs
+  // Build dynamic tab list based on role and settings
+  const tabs = useMemo(() => {
+    const t: string[] = [];
+    if (canSeeFinanceView) t.push('finance');
+    if (canSeeManagementView) t.push('management');
+    t.push('myProjects');
+    return t;
+  }, [canSeeFinanceView, canSeeManagementView]);
+
   const [activeTab, setActiveTab] = useState(0);
   const [showMetrics, setShowMetrics] = useState(true);
   const [showLongStopRisks, setShowLongStopRisks] = useState(false);
@@ -393,11 +406,11 @@ const BillingControlTower: React.FC = () => {
 
   const adminDataLoading = metricsQuery.isLoading || triggersQuery.isLoading || longStopQuery.isLoading || unpaidQuery.isLoading;
   const myDataLoading = myStaffId ? (myTriggersQuery.isLoading || myLongStopQuery.isLoading || myUnpaidQuery.isLoading) : false;
-  const isLoading = permissions.isAdmin ? (adminDataLoading || myDataLoading) : myDataLoading;
+  const isLoading = canSeeFinanceView ? (adminDataLoading || myDataLoading) : myDataLoading;
 
   const adminError = metricsQuery.error || triggersQuery.error || longStopQuery.error || unpaidQuery.error;
   const myError = myTriggersQuery.error || myLongStopQuery.error || myUnpaidQuery.error;
-  const loadError = permissions.isAdmin ? (adminError || myError) : myError;
+  const loadError = canSeeFinanceView ? (adminError || myError) : myError;
 
   const triggerRows = useMemo(() => triggersQuery.data ?? [], [triggersQuery.data]);
   const longStopRows = useMemo(() => longStopQuery.data ?? [], [longStopQuery.data]);
@@ -498,8 +511,8 @@ const BillingControlTower: React.FC = () => {
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
-          {permissions.isAdmin && <Tab label="Finance View" />}
-          {permissions.isAdmin && <Tab label="Management View" />}
+          {canSeeFinanceView && <Tab label="Finance View" />}
+          {canSeeManagementView && <Tab label="Management View" />}
           <Tab label="My Projects" />
         </Tabs>
       </Box>
@@ -514,8 +527,8 @@ const BillingControlTower: React.FC = () => {
         </Section>
       ) : (
         <>
-          {/* Finance View (admin only) */}
-          {permissions.isAdmin && activeTab === 0 && (
+          {/* Finance View (admin + finance) */}
+          {tabs[activeTab] === 'finance' && (
             <>
               <Section>
                 <Stack
@@ -594,8 +607,8 @@ const BillingControlTower: React.FC = () => {
             </>
           )}
 
-          {/* Management View (admin only) */}
-          {permissions.isAdmin && activeTab === 1 && (
+          {/* Management View (admin always, finance if enabled) */}
+          {tabs[activeTab] === 'management' && (
             <>
               <Section>
                 <Stack
@@ -705,7 +718,7 @@ const BillingControlTower: React.FC = () => {
           )}
 
           {/* B&C Attorney View — My Projects */}
-          {activeTab === (permissions.isAdmin ? 2 : 0) && (
+          {tabs[activeTab] === 'myProjects' && (
             <>
               {!myStaffId ? (
                 <Section>

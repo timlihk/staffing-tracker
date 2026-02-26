@@ -78,13 +78,14 @@ export type Timetable = (typeof Timetable)[keyof typeof Timetable];
 // ============================================================================
 export const UserRole = {
   ADMIN: 'admin',
+  FINANCE: 'finance',
   EDITOR: 'editor',
   VIEWER: 'viewer',
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
-export const ALLOWED_ROLES = new Set([UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER]);
+export const ALLOWED_ROLES = new Set([UserRole.ADMIN, UserRole.FINANCE, UserRole.EDITOR, UserRole.VIEWER]);
 
 // ============================================================================
 // Staff Position

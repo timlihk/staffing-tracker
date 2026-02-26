@@ -254,12 +254,13 @@ model AppSettings {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model billing_access_settings {
-  id                     Int       @id @default(autoincrement())
-  billing_module_enabled Boolean?  @default(false)
-  access_level           String?   @default("admin_only")
-  updated_by             Int?
-  updated_at             DateTime? @default(now()) @db.Timestamptz(6)
-  users                  User?     @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                              Int       @id @default(autoincrement())
+  billing_module_enabled          Boolean?  @default(false)
+  access_level                    String?   @default("admin_only")
+  finance_management_view_enabled Boolean?  @default(false)
+  updated_by                      Int?
+  updated_at                      DateTime? @default(now()) @db.Timestamptz(6)
+  users                           User?     @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model billing_bc_attorney_staff_map {

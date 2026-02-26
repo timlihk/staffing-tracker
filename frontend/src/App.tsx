@@ -41,11 +41,20 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
+const AdminOrFinanceRoute = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+  if (user?.role !== 'admin' && user?.role !== 'finance') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 const AdminOrBcAttorneyRoute = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isFinance = user?.role === 'finance';
   const isBcAttorney = user?.staff?.position === 'B&C Working Attorney';
-  if (!isAdmin && !isBcAttorney) {
+  if (!isAdmin && !isFinance && !isBcAttorney) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -254,11 +263,11 @@ function App() {
               path="/billing/sync-report/:id"
               element={
                 <ProtectedRoute>
-                  <AdminRoute>
+                  <AdminOrFinanceRoute>
                     <Layout>
                       <SyncReport />
                     </Layout>
-                  </AdminRoute>
+                  </AdminOrFinanceRoute>
                 </ProtectedRoute>
               }
             />
@@ -266,11 +275,11 @@ function App() {
               path="/billing/sync-history"
               element={
                 <ProtectedRoute>
-                  <AdminRoute>
+                  <AdminOrFinanceRoute>
                     <Layout>
                       <SyncHistory />
                     </Layout>
-                  </AdminRoute>
+                  </AdminOrFinanceRoute>
                 </ProtectedRoute>
               }
             />

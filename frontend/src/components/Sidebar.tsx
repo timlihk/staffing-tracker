@@ -104,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { text: 'Guides', icon: <MenuBook />, path: '/best-practices' },
   ];
 
-  if (user?.role === 'admin' || user?.staff?.position === 'B&C Working Attorney') {
+  if (user?.role === 'admin' || user?.role === 'finance' || user?.staff?.position === 'B&C Working Attorney') {
     menuItems.push({ text: 'Control Tower', icon: <DevicesOther />, path: '/billing/control-tower' });
   }
   if (user?.role === 'admin') {

@@ -49,10 +49,9 @@ async function checkBillingAccess(req: AuthRequest, res: Response, next: NextFun
     }
 
     const user = req.user;
-    const isAdmin = user?.role === 'admin';
 
-    // Admin always has access
-    if (isAdmin) {
+    // Admin and Finance always have full billing access
+    if (user?.role === 'admin' || user?.role === 'finance') {
       return next();
     }
 
@@ -96,7 +95,17 @@ async function checkBillingAccess(req: AuthRequest, res: Response, next: NextFun
 }
 
 /**
- * Middleware: Admin only
+ * Middleware: Admin or Finance only
+ */
+function adminOrFinance(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.user?.role !== 'admin' && req.user?.role !== 'finance') {
+    return res.status(403).json({ error: 'Access denied - Admin or Finance only' });
+  }
+  next();
+}
+
+/**
+ * Middleware: Admin only (for settings management)
  */
 function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
   if (req.user?.role !== 'admin') {
@@ -276,7 +285,7 @@ router.get('/bc-attorneys', authenticate, checkBillingAccess, billingController.
  *       404:
  *         description: Billing project not found
  */
-router.put('/projects/:id', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), billingController.updateBillingProject);
+router.put('/projects/:id', authenticate, adminOrFinance, validate(billingIdParamSchema, 'params'), billingController.updateBillingProject);
 
 /**
  * @openapi
@@ -304,7 +313,7 @@ router.put('/projects/:id', authenticate, adminOnly, validate(billingIdParamSche
  *       404:
  *         description: Billing project not found
  */
-router.delete('/projects/:id', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), billingController.deleteProject);
+router.delete('/projects/:id', authenticate, adminOrFinance, validate(billingIdParamSchema, 'params'), billingController.deleteProject);
 
 /**
  * @openapi
@@ -428,7 +437,7 @@ router.get('/projects/:id/cm/:cmId/engagements', authenticate, checkBillingAcces
 router.post(
   '/projects/:id/cm/:cmId/engagements',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   express.json({ limit: '500kb' }),
   validate(billingIdParamSchema, 'params'),
   validate(cmIdParamSchema, 'params'),
@@ -532,7 +541,7 @@ router.post('/projects/:id/notes', authenticate, checkBillingAccess, validate(bi
  *       403:
  *         description: Forbidden (admin only)
  */
-router.patch('/projects/:id/financials', authenticate, adminOnly, validate(billingIdParamSchema, 'params'), validate(updateFinancialsSchema), billingController.updateFinancials);
+router.patch('/projects/:id/financials', authenticate, adminOrFinance, validate(billingIdParamSchema, 'params'), validate(updateFinancialsSchema), billingController.updateFinancials);
 
 /**
  * @openapi
@@ -575,7 +584,7 @@ router.patch('/projects/:id/financials', authenticate, adminOnly, validate(billi
 router.patch(
   '/engagements/:engagementId/fee-arrangement',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   express.json({ limit: '500kb' }),
   validate(engagementIdParamSchema, 'params'),
   validate(updateFeeArrangementSchema),
@@ -608,7 +617,7 @@ router.patch(
  *       404:
  *         description: Engagement not found
  */
-router.delete('/engagements/:engagementId', authenticate, adminOnly, validate(engagementIdParamSchema, 'params'), billingController.deleteEngagement);
+router.delete('/engagements/:engagementId', authenticate, adminOrFinance, validate(engagementIdParamSchema, 'params'), billingController.deleteEngagement);
 
 /**
  * @openapi
@@ -799,7 +808,7 @@ router.get('/mapping/by-staffing-project/:staffingProjectId', authenticate, bill
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/mapping/suggestions', authenticate, adminOnly, billingController.getMappingSuggestions);
+router.get('/mapping/suggestions', authenticate, adminOrFinance, billingController.getMappingSuggestions);
 
 /**
  * @openapi
@@ -830,7 +839,7 @@ router.get('/mapping/suggestions', authenticate, adminOnly, billingController.ge
  *       403:
  *         description: Forbidden (admin only)
  */
-router.post('/mapping/link', authenticate, adminOnly, validate(linkProjectsSchema), billingController.linkProjects);
+router.post('/mapping/link', authenticate, adminOrFinance, validate(linkProjectsSchema), billingController.linkProjects);
 
 /**
  * @openapi
@@ -888,7 +897,7 @@ router.post('/mapping/link', authenticate, adminOnly, validate(linkProjectsSchem
  *       404:
  *         description: Billing project not found
  */
-router.get('/mapping/suggest/:billingProjectId', authenticate, adminOnly, billingController.suggestProjectMatches);
+router.get('/mapping/suggest/:billingProjectId', authenticate, adminOrFinance, billingController.suggestProjectMatches);
 
 /**
  * @openapi
@@ -916,7 +925,7 @@ router.get('/mapping/suggest/:billingProjectId', authenticate, adminOnly, billin
  *       404:
  *         description: Link not found
  */
-router.delete('/mapping/unlink/:linkId', authenticate, adminOnly, validate(linkIdParamSchema, 'params'), billingController.unlinkProjects);
+router.delete('/mapping/unlink/:linkId', authenticate, adminOrFinance, validate(linkIdParamSchema, 'params'), billingController.unlinkProjects);
 
 // ============================================================================
 // B&C Attorney Mapping
@@ -939,7 +948,7 @@ router.delete('/mapping/unlink/:linkId', authenticate, adminOnly, validate(linkI
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/bc-attorneys/unmapped', authenticate, adminOnly, billingController.getUnmappedAttorneys);
+router.get('/bc-attorneys/unmapped', authenticate, adminOrFinance, billingController.getUnmappedAttorneys);
 
 /**
  * @openapi
@@ -970,7 +979,7 @@ router.get('/bc-attorneys/unmapped', authenticate, adminOnly, billingController.
  *       403:
  *         description: Forbidden (admin only)
  */
-router.post('/bc-attorneys/map', authenticate, adminOnly, validate(mapBCAttorneySchema), billingController.mapBCAttorney);
+router.post('/bc-attorneys/map', authenticate, adminOrFinance, validate(mapBCAttorneySchema), billingController.mapBCAttorney);
 
 // ============================================================================
 // Access Settings
@@ -1003,7 +1012,7 @@ router.post('/bc-attorneys/map', authenticate, adminOnly, validate(mapBCAttorney
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/settings/access', authenticate, adminOnly, billingController.getBillingAccessSettings);
+router.get('/settings/access', authenticate, adminOrFinance, billingController.getBillingAccessSettings);
 
 /**
  * @openapi
@@ -1120,7 +1129,7 @@ router.get('/triggers', authenticate, checkBillingAccess, billingTriggerControll
  *       403:
  *         description: Forbidden (admin only)
  */
-router.post('/triggers/sweep-due-milestones', authenticate, adminOnly, billingTriggerController.runDueDateSweep);
+router.post('/triggers/sweep-due-milestones', authenticate, adminOrFinance, billingTriggerController.runDueDateSweep);
 
 /**
  * @openapi
@@ -1156,7 +1165,7 @@ router.post('/triggers/sweep-due-milestones', authenticate, adminOnly, billingTr
  *       403:
  *         description: Forbidden (admin only)
  */
-router.post('/triggers/sweep-ai-milestones', authenticate, adminOnly, billingTriggerController.runAIDueSweep);
+router.post('/triggers/sweep-ai-milestones', authenticate, adminOrFinance, billingTriggerController.runAIDueSweep);
 
 /**
  * @openapi
@@ -1181,7 +1190,7 @@ router.post('/triggers/sweep-ai-milestones', authenticate, adminOnly, billingTri
  *       401:
  *         description: Unauthorized
  */
-router.post('/triggers/:id/confirm', authenticate, adminOnly, billingTriggerController.confirmTrigger);
+router.post('/triggers/:id/confirm', authenticate, adminOrFinance, billingTriggerController.confirmTrigger);
 
 /**
  * @openapi
@@ -1206,7 +1215,7 @@ router.post('/triggers/:id/confirm', authenticate, adminOnly, billingTriggerCont
  *       401:
  *         description: Unauthorized
  */
-router.post('/triggers/:id/reject', authenticate, adminOnly, billingTriggerController.rejectTrigger);
+router.post('/triggers/:id/reject', authenticate, adminOrFinance, billingTriggerController.rejectTrigger);
 
 /**
  * @openapi
@@ -1235,7 +1244,7 @@ router.patch(
   '/triggers/:id/action-item',
   authenticate,
   checkBillingAccess,
-  adminOnly,
+  adminOrFinance,
   validate(billingIdParamSchema, 'params'),
   validate(updateTriggerActionItemSchema),
   billingTriggerController.updateTriggerActionItem
@@ -1296,7 +1305,7 @@ router.get('/overdue-by-attorney', authenticate, checkBillingAccess, billingTrig
  *       403:
  *         description: Forbidden (admin only)
  */
-router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOnly, billingTriggerController.getPipelineInsights);
+router.get('/pipeline-insights', authenticate, checkBillingAccess, adminOrFinance, billingTriggerController.getPipelineInsights);
 
 /**
  * @openapi
@@ -1406,7 +1415,7 @@ router.get('/time-windowed-metrics', authenticate, checkBillingAccess, billingTr
 router.post(
   '/excel-sync/preview',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   express.json({ limit: '10mb' }),
   billingExcelSyncController.previewExcelSync
 );
@@ -1414,7 +1423,7 @@ router.post(
 router.post(
   '/excel-sync/apply',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   express.json({ limit: '10mb' }),
   billingExcelSyncController.applyExcelSync
 );
@@ -1422,21 +1431,21 @@ router.post(
 router.get(
   '/excel-sync/history',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   billingExcelSyncController.getSyncHistory
 );
 
 router.get(
   '/excel-sync/history/:id',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   billingExcelSyncController.getSyncRunDetail
 );
 
 router.get(
   '/excel-sync/history/:id/download',
   authenticate,
-  adminOnly,
+  adminOrFinance,
   billingExcelSyncController.downloadSyncExcel
 );
 

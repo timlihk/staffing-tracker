@@ -40,7 +40,7 @@ export type StaffFormData = z.infer<typeof staffSchema>;
 export const createUserSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   email: z.string().email('Valid email is required'),
-  role: z.enum(['admin', 'editor', 'viewer']),
+  role: z.enum(['admin', 'finance', 'editor', 'viewer']),
   staffId: z.number().optional().nullable(),
 });
 

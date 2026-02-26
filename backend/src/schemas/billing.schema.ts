@@ -190,6 +190,7 @@ export const mapBCAttorneySchema = z.object({
 export const updateBillingAccessSettingsSchema = z.object({
   billing_module_enabled: z.boolean(),
   access_level: z.enum(['admin_only', 'admin_and_bc_attorney']),
+  finance_management_view_enabled: z.boolean().optional(),
 });
 
 /**
