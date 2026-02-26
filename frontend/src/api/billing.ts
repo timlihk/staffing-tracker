@@ -795,6 +795,12 @@ export const getTimeWindowedMetrics = async (): Promise<BillingTimeWindowMetrics
 // Export Report
 // ---------------------------------------------------------------------------
 
+export interface BillingExportMilestone {
+  milestoneId: number;
+  title: string;
+  completed: boolean;
+}
+
 export interface BillingExportRow {
   projectId: number;
   cmNumbers: string;
@@ -803,6 +809,7 @@ export interface BillingExportRow {
   sca: string;
   agreedFeeUsd: number;
   milestoneStatus: string;
+  milestones: BillingExportMilestone[];
   billingUsd: number;
   collectionUsd: number;
   billingCreditUsd: number;

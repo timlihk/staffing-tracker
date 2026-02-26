@@ -27,6 +27,8 @@ import {
   Download as DownloadIcon,
   Close as CloseIcon,
   FilterList as FilterIcon,
+  CheckCircle as CheckCircleIcon,
+  RadioButtonUnchecked as PendingIcon,
 } from '@mui/icons-material';
 import { useBillingExportReport } from '../hooks/useBilling';
 import { downloadCsv, type CsvColumn } from '../lib/export';
@@ -100,7 +102,15 @@ const csvColumns: CsvColumn<BillingExportRow>[] = [
   { header: 'B&C Attorney', key: 'bcAttorneyName' },
   { header: 'SCA', key: 'sca' },
   { header: 'Fee (US$)', key: 'agreedFeeUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'Milestone Status', key: 'milestoneStatus' },
+  {
+    header: 'Milestones',
+    key: 'milestones',
+    formatter: (_v, row) => {
+      const ms = row.milestones ?? [];
+      if (!ms.length) return row.milestoneStatus || '0/0';
+      return ms.map((m) => `[${m.completed ? 'x' : ' '}] ${m.title}`).join('; ');
+    },
+  },
   { header: 'Billing ($)', key: 'billingUsd', formatter: (v) => String(v ?? 0) },
   { header: 'Collections ($)', key: 'collectionUsd', formatter: (v) => String(v ?? 0) },
   { header: 'Billing Credit ($)', key: 'billingCreditUsd', formatter: (v) => String(v ?? 0) },
@@ -406,7 +416,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                   <TableCell>{sortableHeader('bcAttorneyName', 'B&C Attorney')}</TableCell>
                   <TableCell>{sortableHeader('sca', 'SCA')}</TableCell>
                   <TableCell align="right">{sortableHeader('agreedFeeUsd', 'Fee (US$)')}</TableCell>
-                  <TableCell align="center">Milestone</TableCell>
+                  <TableCell>Milestone</TableCell>
                   <TableCell align="right">{sortableHeader('billingUsd', 'Billing ($)')}</TableCell>
                   <TableCell align="right">{sortableHeader('collectionUsd', 'Collections ($)')}</TableCell>
                   <TableCell align="right">{sortableHeader('billingCreditUsd', 'Billing Credit ($)')}</TableCell>
@@ -440,21 +450,48 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {row.agreedFeeUsd ? fmt.format(row.agreedFeeUsd) : '\u2014'}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell sx={{ verticalAlign: 'top', py: '6px !important' }}>
                       {(() => {
-                        const ms = row.milestoneStatus || '0/0';
-                        const parts = ms.split('/');
-                        const completed = parts[0] ?? '0';
-                        const total = parts[1] ?? '0';
-                        const color = completed === '0' ? 'default' : completed === total ? 'success' : 'warning';
+                        const milestones = row.milestones ?? [];
+                        if (milestones.length === 0) {
+                          return <Typography variant="caption" color="text.secondary">{'\u2014'}</Typography>;
+                        }
+                        const completedCount = milestones.filter((m) => m.completed).length;
+                        const chipColor = completedCount === 0 ? 'default' : completedCount === milestones.length ? 'success' : 'warning';
                         return (
-                          <Chip
-                            size="small"
-                            label={ms}
-                            variant="outlined"
-                            color={color}
-                            sx={{ fontSize: '0.7rem', height: 22 }}
-                          />
+                          <Stack spacing={0}>
+                            <Chip
+                              size="small"
+                              label={`${completedCount}/${milestones.length}`}
+                              variant="outlined"
+                              color={chipColor}
+                              sx={{ fontSize: '0.65rem', height: 20, mb: 0.5, alignSelf: 'flex-start' }}
+                            />
+                            {milestones.map((m) => (
+                              <Stack key={m.milestoneId} direction="row" spacing={0.5} alignItems="center" sx={{ py: 0.125 }}>
+                                {m.completed ? (
+                                  <CheckCircleIcon sx={{ fontSize: 12, color: 'success.main', flexShrink: 0 }} />
+                                ) : (
+                                  <PendingIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+                                )}
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: '0.65rem',
+                                    lineHeight: 1.2,
+                                    color: m.completed ? 'text.secondary' : 'text.primary',
+                                    textDecoration: m.completed ? 'line-through' : 'none',
+                                    maxWidth: 140,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {m.title}
+                                </Typography>
+                              </Stack>
+                            ))}
+                          </Stack>
                         );
                       })()}
                     </TableCell>

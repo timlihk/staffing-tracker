@@ -167,4 +167,10 @@
   .billing-export-dialog .MuiTableSortLabel-icon {
     display: none !important;
   }
+
+  /* Compact milestone icons in print */
+  .billing-export-dialog .MuiTableCell-root .MuiSvgIcon-root {
+    width: 8pt !important;
+    height: 8pt !important;
+  }
 }

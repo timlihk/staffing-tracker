@@ -894,7 +894,18 @@ export const getExportReport = async (req: AuthRequest, res: Response) => {
         SELECT
           pcm.project_id,
           COUNT(DISTINCT m.milestone_id) AS total_milestones,
-          COUNT(DISTINCT m.milestone_id) FILTER (WHERE m.completed) AS completed_milestones
+          COUNT(DISTINCT m.milestone_id) FILTER (WHERE m.completed) AS completed_milestones,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'milestoneId', m.milestone_id,
+                'title', COALESCE(m.title, m.description, 'Milestone ' || m.ordinal),
+                'completed', m.completed
+              )
+              ORDER BY COALESCE(m.sort_order, 0), m.ordinal, m.milestone_id
+            ),
+            '[]'::json
+          ) AS milestones_json
         FROM billing_project_cm_no pcm
         JOIN billing_engagement e ON e.cm_id = pcm.cm_id
         JOIN billing_milestone m ON m.engagement_id = e.engagement_id
@@ -939,6 +950,7 @@ export const getExportReport = async (req: AuthRequest, res: Response) => {
         pf.matter_notes,
         COALESCE(pm.total_milestones, 0) AS total_milestones,
         COALESCE(pm.completed_milestones, 0) AS completed_milestones,
+        COALESCE(pm.milestones_json, '[]'::json) AS milestones_json,
         pl.lsd_date,
         ps.status AS staffing_project_status,
         ps.name AS staffing_project_name
@@ -971,6 +983,11 @@ export const getExportReport = async (req: AuthRequest, res: Response) => {
         sca: row.sca || '',
         agreedFeeUsd: Number(row.agreed_fee_usd ?? 0),
         milestoneStatus: `${Number(row.completed_milestones ?? 0)}/${Number(row.total_milestones ?? 0)}`,
+        milestones: (Array.isArray(row.milestones_json) ? row.milestones_json : []).map((m: any) => ({
+          milestoneId: Number(m.milestoneId ?? 0),
+          title: String(m.title || 'Milestone'),
+          completed: Boolean(m.completed),
+        })),
         billingUsd: Number(row.billing_usd ?? 0),
         collectionUsd: Number(row.collection_usd ?? 0),
         billingCreditUsd: Number(row.billing_credit_usd ?? 0),
