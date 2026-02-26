@@ -743,8 +743,6 @@ const ProjectDetail: React.FC = () => {
                   size="small"
                   onClick={handleOpenAdd}
                   disabled={
-                    staffLoading ||
-                    staffOptions.length === 0 ||
                     createAssignment.isPending ||
                     updateAssignment.isPending
                   }
