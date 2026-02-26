@@ -1520,7 +1520,7 @@ export default function BestPracticeGuide() {
                 <Stack spacing={1}>
                   <StepItem n={1} text={<>Use the <strong>tabs</strong> to switch views. Finance View is for processing invoices. Management View is for monitoring risks. My Projects shows your own matters.</>} />
                   <StepItem n={2} text={<>The <strong>time-windowed metrics</strong> at top show activity for the last 7 and 30 days — triggered milestones, invoiced amounts, collections, and overdue counts.</>} />
-                  <StepItem n={3} text={<>The <strong>Invoice Queue</strong> lists milestones triggered by lifecycle changes, date sweeps, or AI detection. Click the arrow to collapse or expand. The badge shows the count.</>} />
+                  <StepItem n={3} text={<>The <strong>Invoice Queue</strong> lists milestones triggered by lifecycle changes, date sweeps, or AI detection. Click the arrow to collapse or expand. The badge shows the count. Click the <strong>Project</strong> or <strong>Billing Matter</strong> column header to sort alphabetically.</>} />
                   <StepItem n={4} text={<>For each triggered milestone: click <strong>Confirm + Queue Invoice</strong> to approve it, or <strong>Reject</strong> if it&apos;s a false positive. After confirming, click <strong>Mark Invoice Sent</strong> when the invoice goes out.</>} />
                   <StepItem n={5} text={<>The <strong>Unpaid Invoices</strong> section shows invoices sent 30+ days ago without payment. Aging chips show how long it&apos;s been overdue (blue = 30d, orange = 60d, red = 90d+).</>} />
                   <StepItem n={6} text={<>Click <strong>Move to Follow-up</strong> to flag an unpaid invoice for collections action.</>} />
@@ -1680,7 +1680,7 @@ export default function BestPracticeGuide() {
                   </Stack>
                 </ScreenFrame>
                 <Stack spacing={1}>
-                  <StepItem n={1} text={<>The <strong>Long Stop Date Risks</strong> table shows engagements approaching or past their LSD. Risk chips are color-coded: blue = 30 days, orange = 14 days, red = past due.</>} />
+                  <StepItem n={1} text={<>The <strong>Long Stop Date Risks</strong> table shows engagements approaching or past their LSD. Risk chips are color-coded: blue = 30 days, orange = 14 days, red = past due. Click column headers to sort.</>} />
                   <StepItem n={2} text={<>The invoice queue and unpaid invoices are shown <strong>read-only</strong> in Management View for awareness. To take action, switch to Finance View.</>} />
                 </Stack>
               </Stack>
@@ -1746,7 +1746,7 @@ export default function BestPracticeGuide() {
                   </Stack>
                 </ScreenFrame>
                 <Stack spacing={1}>
-                  <StepItem n={1} text={<>The <strong>Triggered Milestones</strong> section shows only milestones from projects where you are the B&C attorney. Review these to stay aware of upcoming billing activity.</>} />
+                  <StepItem n={1} text={<>The <strong>Triggered Milestones</strong> section shows only milestones from projects where you are the B&C attorney. Review these to stay aware of upcoming billing activity. Click column headers to sort by project name.</>} />
                   <StepItem n={2} text={<>The <strong>Long Stop Date Risks</strong> section is filtered to your projects. Check for any engagements approaching or past their LSD.</>} />
                   <StepItem n={3} text={<>The <strong>Unpaid Invoices</strong> section shows invoices 30+ days overdue on your matters. Coordinate with Finance for follow-up on collections.</>} />
                 </Stack>
