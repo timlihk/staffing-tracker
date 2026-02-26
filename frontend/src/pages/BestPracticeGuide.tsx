@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Alert,
   Box,
@@ -28,8 +29,13 @@ import {
   Block,
   PriorityHighRounded,
   EventBusy,
+  FolderOutlined,
+  BadgeOutlined,
+  AccountBalanceWalletOutlined,
+  DevicesOther,
 } from '@mui/icons-material';
 import { Page, PageHeader, Section } from '../components/ui';
+import { useAuth } from '../hooks/useAuth';
 import { tokens } from '../theme';
 
 // ---------------------------------------------------------------------------
@@ -42,6 +48,10 @@ const SECTION_IDS = {
   lifecycle: 'lifecycle-stages',
   billing: 'billing-best-practice',
   dataQuality: 'data-quality',
+  howToProjects: 'how-to-projects',
+  howToStaffing: 'how-to-staffing',
+  howToBilling: 'how-to-billing',
+  howToControlTower: 'how-to-control-tower',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -54,6 +64,9 @@ const NAV_ITEMS = [
   { label: 'Lifecycle', sectionId: SECTION_IDS.lifecycle, icon: <TimelineOutlined fontSize="small" /> },
   { label: 'Billing', sectionId: SECTION_IDS.billing, icon: <ReceiptLongOutlined fontSize="small" /> },
   { label: 'Data Quality', sectionId: SECTION_IDS.dataQuality, icon: <VerifiedOutlined fontSize="small" /> },
+  { label: 'Projects Guide', sectionId: SECTION_IDS.howToProjects, icon: <FolderOutlined fontSize="small" /> },
+  { label: 'Staffing Guide', sectionId: SECTION_IDS.howToStaffing, icon: <BadgeOutlined fontSize="small" /> },
+  { label: 'Billing Guide', sectionId: SECTION_IDS.howToBilling, icon: <AccountBalanceWalletOutlined fontSize="small" /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -61,8 +74,8 @@ const NAV_ITEMS = [
 // ---------------------------------------------------------------------------
 const corePrinciples = [
   {
-    title: 'One source of truth',
-    description: 'One project, one C/M stream, one engagement card per engagement.',
+    title: 'One C/M = one project',
+    description: 'Each C/M number belongs to exactly one project. A project can have multiple engagements under the same C/M (e.g. when an LSD passes and a supplementary engagement is signed), but a new project for the same client must get its own C/M number.',
     Icon: Hub,
   },
   {
@@ -87,36 +100,41 @@ const roleGuidelines = [
     role: 'Deal Team Members',
     color: tokens.colors.indigo[500],
     Icon: Groups,
-    keyTakeaway: 'Create projects, keep status and lifecycle current.',
+    keyTakeaway: 'Create projects, keep status and lifecycle current — this directly triggers billing milestones.',
     tasks: [
       'Create the project record first.',
       'Keep project status current for staffing visibility.',
-      'Keep lifecycle stage current to support billing milestone tracking.',
-      'Create a new engagement (not a new project) when scope changes under the same C/M number.',
+      'Update lifecycle stage as soon as a milestone event occurs (e.g. A1 filed, hearing passed, listed) — this triggers automatic milestone detection for billing.',
+      'When an LSD passes or supplementary scope is added to the same project, create a new engagement under the existing C/M — do not create a new project.',
+      'For a genuinely new project for the same client, set up a new C/M number — do not reuse the existing one.',
       'Draft and maintain milestone reference language from the engagement letter.',
+      'Review the Control Tower "My Projects" tab to see if any milestones were triggered on your projects.',
     ],
   },
   {
     role: 'Finance Team',
     color: tokens.colors.success,
     Icon: AccountBalance,
-    keyTakeaway: 'Validate billing details, signed dates, and LSD.',
+    keyTakeaway: 'Confirm triggered milestones, issue invoices, and track collections via Control Tower.',
     tasks: [
       'Co-confirm billing details with Deal Team.',
       'Validate signed date and Long Stop Date (LSD) for each engagement.',
       'Review milestone structure and dates for billing accuracy.',
       'Ensure each engagement card only contains its own milestones.',
+      'Use the Control Tower Finance View to confirm triggered milestones and issue invoices.',
+      'Track unpaid invoices (30+ days) and follow up on collections.',
     ],
   },
   {
     role: 'Managers',
     color: tokens.colors.violet[500],
     Icon: SupervisorAccount,
-    keyTakeaway: 'Review data quality and escalate missing critical dates.',
+    keyTakeaway: 'Monitor data quality and billing risks via the Control Tower Management View.',
     tasks: [
       'Review data quality and role accountability.',
       'Escalate missing critical dates (signed date, LSD).',
       'Ensure status/lifecycle updates happen in time for reporting and billing operations.',
+      'Use the Control Tower Management View to monitor long stop date risks and overall billing pipeline.',
     ],
   },
 ];
@@ -141,14 +159,14 @@ const lifecycleStages = [
 
 const billingPractices = [
   {
-    title: 'New scope = new engagement',
-    description: 'Under one C/M number, create a new engagement for new work scope. Do not create another project.',
-    Icon: AddCard,
+    title: 'One C/M = one project',
+    description: 'Each C/M number maps to exactly one project. When an LSD passes and a supplementary engagement is signed, add it under the same C/M. For a new project for the same client, create a new C/M number.',
+    Icon: Hub,
   },
   {
-    title: 'Link engagement first',
-    description: 'Select the correct engagement in billing detail, then paste milestone language into Milestone Reference Text.',
-    Icon: LinkIcon,
+    title: 'New scope = new engagement',
+    description: 'Under one C/M number, create a new engagement card for additional or follow-on scope. Do not create another project or C/M.',
+    Icon: AddCard,
   },
   {
     title: 'Keep milestones engagement-specific',
@@ -161,9 +179,14 @@ const billingPractices = [
     Icon: Block,
   },
   {
-    title: 'Review due milestones in Control Tower',
-    description: 'The Billing Control Tower automatically surfaces milestones past their due date. Sort by project and filter by attorney to review your queue.',
-    Icon: PriorityHighRounded,
+    title: 'Update lifecycle stage promptly',
+    description: 'Changing lifecycle stage triggers automatic billing milestone detection. Update as soon as a milestone event occurs.',
+    Icon: Update,
+  },
+  {
+    title: 'Review Control Tower regularly',
+    description: 'Deal Team checks "My Projects" tab, Finance uses "Finance View" to confirm and issue invoices.',
+    Icon: LinkIcon,
   },
 ];
 
@@ -186,54 +209,271 @@ const SectionTitle = ({ icon, label }: { icon: React.ReactNode; label: string })
 );
 
 // ---------------------------------------------------------------------------
+// Annotated screenshot helpers
+// ---------------------------------------------------------------------------
+const Callout = ({ n }: { n: number }) => (
+  <Box
+    component="span"
+    sx={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 20,
+      height: 20,
+      borderRadius: '50%',
+      bgcolor: tokens.colors.indigo[500],
+      color: 'white',
+      fontSize: '0.65rem',
+      fontWeight: 800,
+      flexShrink: 0,
+    }}
+  >
+    {n}
+  </Box>
+);
+
+const StepItem = ({ n, text }: { n: number; text: React.ReactNode }) => (
+  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+    <Callout n={n} />
+    <Typography variant="body2" color="text.secondary" sx={{ pt: 0.15 }}>
+      {text}
+    </Typography>
+  </Stack>
+);
+
+const ScreenFrame = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Box sx={{ border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 2, overflow: 'hidden' }}>
+    <Box sx={{ bgcolor: tokens.colors.slate[800], px: 2, py: 0.5, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {['#ff5f57', '#febc2e', '#28c840'].map((c) => (
+          <Box key={c} sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: c }} />
+        ))}
+      </Box>
+      <Typography variant="caption" sx={{ color: tokens.colors.slate[400], fontSize: '0.65rem', ml: 0.5 }}>
+        {title}
+      </Typography>
+    </Box>
+    <Box sx={{ bgcolor: tokens.colors.slate[50], p: 2 }}>{children}</Box>
+  </Box>
+);
+
+const MockField = ({ label }: { label: string }) => (
+  <Box
+    sx={{
+      height: 30,
+      flex: 1,
+      bgcolor: 'white',
+      border: `1px solid ${tokens.colors.slate[300]}`,
+      borderRadius: 1,
+      display: 'flex',
+      alignItems: 'center',
+      px: 1.5,
+      minWidth: 0,
+    }}
+  >
+    <Typography variant="caption" color="text.disabled" fontSize="0.65rem" noWrap>
+      {label}
+    </Typography>
+  </Box>
+);
+
+const MockBtn = ({ label, primary }: { label: string; primary?: boolean }) => (
+  <Box
+    sx={{
+      height: 30,
+      px: 1.5,
+      bgcolor: primary ? tokens.colors.indigo[500] : 'white',
+      color: primary ? 'white' : tokens.colors.slate[700],
+      border: primary ? 'none' : `1px solid ${tokens.colors.slate[300]}`,
+      borderRadius: 1,
+      display: 'flex',
+      alignItems: 'center',
+      flexShrink: 0,
+    }}
+  >
+    <Typography variant="caption" fontWeight={600} fontSize="0.65rem" noWrap>
+      {label}
+    </Typography>
+  </Box>
+);
+
+const MockSelect = ({ label }: { label: string }) => (
+  <Box
+    sx={{
+      height: 28,
+      px: 1,
+      bgcolor: 'white',
+      border: `1px solid ${tokens.colors.slate[300]}`,
+      borderRadius: 1,
+      display: 'flex',
+      alignItems: 'center',
+      minWidth: 0,
+    }}
+  >
+    <Typography variant="caption" fontSize="0.6rem" noWrap>
+      {label} ▾
+    </Typography>
+  </Box>
+);
+
+const GuideCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Box sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, bgcolor: 'white' }}>
+    <Typography variant="subtitle1" fontWeight={700} color="text.primary" sx={{ mb: 2 }}>
+      {title}
+    </Typography>
+    {children}
+  </Box>
+);
+
+// ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
 export default function BestPracticeGuide() {
+  type SectionKey = 'best-practices' | 'how-to-projects' | 'how-to-staffing' | 'how-to-billing' | 'how-to-control-tower';
+  const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isBcAttorney = user?.staff?.position === 'B&C Working Attorney';
+  const canAccessControlTower = isAdmin || isBcAttorney;
+
+  const ALL_LANDING_SECTIONS: {
+    key: SectionKey;
+    title: string;
+    subtitle: string;
+    icon: React.ReactNode;
+    color: string;
+    chips: { label: string; sectionId: string }[];
+    visible?: boolean;
+  }[] = [
+    {
+      key: 'best-practices',
+      title: 'Best Practices',
+      subtitle: 'Core principles, roles, lifecycle stages, and data quality standards.',
+      icon: <LightbulbOutlined sx={{ fontSize: 28 }} />,
+      color: tokens.colors.indigo[500],
+      chips: NAV_ITEMS.filter((n) => !n.sectionId.startsWith('how-to')),
+    },
+    {
+      key: 'how-to-projects',
+      title: 'How To — Projects',
+      subtitle: 'Create projects, filter the list, manage details and team members.',
+      icon: <FolderOutlined sx={{ fontSize: 28 }} />,
+      color: tokens.colors.indigo[600],
+      chips: [],
+    },
+    {
+      key: 'how-to-staffing',
+      title: 'How To — Staffing',
+      subtitle: 'Add staff, browse the roster, and review workload timelines.',
+      icon: <BadgeOutlined sx={{ fontSize: 28 }} />,
+      color: tokens.colors.violet[500],
+      chips: [],
+    },
+    {
+      key: 'how-to-billing',
+      title: 'How To — Billing',
+      subtitle: 'Browse billing matters, review engagements, and track financials.',
+      icon: <AccountBalanceWalletOutlined sx={{ fontSize: 28 }} />,
+      color: tokens.colors.success,
+      chips: [],
+    },
+    {
+      key: 'how-to-control-tower',
+      title: 'How To — Control Tower',
+      subtitle: 'Process invoices, monitor long stop risks, and track unpaid invoices.',
+      icon: <DevicesOther sx={{ fontSize: 28 }} />,
+      color: tokens.colors.violet[500],
+      chips: [],
+      visible: canAccessControlTower,
+    },
+  ];
+
+  const LANDING_SECTIONS = ALL_LANDING_SECTIONS.filter((s) => s.visible !== false);
+  const cardLg = LANDING_SECTIONS.length === 5 ? 2.4 : 3;
+
+  const handleCardClick = (key: SectionKey) => {
+    setActiveSection((prev) => (prev === key ? null : key));
+  };
+
   return (
     <Page>
       <PageHeader
-        title="Best Practice Guide"
-        subtitle="Quick-reference rules for project, engagement, and billing data."
+        title="Guides"
+        subtitle="Best practices, step-by-step how-tos, and quick-reference for every function."
       />
 
-      {/* ---- Sticky Quick Nav ---- */}
-      <Box
-        component="nav"
-        aria-label="Best practice guide sections"
-        sx={{
-          position: 'sticky',
-          top: { xs: 56, sm: 64 },
-          zIndex: 10,
-          py: 1.5,
-          px: 2,
-          backgroundColor: alpha(tokens.colors.slate[50], 0.92),
-          backdropFilter: 'blur(12px)',
-          border: `1px solid ${tokens.colors.slate[200]}`,
-          borderRadius: 3,
-          display: 'flex',
-          gap: 1,
-          flexWrap: 'wrap',
-        }}
-      >
-        {NAV_ITEMS.map((item) => (
-          <Chip
-            key={item.sectionId}
-            icon={item.icon}
-            label={item.label}
-            onClick={() => scrollToSection(item.sectionId)}
-            variant="outlined"
-            clickable
-            sx={{
-              borderColor: tokens.colors.slate[300],
-              '&:hover': {
-                borderColor: tokens.colors.indigo[400],
-                backgroundColor: alpha(tokens.colors.indigo[500], 0.08),
-              },
-            }}
-          />
-        ))}
-      </Box>
+      {/* ---- Landing Navigation Cards ---- */}
+      <Grid container spacing={2}>
+        {LANDING_SECTIONS.map((section) => {
+          const isActive = activeSection === section.key;
+          return (
+            <Grid key={section.key} size={{ xs: 12, sm: 6, md: 4, lg: cardLg }}>
+              <Box
+                onClick={() => handleCardClick(section.key)}
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  border: `2px solid ${isActive ? section.color : tokens.colors.slate[200]}`,
+                  bgcolor: isActive ? alpha(section.color, 0.04) : 'white',
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  transition: 'all 0.15s ease',
+                  ...(isActive
+                    ? { boxShadow: `0 2px 12px ${alpha(section.color, 0.18)}` }
+                    : {
+                        '&:hover': {
+                          borderColor: section.color,
+                          boxShadow: `0 2px 12px ${alpha(section.color, 0.15)}`,
+                          transform: 'translateY(-2px)',
+                        },
+                      }),
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(section.color, isActive ? 0.15 : 0.1),
+                    color: section.color,
+                  }}
+                >
+                  {section.icon}
+                </Box>
+                <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+                  {section.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                  {section.subtitle}
+                </Typography>
+                {section.chips.length > 0 && isActive && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 'auto', pt: 0.5 }}>
+                    {section.chips.map((item) => (
+                      <Chip
+                        key={item.sectionId}
+                        label={item.label}
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); scrollToSection(item.sectionId); }}
+                        sx={{ height: 22, fontSize: '0.65rem', cursor: 'pointer' }}
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            </Grid>
+          );
+        })}
+      </Grid>
 
+      {/* ================ Best Practices content ================ */}
+      {activeSection === 'best-practices' && (<>
       {/* ---- Golden Rule ---- */}
       <Alert
         severity="info"
@@ -358,6 +598,11 @@ export default function BestPracticeGuide() {
       {/* ---- 4. Lifecycle Stages ---- */}
       <Box id={SECTION_IDS.lifecycle} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<TimelineOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="Lifecycle Stages" />}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <strong>Important:</strong> When you change a project's lifecycle stage, the system automatically checks
+            whether any billing milestones have been triggered. This is the primary mechanism for billing milestone
+            detection — keep lifecycle stages current to ensure timely invoicing.
+          </Alert>
           <Stack spacing={0}>
             {lifecycleStages.map((item, index) => (
               <Box
@@ -470,7 +715,108 @@ export default function BestPracticeGuide() {
         </Section>
       </Box>
 
-      {/* ---- 6. Data Quality Standard ---- */}
+      {/* ---- 6. How Milestone Detection Works ---- */}
+      <Box sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<ReceiptLongOutlined sx={{ color: tokens.colors.success }} />} label="How Milestone Detection Works" />}>
+          <Stack spacing={2}>
+            <Typography variant="body2" fontWeight={600} color="text.primary">
+              The system uses three complementary methods to detect when billing milestones are triggered:
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                    1. Lifecycle Stage Changes (Real-time)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    When a deal team member updates the lifecycle stage (e.g. moves from "A1 Filed" to "Hearing Passed"),
+                    the system immediately checks all milestones for that project and flags any that match. This is the
+                    primary trigger method.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                    2. Date-Based Sweep (Daily 2 AM HKT)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    A daily sweep checks all milestone dates. If a milestone's target date has passed and it hasn't been
+                    triggered yet, it gets flagged automatically. This catches date-driven milestones even if the lifecycle
+                    stage wasn't updated.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${tokens.colors.slate[200]}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                    3. AI-Assisted Sweep (Daily 2:30 AM HKT)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    An AI model reviews project events and milestone language to identify milestones that may have been
+                    triggered but weren't caught by the other two methods. This acts as a safety net to reduce missed billing.
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+            <Alert severity="info">
+              All three methods feed into the <strong>Control Tower Invoice Queue</strong>, where Finance confirms and
+              issues invoices. Deal team members can review triggered milestones on their projects via the "My Projects" tab.
+            </Alert>
+          </Stack>
+        </Section>
+      </Box>
+
+      {/* ---- 7. Control Tower Workflow ---- */}
+      <Box sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<SettingsOutlined sx={{ color: tokens.colors.success }} />} label="Control Tower Workflow" />}>
+          <Stack spacing={2}>
+            <Typography variant="body2" fontWeight={600} color="text.primary">
+              The Control Tower is the central hub for billing operations. It has three views:
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(tokens.colors.success, 0.3)}`, height: '100%', bgcolor: alpha(tokens.colors.success, 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+                    Finance View
+                  </Typography>
+                  <Chip label="Admin only" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Invoice issuance workflow: review triggered milestones → Confirm + Queue Invoice → Mark Invoice Sent.
+                    Also tracks unpaid invoices 30+ days for collections follow-up.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(tokens.colors.violet[500], 0.3)}`, height: '100%', bgcolor: alpha(tokens.colors.violet[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+                    Management View
+                  </Typography>
+                  <Chip label="Admin only" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Portfolio oversight: monitors long stop date risks, overall billing pipeline, and unpaid invoices.
+                    Read-only view of the invoice queue for awareness.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(tokens.colors.indigo[500], 0.3)}`, height: '100%', bgcolor: alpha(tokens.colors.indigo[500], 0.04) }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary" sx={{ mb: 0.5 }}>
+                    My Projects
+                  </Typography>
+                  <Chip label="B&C Attorneys + Admin" size="small" sx={{ height: 20, fontSize: '0.65rem', mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Shows triggered milestones, long stop date risks, and unpaid invoices filtered to your own projects.
+                    Helps attorneys stay on top of billing activity for their matters.
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Stack>
+        </Section>
+      </Box>
+
+      {/* ---- 8. Data Quality Standard ---- */}
       <Box id={SECTION_IDS.dataQuality} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
         <Section title={<SectionTitle icon={<VerifiedOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="Data Quality Standard" />}>
           <Stack spacing={2}>
@@ -483,7 +829,7 @@ export default function BestPracticeGuide() {
                 '& .MuiAlert-message': { fontWeight: 600 },
               }}
             >
-              Always ensure these two dates are present and accurate. They drive automated due-date sweeps and are the minimum foundation for reliable milestone tracking.
+              Always ensure these two dates are present and accurate. They are the minimum foundation for reliable milestone tracking.
             </Alert>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box
@@ -526,6 +872,893 @@ export default function BestPracticeGuide() {
           </Stack>
         </Section>
       </Box>
+      </>)}
+
+      {/* ================ How To — Projects content ================ */}
+      {activeSection === 'how-to-projects' && (
+      <Box id={SECTION_IDS.howToProjects} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<FolderOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="How To — Projects" />}>
+          <Stack spacing={3}>
+            {/* Guide 1: Browse & Filter */}
+            <GuideCard title="Browse & Filter Projects">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — Projects">
+                  {/* Toolbar */}
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <Callout n={1} />
+                    <MockField label="Search projects..." />
+                    <Callout n={2} />
+                    <MockBtn label="+ New Project" primary />
+                  </Stack>
+                  <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1.5, flexWrap: 'wrap', rowGap: 0.75 }}>
+                    <Callout n={3} />
+                    <MockSelect label="Status" />
+                    <MockSelect label="Category" />
+                    <MockSelect label="Side" />
+                    <MockSelect label="Sector" />
+                    <Callout n={4} />
+                    <MockSelect label="Team Member" />
+                  </Stack>
+                  {/* Table */}
+                  <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.7fr 1fr 0.5fr', bgcolor: tokens.colors.slate[100], px: 1.5, py: 0.5, borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                      {['Project Name', 'C/M Number', 'Status', 'Lifecycle', ''].map((h) => (
+                        <Typography key={h} variant="caption" fontWeight={700} fontSize="0.55rem" color="text.secondary">
+                          {h}
+                        </Typography>
+                      ))}
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.7fr 1fr 0.5fr', px: 1.5, py: 0.75, alignItems: 'center', borderBottom: `1px solid ${tokens.colors.slate[100]}` }}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Callout n={5} />
+                        <Typography variant="caption" fontWeight={600} sx={{ color: tokens.colors.indigo[500], fontSize: '0.6rem' }}>
+                          Alpha Holdings IPO
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" fontSize="0.6rem" color="text.secondary">12345-00001</Typography>
+                      <Chip label="Active" size="small" color="success" sx={{ height: 18, fontSize: '0.5rem' }} />
+                      <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Signed</Typography>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Callout n={6} />
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Edit</Typography>
+                      </Stack>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.7fr 1fr 0.5fr', px: 1.5, py: 0.75, alignItems: 'center' }}>
+                      <Typography variant="caption" fontWeight={600} sx={{ color: tokens.colors.indigo[500], fontSize: '0.6rem' }}>
+                        Beta Corp Listing
+                      </Typography>
+                      <Typography variant="caption" fontSize="0.6rem" color="text.secondary">12345-00002</Typography>
+                      <Chip label="Slow-down" size="small" color="warning" sx={{ height: 18, fontSize: '0.5rem' }} />
+                      <Typography variant="caption" fontSize="0.6rem" color="text.secondary">A1 Filed</Typography>
+                      <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Edit</Typography>
+                    </Box>
+                  </Box>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Type a keyword in <strong>Search</strong> to find projects by name or C/M number.</>} />
+                  <StepItem n={2} text={<>Click <strong>+ New Project</strong> to create a new project (opens the project form).</>} />
+                  <StepItem n={3} text={<>Use the <strong>Status</strong>, <strong>Category</strong>, <strong>Side</strong>, and <strong>Sector</strong> dropdowns to narrow the list.</>} />
+                  <StepItem n={4} text={<>Filter by <strong>Team Member</strong> to see only projects assigned to a specific person.</>} />
+                  <StepItem n={5} text={<>Click any <strong>project name</strong> (blue link) to open its detail page.</>} />
+                  <StepItem n={6} text={<>Click the <strong>edit icon</strong> in the Actions column to jump straight to the edit form.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 2: Create a Project */}
+            <GuideCard title="Create a New Project">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — New Project">
+                  <Stack spacing={1}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={1} />
+                      <MockField label="Project Name *" />
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={2} />
+                      <MockSelect label="Category" />
+                      <MockSelect label="Status" />
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={3} />
+                      <MockSelect label="Lifecycle Stage" />
+                      <MockSelect label="Priority" />
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={4} />
+                      <MockField label="Filing Date" />
+                      <MockField label="Listing Date" />
+                      <MockSelect label="Side" />
+                      <MockSelect label="Sector" />
+                    </Stack>
+                    <Box sx={{ borderTop: `1px solid ${tokens.colors.slate[200]}`, pt: 1, mt: 0.5 }}>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Callout n={5} />
+                        <MockField label="Select Staff Member" />
+                        <MockBtn label="Add Member" />
+                      </Stack>
+                    </Box>
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ pt: 0.5 }}>
+                      <Callout n={6} />
+                      <MockBtn label="Create Project" primary />
+                      <MockBtn label="Cancel" />
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Enter the <strong>Project Name</strong> — this is the only required field.</>} />
+                  <StepItem n={2} text={<>Select a <strong>Category</strong> (HK Trx, US Trx, HK Comp, US Comp, Others) and set <strong>Status</strong> (defaults to Active).</>} />
+                  <StepItem n={3} text={<>Set the <strong>Lifecycle Stage</strong> (e.g. New Engagement, Kickoff, Listed) and <strong>Priority</strong> (High, Medium, Low) if known.</>} />
+                  <StepItem n={4} text={<>Fill in <strong>Filing Date</strong>, <strong>Listing Date</strong>, <strong>Side</strong>, and <strong>Sector</strong> as available.</>} />
+                  <StepItem n={5} text={<>Under Team Members, search for staff and click <strong>Add Member</strong> to assign them before saving.</>} />
+                  <StepItem n={6} text={<>Click <strong>Create Project</strong> to save. You&apos;ll be redirected to the project list.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 3: Manage Project Detail */}
+            <GuideCard title="Manage Project Details">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — Project Detail">
+                  <Stack spacing={1}>
+                    {/* Header bar */}
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      alignItems="center"
+                      sx={{ bgcolor: tokens.colors.indigo[500], borderRadius: 1, px: 1.5, py: 1, flexWrap: 'wrap', rowGap: 0.5 }}
+                    >
+                      <Typography variant="caption" fontWeight={700} fontSize="0.65rem" sx={{ color: 'white' }}>
+                        Alpha Holdings IPO
+                      </Typography>
+                      <Chip label="Active" size="small" sx={{ height: 18, fontSize: '0.5rem', bgcolor: 'white', color: tokens.colors.success }} />
+                      <Callout n={1} />
+                      <Chip label="C/M: 12345-00001" size="small" sx={{ height: 18, fontSize: '0.5rem', bgcolor: alpha('#fff', 0.9) }} />
+                      <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                        <Callout n={2} />
+                        <MockBtn label="Confirm Details" />
+                        <Callout n={3} />
+                        <MockBtn label="Edit Project" />
+                      </Box>
+                    </Stack>
+                    {/* Info grid */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
+                      {['Status', 'Lifecycle', 'Category', 'C/M Number', 'Side', 'Priority'].map((label) => (
+                        <Box key={label} sx={{ bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 0.75, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem" color="text.secondary" fontWeight={600}>
+                            {label.toUpperCase()}
+                          </Typography>
+                          <Typography variant="caption" fontSize="0.6rem" fontWeight={600} display="block">
+                            Value
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    {/* Team table */}
+                    <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{ px: 1.5, py: 0.5, borderBottom: `1px solid ${tokens.colors.slate[200]}` }}
+                      >
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem">Team Members</Typography>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <Callout n={4} />
+                          <MockBtn label="+ Add" />
+                        </Stack>
+                      </Stack>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 0.8fr 0.5fr', px: 1.5, py: 0.5, alignItems: 'center' }}>
+                        <Typography variant="caption" fontSize="0.55rem">Partner</Typography>
+                        <Typography variant="caption" fontSize="0.55rem" fontWeight={600} color="primary.main">John Smith</Typography>
+                        <Typography variant="caption" fontSize="0.55rem">HK Law</Typography>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <Callout n={5} />
+                          <Typography variant="caption" fontSize="0.5rem">B&C ◉</Typography>
+                        </Stack>
+                        <Typography variant="caption" fontSize="0.55rem" color="text.secondary">Edit</Typography>
+                      </Box>
+                    </Box>
+                    {/* Change History hint */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={6} />
+                      <Box sx={{ flex: 1, bgcolor: tokens.colors.slate[50], borderRadius: 1, px: 1.5, py: 0.5, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem">Change History</Typography>
+                        <Typography variant="caption" fontSize="0.55rem" color="text.secondary" display="block">
+                          status: Active → Slow-down • 2025-01-15 • jane.doe
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>C/M Number</strong> chip links to billing. Click the pencil icon next to it to edit — the system auto-validates against billing data.</>} />
+                  <StepItem n={2} text={<>Click <strong>Confirm Details</strong> to timestamp that project info has been verified. The team can see when it was last confirmed.</>} />
+                  <StepItem n={3} text={<>Click <strong>Edit Project</strong> to open the full form for changing status, lifecycle stage, dates, or any other field.</>} />
+                  <StepItem n={4} text={<>In Team Members, click <strong>Add</strong> to assign a new staff member. Select from the autocomplete and set their jurisdiction.</>} />
+                  <StepItem n={5} text={<>Use the <strong>B&C Attorney</strong> toggle to mark a team member as the responsible billing &amp; collections attorney.</>} />
+                  <StepItem n={6} text={<>Scroll down to <strong>Change History</strong> to see an audit log of who changed what field and when.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+          </Stack>
+        </Section>
+      </Box>
+      )}
+
+      {/* ================ How To — Staffing content ================ */}
+      {activeSection === 'how-to-staffing' && (
+      <Box id={SECTION_IDS.howToStaffing} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<BadgeOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="How To — Staffing" />}>
+          <Stack spacing={3}>
+            {/* Guide 1: Browse & Filter Staff */}
+            <GuideCard title="Browse & Filter the Staff List">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — Staff">
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <Callout n={1} />
+                    <MockField label="Search staff..." />
+                    <Callout n={2} />
+                    <MockBtn label="+ New Staff" primary />
+                  </Stack>
+                  <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1.5 }}>
+                    <Callout n={3} />
+                    <MockSelect label="Position" />
+                    <Callout n={4} />
+                    <MockSelect label="Department" />
+                  </Stack>
+                  <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 0.8fr 1.5fr 0.6fr 0.8fr', bgcolor: tokens.colors.slate[100], px: 1.5, py: 0.5, borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                      {['Name', 'Position', 'Dept', 'Email', 'Status', 'Actions'].map((h) => (
+                        <Typography key={h} variant="caption" fontWeight={700} fontSize="0.55rem" color="text.secondary">
+                          {h}
+                        </Typography>
+                      ))}
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 0.8fr 1.5fr 0.6fr 0.8fr', px: 1.5, py: 0.75, alignItems: 'center' }}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Callout n={5} />
+                        <Typography variant="caption" fontWeight={600} sx={{ color: tokens.colors.indigo[500], fontSize: '0.6rem' }}>
+                          Jane Chen
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" fontSize="0.6rem">Partner</Typography>
+                      <Typography variant="caption" fontSize="0.6rem">HK Law</Typography>
+                      <Typography variant="caption" fontSize="0.6rem" color="text.secondary">jane@firm.com</Typography>
+                      <Chip label="active" size="small" color="success" sx={{ height: 18, fontSize: '0.5rem' }} />
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Callout n={6} />
+                        <Typography variant="caption" fontSize="0.55rem" color="text.secondary">Edit | Del</Typography>
+                      </Stack>
+                    </Box>
+                  </Box>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Type in <strong>Search</strong> to find staff by name.</>} />
+                  <StepItem n={2} text={<>Click <strong>+ New Staff</strong> to add a new team member.</>} />
+                  <StepItem n={3} text={<>Filter by <strong>Position</strong> (Partner, Associate, Senior FLIC, Junior FLIC, Intern).</>} />
+                  <StepItem n={4} text={<>Filter by <strong>Department</strong> (US Law, HK Law).</>} />
+                  <StepItem n={5} text={<>Click a <strong>name</strong> (blue link) to view the staff member&apos;s full profile and workload.</>} />
+                  <StepItem n={6} text={<>Use the <strong>Edit</strong> icon to update or <strong>Delete</strong> to remove. Prefer changing status to &quot;Leaving&quot; over deleting.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 2: Add Staff */}
+            <GuideCard title="Add a New Staff Member">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — New Staff">
+                  <Stack spacing={1}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={1} />
+                      <MockField label="Name *" />
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={2} />
+                      <MockSelect label="Position" />
+                      <Callout n={3} />
+                      <MockSelect label="Department" />
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={4} />
+                      <MockField label="Email" />
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ pt: 0.5 }}>
+                      <Callout n={5} />
+                      <MockBtn label="Save" primary />
+                      <MockBtn label="Cancel" />
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Enter the full <strong>Name</strong> of the staff member (required).</>} />
+                  <StepItem n={2} text={<>Select a <strong>Position</strong>: Partner, Associate, Senior FLIC, Junior FLIC, or Intern.</>} />
+                  <StepItem n={3} text={<>Select a <strong>Department</strong>: US Law or HK Law.</>} />
+                  <StepItem n={4} text={<>Enter the staff member&apos;s <strong>Email</strong> address.</>} />
+                  <StepItem n={5} text={<>Click <strong>Save</strong> to create the record. The staff member is now available for project assignments.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 3: View Workload */}
+            <GuideCard title="View Staff Workload & Assignments">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — Staff Detail">
+                  <Stack spacing={1}>
+                    {/* Header */}
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Typography variant="caption" fontWeight={700} fontSize="0.7rem">Jane Chen</Typography>
+                      <Chip label="active" size="small" color="success" sx={{ height: 18, fontSize: '0.5rem' }} />
+                      <Box sx={{ ml: 'auto' }}>
+                        <MockBtn label="Edit" />
+                      </Box>
+                    </Stack>
+                    {/* Info */}
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.75, flex: 1 }}>
+                        {[
+                          { l: 'Position', v: 'Partner' },
+                          { l: 'Dept', v: 'HK Law' },
+                          { l: 'Email', v: 'jane@firm.com' },
+                          { l: 'Active Projects', v: '5' },
+                        ].map((item) => (
+                          <Box key={item.l} sx={{ bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                            <Typography variant="caption" fontSize="0.45rem" color="text.secondary">{item.l}</Typography>
+                            <Typography variant="caption" fontSize="0.6rem" fontWeight={600} display="block">{item.v}</Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Stack>
+                    {/* Timeline */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 1, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.55rem" sx={{ mb: 0.5, display: 'block' }}>
+                          Project Load Timeline
+                        </Typography>
+                        <Stack direction="row" spacing={0.5} alignItems="flex-end" sx={{ height: 40 }}>
+                          <Callout n={3} />
+                          {[3, 4, 5, 5, 4, 5, 6, 5, 4, 4, 3, 3].map((h, i) => (
+                            <Box key={i} sx={{ width: 8, height: h * 6, bgcolor: i === 6 ? tokens.colors.indigo[500] : tokens.colors.slate[300], borderRadius: 0.5 }} />
+                          ))}
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Assignments table hint */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={4} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Project Assignments</Typography>
+                        <Stack direction="row" spacing={2} sx={{ mt: 0.25 }}>
+                          <Typography variant="caption" fontSize="0.5rem" color="primary.main" fontWeight={600}>Alpha Holdings IPO</Typography>
+                          <Typography variant="caption" fontSize="0.5rem" color="text.secondary">Active</Typography>
+                          <Typography variant="caption" fontSize="0.5rem" color="text.secondary">HK Law</Typography>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <Callout n={5} />
+                            <Typography variant="caption" fontSize="0.5rem" color="success.main">Confirm</Typography>
+                          </Stack>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>info card</strong> shows Position, Department, Email, and the count of Active Projects at a glance.</>} />
+                  <StepItem n={2} text={<>The <strong>Project Load Timeline</strong> bar chart shows how many projects this person is on per week — 6 weeks back and 6 weeks forward.</>} />
+                  <StepItem n={3} text={<>Stat cards show <strong>Now</strong> (current week), <strong>Peak</strong> (highest in 13-week window), <strong>Avg Past</strong>, and <strong>Avg Forward</strong> counts.</>} />
+                  <StepItem n={4} text={<>The <strong>Project Assignments</strong> table lists all assigned projects with status, category, jurisdiction, and assignment window.</>} />
+                  <StepItem n={5} text={<>Click the <strong>green checkmark</strong> to confirm a project&apos;s details directly from this view — useful during weekly reviews.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+          </Stack>
+        </Section>
+      </Box>
+      )}
+
+      {/* ================ How To — Billing content ================ */}
+      {activeSection === 'how-to-billing' && (
+      <Box id={SECTION_IDS.howToBilling} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<AccountBalanceWalletOutlined sx={{ color: tokens.colors.indigo[500] }} />} label="How To — Billing" />}>
+          <Stack spacing={3}>
+            {/* Guide 1: Browse Billing */}
+            <GuideCard title="Browse Billing Matters">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — Billing Matters">
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <Callout n={1} />
+                    <MockField label="Search by C/M number, project, or client..." />
+                    <Callout n={2} />
+                    <MockSelect label="B&C Attorney" />
+                  </Stack>
+                  <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 0.8fr 0.8fr 0.7fr 0.5fr', bgcolor: tokens.colors.slate[100], px: 1.5, py: 0.5, borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                      {['C/M', 'Project', 'Attorney', 'Billed', 'Collected', 'UBT', 'Link'].map((h) => (
+                        <Typography key={h} variant="caption" fontWeight={700} fontSize="0.5rem" color="text.secondary">
+                          {h}
+                        </Typography>
+                      ))}
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 0.8fr 0.8fr 0.7fr 0.5fr', px: 1.5, py: 0.75, alignItems: 'center', borderBottom: `1px solid ${tokens.colors.slate[100]}` }}>
+                      <Typography variant="caption" fontWeight={500} sx={{ color: tokens.colors.indigo[500], fontSize: '0.55rem' }}>
+                        12345-00001
+                      </Typography>
+                      <Typography variant="caption" fontSize="0.55rem">Alpha Holdings</Typography>
+                      <Typography variant="caption" fontSize="0.55rem">J. Smith</Typography>
+                      <Stack direction="row" spacing={0.25} alignItems="center">
+                        <Callout n={3} />
+                        <Typography variant="caption" fontSize="0.5rem">$150K</Typography>
+                      </Stack>
+                      <Typography variant="caption" fontSize="0.5rem">$100K</Typography>
+                      <Chip label="$50K" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                      <Stack direction="row" spacing={0.25} alignItems="center">
+                        <Callout n={4} />
+                        <Chip label="Linked" size="small" color="success" sx={{ height: 16, fontSize: '0.45rem' }} />
+                      </Stack>
+                    </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 0.8fr 0.8fr 0.7fr 0.5fr', px: 1.5, py: 0.75, alignItems: 'center' }}>
+                      <Stack direction="row" spacing={0.25} alignItems="center">
+                        <Callout n={5} />
+                        <Typography variant="caption" fontWeight={500} sx={{ color: tokens.colors.indigo[500], fontSize: '0.55rem' }}>
+                          12345-00002
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" fontSize="0.55rem">Beta Corp</Typography>
+                      <Typography variant="caption" fontSize="0.55rem">A. Lee</Typography>
+                      <Typography variant="caption" fontSize="0.5rem">$80K</Typography>
+                      <Typography variant="caption" fontSize="0.5rem">$80K</Typography>
+                      <Chip label="—" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.45rem' }} />
+                      <Chip label="—" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.45rem' }} />
+                    </Box>
+                  </Box>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Use the <strong>search bar</strong> to find billing matters by C/M number, project name, or client name.</>} />
+                  <StepItem n={2} text={<>Use the <strong>B&C Attorney</strong> dropdown to filter by the responsible attorney.</>} />
+                  <StepItem n={3} text={<>Review the financial columns: <strong>Billed</strong>, <strong>Collected</strong>, <strong>UBT</strong> (unbilled time), <strong>Credit</strong>, and <strong>Bonus</strong>.</>} />
+                  <StepItem n={4} text={<>The <strong>Link</strong> column shows whether this billing matter is connected to a staffing project (&quot;Linked&quot; = connected).</>} />
+                  <StepItem n={5} text={<>Click any <strong>row</strong> to open the billing detail page for that matter.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+
+            {/* Guide 2: Billing Detail */}
+            <GuideCard title="Review Billing Detail & Engagements">
+              <Stack spacing={2}>
+                <ScreenFrame title="CM Staffing — Billing Detail">
+                  <Stack spacing={1}>
+                    {/* Header */}
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="caption" fontWeight={700} fontSize="0.7rem">Alpha Holdings IPO</Typography>
+                      <MockBtn label="Back to list" />
+                    </Stack>
+                    {/* C/M Summary card */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 1, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.55rem">C/M Summary — 12345-00001</Typography>
+                        <Stack direction="row" spacing={2} sx={{ mt: 0.25 }}>
+                          <Typography variant="caption" fontSize="0.5rem"><strong>Client:</strong> Alpha Corp</Typography>
+                          <Typography variant="caption" fontSize="0.5rem"><strong>Attorney:</strong> J. Smith</Typography>
+                          <Typography variant="caption" fontSize="0.5rem"><strong>Billed:</strong> $150K</Typography>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Staffing link */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Typography variant="caption" fontSize="0.55rem" color="text.secondary">Staffing Project:</Typography>
+                      <Typography variant="caption" fontSize="0.55rem" fontWeight={600} sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings IPO</Typography>
+                      <Chip label="Active" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.45rem' }} />
+                    </Stack>
+                    {/* Engagement cards */}
+                    <Stack direction="row" spacing={0.5} alignItems="flex-start">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" sx={{ mb: 0.5, display: 'block' }}>
+                          Engagements (2)
+                        </Typography>
+                        <Stack spacing={0.75}>
+                          <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, p: 1 }}>
+                            <Stack direction="row" justifyContent="space-between">
+                              <Typography variant="caption" fontWeight={600} fontSize="0.55rem">Engagement #1 — IPO Advisory</Typography>
+                              <Typography variant="caption" fontSize="0.5rem" color="text.secondary">▴ collapse</Typography>
+                            </Stack>
+                            <Typography variant="caption" fontSize="0.5rem" color="text.secondary">
+                              Signed: 2024-06-01 • LSD: 2025-06-01 • Milestones: 3
+                            </Typography>
+                            {/* Expanded milestone table hint */}
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                              <Callout n={6} />
+                              <Box sx={{ flex: 1, bgcolor: tokens.colors.slate[50], borderRadius: 0.5, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                                <Typography variant="caption" fontSize="0.45rem" fontWeight={700}>Milestones</Typography>
+                                <Stack direction="row" spacing={1} sx={{ mt: 0.25 }}>
+                                  <Typography variant="caption" fontSize="0.4rem">☑ Filing fee — $50K — Invoiced</Typography>
+                                  <Typography variant="caption" fontSize="0.4rem">☐ Listing fee — $100K — Pending</Typography>
+                                </Stack>
+                              </Box>
+                            </Stack>
+                          </Box>
+                          <Box sx={{ bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, p: 1 }}>
+                            <Typography variant="caption" fontWeight={600} fontSize="0.55rem">Engagement #2 — Follow-on</Typography>
+                            <Typography variant="caption" fontSize="0.5rem" color="text.secondary">
+                              Signed: 2025-01-15 • LSD: 2026-01-15 • Milestones: 2
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Add engagement */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={4} />
+                      <MockBtn label="+ Add Engagement" />
+                      <Typography variant="caption" fontSize="0.45rem" color="text.secondary">(Admin only)</Typography>
+                    </Stack>
+                    {/* Change log */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={5} />
+                      <Box sx={{ flex: 1, bgcolor: tokens.colors.slate[50], borderRadius: 1, px: 1, py: 0.5, border: `1px solid ${tokens.colors.slate[200]}` }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Change Log</Typography>
+                        <Typography variant="caption" fontSize="0.5rem" color="text.secondary" display="block">
+                          milestone_status: Pending → Complete • 2025-02-10 • john.doe
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>C/M Summary card</strong> at top shows the project name, client, attorney in charge, and aggregated financials. Admins can click Edit to update project-level billing info.</>} />
+                  <StepItem n={2} text={<>If linked to a staffing project, click the <strong>Staffing Project link</strong> to jump to the staffing detail page.</>} />
+                  <StepItem n={3} text={<>Each <strong>Engagement Card</strong> represents a separate scope of work. Click the card header to expand and view milestones, fee arrangement, signed date, LSD, and per-engagement notes.</>} />
+                  <StepItem n={4} text={<>Admins can click <strong>+ Add Engagement</strong> to create a new engagement for additional scope under the same C/M number. Remember: new scope = new engagement, not a new project.</>} />
+                  <StepItem n={5} text={<>The <strong>Change Log</strong> at the bottom shows all billing data changes with timestamps and who made them.</>} />
+                  <StepItem n={6} text={<>Inside an expanded engagement, the <strong>Milestones</strong> table shows each billing milestone with its trigger text, due date, amount, invoice status, and payment status. Use the checkboxes to mark milestones as completed.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>
+          </Stack>
+        </Section>
+      </Box>
+      )}
+
+      {/* ================ How To — Control Tower content ================ */}
+      {canAccessControlTower && activeSection === 'how-to-control-tower' && (
+      <Box id={SECTION_IDS.howToControlTower} sx={{ scrollMarginTop: SCROLL_OFFSET }}>
+        <Section title={<SectionTitle icon={<DevicesOther sx={{ color: tokens.colors.violet[500] }} />} label="How To — Control Tower" />}>
+          <Stack spacing={3}>
+            {/* Guide 1: Finance View — Invoice Queue (admin only) */}
+            {isAdmin && <GuideCard title="Finance View — Process the Invoice Queue">
+              <Stack spacing={2}>
+                <ScreenFrame title="Control Tower — Finance View">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Callout n={1} />
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">Finance View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">My Projects</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Metrics row */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5, flex: 1 }}>
+                        {[
+                          { l: 'Triggered 7d', v: '3' },
+                          { l: 'Invoiced 7d', v: '$250K' },
+                          { l: 'Collected 30d', v: '$180K' },
+                          { l: 'Overdue 30d+', v: '2' },
+                        ].map((m) => (
+                          <Box key={m.l} sx={{ bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}`, textAlign: 'center' }}>
+                            <Typography variant="caption" fontSize="0.4rem" color="text.secondary">{m.l}</Typography>
+                            <Typography variant="caption" fontSize="0.6rem" fontWeight={700} display="block">{m.v}</Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Stack>
+                    {/* Trigger Queue (collapsible) */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Milestones Triggered — Invoice Queue</Typography>
+                          <Chip label="3" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 0.6fr 0.8fr 0.5fr 1fr', px: 1, py: 0.25, borderBottom: `1px solid ${tokens.colors.slate[100]}`, alignItems: 'center' }}>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Stage</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Project</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Milestone</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Amount</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Reason</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Conf.</Typography>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">Actions</Typography>
+                        </Box>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '0.6fr 1.2fr 1fr 0.6fr 0.8fr 0.5fr 1fr', px: 1, py: 0.4, alignItems: 'center' }}>
+                          <Chip label="Needs Confirm" size="small" sx={{ height: 14, fontSize: '0.35rem' }} />
+                          <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">Filing fee</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">$50K</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">Stage change</Typography>
+                          <Typography variant="caption" fontSize="0.45rem">85%</Typography>
+                          <Stack direction="row" spacing={0.25}>
+                            <Callout n={4} />
+                            <Box sx={{ px: 0.5, py: 0.15, bgcolor: tokens.colors.success, color: 'white', borderRadius: 0.5, fontSize: '0.35rem', fontWeight: 700 }}>Confirm</Box>
+                            <Box sx={{ px: 0.5, py: 0.15, bgcolor: tokens.colors.error, color: 'white', borderRadius: 0.5, fontSize: '0.35rem', fontWeight: 700 }}>Reject</Box>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                    {/* Unpaid Invoices (collapsible) */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={5} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Unpaid Invoices 30+ Days</Typography>
+                          <Chip label="2" size="small" color="error" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ px: 1, py: 0.4 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Beta Corp</Typography>
+                            <Typography variant="caption" fontSize="0.45rem">$80K</Typography>
+                            <Chip label="45d" size="small" color="warning" sx={{ height: 14, fontSize: '0.35rem' }} />
+                            <Callout n={6} />
+                            <Box sx={{ px: 0.5, py: 0.15, bgcolor: tokens.colors.indigo[500], color: 'white', borderRadius: 0.5, fontSize: '0.35rem', fontWeight: 700 }}>Follow Up</Box>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Use the <strong>tabs</strong> to switch views. Finance View is for processing invoices. Management View is for monitoring risks. My Projects shows your own matters.</>} />
+                  <StepItem n={2} text={<>The <strong>time-windowed metrics</strong> at top show activity for the last 7 and 30 days — triggered milestones, invoiced amounts, collections, and overdue counts.</>} />
+                  <StepItem n={3} text={<>The <strong>Invoice Queue</strong> lists milestones triggered by lifecycle changes, date sweeps, or AI detection. Click the arrow to collapse or expand. The badge shows the count.</>} />
+                  <StepItem n={4} text={<>For each triggered milestone: click <strong>Confirm + Queue Invoice</strong> to approve it, or <strong>Reject</strong> if it&apos;s a false positive. After confirming, click <strong>Mark Invoice Sent</strong> when the invoice goes out.</>} />
+                  <StepItem n={5} text={<>The <strong>Unpaid Invoices</strong> section shows invoices sent 30+ days ago without payment. Aging chips show how long it&apos;s been overdue (blue = 30d, orange = 60d, red = 90d+).</>} />
+                  <StepItem n={6} text={<>Click <strong>Move to Follow-up</strong> to flag an unpaid invoice for collections action.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>}
+
+            {/* Guide 1b: Finance View — Excel Upload (admin only) */}
+            {isAdmin && <GuideCard title="Finance View — Upload & Sync Excel Data">
+              <Stack spacing={2}>
+                <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
+                  The Finance Excel Upload is now in <strong>Control Tower &gt; Finance View</strong>. It syncs billing data from the HKCM Project List Excel into the system — creating/updating billing projects, engagements, milestones, and financial figures.
+                </Alert>
+                <ScreenFrame title="Control Tower — Finance View — Excel Upload">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">Finance View</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Upload zone */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, border: `2px dashed ${tokens.colors.slate[300]}`, borderRadius: 1, p: 1.5, textAlign: 'center', bgcolor: tokens.colors.slate[50] }}>
+                        <Typography variant="caption" fontSize="0.5rem" color="text.secondary" display="block">Drop or select the HKCM Project List Excel</Typography>
+                        <Box sx={{ mt: 0.5, px: 1, py: 0.25, bgcolor: tokens.colors.indigo[500], color: 'white', borderRadius: 0.5, display: 'inline-block', fontSize: '0.4rem', fontWeight: 700 }}>Select File</Box>
+                      </Box>
+                    </Stack>
+                    {/* Preview summary */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, p: 1 }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.5rem" display="block" sx={{ mb: 0.5 }}>Preview Summary</Typography>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          <Chip label="120 rows" size="small" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="89 matched" size="small" color="success" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="5 unmatched" size="small" color="warning" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="12 to update" size="small" color="info" sx={{ height: 16, fontSize: '0.4rem' }} />
+                          <Chip label="3 milestones" size="small" sx={{ height: 16, fontSize: '0.4rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Matched details (collapsible) */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">&#x25B8;</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.5rem">Matched Details</Typography>
+                          <Chip label="89" size="small" sx={{ height: 16, fontSize: '0.4rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Action buttons */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={4} />
+                      <Stack direction="row" spacing={0.5}>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: tokens.colors.indigo[500], color: 'white', borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 700 }}>Apply Changes</Box>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 600, color: tokens.colors.slate[600] }}>Cancel</Box>
+                      </Stack>
+                    </Stack>
+                    {/* Post-sync links */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={5} />
+                      <Stack direction="row" spacing={0.5}>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 600, color: tokens.colors.indigo[500] }}>View Full Sync Report</Box>
+                        <Box sx={{ px: 1, py: 0.25, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[300]}`, borderRadius: 0.5, fontSize: '0.4rem', fontWeight: 600, color: tokens.colors.indigo[500] }}>Sync History</Box>
+                      </Stack>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>Switch to the <strong>Finance View</strong> tab, then click <strong>Select File</strong> to choose the HKCM Project List Excel (.xlsx or .xls). The system reads the file and generates a preview.</>} />
+                  <StepItem n={2} text={<>Review the <strong>Preview Summary</strong> chips: matched C/M numbers (green), unmatched (yellow warning), projects to update, and milestones to create. If AI validation is available, check any flagged issues.</>} />
+                  <StepItem n={3} text={<>Expand <strong>Matched Details</strong> to see per-project changes — engagement counts, milestone counts, and financial field diffs — before applying.</>} />
+                  <StepItem n={4} text={<>Click <strong>Apply Changes</strong> to sync the data. After completion, a success summary shows counts of updated projects, synced financials, upserted engagements, and created milestones.</>} />
+                  <StepItem n={5} text={<>Click <strong>View Full Sync Report</strong> for a detailed breakdown of every change, or <strong>Sync History</strong> to see all past sync runs with date, file, user, and status.</>} />
+                </Stack>
+                <Alert severity="warning" sx={{ '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
+                  <strong>Important:</strong> Unmatched C/M numbers (shown in yellow during preview) will be skipped. If a C/M number is not in the database, create the billing project manually first, or check the Excel file for the correct C/M format.
+                </Alert>
+              </Stack>
+            </GuideCard>}
+
+            {/* Guide 2: Management View (admin only) */}
+            {isAdmin && <GuideCard title="Management View — Monitor Portfolio Risks">
+              <Stack spacing={2}>
+                <ScreenFrame title="Control Tower — Management View">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Finance View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">My Projects</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Metrics */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5 }}>
+                      {[
+                        { l: 'Triggered 7d', v: '3' },
+                        { l: 'Invoiced 7d', v: '$250K' },
+                        { l: 'Collected 30d', v: '$180K' },
+                        { l: 'Overdue 30d+', v: '2' },
+                      ].map((m) => (
+                        <Box key={m.l} sx={{ bgcolor: tokens.colors.slate[50], borderRadius: 1, p: 0.5, border: `1px solid ${tokens.colors.slate[200]}`, textAlign: 'center' }}>
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary">{m.l}</Typography>
+                          <Typography variant="caption" fontSize="0.6rem" fontWeight={700} display="block">{m.v}</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    {/* Long Stop Risks */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Long Stop Date Risks</Typography>
+                          <Chip label="4" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ px: 1, py: 0.4 }}>
+                          <Stack spacing={0.25}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings</Typography>
+                              <Chip label="12d left" size="small" color="warning" sx={{ height: 14, fontSize: '0.35rem' }} />
+                              <Typography variant="caption" fontSize="0.4rem" color="text.secondary">UBT: $50K</Typography>
+                            </Stack>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Gamma Ltd</Typography>
+                              <Chip label="5d past" size="small" color="error" sx={{ height: 14, fontSize: '0.35rem' }} />
+                              <Typography variant="caption" fontSize="0.4rem" color="text.secondary">UBT: $30K</Typography>
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                    {/* Read-only queue */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Invoice Queue</Typography>
+                          <Chip label="3" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                          <Typography variant="caption" fontSize="0.4rem" color="text.secondary" sx={{ ml: 'auto' }}>Read-only</Typography>
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>Long Stop Date Risks</strong> table shows engagements approaching or past their LSD. Risk chips are color-coded: blue = 30 days, orange = 14 days, red = past due.</>} />
+                  <StepItem n={2} text={<>The invoice queue and unpaid invoices are shown <strong>read-only</strong> in Management View for awareness. To take action, switch to Finance View.</>} />
+                </Stack>
+              </Stack>
+            </GuideCard>}
+
+            {/* Guide 3: My Projects Tab (visible to all) */}
+            <GuideCard title="My Projects — B&C Attorney View">
+              <Stack spacing={2}>
+                <ScreenFrame title="Control Tower — My Projects">
+                  <Stack spacing={1}>
+                    {/* Tabs */}
+                    <Stack direction="row" spacing={0} sx={{ borderBottom: `2px solid ${tokens.colors.slate[200]}` }}>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Finance View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5 }}>
+                        <Typography variant="caption" fontSize="0.6rem" color="text.secondary">Management View</Typography>
+                      </Box>
+                      <Box sx={{ px: 1.5, py: 0.5, borderBottom: `2px solid ${tokens.colors.indigo[500]}`, mb: '-2px' }}>
+                        <Typography variant="caption" fontWeight={700} fontSize="0.6rem" color="primary.main">My Projects</Typography>
+                      </Box>
+                    </Stack>
+                    {/* Filtered trigger queue */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={1} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, overflow: 'hidden' }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ px: 1, py: 0.5, bgcolor: tokens.colors.slate[50], borderBottom: `1px solid ${tokens.colors.slate[200]}` }}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Triggered Milestones on My Projects</Typography>
+                          <Chip label="1" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                        <Box sx={{ px: 1, py: 0.4 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Typography variant="caption" fontSize="0.45rem" sx={{ color: tokens.colors.indigo[500] }}>Alpha Holdings</Typography>
+                            <Typography variant="caption" fontSize="0.45rem">Filing fee — $50K</Typography>
+                            <Chip label="Stage change" size="small" sx={{ height: 14, fontSize: '0.35rem' }} />
+                          </Stack>
+                        </Box>
+                      </Box>
+                    </Stack>
+                    {/* Filtered LSD risks */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={2} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Long Stop Date Risks</Typography>
+                          <Chip label="1" size="small" color="warning" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                    {/* Filtered unpaid */}
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Callout n={3} />
+                      <Box sx={{ flex: 1, bgcolor: 'white', border: `1px solid ${tokens.colors.slate[200]}`, borderRadius: 1, px: 1, py: 0.5 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Typography variant="caption" fontSize="0.5rem">▾</Typography>
+                          <Typography variant="caption" fontWeight={700} fontSize="0.55rem">Unpaid Invoices</Typography>
+                          <Chip label="0" size="small" sx={{ height: 16, fontSize: '0.45rem' }} />
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </Stack>
+                </ScreenFrame>
+                <Stack spacing={1}>
+                  <StepItem n={1} text={<>The <strong>Triggered Milestones</strong> section shows only milestones from projects where you are the B&C attorney. Review these to stay aware of upcoming billing activity.</>} />
+                  <StepItem n={2} text={<>The <strong>Long Stop Date Risks</strong> section is filtered to your projects. Check for any engagements approaching or past their LSD.</>} />
+                  <StepItem n={3} text={<>The <strong>Unpaid Invoices</strong> section shows invoices 30+ days overdue on your matters. Coordinate with Finance for follow-up on collections.</>} />
+                </Stack>
+                <Alert severity="info" sx={{ mt: 1, '& .MuiAlert-message': { fontSize: '0.8125rem' } }}>
+                  B&C Working Attorneys and Admins can access the Control Tower from the sidebar. Finance View and Management View are admin-only.
+                </Alert>
+              </Stack>
+            </GuideCard>
+          </Stack>
+        </Section>
+      </Box>
+      )}
     </Page>
   );
 }
