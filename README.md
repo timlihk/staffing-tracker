@@ -40,29 +40,12 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ### 🎉 Recent Updates (Feb 2026)
 
-**Latest Release v5.1.0 — Control Tower & Milestone Detection:**
-- ✅ **Billing Control Tower** — Central hub for billing operations with 3-view architecture
-  - **Finance View** (Admin): Confirm triggered milestones → Queue Invoice → Mark Invoice Sent → Track collections
-  - **Management View** (Admin): Portfolio oversight with long stop date risks, pipeline metrics, read-only invoice queue
-  - **My Projects** (B&C Attorneys + Admin): Filtered view of triggered milestones, LSD risks, and unpaid invoices for the attorney's own matters
-  - Time-windowed metrics (7/30/90-day windows) for triggers, invoicing, collections, and overdue counts
-  - All sections collapsible with count badges
-- ✅ **Automatic Milestone Detection** — Three complementary methods to catch billable events
-  - **Lifecycle Stage Changes** (Real-time): Updating a project's lifecycle stage immediately checks all milestones
-  - **Date-Based Sweep** (Daily 2 AM HKT): Catches date-driven milestones that passed without manual updates
-  - **AI-Assisted Sweep** (Daily 2:30 AM HKT): AI reviews project events and milestone language for missed billing
-  - Trigger rule system with confidence scoring, auto-confirm for high-confidence matches
-  - Deduplication via event_type on trigger queue rows
-- ✅ **Guides Page** — In-app documentation at `/guides` with annotated screenshot walkthroughs
-  - Best practices: C/M rules, role ownership, lifecycle stages, data quality
-  - How-to guides: Projects, Staffing, Billing, Control Tower (admin-only)
-  - Milestone detection workflow explanation
-- ✅ **React Query Performance Optimizations**
-  - Disabled refetchOnWindowFocus globally (30-50% fewer API calls)
-  - Increased staleTime to 10 minutes for stable data (projects, staff)
-  - Lazy-load staff list in ProjectDetail (only fetched when dialog opens)
-  - Batched cache invalidations with Promise.all in billing mutations
-- ✅ **B&C Attorney Access** — B&C Working Attorneys can now see the Control Tower sidebar link and access the "My Projects" tab
+**Latest Release v5.1.0 — Performance, Reliability & Control Tower UX:**
+- **Backend Performance** — Billing date sweep refactored to batch-prefetch architecture (3 upfront queries, O(1) lookups, bounded batch inserts) eliminating N+1 queries and race conditions
+- **Input Validation** — `parseInt` → `Number()` for strict numeric rejection; duplicate milestone_id detection
+- **Frontend Render Optimization** — `useCallback` / `useMemo` applied to DealRadarCard, InsightsPanel, and StaffingHeatmapCard to prevent unnecessary re-renders
+- **Billing Control Tower** — All three table views (Invoice Queue, Long Stop Risk, Unpaid Invoices) now support column sorting by project name; B&C Attorney filter upgraded to searchable Autocomplete
+- **Test Coverage** — 43 backend tests covering partial-numeric rejection, duplicate payload detection, and full success path assertions
 
 **Release v5.0.0 — Billing Excel Sync Engine:**
 - ✅ **Finance Excel Upload & Sync** — Parses the HKCM Project List Excel and syncs all billing data to the database
@@ -361,13 +344,8 @@ Frontend will run on `http://localhost:5173`
 - **Language**: TypeScript
 - **Database**: PostgreSQL
 - **ORM**: Prisma
-- **Auth**: JWT + bcrypt + refresh tokens
+- **Auth**: JWT + bcrypt
 - **Validation**: Express middleware
-- **Excel Parsing**: ExcelJS (with XML namespace preprocessing)
-- **AI Integration**: OpenAI SDK (DeepSeek for milestone sweep)
-- **Scheduling**: node-cron (daily sweeps, partner reminders)
-- **Email**: Resend (transactional emails, partner reminders)
-- **API Docs**: Swagger / OpenAPI
 
 ### Frontend
 - **Framework**: React 19
@@ -398,11 +376,8 @@ staffing-tracker/
 │   │   │   ├── billing-trigger.controller.ts     # Billing triggers
 │   │   │   └── billing.utils.ts              # Shared utilities
 │   │   ├── services/
-│   │   │   ├── billing-excel-sync.service.ts          # Excel parser + sync engine
-│   │   │   ├── ai-validation.service.ts               # AI-powered milestone validation
-│   │   │   ├── project-status-trigger.service.ts      # Status-change trigger detection
-│   │   │   ├── billing-milestone-date-sweep.service.ts # Daily date-based sweep
-│   │   │   └── billing-milestone-ai-sweep.service.ts  # Daily AI-assisted sweep
+│   │   │   ├── billing-excel-sync.service.ts # Excel parser + sync engine
+│   │   │   └── ai-validation.service.ts      # AI-powered milestone validation
 │   │   ├── routes/               # API routes
 │   │   ├── middleware/           # Auth & validation
 │   │   ├── utils/
@@ -424,7 +399,6 @@ staffing-tracker/
 │   │   │   ├── BillingControlTower.tsx  # Admin billing dashboard
 │   │   │   ├── SyncReport.tsx           # Sync report (print-friendly)
 │   │   │   ├── SyncHistory.tsx          # Upload history list
-│   │   │   ├── BestPracticeGuide.tsx   # In-app guides & walkthroughs
 │   │   │   └── ...                      # Other pages
 │   │   ├── components/
 │   │   │   └── admin/BillingExcelSyncPanel.tsx  # Upload UI
@@ -557,22 +531,14 @@ GET    /api/billing/excel-sync/history/:id            - Get sync run detail (adm
 GET    /api/billing/excel-sync/history/:id/download   - Download stored Excel (admin)
 ```
 
-#### Billing Triggers & Control Tower (14 endpoints)
+#### Billing Triggers (6 endpoints)
 ```
 GET    /api/billing/triggers/pending                  - Get pending triggers (admin)
 GET    /api/billing/triggers                           - Get all triggers (admin)
 POST   /api/billing/triggers/:id/confirm               - Confirm trigger (admin)
 POST   /api/billing/triggers/:id/reject                - Reject trigger (admin)
 PATCH  /api/billing/triggers/:id/action-item           - Update trigger action (admin)
-POST   /api/billing/triggers/sweep-due-milestones      - Run date-based milestone sweep (admin)
-POST   /api/billing/triggers/sweep-ai-milestones       - Run AI-assisted milestone sweep (admin)
 GET    /api/billing/overdue-by-attorney                - Get overdue by attorney (admin)
-GET    /api/billing/long-stop-risks                    - Get long stop date risks
-GET    /api/billing/unpaid-invoices                    - Get unpaid invoices (30+ days)
-GET    /api/billing/time-windowed-metrics              - Get 7/30/90-day billing metrics
-GET    /api/billing/pipeline-insights                  - Get billing pipeline insights
-GET    /api/billing/finance-summary                    - Get finance summary
-GET    /api/billing/cm-lookup/:cmNumber                - Lookup billing project by C/M number
 ```
 
 > ℹ️ `GET /api/billing/projects` supports `page`, `limit`, `search`, and `bcAttorney` query parameters (defaults: `page=1`, `limit=100`, max `limit=250`). Responses are shaped as `{ data, pagination }`, where `pagination` exposes `page`, `limit`, `total`, and `totalPages`.
@@ -583,7 +549,7 @@ GET    /api/email-settings  - Get email settings
 PATCH  /api/email-settings  - Update email settings (admin only)
 ```
 
-**Total: 87 documented API endpoints**
+**Total: 75+ documented API endpoints**
 
 For detailed request/response schemas, authentication flows, and code examples, see the [Complete API Documentation](backend/API_DOCUMENTATION.md).
 
@@ -633,53 +599,6 @@ For detailed request/response schemas, authentication flows, and code examples, 
 
 **billing_staffing_project_link** - Billing-to-staffing project mapping
 - billing_project_id, staffing_project_id, auto_match_score, notes
-
-**billing_milestone_trigger_rule** - Trigger rules for milestone matching
-- rule_id, milestone_id, trigger_type, keyword_pattern, confidence_threshold
-
-**billing_milestone_trigger_queue** - Pending/confirmed billing triggers
-- id, milestone_id, staffing_project_id, old_status, new_status, match_confidence, status, confirmed_by
-
-**billing_action_item** - Action items from confirmed triggers
-- id, trigger_queue_id, milestone_id, action_type, description, due_date, assigned_to, status
-
-**billing_event** - Project lifecycle events for trigger evaluation
-- id, project_id, event_type, event_data, created_at
-
-**billing_invoice** - Invoice records for confirmed milestones
-- id, milestone_id, invoice_number, amount, status, sent_at
-
-**billing_payment** - Payment tracking against invoices
-- id, invoice_id, amount, payment_date, notes
-
-**billing_finance_comment** - Finance team comments on billing items
-- id, milestone_id, comment_text, created_by, created_at
-
-**billing_note** - General notes on billing projects
-- id, project_id, note_text, created_by, created_at
-
-**billing_source_transactions_raw** - Raw parsed data from Excel source files
-- id, cm_no, raw_json, imported_at
-
-**billing_bc_attorney_staff_map** - Maps B&C attorney names to staff records
-- id, attorney_name, staff_id, mapped_by
-
-**billing_access_settings** - Controls billing module access per role
-- id, role, can_view, can_edit, updated_by
-
-**project_event** - Staffing project lifecycle stage transitions
-- id, project_id, event_type, old_value, new_value, created_by, created_at
-
-### Additional Tables
-
-**email_settings** - Email notification configuration
-- id, enabled, position-specific toggles
-
-**app_settings** - Application-wide settings
-- id, billing_ea_user_id, billing_trigger_enabled
-
-**refresh_token** - JWT refresh token storage
-- id, user_id, token, expires_at
 
 ## 🌐 Deployment to Railway.app
 
@@ -820,15 +739,12 @@ npm run preview
 
 ## 📊 Features
 
-### Completed - Billing Control Tower & Triggers (v5.1.0)
-- ✅ 3-view Control Tower: Finance (invoice workflow), Management (portfolio risks), My Projects (B&C attorneys)
-- ✅ Automatic milestone trigger detection (status change, date sweep, AI sweep)
-- ✅ Trigger rule system with confidence scoring and auto-confirm
-- ✅ Invoice lifecycle: Needs Confirmation → Ready To Invoice → Invoice Sent
-- ✅ Long stop date risk monitoring
-- ✅ Time-windowed metrics (7/30/90-day billing analytics)
-- ✅ In-app Guides page with annotated screenshot walkthroughs
-- ✅ B&C Attorney access to filtered billing views
+### Completed - Performance & UX (v5.1.0)
+- Batch-prefetch architecture for billing date sweep (eliminates N+1 queries)
+- Frontend render optimization (useCallback, useMemo across dashboard components)
+- Billing Control Tower sortable tables and searchable attorney filter
+- Input validation hardening (strict numeric parsing, duplicate payload detection)
+- 43 backend tests with full success path assertions
 
 ### Completed - Billing Excel Sync (v5.0.0)
 - ✅ Finance Excel parser with milestone, engagement, and financial extraction
@@ -887,9 +803,14 @@ npm run preview
 - ✅ Optimized table layouts and column widths
 
 ### To Be Implemented (Future Enhancements)
+- [ ] Assignment management UI (dedicated page for bulk operations)
 - [ ] Advanced search with full-text capabilities
+- [ ] Automated testing suite (Jest, Vitest)
+- [ ] Input validation with Zod schemas on backend
 - [ ] Password strength requirements
 - [ ] Rate limiting for auth endpoints
+- [ ] JWT refresh tokens for enhanced security
+- [ ] Enhanced logging with Winston/Pino
 
 ## 🛡️ Security Features
 
@@ -907,16 +828,23 @@ npm run preview
 ## 📈 Recommended Improvements
 
 ### High Priority
-1. **Security** - Add password strength requirements and rate limiting
-2. **Error Handling** - Improve user-facing error messages
+1. **Testing** - Add unit and integration tests
+   - Backend: Jest + Supertest for API endpoints
+   - Frontend: Vitest + React Testing Library
+2. **Input Validation** - Implement Zod schemas for request validation
+3. **Error Handling** - Improve error messages (user-friendly + detailed logging)
+4. **Security** - Add password strength requirements and rate limiting
 
 ### Medium Priority
-3. **Performance** - Further pagination tuning for large billing datasets
-4. **Monitoring** - APM integration for production observability
+5. **Code Quality** - Extract magic strings to shared constants
+6. **Performance** - Implement proper pagination (avoid limit=1000)
+7. **JWT Enhancement** - Add token expiration and refresh tokens
+8. **Monitoring** - Add logging framework (Winston/Pino) and APM
 
 ### Low Priority
-5. **CI/CD** - Automated testing and deployment pipeline
-6. **PDF Export** - Generate PDF reports (currently Excel-only)
+9. **Features** - Data export (Excel/PDF), email notifications
+10. **Documentation** - API documentation with Swagger/OpenAPI
+11. **CI/CD** - Automated testing and deployment pipeline
 
 ## 📝 License
 
@@ -945,33 +873,8 @@ The application uses Prisma for database migrations. Current migrations:
 8. `20251003034500_remove_is_lead` - Removed isLead field from ProjectAssignment
 9. `20251007_add_billing_schema` - Billing module (13 tables + 2 views)
 10. `20260222000000_add_billing_sync_run` - Sync run audit table for Excel uploads
-11. `20260221000000_billing_trigger_system` - Trigger queue, action items, overdue view
-12. `20260224000000_billing_events_and_sweeps` - Project events, trigger rules, AI/date sweep tables
-13. `20260225000000_billing_invoices_payments` - Invoice/payment tracking, finance comments
 
 **All migrations deployed to production.**
-
-### Billing CLI Scripts
-
-```bash
-# Excel sync
-npm run billing:import              # Import billing source data
-npm run billing:parse               # Parse raw billing data
-npm run billing:parse-fees          # Parse fee arrangements
-npm run billing:parse-completion    # Parse milestone completion (strikethrough)
-npm run billing:update-master       # Full billing update pipeline
-
-# Milestone sweeps
-npm run billing:sweep-due-milestones   # Run date-based milestone sweep
-npm run billing:sweep-ai-milestones    # Run AI-assisted milestone sweep
-
-# Data backfill
-npm run billing:backfill-trigger-rules            # Backfill trigger rules for milestones
-npm run billing:backfill-project-events           # Backfill project event history
-npm run billing:backfill-links                    # Backfill staffing↔billing links
-npm run billing:backfill-missing-project-milestones # Backfill milestones for new projects
-npm run billing:map-attorneys                     # Auto-map B&C attorney names to staff
-```
 
 ---
 
@@ -994,9 +897,7 @@ npm run billing:map-attorneys                     # Auto-map B&C attorney names 
 - `BillingControlTower.tsx` - Admin billing dashboard ✅
 - `SyncReport.tsx` - Print-friendly Excel sync report ✅
 - `SyncHistory.tsx` - Excel upload history list ✅
-- `BestPracticeGuide.tsx` - In-app guides with annotated walkthroughs ✅
-- `ResetPassword.tsx` - First-login password reset page ✅
-- `Reports.tsx` - Reporting page ✅
+
 
 **Components:**
 - `Layout.tsx` - Main layout wrapper ✅
@@ -1021,8 +922,6 @@ npm run billing:map-attorneys                     # Auto-map B&C attorney names 
 - `hooks/useDashboard.ts` - Dashboard data hook ✅
 - `hooks/useProjects.ts` - Projects CRUD hooks ✅
 - `hooks/useStaff.ts` - Staff CRUD hooks ✅
-- `hooks/useBilling.ts` - Billing data & trigger hooks ✅
-- `api/billing.ts` - Billing API client & types ✅
 - `lib/query-client.ts` - TanStack Query configuration ✅
 - `lib/validations.ts` - Zod validation schemas ✅
 - `lib/toast.tsx` - Toast notification wrapper ✅
