@@ -102,4 +102,38 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* ---- Billing Export Dialog: make dialog content full-page when printing ---- */
+  .billing-export-dialog {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide the dialog backdrop/overlay */
+  .MuiModal-backdrop,
+  .MuiBackdrop-root {
+    display: none !important;
+  }
+
+  /* Make dialog content overflow visible for multi-page tables */
+  .billing-export-dialog .MuiDialogContent-root {
+    overflow: visible !important;
+    padding: 0 !important;
+    flex: none !important;
+  }
+
+  /* Ensure Chip colors print in milestone status column */
+  .billing-export-dialog .MuiChip-root {
+    border: 1px solid #999 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

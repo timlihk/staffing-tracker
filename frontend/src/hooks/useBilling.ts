@@ -44,6 +44,7 @@ export const billingKeys = {
   financeSummary: (params?: Record<string, unknown>) => [...billingKeys.all, 'finance-summary', params ?? {}] as const,
   longStopRisks: (params?: Record<string, unknown>) => [...billingKeys.all, 'long-stop-risks', params ?? {}] as const,
   unpaidInvoices: (params?: Record<string, unknown>) => [...billingKeys.all, 'unpaid-invoices', params ?? {}] as const,
+  exportReport: (params?: Record<string, unknown>) => [...billingKeys.all, 'export-report', params ?? {}] as const,
   notes: (id: number, engagementId?: number) => [...billingKeys.all, 'project', id, 'notes', engagementId ?? 'all'] as const,
 };
 
@@ -572,6 +573,28 @@ export function useTimeWindowedMetrics() {
     queryKey: [...billingKeys.all, 'time-windowed-metrics'] as const,
     queryFn: billingApi.getTimeWindowedMetrics,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useBillingExportReport(
+  params?: billingApi.BillingExportReportParams & { enabled?: boolean }
+) {
+  const { enabled = true, ...filterParams } = params ?? {};
+
+  const stableParams = useMemo(
+    () => ({
+      attorneyIds: filterParams.attorneyIds ?? [],
+      statuses: filterParams.statuses ?? [],
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(filterParams.attorneyIds), JSON.stringify(filterParams.statuses)]
+  );
+
+  return useQuery({
+    queryKey: billingKeys.exportReport(stableParams),
+    queryFn: () => billingApi.getExportReport(filterParams),
+    staleTime: 2 * 60 * 1000,
+    enabled,
   });
 }
 

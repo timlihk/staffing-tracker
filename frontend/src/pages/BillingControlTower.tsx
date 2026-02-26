@@ -18,13 +18,16 @@ import {
   TableRow,
   TableSortLabel,
   Tabs,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Page, PageHeader, Section } from '../components/ui';
+import BillingExportDialog from '../components/BillingExportDialog';
 import {
   useBillingTriggers,
   useConfirmBillingTrigger,
@@ -505,9 +508,29 @@ const BillingControlTower: React.FC = () => {
     []
   );
 
+  // Export dialog
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   return (
     <Page>
-      <PageHeader title="Billing Control Tower" />
+      <PageHeader
+        title="Billing Control Tower"
+        actions={
+          (canSeeFinanceView || canSeeManagementView) && (tabs[activeTab] === 'finance' || tabs[activeTab] === 'management') ? (
+            <Tooltip title="Export billing report as PDF or CSV">
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<FileDownloadIcon />}
+                onClick={() => setExportDialogOpen(true)}
+                className="no-print"
+              >
+                Export Report
+              </Button>
+            </Tooltip>
+          ) : undefined
+        }
+      />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
@@ -848,6 +871,12 @@ const BillingControlTower: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Export Report Dialog */}
+      <BillingExportDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+      />
     </Page>
   );
 };

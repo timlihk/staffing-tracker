@@ -770,3 +770,211 @@ export const getTimeWindowedMetrics = async (_req: AuthRequest, res: Response) =
     return res.status(500).json({ error: 'Failed to fetch time-windowed metrics' });
   }
 };
+
+/**
+ * Get export report data for Control Tower PDF/CSV export.
+ * Aggregates per-project billing data with filters for attorney and status.
+ */
+export const getExportReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const rawAttorneyIds = req.query.attorneyIds;
+    const rawStatuses = req.query.statuses;
+
+    // Parse attorneyIds: accept comma-separated string or repeated query params
+    let attorneyIds: number[] = [];
+    if (rawAttorneyIds) {
+      const idStrings = Array.isArray(rawAttorneyIds)
+        ? rawAttorneyIds.map(String)
+        : String(rawAttorneyIds).split(',');
+      for (const s of idStrings) {
+        const n = Number(s.trim());
+        if (!Number.isInteger(n) || n <= 0) {
+          return res.status(400).json({ error: 'Invalid attorneyIds' });
+        }
+        attorneyIds.push(n);
+      }
+    }
+
+    // Parse statuses: accept comma-separated string or repeated query params
+    const validStatuses = ['lsd_past_due', 'lsd_due_30d', 'unpaid_30d', 'active', 'slow_down', 'suspended'];
+    let statuses: string[] = [];
+    if (rawStatuses) {
+      const statusStrings = Array.isArray(rawStatuses)
+        ? rawStatuses.map(String)
+        : String(rawStatuses).split(',');
+      for (const s of statusStrings) {
+        const trimmed = s.trim().toLowerCase();
+        if (trimmed && !validStatuses.includes(trimmed)) {
+          return res.status(400).json({ error: `Invalid status: ${trimmed}` });
+        }
+        if (trimmed) statuses.push(trimmed);
+      }
+    }
+
+    // Build the query with conditional filters
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (attorneyIds.length > 0) {
+      params.push(attorneyIds);
+      conditions.push(`s.id = ANY($${params.length}::int[])`);
+    }
+
+    // Status filters are applied as HAVING/WHERE conditions
+    const statusConditions: string[] = [];
+    if (statuses.includes('lsd_past_due')) {
+      statusConditions.push('MIN(fa.lsd_date) < CURRENT_DATE');
+    }
+    if (statuses.includes('lsd_due_30d')) {
+      statusConditions.push('MIN(fa.lsd_date) <= (CURRENT_DATE + INTERVAL \'30 day\')');
+    }
+    if (statuses.includes('unpaid_30d')) {
+      statusConditions.push(`EXISTS (
+        SELECT 1 FROM billing_milestone um
+        JOIN billing_engagement ue ON ue.engagement_id = um.engagement_id
+        JOIN billing_project_cm_no ucm ON ucm.cm_id = ue.cm_id
+        WHERE ucm.project_id = bp.project_id
+          AND um.invoice_sent_date IS NOT NULL
+          AND um.payment_received_date IS NULL
+          AND um.invoice_sent_date::date <= (CURRENT_DATE - INTERVAL '30 day')
+      )`);
+    }
+    if (statuses.includes('active')) {
+      statusConditions.push("p.status = 'Active'");
+    }
+    if (statuses.includes('slow_down')) {
+      statusConditions.push("p.status = 'Slow-down'");
+    }
+    if (statuses.includes('suspended')) {
+      statusConditions.push("p.status = 'Suspended'");
+    }
+
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    // For status filters, some are HAVING (aggregate-based) and some are WHERE
+    // We'll separate them: project status goes in WHERE, LSD/unpaid go in HAVING
+    const projectStatusFilters = statuses.filter(s => ['active', 'slow_down', 'suspended'].includes(s));
+    const aggregateFilters = statuses.filter(s => ['lsd_past_due', 'lsd_due_30d', 'unpaid_30d'].includes(s));
+
+    const extraWhereConditions: string[] = [...conditions];
+    if (projectStatusFilters.length > 0) {
+      const statusValues = projectStatusFilters.map(s => {
+        if (s === 'active') return 'Active';
+        if (s === 'slow_down') return 'Slow-down';
+        if (s === 'suspended') return 'Suspended';
+        return s;
+      });
+      params.push(statusValues);
+      extraWhereConditions.push(`p.status = ANY($${params.length}::text[])`);
+    }
+
+    const havingConditions: string[] = [];
+    if (aggregateFilters.includes('lsd_past_due')) {
+      havingConditions.push('MIN(fa.lsd_date) < CURRENT_DATE');
+    }
+    if (aggregateFilters.includes('lsd_due_30d')) {
+      havingConditions.push('(MIN(fa.lsd_date) IS NOT NULL AND MIN(fa.lsd_date) <= (CURRENT_DATE + INTERVAL \'30 day\'))');
+    }
+
+    const whereStr = extraWhereConditions.length > 0 ? 'WHERE ' + extraWhereConditions.join(' AND ') : '';
+    const havingStr = havingConditions.length > 0 ? 'HAVING ' + havingConditions.join(' OR ') : '';
+
+    // We handle unpaid_30d as a WHERE-level EXISTS (not aggregate)
+    let unpaidFilter = '';
+    if (aggregateFilters.includes('unpaid_30d')) {
+      unpaidFilter = `AND EXISTS (
+        SELECT 1 FROM billing_milestone um
+        JOIN billing_engagement ue ON ue.engagement_id = um.engagement_id
+        JOIN billing_project_cm_no ucm ON ucm.cm_id = ue.cm_id
+        WHERE ucm.project_id = bp.project_id
+          AND um.invoice_sent_date IS NOT NULL
+          AND um.payment_received_date IS NULL
+          AND um.invoice_sent_date::date <= (CURRENT_DATE - INTERVAL '30 day')
+      )`;
+    }
+
+    // If we have both aggregate and non-aggregate status filters, combine with OR logic
+    // by wrapping the whole thing in a CTE approach
+    const query = `
+      WITH project_data AS (
+        SELECT
+          bp.project_id,
+          bp.project_name,
+          bp.sca,
+          STRING_AGG(DISTINCT pcm.cm_no, ', ' ORDER BY pcm.cm_no) AS cm_numbers,
+          (
+            SELECT STRING_AGG(DISTINCT s2.name, ' & ' ORDER BY s2.name)
+            FROM billing_project_bc_attorneys bpba
+            JOIN staff s2 ON s2.id = bpba.staff_id
+            WHERE bpba.billing_project_id = bp.project_id
+          ) AS bc_attorney_name,
+          COALESCE(SUM(COALESCE(pcm.agreed_fee_usd, 0)::numeric), 0) AS agreed_fee_usd,
+          COALESCE(SUM(COALESCE(pcm.billing_to_date_usd, 0)::numeric), 0) AS billing_usd,
+          COALESCE(SUM(COALESCE(pcm.collected_to_date_usd, 0)::numeric), 0) AS collection_usd,
+          COALESCE(SUM(COALESCE(pcm.billing_credit_usd, 0)::numeric), 0) AS billing_credit_usd,
+          COALESCE(SUM(COALESCE(pcm.ubt_usd, 0)::numeric), 0) AS ubt_usd,
+          COALESCE(SUM(COALESCE(pcm.ar_usd, 0)::numeric), 0) AS ar_usd,
+          STRING_AGG(DISTINCT NULLIF(pcm.finance_remarks, ''), '; ') AS finance_remarks,
+          STRING_AGG(DISTINCT NULLIF(pcm.matter_notes, ''), '; ') AS matter_notes,
+          COUNT(DISTINCT m.milestone_id) AS total_milestones,
+          COUNT(DISTINCT m.milestone_id) FILTER (WHERE m.completed) AS completed_milestones,
+          MIN(fa.lsd_date) AS lsd_date,
+          p.status AS staffing_project_status,
+          p.name AS staffing_project_name
+        FROM billing_project bp
+        LEFT JOIN billing_project_cm_no pcm ON pcm.project_id = bp.project_id
+        LEFT JOIN billing_engagement e ON e.cm_id = pcm.cm_id
+        LEFT JOIN billing_milestone m ON m.engagement_id = e.engagement_id
+        LEFT JOIN billing_fee_arrangement fa ON fa.engagement_id = e.engagement_id
+        LEFT JOIN billing_project_bc_attorneys bpa ON bpa.billing_project_id = bp.project_id
+        LEFT JOIN staff s ON s.id = bpa.staff_id
+        LEFT JOIN billing_staffing_project_link bspl ON bspl.billing_project_id = bp.project_id
+        LEFT JOIN projects p ON p.id = bspl.staffing_project_id
+        ${whereStr}
+        GROUP BY bp.project_id, bp.project_name, bp.sca, p.status, p.name
+        ${havingStr}
+      )
+      SELECT * FROM project_data
+      WHERE 1=1 ${unpaidFilter}
+      ORDER BY project_name ASC
+    `;
+
+    const rows = await prisma.$queryRawUnsafe<any[]>(query, ...params);
+
+    // Also return distinct attorney list for the filter dropdown
+    const attorneys = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT DISTINCT s.id AS staff_id, s.name AS attorney_name
+      FROM billing_project_bc_attorneys bpa
+      JOIN staff s ON s.id = bpa.staff_id
+      ORDER BY s.name ASC
+    `);
+
+    return res.json({
+      rows: rows.map((row) => ({
+        projectId: Number(row.project_id ?? 0),
+        cmNumbers: row.cm_numbers || '',
+        projectName: row.project_name || '',
+        bcAttorneyName: row.bc_attorney_name || 'Unassigned',
+        sca: row.sca || '',
+        agreedFeeUsd: Number(row.agreed_fee_usd ?? 0),
+        milestoneStatus: `${Number(row.completed_milestones ?? 0)}/${Number(row.total_milestones ?? 0)}`,
+        billingUsd: Number(row.billing_usd ?? 0),
+        collectionUsd: Number(row.collection_usd ?? 0),
+        billingCreditUsd: Number(row.billing_credit_usd ?? 0),
+        ubtUsd: Number(row.ubt_usd ?? 0),
+        arUsd: Number(row.ar_usd ?? 0),
+        notes: [row.finance_remarks, row.matter_notes].filter(Boolean).join(' | ') || '',
+        lsdDate: row.lsd_date || null,
+        staffingProjectStatus: row.staffing_project_status || null,
+        staffingProjectName: row.staffing_project_name || null,
+      })),
+      attorneys: attorneys.map((a) => ({
+        staffId: Number(a.staff_id),
+        name: a.attorney_name,
+      })),
+    });
+  } catch (error) {
+    logger.error('Error fetching export report:', error as any);
+    return res.status(500).json({ error: 'Failed to fetch export report data' });
+  }
+};

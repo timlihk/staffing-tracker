@@ -791,6 +791,58 @@ export const getTimeWindowedMetrics = async (): Promise<BillingTimeWindowMetrics
   return response.data;
 };
 
+// ---------------------------------------------------------------------------
+// Export Report
+// ---------------------------------------------------------------------------
+
+export interface BillingExportRow {
+  projectId: number;
+  cmNumbers: string;
+  projectName: string;
+  bcAttorneyName: string;
+  sca: string;
+  agreedFeeUsd: number;
+  milestoneStatus: string;
+  billingUsd: number;
+  collectionUsd: number;
+  billingCreditUsd: number;
+  ubtUsd: number;
+  arUsd: number;
+  notes: string;
+  lsdDate: string | null;
+  staffingProjectStatus: string | null;
+  staffingProjectName: string | null;
+}
+
+export interface BillingExportAttorney {
+  staffId: number;
+  name: string;
+}
+
+export interface BillingExportReportResponse {
+  rows: BillingExportRow[];
+  attorneys: BillingExportAttorney[];
+}
+
+export interface BillingExportReportParams {
+  attorneyIds?: number[];
+  statuses?: string[];
+}
+
+export const getExportReport = async (
+  params?: BillingExportReportParams
+): Promise<BillingExportReportResponse> => {
+  const queryParams: Record<string, string> = {};
+  if (params?.attorneyIds?.length) {
+    queryParams.attorneyIds = params.attorneyIds.join(',');
+  }
+  if (params?.statuses?.length) {
+    queryParams.statuses = params.statuses.join(',');
+  }
+  const response = await apiClient.get('/billing/export-report', { params: queryParams });
+  return response.data;
+};
+
 export const getBillingNotes = async (projectId: number, engagementId?: number): Promise<BillingNote[]> => {
   const params = engagementId ? { engagement_id: engagementId } : undefined;
   const response = await apiClient.get(`/billing/projects/${projectId}/notes`, { params });

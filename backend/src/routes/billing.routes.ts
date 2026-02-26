@@ -1408,6 +1408,34 @@ router.get('/unpaid-invoices', authenticate, checkBillingAccess, billingTriggerC
 
 router.get('/time-windowed-metrics', authenticate, checkBillingAccess, billingTriggerController.getTimeWindowedMetrics);
 
+/**
+ * @openapi
+ * /billing/export-report:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Get export report data
+ *     description: Aggregated per-project billing data for PDF/CSV export with optional attorney and status filters
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: attorneyIds
+ *         schema:
+ *           type: string
+ *         description: Comma-separated staff IDs to filter by B&C attorney
+ *       - in: query
+ *         name: statuses
+ *         schema:
+ *           type: string
+ *         description: "Comma-separated statuses: lsd_past_due, lsd_due_30d, unpaid_30d, active, slow_down, suspended"
+ *     responses:
+ *       200:
+ *         description: Export report data with rows and attorney list
+ *       403:
+ *         description: Forbidden - Admin or Finance only
+ */
+router.get('/export-report', authenticate, checkBillingAccess, adminOrFinance, billingTriggerController.getExportReport);
+
 // ============================================================================
 // Excel Sync (Finance Upload)
 // ============================================================================
