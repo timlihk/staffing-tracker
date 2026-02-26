@@ -2,6 +2,52 @@
 
 All notable changes to the Staffing Tracker application will be documented in this file.
 
+## [5.1.0] - 2026-02-26
+
+### Performance & Reliability
+
+#### Backend Optimizations
+- **N+1 Query Elimination** — Billing milestone date sweep refactored from per-candidate DB queries to batch-prefetch architecture:
+  - 3 upfront `Promise.all` queries build `triggeredSet`, `linkMap`, and `cmProjectMap`
+  - `processCandidateWithMaps` uses O(1) Set/Map lookups instead of per-candidate DB calls
+  - CM fallback auto-linking pre-populated before parallel batch processing (eliminates race conditions)
+  - Auto-link DB inserts bounded to batches of 10 to prevent connection pool saturation
+  - `autoLinked` metric correctly counts distinct billing projects (not per-candidate)
+
+- **Excel Sync Atomicity** — Milestone upserts wrapped in transactions with batched writes and RowAccumulator pattern
+
+- **Input Validation Hardening**:
+  - `parseOptionalIntQuery` changed from `parseInt()` to `Number()` — rejects partial numerics like `"42abc"` and floats like `"3.5"`
+  - Duplicate `milestone_id` rejection in bulk milestone update endpoint (400 response)
+
+- **Migration Safety** — `DROP INDEX CONCURRENTLY` for non-blocking index drops in production
+
+#### Frontend Performance
+- **Render Optimization**:
+  - `DealRadarCard`: `CustomDay` component wrapped in `useCallback` to prevent re-creation on every render
+  - `InsightsPanel`: 4 DonutChart data arrays memoized with `useMemo` (categories, statuses, sectors, sides)
+  - `StaffingHeatmapCard`: Sorting replaced with `useMemo`-based pre-computed `sortedRowsByGroup` Map
+- **Type Restoration** — 12 missing type exports restored for frontend type safety
+
+### Billing Control Tower Enhancements
+- **Sortable Tables** — Project/Billing Matter column headers now support click-to-sort (asc/desc toggle) across all three views:
+  - Invoice Queue (sorted by linked staffing project name)
+  - Long Stop Risk (sorted by billing matter name)
+  - Unpaid Invoices (sorted by billing matter name)
+- **Searchable Attorney Filter** — B&C Attorney dropdown replaced with MUI `Autocomplete` with type-ahead search, replacing scroll-through `TextField select`
+
+### Testing
+- Added `"42abc"` and `"3.5"` attorneyId rejection tests for billing trigger controller
+- Added duplicate `milestone_id` rejection test with 400 assertion for project controller
+- Strengthened unique `milestone_id` test to assert full 200 success path with payload validation
+- All 43 backend tests passing
+
+### Files Changed
+- 10 files modified
+- ~400 lines added, ~150 lines removed
+
+---
+
 ## [5.0.0] - 2026-02-22
 
 ### Major Feature: Billing Excel Sync Engine

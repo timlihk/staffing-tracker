@@ -40,7 +40,14 @@ This application replaces the Excel-based staffing tracker with a full-stack web
 
 ### 🎉 Recent Updates (Feb 2026)
 
-**Latest Release v5.0.0 — Billing Excel Sync Engine:**
+**Latest Release v5.1.0 — Performance, Reliability & Control Tower UX:**
+- **Backend Performance** — Billing date sweep refactored to batch-prefetch architecture (3 upfront queries, O(1) lookups, bounded batch inserts) eliminating N+1 queries and race conditions
+- **Input Validation** — `parseInt` → `Number()` for strict numeric rejection; duplicate milestone_id detection
+- **Frontend Render Optimization** — `useCallback` / `useMemo` applied to DealRadarCard, InsightsPanel, and StaffingHeatmapCard to prevent unnecessary re-renders
+- **Billing Control Tower** — All three table views (Invoice Queue, Long Stop Risk, Unpaid Invoices) now support column sorting by project name; B&C Attorney filter upgraded to searchable Autocomplete
+- **Test Coverage** — 43 backend tests covering partial-numeric rejection, duplicate payload detection, and full success path assertions
+
+**Release v5.0.0 — Billing Excel Sync Engine:**
 - ✅ **Finance Excel Upload & Sync** — Parses the HKCM Project List Excel and syncs all billing data to the database
   - Milestone extraction with ordinal detection, amount parsing, and currency detection
   - Strikethrough-based completion detection from Excel rich text formatting
@@ -731,6 +738,13 @@ npm run preview
 ```
 
 ## 📊 Features
+
+### Completed - Performance & UX (v5.1.0)
+- Batch-prefetch architecture for billing date sweep (eliminates N+1 queries)
+- Frontend render optimization (useCallback, useMemo across dashboard components)
+- Billing Control Tower sortable tables and searchable attorney filter
+- Input validation hardening (strict numeric parsing, duplicate payload detection)
+- 43 backend tests with full success path assertions
 
 ### Completed - Billing Excel Sync (v5.0.0)
 - ✅ Finance Excel parser with milestone, engagement, and financial extraction

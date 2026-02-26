@@ -160,6 +160,11 @@ const billingPractices = [
     description: 'If milestones belong to a different engagement, create a new engagement card. Do not combine.',
     Icon: Block,
   },
+  {
+    title: 'Review due milestones in Control Tower',
+    description: 'The Billing Control Tower automatically surfaces milestones past their due date. Sort by project and filter by attorney to review your queue.',
+    Icon: PriorityHighRounded,
+  },
 ];
 
 const SCROLL_OFFSET = '140px';
@@ -478,7 +483,7 @@ export default function BestPracticeGuide() {
                 '& .MuiAlert-message': { fontWeight: 600 },
               }}
             >
-              Always ensure these two dates are present and accurate. They are the minimum foundation for reliable milestone tracking.
+              Always ensure these two dates are present and accurate. They drive automated due-date sweeps and are the minimum foundation for reliable milestone tracking.
             </Alert>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Box
