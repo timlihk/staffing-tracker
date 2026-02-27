@@ -154,7 +154,7 @@ const milestoneCellHtml = (row: BillingExportRow) => {
   const done = ms.filter((m) => m.completed).length;
   const borderColor =
     done === ms.length ? '#2e7d32' : done === 0 ? '#999' : '#ed6c02';
-  const chip = `<span style="display:inline-block;border:1px solid ${borderColor};border-radius:10px;padding:0 5px;font-size:7pt;margin-bottom:2px;">${done}/${ms.length}</span>`;
+  const chip = `<span style="display:inline-block;border:1px solid ${borderColor};border-radius:10px;padding:0 5px;font-size:6pt;margin-bottom:2px;">${done}/${ms.length}</span>`;
   const items = ms
     .map((m) => {
       const dot = m.completed
@@ -293,7 +293,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
       .map((row, idx) => {
         const bg = idx % 2 === 0 ? '#fff' : '#f3f4f6';
         const cells = [
-          `<td style="font-family:monospace;font-size:7pt;">${escHtml(row.cmNumbers || '\u2014')}</td>`,
+          `<td style="font-family:monospace;">${escHtml(row.cmNumbers || '\u2014')}</td>`,
           `<td>${escHtml(row.projectName)}</td>`,
           `<td>${escHtml(row.bcAttorneyName)}</td>`,
           `<td>${escHtml(row.sca || '\u2014')}</td>`,
@@ -304,7 +304,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
           `<td style="text-align:right;">${row.billingCreditUsd ? fmt.format(row.billingCreditUsd) : '\u2014'}</td>`,
           `<td style="text-align:right;">${row.ubtUsd ? fmt.format(row.ubtUsd) : '\u2014'}</td>`,
           `<td style="text-align:right;">${row.arUsd ? fmt.format(row.arUsd) : '\u2014'}</td>`,
-          `<td style="font-size:7pt;">${escHtml(row.notes || '\u2014')}</td>`,
+          `<td>${escHtml(row.notes || '\u2014')}</td>`,
         ].join('');
         return `<tr style="background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact;">${cells}</tr>`;
       })
@@ -338,7 +338,7 @@ h2{font-size:14pt;margin:0 0 4px}
 hr{border:0;border-top:1px solid #ddd;margin:4px 0 8px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 th{background:#1e3a5f;color:#fff;font-weight:700;font-size:7pt;padding:4px 5px;border:1px solid #94a3b8;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-td{border:1px solid #e5e7eb;padding:3px 5px;font-size:8pt;word-wrap:break-word;overflow-wrap:break-word}
+td{border:1px solid #e5e7eb;padding:3px 5px;font-size:7pt;word-wrap:break-word;overflow-wrap:break-word}
 tr{page-break-inside:avoid}
 .ft{margin-top:16px;padding-top:8px;border-top:1px solid #ccc;font-size:7pt;color:#999}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
