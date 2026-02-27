@@ -114,8 +114,8 @@ const csvColumns: CsvColumn<BillingExportRow>[] = [
   { header: 'Billing ($)', key: 'billingUsd', formatter: (v) => String(v ?? 0) },
   { header: 'Collections ($)', key: 'collectionUsd', formatter: (v) => String(v ?? 0) },
   { header: 'Billing Credit ($)', key: 'billingCreditUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'UBT', key: 'ubtUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'AR', key: 'arUsd', formatter: (v) => String(v ?? 0) },
+  { header: 'UBT ($)', key: 'ubtUsd', formatter: (v) => String(v ?? 0) },
+  { header: 'AR ($)', key: 'arUsd', formatter: (v) => String(v ?? 0) },
   { header: 'Notes', key: 'notes' },
 ];
 
@@ -133,18 +133,12 @@ const sortLabelSx = {
 // Default column widths (pixels) for the resizable table
 // ---------------------------------------------------------------------------
 
-const DEFAULT_COL_WIDTHS = [100, 220, 140, 80, 100, 200, 100, 110, 120, 80, 80, 200];
+const DEFAULT_COL_WIDTHS = [100, 147, 140, 80, 67, 470, 67, 73, 80, 53, 53, 200];
 
 const COL_HEADERS = [
   'C/M Number', 'Project Name', 'B&C Attorney', 'SCA', 'Fee (US$)',
   'Milestone', 'Billing ($)', 'Collections ($)', 'Billing Credit ($)',
-  'UBT', 'AR', 'Notes',
-];
-
-const COL_ALIGNS: Array<'left' | 'right'> = [
-  'left', 'left', 'left', 'left', 'right',
-  'left', 'right', 'right', 'right',
-  'right', 'right', 'left',
+  'UBT ($)', 'AR ($)', 'Notes',
 ];
 
 // ---------------------------------------------------------------------------
@@ -292,7 +286,7 @@ const BillingExportDialog: React.FC<BillingExportDialogProps> = ({ open, onClose
     const colgroup = pctWidths.map((w) => `<col style="width:${w}"/>`).join('');
 
     const headerCells = COL_HEADERS.map(
-      (h, i) => `<th style="text-align:${COL_ALIGNS[i]};">${escHtml(h)}</th>`,
+      (h) => `<th style="text-align:center;">${escHtml(h)}</th>`,
     ).join('');
 
     const bodyRows = sortedRows
@@ -343,7 +337,7 @@ h2{font-size:14pt;margin:0 0 4px}
 .gen{color:#999;font-size:7pt;margin-bottom:8px}
 hr{border:0;border-top:1px solid #ddd;margin:4px 0 8px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
-th{background:#1e3a5f;color:#fff;font-weight:700;font-size:7pt;padding:4px 5px;border:1px solid #94a3b8;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+th{background:#1e3a5f;color:#fff;font-weight:700;font-size:7pt;padding:4px 5px;border:1px solid #94a3b8;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 td{border:1px solid #e5e7eb;padding:3px 5px;font-size:8pt;word-wrap:break-word;overflow-wrap:break-word}
 tr{page-break-inside:avoid}
 .ft{margin-top:16px;padding-top:8px;border-top:1px solid #ccc;font-size:7pt;color:#999}
@@ -589,21 +583,22 @@ tr{page-break-inside:avoid}
                       borderBottom: 'none',
                       position: 'relative',
                       overflow: 'hidden',
+                      textAlign: 'center',
                     },
                   }}
                 >
-                  <TableCell>{sortableHeader('cmNumbers', 'C/M Number')}{resizeHandle(0)}</TableCell>
-                  <TableCell>{sortableHeader('projectName', 'Project Name')}{resizeHandle(1)}</TableCell>
-                  <TableCell>{sortableHeader('bcAttorneyName', 'B&C Attorney')}{resizeHandle(2)}</TableCell>
-                  <TableCell>{sortableHeader('sca', 'SCA')}{resizeHandle(3)}</TableCell>
-                  <TableCell align="right">{sortableHeader('agreedFeeUsd', 'Fee (US$)')}{resizeHandle(4)}</TableCell>
-                  <TableCell>Milestone{resizeHandle(5)}</TableCell>
-                  <TableCell align="right">{sortableHeader('billingUsd', 'Billing ($)')}{resizeHandle(6)}</TableCell>
-                  <TableCell align="right">{sortableHeader('collectionUsd', 'Collections ($)')}{resizeHandle(7)}</TableCell>
-                  <TableCell align="right">{sortableHeader('billingCreditUsd', 'Billing Credit ($)')}{resizeHandle(8)}</TableCell>
-                  <TableCell align="right">{sortableHeader('ubtUsd', 'UBT')}{resizeHandle(9)}</TableCell>
-                  <TableCell align="right">AR{resizeHandle(10)}</TableCell>
-                  <TableCell>Notes{resizeHandle(11)}</TableCell>
+                  <TableCell align="center">{sortableHeader('cmNumbers', 'C/M Number')}{resizeHandle(0)}</TableCell>
+                  <TableCell align="center">{sortableHeader('projectName', 'Project Name')}{resizeHandle(1)}</TableCell>
+                  <TableCell align="center">{sortableHeader('bcAttorneyName', 'B&C Attorney')}{resizeHandle(2)}</TableCell>
+                  <TableCell align="center">{sortableHeader('sca', 'SCA')}{resizeHandle(3)}</TableCell>
+                  <TableCell align="center">{sortableHeader('agreedFeeUsd', 'Fee (US$)')}{resizeHandle(4)}</TableCell>
+                  <TableCell align="center">Milestone{resizeHandle(5)}</TableCell>
+                  <TableCell align="center">{sortableHeader('billingUsd', 'Billing ($)')}{resizeHandle(6)}</TableCell>
+                  <TableCell align="center">{sortableHeader('collectionUsd', 'Collections ($)')}{resizeHandle(7)}</TableCell>
+                  <TableCell align="center">{sortableHeader('billingCreditUsd', 'Billing Credit ($)')}{resizeHandle(8)}</TableCell>
+                  <TableCell align="center">{sortableHeader('ubtUsd', 'UBT ($)')}{resizeHandle(9)}</TableCell>
+                  <TableCell align="center">AR ($){resizeHandle(10)}</TableCell>
+                  <TableCell align="center">Notes{resizeHandle(11)}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -625,7 +620,7 @@ tr{page-break-inside:avoid}
                     <TableCell sx={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '0.7rem !important' }}>
                       {row.cmNumbers || '\u2014'}
                     </TableCell>
-                    <TableCell sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell sx={{ wordBreak: 'break-word' }}>
                       {row.projectName}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.bcAttorneyName}</TableCell>
