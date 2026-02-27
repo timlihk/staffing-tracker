@@ -850,6 +850,23 @@ export const getExportReport = async (
   return response.data;
 };
 
+export const downloadExportReportExcel = async (
+  params?: BillingExportReportParams,
+): Promise<Blob> => {
+  const queryParams: Record<string, string> = {};
+  if (params?.attorneyIds?.length) {
+    queryParams.attorneyIds = params.attorneyIds.join(',');
+  }
+  if (params?.statuses?.length) {
+    queryParams.statuses = params.statuses.join(',');
+  }
+  const response = await apiClient.get('/billing/export-report.xlsx', {
+    params: queryParams,
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 export const getBillingNotes = async (projectId: number, engagementId?: number): Promise<BillingNote[]> => {
   const params = engagementId ? { engagement_id: engagementId } : undefined;
   const response = await apiClient.get(`/billing/projects/${projectId}/notes`, { params });

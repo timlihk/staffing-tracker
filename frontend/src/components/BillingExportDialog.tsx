@@ -30,8 +30,9 @@ import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as PendingIcon,
 } from '@mui/icons-material';
+import { saveAs } from 'file-saver';
 import { useBillingExportReport } from '../hooks/useBilling';
-import { downloadCsv, type CsvColumn } from '../lib/export';
+import { downloadExportReportExcel } from '../api/billing';
 import type { BillingExportRow, BillingExportAttorney } from '../api/billing';
 
 // ---------------------------------------------------------------------------
@@ -92,32 +93,6 @@ const fmtFull = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 });
 
-// ---------------------------------------------------------------------------
-// CSV export columns
-// ---------------------------------------------------------------------------
-
-const csvColumns: CsvColumn<BillingExportRow>[] = [
-  { header: 'C/M Number', key: 'cmNumbers' },
-  { header: 'Project Name', key: 'projectName' },
-  { header: 'B&C Attorney', key: 'bcAttorneyName' },
-  { header: 'SCA', key: 'sca' },
-  { header: 'Fee (US$)', key: 'agreedFeeUsd', formatter: (v) => String(v ?? 0) },
-  {
-    header: 'Milestones',
-    key: 'milestones',
-    formatter: (_v, row) => {
-      const ms = row.milestones ?? [];
-      if (!ms.length) return row.milestoneStatus || '0/0';
-      return ms.map((m) => `[${m.completed ? 'x' : ' '}] ${m.title}`).join('; ');
-    },
-  },
-  { header: 'Billing ($)', key: 'billingUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'Collections ($)', key: 'collectionUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'Billing Credit ($)', key: 'billingCreditUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'UBT ($)', key: 'ubtUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'AR ($)', key: 'arUsd', formatter: (v) => String(v ?? 0) },
-  { header: 'Notes', key: 'notes' },
-];
 
 // ---------------------------------------------------------------------------
 // Shared header style for TableSortLabel on dark background
@@ -366,11 +341,24 @@ tr{page-break-inside:avoid}
     }, 300);
   }, [sortedRows, totals, subtitle, colWidths, rows.length]);
 
-  const handleCsvExport = useCallback(() => {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExcelExport = useCallback(async () => {
     if (!rows.length) return;
-    const timestamp = new Date().toISOString().slice(0, 10);
-    downloadCsv(rows, csvColumns, `billing-report-${timestamp}`);
-  }, [rows]);
+    setExporting(true);
+    try {
+      const blob = await downloadExportReportExcel({
+        attorneyIds: selectedAttorneys.map((a) => a.staffId),
+        statuses: selectedStatuses.map((s) => s.value),
+      });
+      const timestamp = new Date().toISOString().slice(0, 10);
+      saveAs(blob, `billing-report-${timestamp}.xlsx`);
+    } catch {
+      alert('Failed to export Excel file. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  }, [rows.length, selectedAttorneys, selectedStatuses]);
 
   // Helper to render sortable header
   const sortableHeader = (key: SortKey, label: string) => (
@@ -697,10 +685,10 @@ tr{page-break-inside:avoid}
         <Button
           variant="outlined"
           startIcon={<DownloadIcon />}
-          onClick={handleCsvExport}
-          disabled={!rows.length}
+          onClick={handleExcelExport}
+          disabled={!rows.length || exporting}
         >
-          Export CSV
+          {exporting ? 'Exporting...' : 'Export Excel'}
         </Button>
         <Button
           variant="contained"

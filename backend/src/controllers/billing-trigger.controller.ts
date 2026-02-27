@@ -13,6 +13,7 @@ import { BillingPipelineInsightsService } from '../services/billing-pipeline-ins
 import { logger } from '../utils/logger';
 import prisma from '../utils/prisma';
 import { SweepLockError } from '../utils/sweep-lock';
+import { buildBillingExportWorkbook } from '../services/billing-export.excel';
 import { enforceBillingAttorneyScope, BillingScopeError } from './billing.utils';
 
 const toSafeNumber = (value: unknown): number | null => {
@@ -1006,5 +1007,45 @@ export const getExportReport = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Error fetching export report:', error as any);
     return res.status(500).json({ error: 'Failed to fetch export report data' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// GET /billing/export-report.xlsx — Download billing export as Excel
+// ---------------------------------------------------------------------------
+
+export const getExportReportExcel = async (req: AuthRequest, res: Response) => {
+  try {
+    // Re-use the same JSON handler logic to get rows
+    const fakeRes = {
+      _data: null as any,
+      _status: 200,
+      status(code: number) { this._status = code; return this; },
+      json(data: any) { this._data = data; return this; },
+    };
+    await getExportReport(req, fakeRes as any);
+
+    if (fakeRes._status !== 200 || !fakeRes._data?.rows) {
+      return res.status(fakeRes._status || 500).json(fakeRes._data || { error: 'Failed to build report' });
+    }
+
+    const rows = fakeRes._data.rows;
+
+    // Build filter description strings for summary sheet
+    const filters = {
+      attorneys: req.query.attorneyIds ? String(req.query.attorneyIds) : undefined,
+      statuses: req.query.statuses ? String(req.query.statuses) : undefined,
+    };
+
+    const wb = await buildBillingExportWorkbook(rows, filters);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="billing-report-${new Date().toISOString().split('T')[0]}.xlsx"`);
+
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error('Error generating Excel export:', error as any);
+    return res.status(500).json({ error: 'Failed to generate Excel export' });
   }
 };

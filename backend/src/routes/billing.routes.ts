@@ -1435,6 +1435,7 @@ router.get('/time-windowed-metrics', authenticate, checkBillingAccess, billingTr
  *         description: Forbidden - Admin or Finance only
  */
 router.get('/export-report', authenticate, checkBillingAccess, adminOrFinance, billingTriggerController.getExportReport);
+router.get('/export-report.xlsx', authenticate, checkBillingAccess, adminOrFinance, billingTriggerController.getExportReportExcel);
 
 // ============================================================================
 // Excel Sync (Finance Upload)
